@@ -1,0 +1,188 @@
+# markdownlint configuration for Ken OS.
+#
+# Tuned against the documentation as it exists, not against an idealised style
+# guide. Every rule switched off below has a stated reason, and the reason is
+# always "the tree does not satisfy this today" or "this project does not write
+# Markdown that way" — never "the rule is inconvenient".
+#
+# The documentation *is* the product at this stage of the project, so this is
+# the gate that matters most. It should catch real defects (broken structure,
+# broken nesting, broken anchors) and stay silent on house style the authors
+# have deliberately chosen.
+
+default: true
+
+# --------------------------------------------------------------------------
+# Rules that are off, with the reason.
+# --------------------------------------------------------------------------
+
+# Long lines are not a defect here. Prose is hard-wrapped near 100 columns by
+# hand because the files are read in a terminal as often as on a web page, but
+# tables are not wrappable at all — docs/architecture.md carries decision
+# tables whose rows are several hundred characters. A length rule cannot tell
+# the two apart, so it is off entirely rather than tuned to a number that is
+# wrong for half the corpus.
+MD013: false
+
+# Fenced blocks without a language tag.
+# Ten prose and directory-tree fences currently carry no tag (README.md:88,
+# docs/architecture.md:139, and several in docs/adopting-ken.md and
+# docs/hardware-detection.md). Turning this on would gate the whole
+# documentation suite on reformatting files nobody is editing. It is the first
+# rule to enable once those fences are tagged — the intent of the codebase is
+# clearly to tag them.
+MD040: false
+
+# Missing trailing newline.
+# Every file this gate lints is in the same state today: the tree is written by
+# tooling that does not append one. Enabling it would make the gate fail on all
+# seventeen documents for a defect that has no reader-visible effect.
+MD047: false
+
+# Dead in-page anchors.
+# Off here because lychee owns link checking (see .github/workflows/docs.yml)
+# and because lychee also verifies the *file* half, which this rule does not.
+# The current corpus has known-dead fragments; they are reported by lychee
+# rather than doubled up in two linters.
+MD051: false
+
+# Bare URLs.
+# The house style for a contact address is the plain address: `conduct@kenos.dev`
+# in CODE_OF_CONDUCT.md, `security@kenos.dev` in SECURITY.md. Wrapping them in
+# angle brackets would be noise for a reader who is looking for the address.
+MD034: false
+
+# Spaces inside a code span.
+# agents/gnome-shell-notes.md quotes a literal arrow-delimited example as
+# `` `> ` ``, where the leading and trailing spaces are the content being
+# quoted rather than padding added by mistake.
+MD038: false
+
+# Ragged tables.
+# On. It was off while docs/adopting-ken.md carried a single five-cell row in a
+# four-column table; that row is fixed, and a row whose cell count disagrees
+# with its header is a real rendering bug in a project whose documentation is
+# the product.
+MD056: true
+
+# Emphasis standing in for a heading.
+# README.md opens with a one-line gloss under the title — **healthy · robust ·
+# strong** — which is the project's editorial convention for what the name
+# means, and it is set in emphasis deliberately. It is a line, not a heading,
+# and promoting it to an H2 would put it in the table of contents where it
+# does not belong. The documents use the same device for status lines
+# (*Status: done.* in docs/roadmap.md).
+MD036: false
+
+# --------------------------------------------------------------------------
+# Table pipe style.
+# --------------------------------------------------------------------------
+
+# The separator rows in this repository are written `|---|---|`, with no
+# padding spaces, and every table in the tree agrees. markdownlint's default
+# "compact" style requires padding on both sides of the dashes, which is a
+# different table convention rather than a defect. "consistent" accepts the
+# convention the codebase actually uses while still catching a table whose
+# delimiter row disagrees with its own header row.
+MD060:
+  style: consistent
+
+# --------------------------------------------------------------------------
+# Headings.
+# --------------------------------------------------------------------------
+
+# ATX (`## Heading`) everywhere. Setext underlines are not used in this tree.
+MD003:
+  style: atx
+
+# No trailing punctuation on a heading. A colon or a full stop on a heading is
+# a sign the sentence belongs in the body. Sentence case is the other half of
+# the heading style and is not mechanically checkable; the vocabulary list at
+# the bottom keeps the proper nouns in it correct.
+MD026:
+  punctuation: ".,;:!?"
+
+# A heading level may not be skipped. H1 is the document title, H2 the top
+# section, H3 the subsection; the architecture record depends on that outline
+# being readable as a table of contents.
+MD001: true
+
+# One H1 per document, and it must be the first line. Every document here
+# opens with its title as H1, including the AGENTS.md / CLAUDE.md / GEMINI.md
+# pointers.
+MD025:
+  level: 1
+MD041:
+  level: 1
+
+# Duplicates are only a problem within one parent section; the same subheading
+# name under two different H2s is legitimate ("Rejected, and why" style reuse).
+MD024:
+  siblings_only: true
+
+# --------------------------------------------------------------------------
+# Structure and spacing.
+# --------------------------------------------------------------------------
+
+# Fenced code blocks, backticks, and language tags where the author chose to
+# add one (MD040 stays off — see above).
+MD046:
+  style: fenced
+MD048:
+  style: backtick
+
+# Unordered lists use `-`. Ordered lists are numbered 1, 2, 3 so a list can be
+# renumbered by adding a line without touching the rest of it.
+MD004:
+  style: dash
+MD029:
+  style: ordered
+
+# Two-space indentation for nested list items, matching the one level of
+# nesting the documents actually use.
+MD007:
+  indent: 2
+
+# Horizontal rules are `---`.
+MD035:
+  style: "---"
+
+# Blank line above and below every block-level construct. The tree is
+# consistently spaced this way and a lone block with no surrounding blank line
+# is a real rendering bug.
+MD022: true
+MD031: true
+MD032: true
+
+# No runs of blank lines, no trailing whitespace, no tab-indented prose.
+MD012: true
+MD009:
+  br_spaces: 2
+
+# Indented code inside fenced blocks is data (command output, `ls -l`), not a
+# formatting error. Outside a fence it is still a defect.
+MD010:
+  code_blocks: false
+
+# --------------------------------------------------------------------------
+# Vocabulary.
+# --------------------------------------------------------------------------
+
+# Ken's own terms. A spell checker working from a general dictionary will read
+# these as misspellings, and a lowercase package or schema name in prose must
+# not be forced to match a capitalised heading.
+MD044:
+  # The lowercase forms are real and correct in context: `ken` is the command,
+  # `hypr` is the CLI, and a package or schema name in prose is lowercase by
+  # definition. Only the bare word in running prose is checked.
+  ignore_inline_code: true
+  code_blocks: false
+  html_elements: false
+  names:
+    - Hyprland
+    - Quickshell
+    - Limine
+    - SDDM
+    - DKMS
+    - EDID
+    - DMI

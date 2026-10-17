@@ -1,0 +1,307 @@
+# Documentation quality gate.
+#
+# The documentation is the product at this milestone: there is no Go, no QML and
+# no build system yet, so this is the workflow that actually holds the
+# repository to its own standard. The checks are split into independent jobs so
+# a red run names the thing that broke instead of saying "docs failed".
+
+name: docs
+
+on:
+  push:
+    branches: [main, dev-unstable]
+  pull_request:
+    branches: [main, dev-unstable]
+  workflow_dispatch:
+
+# Nothing in this workflow writes to the repository, so the token gets the
+# narrowest grant that still lets actions/checkout do its job. Every workflow
+# here states this rather than inheriting whatever the repository default is.
+permissions:
+  contents: read
+
+# Two pushes to the same branch in quick succession should cost one run, not
+# two, so a superseded run is cancelled. The branch name is part of the group
+# so a run on one branch can never cancel a run on another.
+concurrency:
+  group: docs-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  # Where Ken's documentation lives.
+  #
+  # The list is explicit rather than `**/*.md` on purpose: the gate should
+  # cover what Ken maintains, and that list belongs in one readable place rather
+  # than being implied by whatever happens to be in the tree. A wildcard also
+  # sweeps in archived material that is kept for its history and is not held to
+  # Ken's documentation standard.
+  #
+  # A pattern that matches nothing is harmless here, so a tree can be listed
+  # before it has any Markdown in it.
+  DOC_GLOBS: >-
+    *.md
+    .github/*.md
+    agents/**/*.md
+    docs/**/*.md
+    system/**/*.md
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Markdown structure.
+  # --------------------------------------------------------------------------
+  markdown:
+    name: markdownlint
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node is pinned rather than inherited from the runner image, because the
+      # linter's behaviour depends on the runtime's regex and glob handling.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The linter version is pinned exactly. An unpinned `npx markdownlint-cli2`
+      # silently changes what the rules mean between two runs on the same
+      # commit, which is the one thing a gate must never do.
+      - name: Lint Markdown
+        run: |
+          # $DOC_GLOBS is expanded unquoted on purpose: it is a list of glob
+          # patterns, and each has to reach markdownlint as its own argument.
+          # shellcheck disable=SC2086
+          npx --yes markdownlint-cli2@0.23.3 --config .markdownlint.yml $DOC_GLOBS
+
+  # --------------------------------------------------------------------------
+  # Links and paths.
+  # --------------------------------------------------------------------------
+  links:
+    name: links
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # lychee is fetched as a pinned release binary rather than through a
+      # wrapper action, so the link checker in CI is byte-identical to the one
+      # that was tested. The checksum is pinned for the same reason: a
+      # downloadable binary is not trustworthy because it came from a URL.
+      - name: Install lychee
+        env:
+          LYCHEE_VERSION: 0.15.1
+          LYCHEE_SHA256: 9afdf0f48064fdcd8a8815ca6d2d9fcd43a0ef4c2edf9da23d6f7bf46a764eb8
+        run: |
+          curl --fail --silent --show-error --location \
+               --proto '=https' --tlsv1.2 \
+               --output "$RUNNER_TEMP/lychee.tar.gz" \
+               "https://github.com/lycheeverse/lychee/releases/download/v${LYCHEE_VERSION}/lychee-v${LYCHEE_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${LYCHEE_SHA256}  ${RUNNER_TEMP}/lychee.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP" lychee
+
+      # --include-fragments is the point of this job. Without it lychee only
+      # checks that a file exists, and a link to a heading that has since been
+      # renamed reads as healthy — which is exactly the class of rot that makes
+      # a documentation set untrustworthy. Relative links, relative paths and
+      # `#anchor` fragments are all resolved against the checkout.
+      #
+      # The accept list covers the redirect codes GitHub and the external sites
+      # return for a moved document, plus 429 because a rate-limited external
+      # link is not a broken one. Retries absorb the transient failures that
+      # make an external check otherwise useless.
+      - name: Check links, paths and anchors
+        run: |
+          # $DOC_GLOBS is expanded unquoted so each glob is its own argument.
+          # shellcheck disable=SC2086
+          "$RUNNER_TEMP/lychee" \
+            --no-progress \
+            --include-fragments \
+            --accept 200,204,206,301,302,307,308,429 \
+            --max-retries 3 \
+            --timeout 20 \
+            --base . \
+            $DOC_GLOBS
+
+  # --------------------------------------------------------------------------
+  # Spelling.
+  # --------------------------------------------------------------------------
+  spelling:
+    name: codespell
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # A virtualenv rather than a bare `pip install`: the runner images mark
+      # their system Python as externally managed, and a gate that depends on
+      # `--break-system-packages` breaks the day the image changes.
+      - name: Install codespell
+        run: |
+          python3 -m venv "$RUNNER_TEMP/spelling"
+          "$RUNNER_TEMP/spelling/bin/pip" install --quiet "codespell==2.4.3"
+
+      # The ignore list is the project's own vocabulary, not a suppression of
+      # findings. Ken's names, the components it is built from and the hardware
+      # terms in the profile schema are correct words that a general-purpose
+      # dictionary reads as misspellings. Everything else still has to be
+      # spelled properly.
+      #
+      # Binary-ish files are skipped because a hash or an icon path is not prose
+      # and a "misspelling" inside one is noise, not a finding.
+      - name: Spell-check prose and data files
+        run: |
+          # git ls-files is expanded unquoted so each tracked file reaches
+          # codespell as its own argument.
+          # shellcheck disable=SC2046
+          "$RUNNER_TEMP/spelling/bin/codespell" \
+            --quiet-level 2 \
+            --ignore-words-list "ken,hypr,hyprland,quickshell,limine,sddm,dconf,dkms,dmi,edid,wlr,hda,mok,uefi,gpt,fwupd,apt,codename,ect,foss,spdx" \
+            --skip ".git,*.svg,*.css,*.js,*.ts,*.py,*.sh,*.xml,node_modules" \
+            $(git ls-files '*.md' '*.yaml' '*.yml' '*.json')
+
+  # --------------------------------------------------------------------------
+  # YAML.
+  # --------------------------------------------------------------------------
+  yaml:
+    name: yaml
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint and PyYAML
+        run: |
+          python3 -m venv "$RUNNER_TEMP/yaml"
+          "$RUNNER_TEMP/yaml/bin/pip" install --quiet "yamllint==1.38.0" "PyYAML==6.0.2"
+
+      # --strict makes warnings count. A relaxed rule is a decision recorded in
+      # .yamllint.yml; a warning left to slide through is how a gate stops
+      # meaning anything. Yamllint's own parser is the part that matters most
+      # here — these files are read by an installer, a kernel-fleet loader and
+      # GitHub's issue-form schema, and all three fail quietly on bad YAML.
+      - name: Lint YAML
+        run: |
+          "$RUNNER_TEMP/yaml/bin/yamllint" --strict --config .yamllint.yml .
+
+      # Parsing is not the same as being valid. A GitHub issue form that parses
+      # but is missing `body`, or carries a block with no `id`, is silently
+      # dropped from the issue page or renders without a field — the form still
+      # appears in the list, so nobody notices until a contributor fills in a
+      # form that throws their answers away.
+      #
+      # The rules encoded below are the ones GitHub enforces: `name`,
+      # `description` and `body` at the top level; `labels` as a list of
+      # strings when present; a known `type` on every block; an `id` on every
+      # block that is not plain Markdown; `id`s unique and well-formed; and a
+      # `label` and, where the type needs it, `options` on every field.
+      - name: Validate GitHub issue forms
+        run: |
+          "$RUNNER_TEMP/yaml/bin/python" - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          import yaml
+
+          # A form is unusable without these three, so they are required here
+          # exactly as GitHub requires them.
+          REQUIRED_TOP_LEVEL = ("name", "description", "body")
+          VALID_TYPES = {"markdown", "input", "textarea", "dropdown", "checkboxes"}
+          # Ids become field names in the submitted issue body, so they are
+          # restricted to what GitHub accepts for a field id.
+          ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+
+          errors = []
+
+
+          def err(path, message):
+              errors.append(f"{path}: {message}")
+
+
+          for form in sorted(pathlib.Path(".github/ISSUE_TEMPLATE").glob("*.yml")):
+              try:
+                  doc = yaml.safe_load(form.read_text(encoding="utf-8"))
+              except yaml.YAMLError as exc:
+                  err(form, f"does not parse as YAML: {exc}")
+                  continue
+
+              if not isinstance(doc, dict):
+                  err(form, "top level is not a mapping")
+                  continue
+
+              for key in REQUIRED_TOP_LEVEL:
+                  if key not in doc:
+                      err(form, f"missing required top-level key '{key}'")
+                  elif doc[key] in (None, "", [], {}):
+                      err(form, f"top-level key '{key}' is empty")
+
+              labels = doc.get("labels")
+              if labels is not None and not (
+                  isinstance(labels, list) and all(isinstance(v, str) for v in labels)
+              ):
+                  err(form, "'labels' must be a list of strings when present")
+
+              body = doc.get("body")
+              if not isinstance(body, list) or not body:
+                  err(form, "'body' must be a non-empty list of blocks")
+                  continue
+
+              seen_ids = set()
+              for index, block in enumerate(body):
+                  where = f"body[{index}]"
+                  if not isinstance(block, dict):
+                      err(form, f"{where} is not a mapping")
+                      continue
+
+                  kind = block.get("type")
+                  if kind not in VALID_TYPES:
+                      err(form, f"{where} has type {kind!r}; expected one of {sorted(VALID_TYPES)}")
+                      continue
+
+                  # A Markdown block is the one kind that needs no id: it is
+                  # static text, not a field anyone fills in.
+                  if kind == "markdown":
+                      continue
+
+                  block_id = block.get("id")
+                  if not block_id:
+                      err(form, f"{where} of type {kind!r} has no 'id'")
+                  elif not isinstance(block_id, str) or not ID_RE.match(block_id):
+                      err(form, f"{where} has a malformed 'id': {block_id!r}")
+                  elif block_id in seen_ids:
+                      err(form, f"{where} repeats id {block_id!r}")
+                  else:
+                      seen_ids.add(block_id)
+
+                  attributes = block.get("attributes")
+                  if not isinstance(attributes, dict):
+                      err(form, f"{where} ({block_id}) has no 'attributes' mapping")
+                  elif not attributes.get("label"):
+                      err(form, f"{where} ({block_id}) has no 'attributes.label'")
+
+                  if kind in {"dropdown", "checkboxes"}:
+                      options = attributes.get("options") if isinstance(attributes, dict) else None
+                      if not isinstance(options, list) or not options:
+                          err(form, f"{where} ({block_id}) has no 'attributes.options'")
+                      elif kind == "checkboxes":
+                          # A checkbox option is a mapping, not a bare string:
+                          # GitHub discards a string option and renders an
+                          # empty box.
+                          for option in options:
+                              if not isinstance(option, dict) or not option.get("label"):
+                                  err(form, f"{where} ({block_id}) has an option with no label")
+
+                  validations = block.get("validations")
+                  if validations is not None and not isinstance(validations, dict):
+                      err(form, f"{where} ({block_id}) has a non-mapping 'validations'")
+                  elif isinstance(validations, dict) and "required" in validations:
+                      if not isinstance(validations["required"], bool):
+                          err(form, f"{where} ({block_id}) has a non-boolean 'validations.required'")
+
+          if errors:
+              print("Issue form schema errors:", file=sys.stderr)
+              for line in errors:
+                  print(f"  {line}", file=sys.stderr)
+              sys.exit(1)
+
+          print("issue forms OK")
+          PY

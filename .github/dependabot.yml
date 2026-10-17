@@ -1,0 +1,41 @@
+# Dependabot.
+#
+# The github-actions ecosystem only, and that is the whole file on purpose.
+#
+# There is no language dependency set in this repository yet: no package.json,
+# no requirements file, no Cargo.toml, no go.mod. Listing ecosystems that have
+# no manifest produces either noise or a configuration error, and both teach a
+# maintainer to ignore this file. The Go ecosystem gets its entry in the same
+# commit that adds go.mod.
+#
+# Weekly rather than daily. Actions are pinned to a major version, so an update
+# is a deliberate bump someone chose, and a daily bot proposing it every morning
+# for a repository this size is noise rather than signal.
+
+version: 2
+
+updates:
+  # The workflow files and the two configuration files they read
+  # (.markdownlint.yml, .yamllint.yml) are the entire dependency surface right
+  # now. A runner that changes under a documentation gate is a gate whose
+  # results change for reasons nobody can find in a diff.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+    groups:
+      # One pull request for all workflow bumps. These actions depend on each
+      # other — a checkout pinned behind the runner that runs it is a confusing
+      # failure — and reviewing them together is the only way to see that.
+      actions-updates:
+        patterns:
+          - "*"

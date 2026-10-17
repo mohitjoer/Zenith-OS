@@ -1,0 +1,960 @@
+# Ken package manifest.
+#
+# What Ken installs from the base layer — and, just as important, what it
+# refuses to install. Read this before adding a line. Per the base-layer
+# boundary in docs/architecture.md, every package in an image is a liability on
+# the next rebase, so this file is a reviewed artefact rather than a wish list.
+# An entry earns its place by naming what breaks without it.
+#
+# Three rules this file encodes.
+#
+# 1. Ken's packages write only to /usr/share/ken/ and /etc/ken/. A base-layer
+#    package with the wrong configuration gets a Ken config package or a
+#    drop-in shadowing it under a ken- name, never an in-place edit. The list
+#    below is therefore also the list of things Ken must never patch.
+# 2. Ken references the base layer's components; it never repackages them.
+#    Every entry resolves to an archive component of the base layer. Rebuilding
+#    one as a Ken deb would make Ken the distributor of software and firmware
+#    blobs it has no licence to redistribute — which is why firmware is a named
+#    group of references rather than a vendored directory in this tree.
+# 3. A name this manifest gets wrong must fail at image build time, loudly.
+#    A package that fails to install is a bug report. A package that quietly
+#    vanished is a hardware report six months later. Where an exact 26.04 name
+#    is uncertain, it is flagged inline rather than written confidently.
+#
+# Each group carries `packages:` (installed) and `exclude:` (never installed,
+# with the reason). The exclusion lists hold more information than the package
+# lists, because a package nobody may add is a decision somebody will otherwise
+# re-litigate. The GNOME exclusions live in one place, under `desktop`; no
+# other group repeats them.
+#
+# gnome-keyring is deliberately present. It is a standalone daemon and the only
+# backing store the Secret portal has — it is not GNOME. See
+# docs/architecture.md, "the portal seam".
+#
+# Install with --no-install-recommends. Recommends is where a desktop
+# metapackage sneaks back into an image nobody reviewed.
+#
+# Blocks are separated by comment rules rather than YAML document markers: a
+# real `---` between groups would turn this into a multi-document stream and
+# every loader would see the first group only.
+
+version: 1
+
+base:
+  # The substrate. Ubuntu is the base layer, not the identity — see README.md.
+  # 26.04 specifically because the HWE kernel is the hardware reach the whole
+  # distribution exists for.
+  release: "26.04"
+  # Resolved from the suite at ISO build time. Do not hard-code a codename in a
+  # manifest that has to outlive a release cycle.
+  codename: null
+  components:
+    - main
+    - universe        # compositors, portals, language tooling, most of this
+    - multiverse      # a handful of packages with no free reimplementation
+    - non-free
+    # There is no `non-free-firmware` component on this base layer. Every
+    # firmware blob in this image ships inside an ordinary archive package —
+    # see the `firmware` group.
+  notes: >-
+    Nothing in this file comes from Ken's own repository. Ken's own packages —
+    ken, ken-shell, ken-hub, ken-session, the shell's assets, the SDDM theme,
+    the icon and cursor themes — ship from Ken's signed APT repository and are
+    not a base-layer dependency of anything listed here. If a package below is
+    not in the base archive, it is a bug in this file, not a reason to build it.
+    There is exactly one recorded exception, and it is stated where it lives:
+    the terminal is not carried by this archive, so Ken builds it — see
+    terminal-and-shell.
+
+# ---------------------------------------------------------------------------
+# essential
+#
+# What must be present for the machine to boot, log in and reach the network in
+# order to update itself. Everything the rest of the image assumes is already
+# true at this point.
+#
+# Deliberately absent: a second bootloader, any crash reporter that collects
+# state and ships it somewhere, and any daemon that updates packages behind
+# `ken update`'s back.
+# ---------------------------------------------------------------------------
+
+essential:
+  packages:
+    # The base layer's minimal floor: apt, dpkg, libc, login, PAM, baseutils.
+    # Not ubuntu-standard and not ubuntu-desktop — both are desktop
+    # metapackages and both pull GNOME.
+    - ubuntu-minimal
+
+    # The kernel. The fleet (system/kernel/fleet.yaml) picks the flavour per
+    # hardware profile; generic is the floor that always boots, and every
+    # flavour takes its headers from the fleet's own common list.
+    - linux-image-generic
+
+    # The base layer's initramfs tooling, tuned rather than replaced. Ken keeps
+    # initramfs-tools and adds the systemd zram generator beside it rather than
+    # swapping in another generator — a swap would be a fork, not a
+    # configuration.
+    - initramfs-tools
+    - initramfs-tools-core
+    # systemd-zram-generator, not zram-generator: the short name is not a
+    # package and resolves to nothing (universe, source rust-zram-generator).
+    # What it does is narrower than the name suggests — it is a systemd
+    # generator that runs at boot and writes the units which create and swap on
+    # a zram device. It does not by itself place zram in the initramfs; that is
+    # initramfs configuration, not this package.
+    - systemd-zram-generator
+
+    # init, plus the two buses every desktop service assumes exists.
+    - systemd-sysv
+    - dbus
+    - dbus-user-session
+
+    # Authorisation is a daemon, not a dialog. Nothing in Ken's UI asks for a
+    # password; polkitd is what it asks on the user's behalf.
+    - polkitd
+
+    # SDDM enumerates accounts through it. A greeter that cannot list users
+    # shows an empty or uneditable login field.
+    - accountsservice
+
+    # Boot chain. Limine is the bootloader; these are the pieces around it — the
+    # EFI variables it reads, the second-stage loader for Secure Boot, and the
+    # tool that enrolls a machine owner key.
+    - efibootmgr
+    - mokutil
+    # Name to verify on 26.04: the shim package has moved between `shim`,
+    # `shim-signed` and distro-specific signed variants, and getting it wrong
+    # means nothing installs on a locked laptop.
+    - shim-signed
+
+    # Root encryption. A laptop is the target hardware and an encrypted root is
+    # close to mandatory on one. This is the unlock path, not the installer:
+    # the installer brings its own.
+    - cryptsetup
+
+    # git is a runtime dependency, not a developer convenience. `ken update`
+    # snapshots ~/.config to a repository before it replaces anything, so a
+    # machine without it cannot roll back.
+    - git
+
+    # Install and recovery elevate through sudo. The desktop elevates through
+    # polkit. Both must exist or a broken install is unfixable from the machine
+    # it broke on.
+    - sudo
+
+    # Without it apt cannot verify Ken's own signed repository over HTTPS, and
+    # an install fails at the one step that cannot be retried offline.
+    - ca-certificates
+
+    # Keyboard layout and locale are answered at install time and stored under
+    # /etc/default, which Ken reads and never writes.
+    - locales
+    - keyboard-configuration
+
+  exclude:
+    ubuntu-desktop: >-
+      Pulls the GNOME session, the GNOME daemons and the bundled application
+      suite. Ken ships none of them and wants none of them.
+    ubuntu-standard: >-
+      The same objection one level down. Ken starts from ubuntu-minimal and adds
+      only what it can justify.
+    grub-efi-amd64: >-
+      Limine is the boot chain. A second bootloader is a filesystem owner Ken
+      does not have and a merge conflict on every rebase.
+    grub-efi-amd64-signed: >-
+      Same reason, plus two Secure Boot chains that both believe they are first.
+    grub-pc: >-
+      The BIOS path. Ken targets UEFI machines; the one that does not boot is
+      not a tier, it is out of scope.
+    plymouth: >-
+      A cosmetic splash in front of an initramfs doing real work. It costs boot
+      time and covers the failure it would otherwise let the user read.
+    apport: >-
+      A resident crash reporter that collects state from every machine and
+      sends it somewhere. Wrong in an image whose whole premise is knowing where
+      its own state lives, and wrong in an image with no software centre to
+      render its report into.
+    whoopsie: >-
+      The telemetry half of apport. Same objection.
+    unattended-upgrades: >-
+      A second writer for package state. `ken update` owns that, and one writer
+      per setting is what makes rollback possible at all.
+    command-not-found: >-
+      It exists to advertise the base layer's archive at the exact moment a user
+      is stuck. Ken's own surface owns suggestions, and nudging a Ken user
+      toward the base archive is an argument Ken should not be making.
+    openssh-server: >-
+      A listening network service is a security decision, not a base layer
+      default. Ken has not made that decision. When it does, it makes it in
+      /etc/ken and leaves the service disabled until the user asks.
+
+# ---------------------------------------------------------------------------
+# desktop
+#
+# The compositor, the shell, and the portal seam. This is the group where the
+# no-GNOME decision is enforced, so it also carries the canonical exclusion
+# list for the whole image.
+#
+# The portal stack is exactly four components and no more. GlobalShortcuts has
+# no portal backend and is the shell's job directly; Notifications has no
+# daemon in the image and the shell hosts the server. An application that works
+# on the base layer with GNOME must work on Ken — a portal regression is a
+# distribution-wide bug, not a cosmetic one.
+#
+# Deliberately absent: every GNOME daemon, the GNOME portal backend, and any
+# software centre.
+# ---------------------------------------------------------------------------
+
+desktop:
+  packages:
+    # The compositor. Behind a `ken wm` seam so it can be swapped; the package
+    # is chosen once here and the seam is where a second one would be added.
+    - hyprland
+
+    # The shell. QML, compositor-agnostic. Name to verify on 26.04: it is young
+    # enough to the archive that the package spelling should be checked rather
+    # than assumed, and if it is absent from universe it ships from Ken's
+    # repository instead — which is a repository fact, not a manifest change.
+    - quickshell
+
+    # The portal stack: the dispatcher every application talks to, the Hyprland
+    # backend for ScreenCast and Screenshot, the GTK backend for FileChooser,
+    # OpenURI and Print, and the keyring behind Secret.
+    - xdg-desktop-portal
+    - xdg-desktop-portal-hyprland
+    - xdg-desktop-portal-gtk
+
+    # gnome-keyring is a standalone daemon, and it is deliberately allowed: it
+    # is the only backing store the Secret portal has. Forbidden here are
+    # gnome-shell, gnome-session and xdg-desktop-portal-gnome, none of which
+    # appears anywhere in this manifest.
+    - gnome-keyring
+
+    # The PAM module that unlocks that keyring at login. Its name begins with
+    # gnome- and it is not a GNOME daemon: without it, every Secret prompt asks
+    # for a second password and the portal looks broken.
+    - libpam-gnome-keyring
+
+    # Qt applications reach Wayland through the Qt platform plugin instead of
+    # XWayland, which is what stops them flickering on resize and going grey at
+    # fractional scaling. Name to verify: the archive carries this as either
+    # qt6-wayland or qtwayland6.
+    - qt6-wayland
+
+    # The GTK 4 and libadwaita runtimes. Ken's own UI is Quickshell, not GTK —
+    # but third-party GTK 4 applications are on the desktop and will not start
+    # without them, which is the whole reason they are here.
+    - libgtk-4-1
+    - libadwaita-1-0
+
+    # xdg-open, xdg-email, xdg-settings: the three entry points an application
+    # uses to reach the desktop at all. Small, standard, and nothing on the
+    # desktop works without them.
+    - xdg-utils
+
+    # The Wayland clipboard tool. There is no xclip in this image, and both the
+    # shell and Hyprland's keybind scripts need a clipboard owner that speaks
+    # Wayland rather than X11.
+    - wl-clipboard
+
+  # GNOME, excluded deliberately and in full. Each of these is a real package in
+  # the base archive, so each line below is a decision rather than an absence.
+  exclude:
+    gnome-shell: >-
+      The desktop shell is Ken's own. Shipping the stock one would mean fighting
+      it for every pixel of the bar while still paying its memory cost.
+    gnome-session: >-
+      The session is `ken-session`, from Ken's repository. A GNOME session
+      binary assumes a GNOME compositor under it and starts differently when it
+      finds something else.
+    gnome-session-bin: >-
+      Same reason as gnome-session; this is the part that would end up on PATH.
+    gnome-session-flashback: >-
+      A compatibility session for running GNOME extensions. Ken has no extension
+      mechanism, so this would be a second session type with no reason to exist.
+    gnome-settings-daemon: >-
+      Printers, remotes, tablets, colour, users, keyboards, and the session
+      daemon itself. Ken's shell owns the desktop surfaces, and the base layer's
+      own tools cover the hardware.
+    gnome-control-center: >-
+      A settings centre duplicating Ken Hub page for page. Two front ends
+      writing one setting is the exact bug class the overlay model exists to
+      prevent.
+    gnome-color-manager: >-
+      Night light, display profiles, gamma. A second process writing colour
+      state fights the shell over the same CRTC and loses on at least one of
+      them.
+    gnome-power-manager: >-
+      power-profiles-daemon is the power daemon on Ken. Two of them both
+      setting a governor means the machine's power state depends on which one
+      won the race.
+    gnome-bluetooth: >-
+      bluez is the daemon, and it is installed. This is the GNOME agent and
+      settings half; the shell will own that surface, and a daemon with no UI is
+      not a reason to ship somebody else's.
+    xdg-desktop-portal-gnome: >-
+      It reads GDK_BACKEND to decide whether it is on a real GNOME session and
+      silently drops interfaces when it decides it is not. Earlier drafts
+      shipped it and needed a systemd drop-in to unset the variable. Not
+      shipping GNOME at all removes both the problem and the drop-in.
+    gnome-software: >-
+      A software centre. The image contains none — performance plan item 2 — and
+      `ken` is the only way the system is allowed to change.
+    packagekit: >-
+      Its update check is a second writer for package state, and its daemon is a
+      permanent resident on a system that has `ken update` for that.
+    gnome-initial-setup: >-
+      A first-boot wizard that writes settings. Ken Hub is the first-boot
+      surface, and a wizard that writes before the user has chosen anything is
+      drift by construction.
+    "gnome-* (application suite)": >-
+      The bundled applications — text editor, calculator, image viewer, clocks.
+      A Ken image ships an editor and a terminal and nothing else; applications
+      are per-user installs.
+    "*-desktop, *-desktop-minimal": >-
+      Any other desktop environment's metapackage. One compositor, one shell,
+      one session. A second one is not a feature, it is a second answer.
+
+# ---------------------------------------------------------------------------
+# session
+#
+# Login manager and the display-server side of a session. The chain is
+# SDDM → ken-session → Hyprland → Quickshell, and only the first link is a
+# base-layer package.
+#
+# Deliberately absent: every other display manager, Xorg, and the base layer's
+# greeter themes.
+# ---------------------------------------------------------------------------
+
+session:
+  packages:
+    # The login manager. Themable, no GNOME session assumptions, and it writes
+    # nothing Ken has to shadow. The theme itself is a Ken package — see base.
+    - sddm
+
+    # Hyprland runs XWayland for X11 clients, so a machine gets X11 support
+    # without a second session type ever being selectable. Name to verify: older
+    # archives spelled this xorg-xwayland.
+    - xwayland
+
+  exclude:
+    gdm3: >-
+      A second greeter. The virtual terminal belongs to exactly one display
+      manager, and two of them fighting for it is a support ticket every time.
+    lightdm: >-
+      Same reason as gdm3. It is also themable in ways that tempt an install
+      towards a theme Ken would then have to replace anyway.
+    xdm: >-
+      Same reason, and it is ancient enough that its configuration files are
+      where every "my login manager will not start" thread begins.
+    xorg: >-
+      Hyprland's XWayland covers X11 clients. A second display server owns the
+      VT, ships a second input stack, and is a rebase liability for nothing.
+    "sddm-theme-*": >-
+      The base layer's greeter themes, including its default. Ken ships its own
+      theme from Ken's repository; carrying two means the login screen depends
+      on which one sddm happened to pick.
+
+# ---------------------------------------------------------------------------
+# terminal-and-shell
+#
+# The terminal and the user's shell on a tty. Ken's desktop shell is in
+# `desktop`; this group is the one you land in when the desktop does not start.
+#
+# Four separate places must declare the terminal the default, and if any one
+# of them is wrong the desktop is inconsistent: the shell's terminal-launcher
+# setting, the default-applications GSettings key, update-alternatives for
+# applications that hardcode the VTE path, and OSC 133 shell integration
+# sourced from ~/.zshrc.
+#
+# Deliberately absent: every other terminal emulator, and any shell theme that
+# is not starship.
+# ---------------------------------------------------------------------------
+
+terminal-and-shell:
+  packages:
+    # The terminal: kitty. Client-side rendered, so it costs far less than a
+    # VTE-based one.
+    #
+    # This is the one entry in the file the base archive does not carry, so
+    # rule 2 above has a single recorded exception and it is written here rather
+    # than discovered later. The archive ships no kitty package, so
+    # `ken-terminal` builds it from source and the project owns that build: the
+    # source pin, the rebuild against each rebase, and the breakage when
+    # upstream moves under the pin are a recurring maintenance cost a reader of
+    # this manifest should know about before assuming `apt install`.
+    #
+    # The terminfo entry other applications need in order to run inside the
+    # terminal, and the shell integration the fourth declaration above depends
+    # on, are not separate entries either: the archive has no packages for them,
+    # because kitty's build produces both out of the same source tree as the
+    # binary and Ken installs them alongside it.
+    - kitty
+
+    # The login shell. fish and blesh ship alongside zsh for users who prefer
+    # them — all three are installed, none is configured, and the choice belongs
+    # to /etc/skel rather than to this manifest.
+    - zsh
+    - fish
+    # Name to verify: blesh is young in the archive. If it is absent from 26.04
+    # it ships from Ken's repository; if it never lands, it is dropped rather
+    # than carried as a dependency of nothing.
+    - blesh
+
+    # The prompt. One prompt implementation, on every shell, so a user's prompt
+    # does not change with their login shell.
+    - starship
+
+  # Deliberately empty, and that is the honest state of it. The terminal's build
+  # happens in CI against the build environment rather than in the shipped
+  # image, so no archive -dev package rides along for it here. For the record:
+  # kitty is C++ and Python built from its own repository, and on Linux its
+  # floor is a C++ compiler, python3 and glibc — beyond that it links whatever
+  # the features it was built with need, which for a usable desktop binary means
+  # font rendering plus a Wayland or X11 backend. That set is the build recipe's
+  # to resolve. Name to verify on 26.04: read the recipe rather than trusting
+  # this paragraph.
+  build_dependencies: []
+
+  exclude:
+    ghostty: >-
+      The terminal was Ghostty and the terminal is now kitty. Adding it back
+      beside kitty is a second emulator, which is the objection every entry
+      below this one records.
+    gnome-terminal: >-
+      A terminal is the answer to one question, and this image already has one.
+      A second emulator means a different font, different ligature behaviour and
+      no shell integration, depending on which one a dialog happened to pick.
+    xterm: >-
+      Same reason, and it is on the image only because something depends on it
+      as a fallback. The fallback is `x-terminal-emulator`, which update-
+      alternatives points at kitty.
+    tilix: >-
+      Same reason. Every additional terminal in the archive is one more package
+      to rebase and one more inconsistent answer.
+    guake: >-
+      Same reason. A drop-down terminal also duplicates a surface Ken's shell
+      owns.
+    yakuake: >-
+      Same reason as guake.
+    "zsh-theme-*": >-
+      Prompt frameworks installed beside starship. starship is the prompt; a
+      second one loaded from /etc/ken is a second writer for the same line.
+
+# ---------------------------------------------------------------------------
+# languages
+#
+# One official version manager per language, each managing only its own: rustup
+# for Rust, fnm for Node, mise for the rest, uv for Python. Ken deliberately
+# does not put a single opinion across all three — each ecosystem expects its
+# own tool, and the architecture record says so.
+#
+# Two rules that the package names below exist to enforce. System Python stays
+# pristine, because it is an operating-system dependency and PEP 668 marks it
+# externally managed. And no language is ever shipped from the archive's own
+# compiler when that compiler lags.
+#
+# Deliberately absent: apt's Rust toolchain, anything that installs into system
+# Python, and version managers that edit a shell profile.
+# ---------------------------------------------------------------------------
+
+languages:
+  packages:
+    # Rust, and nothing else from the archive. The shared toolchain lives at
+    # /opt/ken/rust so every account on the machine compiles against the same
+    # one; the archive's rustc lags by years and a second compiler in the image
+    # is a rebase liability with no upside.
+    - rustup
+
+    # System Node is the floor, pinned to LTS. Per-project versions belong to
+    # fnm, per repository. corepack ships inside the nodejs package and is
+    # enabled during the image build rather than installed as a package.
+    - nodejs
+    - npm
+
+    # System Python, plus exactly what is needed to build against it. Nothing
+    # may install into it: PEP 668 marks it externally managed and it is an OS
+    # dependency, not a user environment.
+    - python3
+    - python3-venv
+    - python3-dev
+
+    # The one cross-language tool Ken keeps, and only for the languages that
+    # have no official manager of their own. It does not manage Rust and it does
+    # not manage Node.
+    - mise
+
+    # Node's version manager. Name to verify: fnm is young, and if 26.04 does
+    # not carry it then it comes from Ken's repository. It is still the packaged
+    # choice either way — see the nvm exclusion below for why the obvious
+    # alternative is not.
+    - fnm
+
+    # Python's package and environment manager, and the reason pip is not on
+    # the system path. It installs into environments, which is the only place
+    # anything on a PEP 668 system may install.
+    - uv
+
+  # Installed with `cargo install --locked` against the shared toolchain, not
+  # from the archive. A binary taken from the archive would be built against
+  # the distro's Rust, which is the second-toolchain problem rustup exists to
+  # avoid. These are the near-universal wins from the architecture record.
+  cargo_install:
+    - cargo-edit
+    - just
+    - sccache
+    - mold
+    - cargo-nextest
+    # From the archive this binary is fd-find, which is not the name any
+    # documentation, alias or muscle memory expects. Building it here gives it
+    # the name it is supposed to have.
+    - fd
+
+  exclude:
+    rustc: >-
+      Never ship Rust through apt. The archive's compiler is years behind what
+      every Rust project expects, and two compilers on one machine means two
+      answers to `cargo --version` and two sets of sysroot assumptions.
+    cargo: >-
+      The same objection as rustc. Cargo that ships with the shared toolchain is
+      the only cargo on this image.
+    python3-pip: >-
+      PEP 668 marks system Python externally managed, and a pip on the system
+      path is precisely how it stops being. uv installs into environments.
+    python-is-python3: >-
+      A script that runs `python` on a Ken machine has a bug. Ken's own tooling
+      calls python3 explicitly, and adding the alias makes that bug survivable
+      instead of visible.
+    pyenv: >-
+      A shell-profile editor. Ken does not let a package manager edit a shell
+      init file, because that file's base is /etc/ken and has exactly one
+      writer. mise is the packaged equivalent.
+    nvm: >-
+      Not a package at all — a shell function, sourced from a profile, which
+      means it edits the same content Ken owns. fnm is the packaged equivalent
+      and does the same job without a second writer.
+    conda: >-
+      A second Python runtime with its own layout under /opt, installed outside
+      the two directories Ken owns. It would be the one thing on the machine
+      that nothing could roll back.
+
+# ---------------------------------------------------------------------------
+# graphics-and-media
+#
+# GPU userspace, Vulkan, and audio. Display *servers* are in `session`; what is
+# here is what draws.
+#
+# The rule: nothing that is only correct on one machine ships by default. GPU
+# drivers, mux tools and media plugins are chosen by the hardware profile,
+# because a proprietary driver on a machine with no discrete GPU is an install
+# failure and a Secure Boot module-signing prompt during the one step that must
+# never fail.
+#
+# Deliberately absent: Xorg's video driver modules, extra codec plugins, and a
+# software centre for obtaining any of this.
+# ---------------------------------------------------------------------------
+
+graphics-and-media:
+  packages:
+    # Mesa's DRI drivers and the Vulkan ICDs. Intel and AMD need nothing beyond
+    # this; the NVIDIA path is per profile, below.
+    - libgl1-mesa-dri
+    - mesa-vulkan-drivers
+
+    # glxinfo and vulkaninfo. `ken hardware report`, the bug template and every
+    # profile review read them — a machine's GL renderer string is the first
+    # thing anybody asks for and the last thing a user can find unaided.
+    - mesa-utils
+
+    # Audio is a per-session service. pipewire-pulse exists for the PulseAudio
+    # clients that are still everywhere; it is a compatibility shim, not a
+    # second audio server.
+    - pipewire
+    - pipewire-pulse
+    - wireplumber
+
+    # The video player. There is no video player daemon and no codec bundle
+    # beyond what mpv links; the transcoder CLI is in `optional`.
+    - mpv
+
+  # Chosen by the hardware profile, never installed unconditionally. See
+  # system/hardware/profiles/ for the schema and system/kernel/fleet.yaml for
+  # why the kernel flavour is part of the driver decision.
+  by_profile:
+    - key: nvidia_open
+      role: >-
+        The in-kernel NVIDIA driver, for a discrete NVIDIA GPU. Preferred
+        because it needs no kernel module and therefore no Secure Boot signing.
+        Its package name carries the kernel flavour, so the profile names the
+        exact package; it never comes from this manifest.
+
+    - key: nvidia_proprietary
+      role: >-
+        The proprietary driver, only where a profile insists after nvidia-open
+        has actually failed on that machine. Signed, so it needs a MOK enrolled
+        before first boot, which is why it cannot be a default.
+
+    - key: gpu_mux
+      role: >-
+        Vendor mux tooling for hybrid machines — supergfxctl, envy, asusctl.
+        Names to verify: some of these are DKMS packages, which makes them
+        MOK-relevant and kernel-flavour-specific. A profile selects one; the
+        image installs none.
+
+    - key: media_vaapi
+      role: >-
+        VA-API drivers for hardware video acceleration. Intel iGPUs need
+        intel-media-va-driver or its non-free variant; AMD and recent Intel need
+        nothing extra because their implementations are in mesa. Per profile
+        because installing it where it does not apply costs a driver that never
+        loads.
+
+  exclude:
+    "nvidia-driver-*": >-
+      Installed unconditionally it fails on every machine without an NVIDIA GPU,
+      and on a Secure Boot machine it forces module signing during an install
+      that has no keyring yet. The profile decides; see by_profile above.
+    "xserver-xorg-video-*": >-
+      Driver modules for a display server Ken does not ship. XWayland drives X11
+      clients through Mesa or the NVIDIA userspace; it never needs Xorg's
+      modules.
+    "gstreamer1.0-plugins-*": >-
+      The base layer's codec plugin sets, including the bad and ugly tiers.
+      Nothing on the desktop needs them, mpv links what it needs, and an image
+      whose codec inventory is audited by package name is worth auditing.
+    ffmpeg: >-
+      A transcoder of several hundred megabytes. It lives in `optional`; mpv
+      links the libraries, and the command-line tool belongs to users who
+      transcode.
+    pavucontrol: >-
+      A mixer GUI, in `optional`. PipeWire's own tools and the shell's surfaces
+      cover the machines anyone has actually tested.
+
+# ---------------------------------------------------------------------------
+# power-and-hardware-services
+#
+# The daemons that make a laptop behave: power state, battery, scheduling,
+# network, Bluetooth, fingerprint, external display brightness, firmware
+# updates.
+#
+# The rule for this group: one daemon per job. Every exclusion below is a second
+# process writing a piece of state another one already owns.
+#
+# Deliberately absent: power daemons that fight power-profiles-daemon, a second
+# wireless backend, and the GNOME applet for a network manager that is present.
+# ---------------------------------------------------------------------------
+
+power-and-hardware-services:
+  packages:
+    # Power state. The base layer's own daemon, chosen over anything that wants
+    # to be the power daemon, because it is the one that will still be there
+    # after the next rebase.
+    - power-profiles-daemon
+
+    # Battery reporting. Ken reads it; nothing else does, which is the point.
+    - upower
+
+    # Real-time scheduling priority for the audio stack. Without it PipeWire
+    # runs with the wrong scheduling class and crackles under load.
+    - rtkit
+
+    # The wireless backend, and NetworkManager itself. iwd rather than
+    # wpa_supplicant — see the exclusion below.
+    - iwd
+    - network-manager
+
+    # On this base layer NetworkManager's persistent configuration is read from
+    # here, so the package is not optional even though Ken never writes to
+    # /etc/netplan. Ken configures NetworkManager through its own APIs and
+    # through GSettings, never by editing either tree.
+    - netplan.io
+
+    # Fingerprint, Bluetooth, and external display brightness. ddcutil is the
+    # difference between an external monitor that can be dimmed and one that
+    # burns the user's eyes; there is no substitute for it in a desktop.
+    - fprintd
+    - bluez
+    - ddcutil
+
+    # Firmware updates over LVFS. The alternative is a vendor tool per machine,
+    # which is the exact problem Ken exists to remove.
+    - fwupd
+
+    # Hybrid graphics on machines where switching the mux is a userspace switch
+    # rather than a reboot. It is a daemon that talks to firmware the profile
+    # already established is there.
+    - switcheroo-control
+
+  exclude:
+    tlp: >-
+      A second power daemon. It sets the same governor and the same platform
+      profile power-profiles-daemon is already setting, and the two disagree in
+      ways nobody can diagnose from a screenshot.
+    auto-cpufreq: >-
+      The same objection as tlp. Three of these exist upstream; an image ships
+      one.
+    cpufrequtils: >-
+      The same objection. The governor belongs to a single service, and that
+      service is already in this list.
+    wpa_supplicant: >-
+      iwd is the wireless backend. NetworkManager driving both is a known source
+      of interface flapping and of laptops that will not reassociate after
+      suspend — the most-reported hardware bug class Ken has.
+    network-manager-gnome: >-
+      A GNOME applet and a GNOME keyfile plugin. Ken's shell is the network
+      surface and reads NetworkManager's state directly.
+    avahi-daemon: >-
+      mDNS answering on every network a laptop joins, including coffee-shop
+      WiFi. Nothing on this image needs to be found by name, so it is an inbound
+      port with no feature behind it.
+
+# ---------------------------------------------------------------------------
+# dev-tools
+#
+# What a user needs to build something on the machine, and no more. This group
+# is small on purpose: a -dev package is a full toolchain's worth of headers
+# re-checked on every rebase, and Ken's own code is built in CI.
+#
+# Deliberately absent: the -dev packages, the packaging toolchain, and every
+# editor that is not Neovim.
+# ---------------------------------------------------------------------------
+
+dev-tools:
+  packages:
+    # A C toolchain. Not because a user compiles C, but because half the
+    # archive's build instructions start here and a machine that cannot run
+    # `./configure` is a machine that cannot get help.
+    - build-essential
+
+    # The build systems a desktop project actually uses, and the one that reads
+    # pkg-config metadata. A laptop reaches its limits; these are how you find
+    # out where.
+    - cmake
+    - ninja-build
+    - pkg-config
+
+    # Go, because `ken` is written in it and a user reporting a bug should be
+    # able to rebuild the tool that has it.
+    - golang-go
+
+    # The editor. It is the editor the image ships, which is also why no
+    # terminal-based editor alternative appears below.
+    - neovim
+
+  exclude:
+    "*-dev": >-
+      Not one of them on a user machine. The image carries none of them at all —
+      the terminal's build happens in CI against the build environment rather
+      than here, and everything else Ken builds is a Ken package built in CI.
+    debhelper: >-
+      Ken's debs are built and signed in CI, where reproducibility is a
+      requirement rather than a hope. dh-make, dh-golang and the rest are four
+      hundred packages of liability for a job that has to be reproducible
+      anyway.
+    vim: >-
+      One editor. Neovim is it, and a user who wants vim gets it as a per-user
+      install that they can remove.
+    emacs: >-
+      The same reason as vim, plus a GUI toolkit attached to it that the image
+      does not otherwise need.
+
+# ---------------------------------------------------------------------------
+# fonts-and-icons
+#
+# Type, and nothing else. Ken's own interface font, icon theme and cursor theme
+# are assets of the shell and ship from Ken's repository; what is here is only
+# what an application needs before Ken has been asked anything.
+#
+# Deliberately absent: every second icon theme, and any UI font that would
+# compete with the shell's.
+# ---------------------------------------------------------------------------
+
+fonts-and-icons:
+  packages:
+    # The default terminal font. kitty's ligature rendering wants a Nerd Font.
+    # Name to verify: the archive's fonts-jetbrains-mono may or may not be the
+    # Nerd-patched build, and a terminal with ligature rendering enabled and no
+    # ligature glyphs installed renders boxes where code should be.
+    - fonts-jetbrains-mono
+
+    # Latin plus every script the base layer's own interface strings use.
+    - fonts-noto-core
+
+    # Ken is Japanese-named and its own strings are Japanese. A missing CJK font
+    # is not a cosmetic bug on a machine whose distribution name will not
+    # render.
+    - fonts-noto-cjk
+
+    # Colour emoji, because a notification without them shows a box, and
+    # notifications are half of what the shell does.
+    - fonts-noto-color-emoji
+
+  exclude:
+    fonts-cantarell: >-
+      The GNOME UI font. Ken's interface font is an asset of the shell, ships
+      from Ken's repository, and is not something an image-wide font package
+      gets to decide.
+    papirus-icon-theme: >-
+      A second icon theme means every application falls back differently
+      depending on which one it picked, and half of them pick the wrong one.
+      Ken's icon theme ships from Ken's repository.
+    fonts-urw-base35: >-
+      A general-purpose font family installed to satisfy a document that
+      specifies no font. The noto set above already covers the scripts a Ken
+      user can actually read.
+
+# ---------------------------------------------------------------------------
+# firmware
+#
+# Referenced, never repackaged. Every entry here resolves to a base-layer
+# component, and Ken takes it from the archive. This is the single most
+# important boundary in the file: a Ken deb containing a firmware blob would
+# make Ken the redistributor of that blob, under a licence Ken did not write and
+# cannot grant.
+#
+# Two consequences follow, both recorded in LICENSING.md. A Ken image is not
+# fully free software, and must not be presented as though it were. And some
+# firmware forbids redistribution outright, which is why `policy` below has a
+# fetch-at-install-time rule rather than an ISO-staging directory.
+#
+# Deliberately absent: repackaged firmware, and DKMS backports that no profile
+# asked for.
+# ---------------------------------------------------------------------------
+
+firmware:
+  packages:
+    # The metapackage. Its dependencies are the authoritative list of what the
+    # base archive carries, and the archive has split linux-firmware into
+    # per-vendor packages — linux-firmware-mediatek,
+    # linux-firmware-intel-wireless, linux-firmware-broadcom-wireless,
+    # linux-firmware-realtek, linux-firmware-amd-graphics and so on. There is no
+    # linux-firmware-nonfree and no firmware-nonfree: this base layer has no
+    # non-free-firmware component, so every blob it carries is in one of these
+    # packages. Profiles name their own firmware entries, and the installer
+    # should resolve a profile's list rather than trust its spelling.
+    - linux-firmware
+
+    # Sound Open Firmware, for the Intel laptops whose audio codec is driven by
+    # SOF. A machine with no sound and no visible cause is usually this package
+    # missing. Name to verify: it has been renamed more than once.
+    - firmware-sof-signed
+
+    # The build system for out-of-tree modules. Nothing on a default image needs
+    # it; a profile that asks for a backport brings it, and on a Secure Boot
+    # machine the resulting module has to be enrolled in MOK first.
+    - dkms
+
+  policy:
+    redistribution: >-
+      Each package here is redistributed by its own packager under its own
+      licence, and Ken fetches it from the archive. The moment Ken builds a deb
+      containing a blob, Ken is the redistributor, and per-file licensing
+      becomes Ken's problem instead of the base layer's.
+    fetched_at_install_time: >-
+      Firmware that forbids redistribution is neither on the ISO nor named in
+      this file. The installer fetches it from the base layer's archive on the
+      target machine, where the licence permits it.
+    offline: >-
+      A laptop whose WiFi needs an unloaded driver cannot fetch that driver over
+      the network it does not have. The full bundle above is what ships on the
+      ISO, and `ken-firmware load` from a USB stick is the path that does not
+      need the network at all.
+
+  by_profile:
+    - key: dkms_backport
+      role: >-
+        Some WiFi chips ship with a kernel older than the one that drives them,
+        and the base layer carries out-of-tree backports for exactly those
+        parts. The family is backport-<driver>-dkms; names to verify per part.
+        A profile asks for one specific module and never for the family.
+
+  exclude:
+    "backport-*-dkms": >-
+      Never from the image. These build a kernel module against whatever kernel
+      is installed, and on the wrong one they fail at boot module-load time and
+      take the machine's network with them — on a machine that needed the module
+      because it had no other network.
+    "pre-split firmware names": >-
+      Firmware packages on this base layer are named linux-firmware or
+      linux-firmware-<vendor>; a bare firmware-<vendor> spelling such as
+      firmware-mediatek resolves to nothing. A manifest that lists both
+      spellings teaches whoever reads it to guess; resolve the archive's name at
+      build time and fail loudly when it does not exist.
+
+# ---------------------------------------------------------------------------
+# optional
+#
+# Printed by `ken`, offered by the installer, installed by nobody by default.
+# Every entry says why it is not on the image, because "it was in the list once"
+# is how a desktop metapackage gets rebuilt one package at a time.
+#
+# These are not exclusions — a user may install any of them and Ken will not
+# argue. They are simply not something the image does to every machine.
+# ---------------------------------------------------------------------------
+
+optional:
+  packages:
+    gaming:
+      gamemode: >-
+        A daemon that reconfigures a process tree for games. Nothing in Ken
+        detects games yet, so it would sit idle holding a D-Bus name forever.
+      gamescope: >-
+        The nested compositor for gaming sessions and for a gamescope-shaped
+        output. It only makes sense where a profile has declared the machine to
+        be a handheld.
+      mangohud: >-
+        An LD_PRELOAD overlay. Installing it system-wide puts it into every
+        process's environment for a feature only games use, and a preload that
+        is wrong for a compiler is a very bad afternoon.
+      steam: >-
+        The largest single install available to any image, with its own runtime
+        and its own update cycle. It is a per-machine decision about a games
+        library, not something a desktop has an opinion about.
+
+    handhelds:
+      hhd: >-
+        The handheld input daemon: gamepads, gyro, and mapping tables that only
+        make sense on a machine held in two hands. Correct on a handheld,
+        meaningless on a laptop, and it starts a service when installed.
+      # GPU mux tooling for handhelds is not listed here — it is a hardware
+      # profile's decision, under graphics-and-media.
+
+    containers:
+      docker: >-
+        A daemon with root-equivalent access that no part of Ken uses. Ken's
+        build and release story does not run containers on a user's machine.
+      podman: >-
+        Rootless and lighter, and still a second way to change the machine's
+        packages. `ken` owns that.
+
+    sandboxed-applications:
+      flatpak: >-
+        A download and sandbox mechanism, which is `ken`'s job. Without a
+        software centre it leaves the user running a package manager by hand;
+        with one it means two front ends to the same machine, and the second one
+        is excluded above.
+
+    media:
+      ffmpeg: >-
+        A transcoder of several hundred megabytes. mpv links the libraries it
+        needs; the command-line tool is for users who transcode, and they know
+        which one they want.
+      pavucontrol: >-
+        A mixer GUI. PipeWire's own tools and the shell's surfaces cover the
+        machines anyone has actually tested.
+
+    diagnostics:
+      lm-sensors: >-
+        Reads hardware sensors, which is a support activity rather than a
+        desktop one. `ken hardware report` can pull it in on request.
+      smartmontools: >-
+        Disk health, likewise on demand rather than resident. Its daemon and
+        its udev rules touch every machine's storage stack to answer a question
+        that gets asked once.
+
+    power:
+      powertop: >-
+        A tuner with a diagnostic report, not a service. Acted on, it means
+        hand-tuning the very knobs power-profiles-daemon owns. Run for a report,
+        it is a support tool and belongs in diagnostics.
