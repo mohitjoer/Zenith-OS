@@ -1,22 +1,22 @@
-# Ken OS — Agent Guidelines
+# Zenith OS — Agent Guidelines
 
-Ken's master agent contract. `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` are pointers to this
+Zenith's master agent contract. `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` are pointers to this
 file. Everything below is binding unless it says otherwise.
 
-## What Ken is
+## What Zenith is
 
-Ken's wordmark is **健** — *ken* — healthy, robust, strong. Use it as the logo and as the
-project's name in prose: "Ken", never "Ken's" as a possessive of an acronym, never anything
+Zenith's wordmark is **天** — *zenith* — healthy, robust, strong. Use it as the logo and as the
+project's name in prose: "Zenith", never "Zenith's" as a possessive of an acronym, never anything
 else.
 
-Ken is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS; everything above that
-line is Ken's own. Hyprland is the compositor and a Quickshell-drawn shell is the desktop;
-Go binaries (`ken`, `ken-shell`, `ken-hub`) own the settings; GSettings schemas and dconf are
-the store. **There is no GNOME in Ken** — no GNOME Shell, no GNOME daemons, no
+Zenith is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS; everything above that
+line is Zenith's own. Hyprland is the compositor and a Quickshell-drawn shell is the desktop;
+Go binaries (`zenith`, `zenith-shell`, `zenith-hub`) own the settings; GSettings schemas and dconf are
+the store. **There is no GNOME in Zenith** — no GNOME Shell, no GNOME daemons, no
 `xdg-desktop-portal-gnome`.
 
 Before designing or changing anything, read [`docs/architecture.md`](../docs/architecture.md).
-It maps every layer to its owner and explains why Ken is built this way and not another way.
+It maps every layer to its owner and explains why Zenith is built this way and not another way.
 Do not re-derive decisions that are already recorded there.
 
 ## The one rule
@@ -34,22 +34,22 @@ owning tool reads, or in the tool itself.
 
 | Path | Owner | A change goes |
 |---|---|---|
-| `/usr/share/ken/` | the package | an override or a new package version |
-| `/etc/ken/` | the package | an override |
-| `~/.config/ken/` | the user, materialized by `ken` | `ken-shell` / `ken-hub` |
-| `~/.config/ken/user_edits/` | the user overlay | wins at the mirrored path |
-| `~/.local/share/ken/plugins/` | the plugin | the plugin's own manifest |
-| `~/.local/state/ken/` | `ken` | the tool that wrote it; holds rollback revisions and snapshots |
-| GSettings / dconf | `ken-shell`, `ken-hub` | `gsettings`, through the tool |
+| `/usr/share/zenith/` | the package | an override or a new package version |
+| `/etc/zenith/` | the package | an override |
+| `~/.config/zenith/` | the user, materialized by `zenith` | `zenith-shell` / `zenith-hub` |
+| `~/.config/zenith/user_edits/` | the user overlay | wins at the mirrored path |
+| `~/.local/share/zenith/plugins/` | the plugin | the plugin's own manifest |
+| `~/.local/state/zenith/` | `zenith` | the tool that wrote it; holds rollback revisions and snapshots |
+| GSettings / dconf | `zenith-shell`, `zenith-hub` | `gsettings`, through the tool |
 
-Ken's packages write **only** to `/usr/share/ken/` and `/etc/ken/`, never to `~`. That is
-what makes `ken update` able to roll back: the base can be replaced freely because the
+Zenith's packages write **only** to `/usr/share/zenith/` and `/etc/zenith/`, never to `~`. That is
+what makes `zenith update` able to roll back: the base can be replaced freely because the
 user's state lives somewhere the package cannot reach.
 
 ## Design system
 
-Ken's visual language is monochrome by construction. These rules are the reason Ken looks
-like Ken; they are not suggestions.
+Zenith's visual language is monochrome by construction. These rules are the reason Zenith looks
+like Zenith; they are not suggestions.
 
 - **Strict monochrome.** Black, grey and white only, no coloured accents. Traffic lights and
   destructive/warning/error states are the sole exceptions, because they carry meaning a
@@ -106,7 +106,7 @@ for f in $(find . -name LICENSE -not -path './.git/*'); do cmp -s LICENSE "$f" |
 
 These paths are aspirational until `desktop/` exists. They document the shape the tree is
 meant to take, so a contributor adding the first file knows where it belongs. The source
-tree is `desktop/`, never a directory named after a control tool — a `ken/` directory
+tree is `desktop/`, never a directory named after a control tool — a `zenith/` directory
 collides with the built binary and silently defeats the repository's own ignore rules.
 
 ## Branches
@@ -134,7 +134,7 @@ dated note under `docs/journal/`.
 ## Historical reference
 
 [`gnome-shell-notes.md`](gnome-shell-notes.md) records GNOME Shell internals learned while
-this repository was the Zeo GNOME Extensions project. Ken replaces GNOME Shell, so none of
-it applies to Ken's own shell. It is kept because it explains *why* the project moved, and
+this repository was the Zeo GNOME Extensions project. Zenith replaces GNOME Shell, so none of
+it applies to Zenith's own shell. It is kept because it explains *why* the project moved, and
 because it is the kind of knowledge that is expensive to rediscover if the decision is ever
 revisited.

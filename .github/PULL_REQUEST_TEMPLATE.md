@@ -6,9 +6,9 @@ other files.
 ## Type of change
 
 - [ ] Hardware profile (`system/hardware/profiles/`)
-- [ ] `ken` control tool
-- [ ] Shell — `ken-shell`
-- [ ] Settings application — `ken-hub`
+- [ ] `zenith` control tool
+- [ ] Shell — `zenith-shell`
+- [ ] Settings application — `zenith-hub`
 - [ ] Packaging or release (`release/`)
 - [ ] Installer or ISO build (`installation/`)
 - [ ] Kernel fleet or firmware (`system/`)
@@ -45,16 +45,16 @@ And, for anything that is not documentation:
 
 - [ ] No shipped file was edited in place — the change is in an override, the store the owning
       tool reads, or the tool itself
-- [ ] Ken's packages still write only to `/usr/share/ken/` and `/etc/ken/`
+- [ ] Zenith's packages still write only to `/usr/share/zenith/` and `/etc/zenith/`
 - [ ] Every new setting has exactly one owning tool
-- [ ] `gofmt -l ken/` and `go vet ./...` are clean
-- [ ] `glib-compile-schemas --strict --dry-run ken/**/schemas/` is clean
-- [ ] `qmllint ken/shell/**/*.qml` is clean
+- [ ] `gofmt -l desktop/` and `go vet ./...` are clean
+- [ ] `glib-compile-schemas --strict --dry-run desktop/**/schemas/` is clean
+- [ ] `qmllint desktop/shell/**/*.qml` is clean
 - [ ] Any new `LICENSE` matches the root `LICENSE`
 
 For a hardware profile specifically:
 
-- [ ] Submitted from real `ken hardware report` output on the machine it describes
+- [ ] Submitted from real `zenith hardware report` output on the machine it describes
 - [ ] Kernel pinned to a flavour (`generic`, `hwe`, `oem`), never to a patch version
 - [ ] No identifying data — no serials, MAC addresses, usernames, hostnames, home paths
 - [ ] Firmware referenced as packages, never as files

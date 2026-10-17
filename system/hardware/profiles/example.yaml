@@ -4,7 +4,7 @@
 # not apply, and keep the structure: the installer reads every key here, and a
 # profile that guesses is worse than a profile that admits it does not know.
 #
-# Submit a real profile from `ken hardware report` — see
+# Submit a real profile from `zenith hardware report` — see
 # system/hardware/README.md.
 
 version: 1
@@ -47,7 +47,7 @@ match:
 kernel: hwe
 
 gpu:
-  # What Ken should install for each device.
+  # What Zenith should install for each device.
   #   discrete: nouveau | nvidia | nvidia-open | auto
   #   integrated: auto
   discrete: nvidia-open
@@ -86,7 +86,7 @@ firmware:
   # The names are in system/kernel/fleet.yaml.
   microcode: []
 
-# Things only a human on the machine can answer. This is the part `ken hardware
+# Things only a human on the machine can answer. This is the part `zenith hardware
 # report` cannot produce, and the part that makes a profile worth reading.
 verified:
   suspend_resume: works

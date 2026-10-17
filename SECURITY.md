@@ -1,6 +1,6 @@
 # Security policy
 
-Ken ships a signed repository, a signed ISO, an installer that partitions a disk, an updater
+Zenith ships a signed repository, a signed ISO, an installer that partitions a disk, an updater
 that runs as root, and a set of privileged helpers that materialise files into system
 directories. A Linux distribution's attack surface is dominated by the code that runs before
 anyone gets to log in. Report accordingly.
@@ -10,12 +10,12 @@ anyone gets to log in. Report accordingly.
 **Do not open a public issue, and do not open a pull request.** A public report gives an
 attacker a development timeline.
 
-Send it to **security@kenos.dev** — `conduct@kenos.dev` if the issue is about a person rather
+Send it to **security@zenithos.dev** — `conduct@zenithos.dev` if the issue is about a person rather
 than a machine.
 
 Include:
 
-- The Ken version or the commit you tested, and the base layer (`26.04`).
+- The Zenith version or the commit you tested, and the base layer (`26.04`).
 - The reproduction steps, ideally minimal.
 - What the impact is: local privilege escalation, arbitrary file write as root, signature
   bypass, silent rollback past a security fix, information disclosure.
@@ -33,13 +33,13 @@ something happen that the user's consent does not cover.
 
 ### The updater and rollback
 
-`ken update` fetches debs as root, re-materialises the base, and repaints. `ken rollback`
+`zenith update` fetches debs as root, re-materialises the base, and repaints. `zenith rollback`
 restores a previous revision.
 
 - An unprivileged path from a user-writable location into the base or the overlay.
 - A signature check that can be skipped, bypassed by a partial failure, or satisfied by a
-  repository that is not Ken's.
-- `ken rollback` restoring a state that silently drops a security fix, or losing an overlay
+  repository that is not Zenith's.
+- `zenith rollback` restoring a state that silently drops a security fix, or losing an overlay
   file in a way the user is not told about.
 - A snapshot of `~/.config` written somewhere an unprivileged local process can read or
   modify it.
@@ -56,8 +56,8 @@ restores a previous revision.
 
 ### Privileged helpers
 
-Anything running as root. `ken doctor`, `ken-firmware load`, materialisation into
-`/usr/share/ken/` and `/etc/ken/`, and any future privileged action.
+Anything running as root. `zenith doctor`, `zenith-firmware load`, materialisation into
+`/usr/share/zenith/` and `/etc/zenith/`, and any future privileged action.
 
 - Command injection from a filename, profile field, device label, or package metadata.
 - Path traversal — a relative path or symlink resolving outside the directory the helper is
@@ -77,7 +77,7 @@ and the offline firmware rescue bundle.
 
 ### Packaging
 
-- A Ken package writing outside `/usr/share/ken/` and `/etc/ken/`, into another package's
+- A Zenith package writing outside `/usr/share/zenith/` and `/etc/zenith/`, into another package's
   files, or into `~`.
 - A setuid or file-capability bit on a binary that does not need one.
 - A post-install script running with privileges it does not require, or a dependency pulled
@@ -88,7 +88,7 @@ and the offline firmware rescue bundle.
 ### The overlay model specifically
 
 The overlay is the design's load-bearing trust boundary: a user file in
-`~/.config/ken/user_edits/` wins over the packaged base at its mirrored path. Reports that an
+`~/.config/zenith/user_edits/` wins over the packaged base at its mirrored path. Reports that an
 overlay file can be made to win at a privileged path, or that materialisation copies one
 outside its mirrored directory, are in scope and taken seriously.
 
@@ -101,13 +101,13 @@ File these as normal issues, using the hardware support form where it applies:
 - A build that is unreproducible or a package that is missing — these matter, but report them
   as bugs and they will be triaged.
 - A vulnerability in Ubuntu's own packages. Those are fixed upstream; report them to Ubuntu
-  unless the fix is present in Ubuntu and missing from Ken after Ken's repository is current.
+  unless the fix is present in Ubuntu and missing from Zenith after Zenith's repository is current.
 
 ## Supported versions
 
-| Ken release | Status | Security fixes |
+| Zenith release | Status | Security fixes |
 |---|---|---|
-| `ken-0.1` — pre-alpha development line | Current | Yes |
+| `zenith-0.1` — pre-alpha development line | Current | Yes |
 | Anything older | No releases exist | No |
 
 No release has shipped. There is nothing installable yet, so there is nothing to backport a
@@ -115,5 +115,5 @@ fix to. This table becomes the record of what receives fixes once the first rele
 and the previous line moves to security-fixes-only.
 
 **Base layer: Ubuntu 26.04 LTS.** Security updates for the substrate arrive through Ubuntu's
-own archive and reach users through `ken update`. When a fix is present in Ubuntu's archive
-and absent from an up-to-date Ken installation, that is a Ken bug — report it here.
+own archive and reach users through `zenith update`. When a fix is present in Ubuntu's archive
+and absent from an up-to-date Zenith installation, that is a Zenith bug — report it here.

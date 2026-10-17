@@ -1,6 +1,6 @@
 # Hardware detection
 
-How Ken identifies a machine, matches it to a profile, and decides what to install. Read this
+How Zenith identifies a machine, matches it to a profile, and decides what to install. Read this
 before touching `system/hardware/` or writing a probe. The tier definitions, the profile
 schema and the loop that grows the matrix live in
 [`../system/hardware/README.md`](../system/hardware/README.md) and
@@ -12,9 +12,9 @@ implementation record for the part between the kernel and the profile.
 ## Why detection is load-bearing
 
 Detection is the only subsystem whose failure mode is *no machine at all*. Everything else in
-Ken degrades into a lesser desktop. Detection getting it wrong means a machine that will not
+Zenith degrades into a lesser desktop. Detection getting it wrong means a machine that will not
 boot, or will boot without a network and no way to recover, which is indistinguishable from
-Ken not supporting the machine at all.
+Zenith not supporting the machine at all.
 
 One detection result decides nearly everything the installer does:
 
@@ -25,7 +25,7 @@ One detection result decides nearly everything the installer does:
 | Hybrid mux mode | profile + vendor tool detection | External display dead, or suspend broken |
 | Firmware packages | probe + profile | Network device present, never comes up |
 | Microcode | DMI CPU family, PCI | Subtle corruption, or an early boot failure |
-| Support tier | profile database | A promise Ken cannot keep |
+| Support tier | profile database | A promise Zenith cannot keep |
 | Offline rescue set | probe | The machine cannot install at all |
 
 Five things therefore have to be true, and they are the acceptance criteria for any change to
@@ -38,7 +38,7 @@ this subsystem.
 2. **Degrade, never guess.** A probe that cannot read its input returns `unknown`. It never
    substitutes a plausible default, because a wrong default is a profile-shaped lie: it
    produces a machine that boots into a broken desktop with a tier number attached.
-3. **Unprivileged by default.** `ken hardware report` runs as the user. Root is requested only
+3. **Unprivileged by default.** `zenith hardware report` runs as the user. Root is requested only
    where a source genuinely needs it — the `dmidecode` fallback and the ACPI table dump — and
    both are opt-in.
 4. **Bounded.** The common path is fast enough that the installer never shows a spinner for it.
@@ -49,7 +49,7 @@ this subsystem.
 The output side has its own criterion, and it is not a nice-to-have: **the report is published.**
 It lands in a pull request, an issue, a forum post and a bug tracker. A detection bug that
 leaks a serial is a privacy bug in the distribution's most-used command, which is why
-[PII stripping](#pii-stripping-for-ken-hardware-report) is specified as a policy rather than a
+[PII stripping](#pii-stripping-for-zenith-hardware-report) is specified as a policy rather than a
 convention.
 
 ---
@@ -101,7 +101,7 @@ The identity of the machine, and the match key for every profile in the database
 `board_version`, `chassis_type`, `bios_vendor`, `bios_version`, `bios_date`. The directory also
 contains `product_uuid`, `product_serial`, `board_serial`, `chassis_serial`,
 `chassis_asset_tag`, `board_asset_tag` and `modalias`, all of which are handled by
-[redaction](#pii-stripping-for-ken-hardware-report) rather than by the reader.
+[redaction](#pii-stripping-for-zenith-hardware-report) rather than by the reader.
 
 ```go
 // probe/dmi.go
@@ -239,7 +239,7 @@ any of them.
 
 The deep path is **opt-in and off by default**, for three reasons: it writes a few hundred
 kilobytes to disk, `iasl -d` is CPU-bound, and the answer it produces is needed by roughly one
-profile in fifty — the machine with a sleep problem. `ken hardware report --deep` runs it and
+profile in fifty — the machine with a sleep problem. `zenith hardware report --deep` runs it and
 records the derived facts.
 
 **A trap worth stating plainly: an AML table dump must never appear in a report.** ACPI tables
@@ -294,7 +294,7 @@ maximum refresh, range limits, colour characteristics, and HDR metadata where pr
 - **Which physical port an external monitor is in**, or whether a dock is passing video or
   charging at the rate the port advertises.
 - **That a listed mode works.** EDID describes what the panel was told to support. Runtime
-  behaviour is `ken hardware verify`'s job.
+  behaviour is `zenith hardware verify`'s job.
 - **Everything the firmware omitted.** Many internal panels ship a sparse block with no HDR
   metadata, no display name, and no serial at all. Absence in EDID is absence of data, not
   absence of capability.
@@ -379,15 +379,15 @@ to tier 3 with the conservative defaults. Silently picking one of two verified r
 than picking neither, because the user cannot tell which one they got.
 
 The same disagreement, when the two profiles differ in tier or specificity, is resolved by the
-table above — but `ken hardware lint-profiles` warns about it at review time, because a narrow
+table above — but `zenith hardware lint-profiles` warns about it at review time, because a narrow
 tier-2 profile and a broad tier-1 profile covering the same machines is the shape that most
 often turns into a conflict once someone adds a third.
 
 ### Resolution output
 
-The resolution is written to `/etc/ken/hardware/resolution.yaml` at install time, which is
-inside the only directory structure Ken owns outright, so nothing is written outside
-`/usr/share/ken/` and `/etc/ken/`. `ken hardware match` reads it and answers the two questions a
+The resolution is written to `/etc/zenith/hardware/resolution.yaml` at install time, which is
+inside the only directory structure Zenith owns outright, so nothing is written outside
+`/usr/share/zenith/` and `/etc/zenith/`. `zenith hardware match` reads it and answers the two questions a
 user actually has: which tier am I, and what would change it.
 
 ```yaml
@@ -425,7 +425,7 @@ answer, and it is what the lint uses to spot a database about to develop a confl
 
 ---
 
-## PII stripping for `ken hardware report`
+## PII stripping for `zenith hardware report`
 
 Reports are attached to public pull requests. The redaction policy is therefore part of the
 detection contract, not a formatting pass, and it is specified so that it can be implemented
@@ -489,9 +489,9 @@ attempt over a plausible serial list.
 
 ```text
 key  = 32 bytes from getrandom(2), written 0600 to
-       $XDG_STATE_HOME/ken/hardware/report-salt   (default ~/.local/state/ken/hardware/)
-       or /etc/ken/hardware/report-salt when running as root from the installer
-input = "ken/hardware-report/v1\0" || field_name || "\0" || raw_value
+       $XDG_STATE_HOME/zenith/hardware/report-salt   (default ~/.local/state/zenith/hardware/)
+       or /etc/zenith/hardware/report-salt when running as root from the installer
+input = "zenith/hardware-report/v1\0" || field_name || "\0" || raw_value
 token = "sha256:" || lowercase hex of the first 8 bytes of HMAC-SHA256(key, input)
 ```
 
@@ -499,9 +499,9 @@ Including `field_name` in the MAC input means a token cannot be lifted from one 
 another — the DMI UUID token and the EDID serial token for the same machine differ, which is
 correct, because they are different fields that happen to be equal.
 
-Both salt locations are ones Ken already owns: a user-state path from the ownership model, and
-`/etc/ken/`. Nothing is written to `~` by a package and nothing is written outside
-`/usr/share/ken/` and `/etc/ken/` by anything shipped.
+Both salt locations are ones Zenith already owns: a user-state path from the ownership model, and
+`/etc/zenith/`. Nothing is written to `~` by a package and nothing is written outside
+`/usr/share/zenith/` and `/etc/zenith/` by anything shipped.
 
 Two properties follow, and both belong in the report's own header so a reader knows them:
 
@@ -548,7 +548,7 @@ profile is written from:
 
 - **No kernel patch version in anything that becomes a profile.** The report prints the running
   kernel for a bug report, because it is needed to diagnose one. The profile section carries
-  the flavour only — `generic`, `hwe`, `oem` — resolved from `/etc/ken/kernel` or from the
+  the flavour only — `generic`, `hwe`, `oem` — resolved from `/etc/zenith/kernel` or from the
   flavour component of `uname -r`. A candidate profile containing `6.8.0-31-generic` is a
   validation failure, not a warning.
 - **No firmware file, ever.** A profile names firmware *packages*: `linux-firmware`,
@@ -557,7 +557,7 @@ profile is written from:
   and never as a blob, a path, or a `modinfo` filename.
 
 The set of packages a profile is allowed to name is data, at
-`/usr/share/ken/hardware/firmware-set.yaml`, mapping every firmware blob the resolver knows
+`/usr/share/zenith/hardware/firmware-set.yaml`, mapping every firmware blob the resolver knows
 about to the package that contains it. A profile naming a package outside this set does not
 install it; it falls back to tier 3 and says so. This is the same boundary
 [`SECURITY.md`](../SECURITY.md) draws for packaging: a profile must not be able to introduce
@@ -567,11 +567,11 @@ a package, a firmware file or a kernel flavour outside the reviewed set.
 
 | Invocation | Emits | Contains serials |
 |---|---|---|
-| `ken hardware report` | Diagnostic text, for pasting into the hardware support form | Tokens only |
-| `ken hardware report --format json` | The same content, machine-readable | Tokens only |
-| `ken hardware report --profile` | Candidate profile YAML, schema-validated | No tokens at all |
-| `ken hardware report --deep` | Diagnostic text plus ACPI-derived facts | Tokens only |
-| `ken hardware report --raw` | Unredacted local dump for debugging | **Yes** |
+| `zenith hardware report` | Diagnostic text, for pasting into the hardware support form | Tokens only |
+| `zenith hardware report --format json` | The same content, machine-readable | Tokens only |
+| `zenith hardware report --profile` | Candidate profile YAML, schema-validated | No tokens at all |
+| `zenith hardware report --deep` | Diagnostic text plus ACPI-derived facts | Tokens only |
+| `zenith hardware report --raw` | Unredacted local dump for debugging | **Yes** |
 
 `--raw` writes to a path matching the patterns already excluded in
 [`.gitignore`](../.gitignore) — `*.hardware.raw.yaml`, `*-report-raw.yaml` — prints the
@@ -580,8 +580,8 @@ outright when `CI` is set**, so a pipeline cannot produce a file intended for hu
 local.
 
 ```console
-$ ken hardware report --profile
-# Candidate hardware profile — generated by `ken hardware report`.
+$ zenith hardware report --profile
+# Candidate hardware profile — generated by `zenith hardware report`.
 # Review before opening a pull request. `verified:` is for a human on this
 # machine; detection cannot fill it in. Fields that would identify this
 # machine have been removed, not redacted.
@@ -639,7 +639,7 @@ is the single most common way a correct profile fails to select its own machine.
 
 The failure this section exists for: **a laptop whose wireless adapter needs a driver cannot
 fetch that driver over the network it does not have.** This is the wall every distribution hits,
-and it is the single largest source of "Ken does not support my machine" reports. It is also
+and it is the single largest source of "Zenith does not support my machine" reports. It is also
 the hardest failure to detect, because the machine that cannot report its problem is the
 machine with the problem.
 
@@ -670,8 +670,8 @@ Offline risk is computable, and it is computed before anything is installed:
 > `driver` symlink is an offline-risk machine.**
 
 The same rule covers a wireless device that enumerated under USB, and a machine whose only
-network path is WWAN. `ken hardware match` prints the finding at the top of its output, and
-`ken hardware report` records it as `offline_risk: true` with the specific devices:
+network path is WWAN. `zenith hardware match` prints the finding at the top of its output, and
+`zenith hardware report` records it as `offline_risk: true` with the specific devices:
 
 ```yaml
 offline_risk: true
@@ -696,11 +696,11 @@ in its profile.
 | Rung | Situation | What it takes |
 |---|---|---|
 | 1 | Driver is in the kernel and the module is in the ISO initramfs | Nothing. `modinfo <module>` against the running kernel is the check. |
-| 2 | Driver is in the ISO's rescue module pool | `modprobe` from `/usr/lib/modules/<flavour>/extra/ken-rescue/` |
+| 2 | Driver is in the ISO's rescue module pool | `modprobe` from `/usr/lib/modules/<flavour>/extra/zenith-rescue/` |
 | 3 | Driver binds, firmware blob missing | A package from the rescue pool, installed offline |
 | 4 | Out-of-tree driver, buildable on the target | `linux-headers` for the running kernel plus a toolchain, both on the ISO, then a DKMS build from a pool `.deb` |
 | 5 | Secure Boot refuses the out-of-tree module | MOK enrolment at reboot, with `mokutil` on the ISO |
-| 6 | No route at all | `ken-firmware load` from USB, a local directory, or a LAN host |
+| 6 | No route at all | `zenith-firmware load` from USB, a local directory, or a LAN host |
 
 Rung 4 is where Secure Boot bites, and it is worth being blunt about the outcome: if the user
 will not enrol a MOK, the machine runs without acceleration for the discrete GPU, and the
@@ -713,7 +713,7 @@ Broad rather than matched. The ISO carries enough that detection has not yet run
 anything useful to say, which is the only condition under which the bundle matters.
 
 ```
-/ken-firmware/
+/zenith-firmware/
   BUNDLE.IDX            # signed index: hardware ID -> pool items -> sha256
   BUNDLE.sig            # detached signature over BUNDLE.IDX
   pool/*.deb            # firmware packages, DKMS sources, microcode
@@ -723,8 +723,8 @@ anything useful to say, which is the only condition under which the bundle matte
 
 Verification is not optional, because firmware loaded from removable media is an untrusted
 input path and [`SECURITY.md`](../SECURITY.md) scopes it accordingly. `BUNDLE.IDX` is verified
-against the public key at `/usr/share/ken/hardware/keys/firmware-bundle.pub` — inside the
-directory Ken owns outright, so the key ships with the image and cannot be replaced by a
+against the public key at `/usr/share/zenith/hardware/keys/firmware-bundle.pub` — inside the
+directory Zenith owns outright, so the key ships with the image and cannot be replaced by a
 mounted stick. Every `.deb` is checked against the digest in the verified index before it is
 installed. A failed signature aborts the whole load; there is no partial-apply path.
 
@@ -757,7 +757,7 @@ Each `provides` names a package from the reviewed set, so a rescue item can neve
 the installer is allowed to install. An ID that appears in no item is reported as an unknown
 machine rather than guessed at.
 
-### `ken-firmware load`
+### `zenith-firmware load`
 
 The two halves are a pair, and both are needed: the machine that has a working driver has the
 firmware, the machine that needs the firmware cannot reach anything.
@@ -771,29 +771,29 @@ was filed about.
 
 | Source form | Example | How it is read | Behaviour on failure |
 |---|---|---|---|
-| A block device or partition | `ken-firmware load /dev/sdb1` | Opened read-only, mounted `ro,noexec,nosuid,nodev` in a private mount namespace, unmounted before the call returns | Partition with no `/ken-firmware/BUNDLE.IDX` is skipped, not an error |
-| Any local directory | `ken-firmware load /media/ken-stick` | Same mount rules for removable media; plain read for an ordinary directory | Refuses if the index does not verify |
-| A LAN host | `ken-firmware load ken-desktop:/srv/ken-firmware` | `ssh`, host key pinned in `/etc/ken/hardware/known-hosts` | Refuses on an unknown or changed host key, without prompting |
+| A block device or partition | `zenith-firmware load /dev/sdb1` | Opened read-only, mounted `ro,noexec,nosuid,nodev` in a private mount namespace, unmounted before the call returns | Partition with no `/zenith-firmware/BUNDLE.IDX` is skipped, not an error |
+| Any local directory | `zenith-firmware load /media/zenith-stick` | Same mount rules for removable media; plain read for an ordinary directory | Refuses if the index does not verify |
+| A LAN host | `zenith-firmware load zenith-desktop:/srv/zenith-firmware` | `ssh`, host key pinned in `/etc/zenith/hardware/known-hosts` | Refuses on an unknown or changed host key, without prompting |
 
-`ken-firmware push` is the other half and is what makes the LAN row worth having. Run on a
+`zenith-firmware push` is the other half and is what makes the LAN row worth having. Run on a
 machine that already works, it indexes **its own installed packages** against the hardware IDs
 it can see, so the transfer carries what that particular machine needed and nothing else. It is
 a machine's working state moved as data, not a downloaded bundle.
 
 ```console
 # On a machine that already has the driver, for the machine that does not
-$ ken-firmware push ken-installer:/srv/ken-firmware
-indexed 3 hardware ids from 2 installed packages, wrote /srv/ken-firmware (412 KiB)
+$ zenith-firmware push zenith-installer:/srv/zenith-firmware
+indexed 3 hardware ids from 2 installed packages, wrote /srv/zenith-firmware (412 KiB)
 
 # On the machine that needs it
-$ ken-firmware load /dev/sdb1
-scanned /dev/sdb1: found /ken-firmware/BUNDLE.IDX, signature ok
+$ zenith-firmware load /dev/sdb1
+scanned /dev/sdb1: found /zenith-firmware/BUNDLE.IDX, signature ok
 matching 1 hardware id: net-realtek-8821ce
   rtl8821ce-dkms 1.912.0-1  amd64  sha256 ok
 installed 1 package; module built for 6.17.0-31-generic
 Secure Boot is active: a one-time enrolment is required for the out-of-tree module.
 Reboot and choose "Enroll MOK" at the prompt, or run:
-  mokutil --import /var/lib/ken/firmware/MOK.der
+  mokutil --import /var/lib/zenith/firmware/MOK.der
 re-running detection
   network: 10ec:c832 now has driver rtl8821ce bound
   offline_risk: false
@@ -815,11 +815,11 @@ Four things in that output are deliberate and are each load-bearing:
 
 ### Installing base-layer firmware does not violate the boundary
 
-Worth stating because it looks like a violation and is not. `ken-firmware load` runs `dpkg -i`
+Worth stating because it looks like a violation and is not. `zenith-firmware load` runs `dpkg -i`
 on packages from the base layer and its firmware archive. Those packages write to `/lib/firmware`
-and `/usr/lib/modules`, which Ken does not own. The boundary rule constrains *Ken's* packages
-to `/usr/share/ken/` and `/etc/ken/`; installing a base-layer package is the base layer
-writing its own files. Ken installs the package and never touches its contents.
+and `/usr/lib/modules`, which Zenith does not own. The boundary rule constrains *Zenith's* packages
+to `/usr/share/zenith/` and `/etc/zenith/`; installing a base-layer package is the base layer
+writing its own files. Zenith installs the package and never touches its contents.
 
 ---
 
@@ -833,7 +833,7 @@ between them.
 | Transition | Automatic | Performed by | Gate |
 |---|---|---|---|
 | No profile → 3 | Yes | The matcher | The `fallback:` block, plus `warn_tier: true` |
-| 3 → 2 | Yes, at submission | The contributor, and CI enforces the floor | The profile passes `ken hardware lint-profiles` and was generated by `ken hardware report` on the machine it describes |
+| 3 → 2 | Yes, at submission | The contributor, and CI enforces the floor | The profile passes `zenith hardware lint-profiles` and was generated by `zenith hardware report` on the machine it describes |
 | 2 → 2, editing a profile | Yes | The contributor | Re-validation. A narrower `match:` cannot lower a tier, because the tier is a claim about the machine, not about how precisely the profile found it. |
 | 2 → 1 | **No** | A maintainer | The `tiers.yaml` `requires:` checklist satisfied, evidence attached, machine physically run |
 | 1 → 2, or any → 3 | Yes, downward only | The loader | The profile names a kernel flavour, firmware package or DKMS module outside the reviewed set, or matches nothing in the database |
@@ -849,7 +849,7 @@ Three reasons, and the first is the practical one.
 `external_display` and — for some machines — `bluetooth` and `fingerprint`. Whether suspend
 and resume are *clean* on a given laptop, whether an external display works through that
 machine's USB-C dock, is a judgement made by a person looking at the machine. No probe reads
-it and no script infers it. `ken hardware verify` collects what *can* be collected — boots,
+it and no script infers it. `zenith hardware verify` collects what *can* be collected — boots,
 login manager, session, network, audio output, GPU acceleration, panel backlight writable,
 bluetooth enumerated — and leaves exactly the judgement calls to the human.
 
@@ -870,10 +870,10 @@ The rule is enforced in three places, because a rule only one reviewer remembers
 - **The profile loader clamps.** A profile that claims `tier: 1` without a maintainer's
   sign-off is loaded at tier 2. The loader will not let a contributor raise a tier, which is
   what the profile schema already says it does not.
-- **CI rejects it.** `ken hardware lint-profiles` fails a pull request whose profile claims
+- **CI rejects it.** `zenith hardware lint-profiles` fails a pull request whose profile claims
   tier 1 without the sign-off, so the question is never asked in review.
 - **The installer states it.** The installer displays the resolved tier and the profile ID
-  before it writes anything, and `ken hardware match` prints both afterwards. A machine that
+  before it writes anything, and `zenith hardware match` prints both afterwards. A machine that
   silently drops from tier 2 to tier 3 — a BIOS update rewriting a DMI string is the usual
   cause — is the failure mode here, and it is only visible if something says so out loud.
 
@@ -922,7 +922,7 @@ is testable against a directory tree on disk.
 
 ### Fixtures are machines
 
-`ken hardware capture --out tests/fixtures/asus-tuf-gaming-f15-fx507zc4/` runs the same readers
+`zenith hardware capture --out tests/fixtures/asus-tuf-gaming-f15-fx507zc4/` runs the same readers
 with `root` set to that directory and writes exactly the files those readers consume: the DMI
 fields, one directory per PCI function, the USB device tree, the ACPI sysfs attributes, and the
 raw EDID blobs. Captures are passed through the same redactor before being committed, so a
@@ -952,7 +952,7 @@ applied to the code.
 | `redact` | Synthetic DMI tree seeded with canaries | Zero canaries in the rendered bytes |
 | `redact` | An injected serial, MAC and home path | The sweep refuses, names the key, exits non-zero |
 | `lint` | Every file in `profiles/` | No patch-version kernel pin, no firmware file, no unclassified field, `id` matches its filename stem, every `match:` field is in the detection vocabulary |
-| Golden | `ken hardware report --format json` per fixture | Byte-identical to the committed output; a diff is a review artefact |
+| Golden | `zenith hardware report --format json` per fixture | Byte-identical to the committed output; a diff is a review artefact |
 
 ### Negative fixtures and fuzzing
 
@@ -1005,4 +1005,4 @@ conflates them.
 | Detection on every boot, or once at install | A BIOS update can rewrite a DMI string, and a machine silently drops from tier 2 to tier 3. Re-detecting at boot would catch it; it would also make the resolution non-deterministic across an update, which is a different cost. |
 | Whether the report carries any failure context | A journal excerpt would help enormously and is full of usernames, hostnames and paths. The hardware support form asks for journal text in its own field, beside the report, which keeps the report a pure inventory. Whether that separation survives contact with a real submission is worth watching. |
 | Rescue bundle signing granularity | Per ISO or per release. Per release means a machine with an old ISO cannot be helped by a current bundle; per ISO means more keys in the image. |
-| Tier 1 evidence collection | `ken hardware verify` can check most of the `tiers.yaml` checklist mechanically. Whether the machine-generated evidence block is ever attached to a tier 1 sign-off, or whether it is deliberately kept out to preserve the human judgement, is a call to make before the first tier 1 is granted. |
+| Tier 1 evidence collection | `zenith hardware verify` can check most of the `tiers.yaml` checklist mechanically. Whether the machine-generated evidence block is ever attached to a tier 1 sign-off, or whether it is deliberately kept out to preserve the human judgement, is a call to make before the first tier 1 is granted. |

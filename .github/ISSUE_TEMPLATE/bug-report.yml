@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Ken does not behave as documented. For problems with one specific laptop, use the hardware support form instead.
+description: Something in Zenith does not behave as documented. For problems with one specific laptop, use the hardware support form instead.
 title: "[bug]: "
 labels:
   - bug
@@ -18,13 +18,13 @@ body:
       label: Where is the problem
       description: Pick the narrowest one that fits.
       options:
-        - "`ken` control tool"
-        - "`ken-shell` — bar, dock, launcher, widgets"
-        - "`ken-hub` — settings application"
-        - "Updater and rollback — `ken update`, `ken rollback`, `ken doctor`"
+        - "`zenith` control tool"
+        - "`zenith-shell` — bar, dock, launcher, widgets"
+        - "`zenith-hub` — settings application"
+        - "Updater and rollback — `zenith update`, `zenith rollback`, `zenith doctor`"
         - "Installer or ISO"
         - "Packaging and APT repository"
-        - "Hardware detection — `ken hardware report`, `ken hardware match`"
+        - "Hardware detection — `zenith hardware report`, `zenith hardware match`"
         - "Base layer / Ubuntu package interaction"
         - "Documentation"
         - "Other"
@@ -34,9 +34,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Ken version
-      description: Output of `ken --version`, or the ISO filename you booted.
-      placeholder: ken 0.1-pre-alpha
+      label: Zenith version
+      description: Output of `zenith --version`, or the ISO filename you booted.
+      placeholder: zenith 0.1-pre-alpha
     validations:
       required: true
 
@@ -52,7 +52,7 @@ body:
   - type: dropdown
     id: context
     attributes:
-      label: How are you running Ken
+      label: How are you running Zenith
       options:
         - Installed system
         - Live ISO, booted without installing
@@ -84,7 +84,7 @@ body:
       description: The shortest sequence that shows it every time, starting from a known state.
       placeholder: |
         1. Boot the ISO
-        2. `ken update`
+        2. `zenith update`
         3. Reboot
         4. Close and open the lid
     validations:
@@ -95,7 +95,7 @@ body:
     attributes:
       label: Logs and output
       description: |
-        `ken doctor` output, `journalctl -b -u <unit>`, `ken --version`, and the exact
+        `zenith doctor` output, `journalctl -b -u <unit>`, `zenith --version`, and the exact
         command output you are quoting. Please redact serials, MAC addresses, hostnames and
         home directory paths.
       render: shell

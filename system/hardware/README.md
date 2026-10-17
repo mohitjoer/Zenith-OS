@@ -1,6 +1,6 @@
 # Hardware support framework
 
-Ken targets every laptop, which is not a promise anyone can keep. What anyone *can* do is
+Zenith targets every laptop, which is not a promise anyone can keep. What anyone *can* do is
 make the set of working machines grow, without needing a hardware lab, and be honest about
 which machines are confirmed.
 
@@ -8,8 +8,8 @@ This directory is that mechanism.
 
 ## The three tiers
 
-[`tiers.yaml`](tiers.yaml) is the definition of a tier in Ken, and there is exactly one of
-them. The installer, the matcher and `ken hardware report` all read that file. Everything in
+[`tiers.yaml`](tiers.yaml) is the definition of a tier in Zenith, and there is exactly one of
+them. The installer, the matcher and `zenith hardware report` all read that file. Everything in
 this section is a rendering of it for a human reader: where the two disagree, `tiers.yaml`
 is right and this file is stale.
 
@@ -23,7 +23,7 @@ not by marketing.
 | 3 | Best effort | fallback | No matching profile. Installs conservative defaults — the `generic` kernel, full firmware bundle — and may need manual intervention. |
 
 A machine is never silently upgraded between tiers. Tier 1 requires a maintainer's
-sign-off, because it is a claim about hardware Ken has not been run on by the people who
+sign-off, because it is a claim about hardware Zenith has not been run on by the people who
 answer for it.
 
 Tier 3 is a real tier with real behaviour. It installs the `fallback:` block from
@@ -41,7 +41,7 @@ tier 1's.
 |---|---|---|
 | `boots` | `true` | The machine boots and reaches a login prompt. |
 | `login_manager` | `true` | The login manager runs, lists accounts and starts a session. |
-| `desktop_session` | `true` | The compositor draws and Ken's shell starts. |
+| `desktop_session` | `true` | The compositor draws and Zenith's shell starts. |
 | `network` | `true` | The machine reaches the network on its own, with no manual step. |
 | `audio_output` | `true` | Sound plays from the built-in codec. |
 | `suspend_resume` | `true` | It sleeps and comes back. The most-reported laptop failure, and the reason this check is on the list. |
@@ -129,8 +129,8 @@ reviewed set does not install it, and the machine falls back to tier 3 and says 
 
 This is the loop that makes the matrix grow without anyone owning hardware:
 
-1. A machine installs Ken and boots.
-2. `ken hardware report` emits a candidate profile from live detection, with anything
+1. A machine installs Zenith and boots.
+2. `zenith hardware report` emits a candidate profile from live detection, with anything
    identifying stripped.
 3. The user reviews it, fills in what only a human knows (does suspend work? does the GPU
    switch?), and opens a pull request.
@@ -142,7 +142,7 @@ cheapest. It needs one machine and no code.
 
 ## Detection order
 
-The probes are not in this directory. They belong to `ken hardware`, and
+The probes are not in this directory. They belong to `zenith hardware`, and
 [`docs/hardware-detection.md`](../../docs/hardware-detection.md) is their implementation
 record; what this directory holds is the data they read and the tier they resolve against.
 Their order is fixed by `matching.probe_order` in [`tiers.yaml`](tiers.yaml), cheapest and
@@ -162,7 +162,7 @@ the **higher tier**, because a confirmed-working recipe beats a more specific gu
 ## What a profile must not contain
 
 - **Anything identifying.** No usernames, no hostnames, no serial numbers, no MAC addresses,
-  no home directory paths. `ken hardware report` strips these before emitting, and a profile
+  no home directory paths. `zenith hardware report` strips these before emitting, and a profile
   containing them will be rejected.
 - **A kernel version pinned to a patch number.** Pin the flavour — `generic`, `hwe` or
   `oem`, the closed set in [`fleet.yaml`](../../system/kernel/fleet.yaml) — never
@@ -179,7 +179,7 @@ download it. This is the failure mode that makes a Linux distribution unusable o
 machine, and it is why:
 
 - The ISO carries a broad firmware rescue bundle rather than only what detection matched.
-- `ken-firmware load <source>` accepts a USB stick, a local directory, or another machine on
+- `zenith-firmware load <source>` accepts a USB stick, a local directory, or another machine on
   the LAN.
 - Tier 3 is a real tier with real behaviour, not a shrug.
 

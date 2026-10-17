@@ -128,7 +128,7 @@ jobs:
       # check is what makes the ignore rule load-bearing rather than advisory,
       # because .gitignore does not stop `git add --force`.
       #
-      # Raw hardware reports. `ken hardware report` emits a machine profile for
+      # Raw hardware reports. `zenith hardware report` emits a machine profile for
       # a pull request with identifying data stripped. A raw capture taken with
       # extra debugging carries usernames, hostnames, serial numbers, MAC
       # addresses and home-directory paths, and CONTRIBUTING.md is blunt about
@@ -159,7 +159,7 @@ jobs:
               *.hardware.raw.yaml | *.hardware.raw.json | *-report-raw.yaml)
                 printf 'raw hardware report — carries serials, MAC addresses, hostnames or home paths'
                 ;;
-              var/log/ken/*)
+              var/log/zenith/*)
                 printf 'captured system log'
                 ;;
               .diag/*)

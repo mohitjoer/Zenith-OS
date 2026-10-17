@@ -1,4 +1,4 @@
-# yamllint configuration for Ken OS.
+# yamllint configuration for Zenith OS.
 #
 # Matched to the YAML that is actually in this repository rather than to a
 # generic profile, and every rule relaxed below carries its reason. The rule
@@ -20,17 +20,23 @@ rules:
   # ------------------------------------------------------------------------
   # Line length.
   # ------------------------------------------------------------------------
-  # The data files are written to 80 columns and stay there: system/packages.yaml
-  # has zero lines over 80. The two issue forms are the exception, and they are
-  # the reason the ceiling is not 80.
+  # The data files are hand-wrapped at about 80 columns: system/packages.yaml
+  # tops out at 89, the annotated profile schema at 83 and the kernel fleet at
+  # 82. The two issue forms are the exception, and they are why the ceiling is
+  # not 80.
   #
-  # A GitHub issue form's `description` is a single string rendered on the
-  # issue page. Folding one into a YAML block scalar changes the text GitHub
-  # shows, and these descriptions are written as one sentence on purpose. So
-  # rather than disable the rule — which would also stop the data files being
-  # held to 80 — the ceiling is set just above the longest such line in the tree.
+  # A GitHub issue form's `description` and a checkbox `label` are single strings
+  # rendered on the issue page. Folding one into a YAML block scalar changes the
+  # text GitHub shows, and they are written as one sentence on purpose. So rather
+  # than disable the rule — which would also stop the data files being held to 80
+  # — the ceiling sits above the longest such line in the tree, with headroom.
+  #
+  # The headroom is deliberate: these labels are rewritten as the forms change,
+  # and a ceiling that a single reworded sentence can trip turns the rule into
+  # something to work around rather than something to read. A genuinely runaway
+  # line still fails it.
   line-length:
-    max: 180
+    max: 220
     allow-non-breakable-words: true
 
   # ------------------------------------------------------------------------

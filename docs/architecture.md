@@ -1,6 +1,6 @@
-# Ken OS architecture
+# Zenith OS architecture
 
-Why Ken is built the way it is. Read this before designing or changing anything.
+Why Zenith is built the way it is. Read this before designing or changing anything.
 
 This document records **decisions, not aspirations**. Where a decision is settled it says so
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
@@ -13,11 +13,11 @@ closed question or assumes an open one is closed.
 | Decision | Choice | Reason |
 |---|---|---|
 | Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
-| Compositor | Hyprland | Ken draws its own shell and does not need a stock one. |
+| Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
 | Shell | Quickshell (QML) | Compositor-agnostic, proven, and the design language already lives in QML/CSS. |
 | Desktop stack | No GNOME | No GNOME Shell, no GNOME daemons, no GNOME portal backend. See [the portal seam](#the-portal-seam). |
-| Control tools | Go (`ken`, `ken-shell`, `ken-hub`) | Static binaries, cross-compiles cleanly, fast startup. |
-| Terminal | kitty | The most capable terminal in the stack — graphics protocol, `kitty @`, shell integration. Chosen over the terminal the base layer packages, on the understanding that **Ken owns its source build forever**. A deliberate trade, not an oversight. |
+| Control tools | Go (`zenith`, `zenith-shell`, `zenith-hub`) | Static binaries, cross-compiles cleanly, fast startup. |
+| Terminal | kitty | The most capable terminal in the stack — graphics protocol, `kitty @`, shell integration. Chosen over the terminal the base layer packages, on the understanding that **Zenith owns its source build forever**. A deliberate trade, not an oversight. |
 | User shell | zsh + starship | fish and blesh ship alongside as alternatives. |
 | Settings store | GSettings + dconf | Typed, validated, per-user, atomic. Strictly better than a hand-rolled JSON store. |
 | Boot chain | Limine | Small, modern, and already proven on the reference system. |
@@ -25,14 +25,14 @@ closed question or assumes an open one is closed.
 | ISO tooling | live-build + live-installer | Subiquity is Python and near-unforkable. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
 | Scope | Open source, all laptops | Hardware reach is the product. |
-| Identity | Ken is the distribution; Ubuntu is the base layer | See [the base-layer boundary](#the-base-layer-boundary). |
+| Identity | Zenith is the distribution; Ubuntu is the base layer | See [the base-layer boundary](#the-base-layer-boundary). |
 | Free software | Free at the distribution level, non-free declared per machine | See [firmware and free software](#firmware-and-free-software). |
 
 ### Rejected, and why
 
-- **Owning the compositor.** Ken uses Hyprland. Forking a compositor puts a decade of
+- **Owning the compositor.** Zenith uses Hyprland. Forking a compositor puts a decade of
   undifferentiated work on the critical path for no user-visible gain.
-- **GNOME.** Not GNOME Shell, not the GNOME daemons, not `xdg-desktop-portal-gnome`. Ken
+- **GNOME.** Not GNOME Shell, not the GNOME daemons, not `xdg-desktop-portal-gnome`. Zenith
   owns its own shell and its own surfaces. What that costs, and what it simplifies, is
   written up in [the portal seam](#the-portal-seam). The extensions that motivated this repo
   are archived in [`../agents/gnome-shell-notes.md`](../agents/gnome-shell-notes.md).
@@ -41,9 +41,9 @@ closed question or assumes an open one is closed.
 - **snap.** The overlay model gives better rollback, and dropping snapd off the boot path is
   free performance.
 - **A unified version manager (mise and friends) for all three languages.** Each language's
-  own official tool is what its ecosystem expects; Ken should not put its own opinion in the
+  own official tool is what its ecosystem expects; Zenith should not put its own opinion in the
   way. See [runtime stack](#runtime-stack).
-- **Claiming to be 100% free software.** Ken's own code and its own repository are free. The
+- **Claiming to be 100% free software.** Zenith's own code and its own repository are free. The
   *image* for a given machine may need firmware that is not. See
   [firmware and free software](#firmware-and-free-software).
 
@@ -51,30 +51,30 @@ closed question or assumes an open one is closed.
 
 ## The base-layer boundary
 
-Ken is the distribution. Ubuntu is its base layer — the substrate, not the identity. That
+Zenith is the distribution. Ubuntu is its base layer — the substrate, not the identity. That
 distinction only stays true if it is enforced, and the enforcement is a single rule:
 
-> **Ken's packages write only to `/usr/share/ken/` and `/etc/ken/`. Never to another
+> **Zenith's packages write only to `/usr/share/zenith/` and `/etc/zenith/`. Never to another
 > package's files.**
 
-The moment Ken edits `/etc/NetworkManager/`, or patches a file inside `/usr/lib/`, it is no
+The moment Zenith edits `/etc/NetworkManager/`, or patches a file inside `/usr/lib/`, it is no
 longer building over the base layer — it is forking it. The cost arrives later and all at
 once: every rebase onto a newer Ubuntu becomes a merge conflict across files nobody
 remembered touching, and the release train stops.
 
-Ken's packages follow from that rule:
+Zenith's packages follow from that rule:
 
-- A base-layer package with the wrong configuration gets a **Ken's own config package**, or a
-  drop-in shadowing it under a `ken-` name. It is never edited in place.
-- A base-layer package that is merely missing something gets a `ken-` package that depends on
+- A base-layer package with the wrong configuration gets a **Zenith's own config package**, or a
+  drop-in shadowing it under a `zenith-` name. It is never edited in place.
+- A base-layer package that is merely missing something gets a `zenith-` package that depends on
   it and supplements it.
-- The only two directories Ken owns outright are `/usr/share/ken/` and `/etc/ken/`. Anything
-  Ken needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
+- The only two directories Zenith owns outright are `/usr/share/zenith/` and `/etc/zenith/`. Anything
+  Zenith needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
   controls.
-- Ship only what Ken needs from the base layer. Every package in the image is a liability on
-  the next rebase; the manifest of what Ken installs is itself a reviewed artefact.
+- Ship only what Zenith needs from the base layer. Every package in the image is a liability on
+  the next rebase; the manifest of what Zenith installs is itself a reviewed artefact.
 
-The payoff is that rebasing Ken onto a new Ubuntu becomes a package-set change rather than a
+The payoff is that rebasing Zenith onto a new Ubuntu becomes a package-set change rather than a
 merge. That is the difference between a distribution that can track its base and one that
 slowly becomes an unmaintainable fork of it.
 
@@ -82,19 +82,19 @@ slowly becomes an unmaintainable fork of it.
 
 ## Layer map
 
-Ken's layers, from bottom up.
+Zenith's layers, from bottom up.
 
 | Layer | Owner | Notes |
 |---|---|---|
 | Kernel, firmware, boot | `system/kernel/`, installer | Pinned fleet, not a single kernel |
-| Base system | Ubuntu packages | Unmodified; Ken adds only what it needs |
-| Desktop services | Ken + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
-| Display | Hyprland | Behind a `ken wm` seam so it can be swapped |
+| Base system | Ubuntu packages | Unmodified; Zenith adds only what it needs |
+| Desktop services | Zenith + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
+| Display | Hyprland | Behind a `zenith wm` seam so it can be swapped |
 | Shell surfaces | Quickshell | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts |
 | Settings store | GSettings / dconf | One writer per setting |
-| Control tools | `ken`, `ken-shell`, `ken-hub` | The only writers |
+| Control tools | `zenith`, `zenith-shell`, `zenith-hub` | The only writers |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk` | See below |
-| Updates | `ken update` · `rollback` · `doctor` | Overlay model |
+| Updates | `zenith update` · `rollback` · `doctor` | Overlay model |
 
 ---
 
@@ -105,7 +105,7 @@ the compositor directly. An app that has ever shown a file chooser, shared a scr
 for a secret has gone through it. If this layer is wrong, a thousand apps break in a thousand
 different ways, so it is worth getting right early.
 
-Ken's stack, with each backend's interfaces verified against what it actually exports rather
+Zenith's stack, with each backend's interfaces verified against what it actually exports rather
 than what its name suggests:
 
 | Component | Interfaces it implements |
@@ -132,7 +132,7 @@ declares the interface, finds none, and returns success without exporting the po
 No error, no warning, no fallback.
 
 The consequence is concrete: every Flatpak that uses the Secret interface — Firefox,
-Thunderbird, Evolution, VS Code — has nowhere to store a password on Ken. This is the single
+Thunderbird, Evolution, VS Code — has nowhere to store a password on Zenith. This is the single
 worst portal gap and it is not cosmetic.
 
 Three ways out, none chosen yet:
@@ -141,23 +141,23 @@ Three ways out, none chosen yet:
    backend the project rejected.
 2. Adopt a Secret backend derived from the KDE portal implementation. Keeps the no-GNOME rule;
    costs a package to track.
-3. Ship a small Ken-owned Secret backend over `gnome-keyring`'s service interface. Most
-   control, most work, and it is genuinely Ken's code.
+3. Ship a small Zenith-owned Secret backend over `gnome-keyring`'s service interface. Most
+   control, most work, and it is genuinely Zenith's code.
 
 Until this is resolved, the contract below is **not** true and must not be claimed.
 
 ### The contract
 
-An application that works on a stock desktop must work on Ken — with the Secret interface as
+An application that works on a stock desktop must work on Zenith — with the Secret interface as
 the known exception until one of the three options above lands. A hardware report should ask
 contributors to confirm portal behaviour, and a portal regression is a distribution-wide bug,
 not a cosmetic one.
 
-`ken doctor` must assert that the portal configuration file is actually being read: the
+`zenith doctor` must assert that the portal configuration file is actually being read: the
 per-desktop file name is derived from `XDG_CURRENT_DESKTOP`, and a session that does not
 declare itself correctly falls back to `portals.conf` and silently uses the wrong backends.
 
-Interfaces Ken still owns itself, because no backend provides them:
+Interfaces Zenith still owns itself, because no backend provides them:
 
 - **Camera.** No portal backend implements it; capture is Pipewire's job.
 - **Notifications.** With no notification daemon in the image, the shell hosts the
@@ -170,27 +170,27 @@ backend, not by the shell.
 
 ## Overlay and rollback
 
-Ken's packages write **only** to `/usr/share/ken/` and `/etc/ken/`. Never to `~`. That single
+Zenith's packages write **only** to `/usr/share/zenith/` and `/etc/zenith/`. Never to `~`. That single
 rule is what makes rollback possible.
 
 ```
-/usr/share/ken/                     the packaged base; replaced on update
-/etc/ken/                           machine-level config; replaced on update
-~/.config/ken/                      materialized base, user's copy
-~/.config/ken/user_edits/           the user's overlay; wins at the mirrored path
-~/.local/share/ken/plugins/         installed plugins
-~/.local/state/ken/                 runtime state, revisions, snapshots
+/usr/share/zenith/                     the packaged base; replaced on update
+/etc/zenith/                           machine-level config; replaced on update
+~/.config/zenith/                      materialized base, user's copy
+~/.config/zenith/user_edits/           the user's overlay; wins at the mirrored path
+~/.local/share/zenith/plugins/         installed plugins
+~/.local/state/zenith/                 runtime state, revisions, snapshots
 ```
 
 | Command | Does |
 |---|---|
-| `ken update` | snapshot `~/.config` to git, fetch debs, re-materialize base, repaint |
-| `ken rollback` | re-materialize the previous revision |
-| `ken materialize <path>` | re-lay the base file, clobbering shipped content |
-| `ken reset <path>` | drop one overlay file back to the base |
-| `ken doctor` | report drift between base and overlay |
+| `zenith update` | snapshot `~/.config` to git, fetch debs, re-materialize base, repaint |
+| `zenith rollback` | re-materialize the previous revision |
+| `zenith materialize <path>` | re-lay the base file, clobbering shipped content |
+| `zenith reset <path>` | drop one overlay file back to the base |
+| `zenith doctor` | report drift between base and overlay |
 
-A user override always wins at its mirrored path, and `ken update` can never clobber it.
+A user override always wins at its mirrored path, and `zenith update` can never clobber it.
 This is the discipline that makes the rest of the system safe to automate.
 
 ---
@@ -201,26 +201,26 @@ Every desktop setting lives in **GSettings schemas**, which give typed values, v
 per-user scoping, atomic apply through dconf, and `gsettings list-recursively` for
 introspection — which is exactly what a widget catalogue needs.
 
-- `org.ken.desktop` — desktop-level behaviour
-- `org.ken.shell` — bar layout, dock, widgets, launcher
+- `org.zenith.desktop` — desktop-level behaviour
+- `org.zenith.shell` — bar layout, dock, widgets, launcher
 
-The shell daemon and `ken-hub` are the only writers. Hand-editing dconf directly causes drift
-and `ken doctor` reports it.
+The shell daemon and `zenith-hub` are the only writers. Hand-editing dconf directly causes drift
+and `zenith doctor` reports it.
 
 ---
 
 ## Runtime stack
 
-### Terminal — kitty
+### Terminal: kitty
 
 GPU-accelerated and scriptable, with its own OpenGL renderer rather than a VTE text grid, so
 it costs far less than a GTK terminal. It is the most capable terminal in the stack and it
-is the one thing here Ken is willing to accept a packaging burden for, because the terminal
+is the one thing here Zenith is willing to accept a packaging burden for, because the terminal
 is the surface every developer looks at all day.
 
 Four places declare it the default, and all four must be set or the desktop is inconsistent:
 
-1. **Ken's shell** — the terminal-launcher setting the bar button calls
+1. **Zenith's shell** — the terminal-launcher setting the bar button calls
 2. **`gsettings set org.gnome.desktop.default-applications.terminal exec kitty`** — so the
    file manager's "Open in Terminal" and GTK dialogs use it
 3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator` with an explicit `--slave` and
@@ -229,7 +229,7 @@ Four places declare it the default, and all four must be set or the desktop is i
    `kitty @` and the pager integration work
 
 **Packaging consequence, stated plainly:** kitty is not carried by the base layer's archive,
-so `ken-terminal` builds it from source and Ken owns that build for the life of the project.
+so `zenith-terminal` builds it from source and Zenith owns that build for the life of the project.
 That is a deliberate trade: the base layer maintains one binary for us, and we maintain a
 better one ourselves. See [the rejected options](#rejected-and-why).
 
@@ -246,7 +246,7 @@ What kitty brings that a stock terminal does not, and why it is worth the build:
 Default font: **JetBrainsMono Nerd Font** — for devicon and powerline glyphs, not because
 ligatures require it.
 
-### User shell — zsh
+### User shell: zsh
 
 zsh is the shell, starship is the prompt, and kitty is where they meet.
 
@@ -254,18 +254,18 @@ zsh is the shell, starship is the prompt, and kitty is where they meet.
   not depend on what `$SHELL` happens to say
 - kitty's zsh integration is sourced from `~/.zshrc`, guarded so a non-kitty terminal does
   not error on the missing file
-- `starship` renders the prompt; its configuration lives under Ken's overlay like everything
-  else, so `ken update` cannot clobber it
+- `starship` renders the prompt; its configuration lives under Zenith's overlay like everything
+  else, so `zenith update` cannot clobber it
 - fish and blesh ship alongside zsh for users who prefer them; neither is the default
 
-Ken's overlay model gives the shell the same protection as the rest of the desktop: a change
+Zenith's overlay model gives the shell the same protection as the rest of the desktop: a change
 to `~/.zshrc` is a user's change and survives every update.
 
 ### Languages
 
 | | Ships | Managed by | Why |
 |---|---|---|---|
-| Rust | `rustup`, shared toolchain at `/opt/ken/rust` | rustup | Ubuntu's apt `rustc` lags years behind. Never ship Rust via apt. |
+| Rust | `rustup`, shared toolchain at `/opt/zenith/rust` | rustup | Ubuntu's apt `rustc` lags years behind. Never ship Rust via apt. |
 | Node | `nodejs` + `npm` pinned to LTS, `corepack` enabled | fnm | System Node is the floor; per-project versions per repository. |
 | Python | `python3`, `python3-venv`, `python3-dev` | mise + `uv` | System Python stays pristine — it is an OS dependency and PEP 668 marks it externally managed. |
 
@@ -279,7 +279,7 @@ prefer them.
 
 ## Hardware strategy
 
-This is the largest subsystem and the one that decides whether Ken is usable by anyone but
+This is the largest subsystem and the one that decides whether Zenith is usable by anyone but
 its author.
 
 ### Support tiers
@@ -290,20 +290,20 @@ tier is determined by whether a profile exists, not by marketing.
 
 ### The profile database
 
-`ken-machines` is a database of verified machine profiles in this repository. Nobody can test
+`zenith-machines` is a database of verified machine profiles in this repository. Nobody can test
 every laptop, but every user can test one:
 
 1. A machine boots successfully
-2. `ken hardware report` emits a candidate profile
+2. `zenith hardware report` emits a candidate profile
 3. The contributor attaches it to a pull request
 4. Merged profiles ship in the next ISO and are selected automatically at install time
 
 This turns an unbounded hardware problem into a union of working setups that grows without
-anyone owning a hardware lab. It is the highest-leverage mechanism in Ken.
+anyone owning a hardware lab. It is the highest-leverage mechanism in Zenith.
 
 ### Kernel fleet
 
-A single kernel cannot support both old drivers and new silicon. Ken pins a fleet:
+A single kernel cannot support both old drivers and new silicon. Zenith pins a fleet:
 
 - **upstream generic** — the baseline, always boots
 - **HWE** — recent hardware enablement, backported continuously
@@ -332,18 +332,18 @@ Every item here is a real support ticket someone will file:
 ### The offline problem
 
 A laptop whose WiFi needs an unloaded driver cannot fetch that driver over the network it does
-not have. This is why every Linux ISO hits the same wall. Ken's answer is a broad firmware
-rescue bundle on the ISO plus `ken-firmware load` from a USB stick. Unglamorous, and the
+not have. This is why every Linux ISO hits the same wall. Zenith's answer is a broad firmware
+rescue bundle on the ISO plus `zenith-firmware load` from a USB stick. Unglamorous, and the
 difference between "installs on my laptop" and "installs on most laptops".
 
 ---
 
 ## Firmware and free software
 
-Ken is free software. It cannot honestly claim to be free of proprietary code *on disk*, and
+Zenith is free software. It cannot honestly claim to be free of proprietary code *on disk*, and
 the difference matters, so state it precisely.
 
-**The distribution level.** Ken's own code is GPL-3.0 and Ken's own APT repository contains
+**The distribution level.** Zenith's own code is GPL-3.0 and Zenith's own APT repository contains
 nothing but free software. That claim is clean, verifiable with `apt-cache` , and true.
 
 **The image level.** A specific machine's firmware is a separate question. Most of
@@ -354,8 +354,8 @@ back on. An image without them may not bring up networking or graphics at all.
 
 So the honest formulation is:
 
-> Ken's code and Ken's repository are free software. Some hardware requires proprietary
-> firmware, which Ken does not redistribute — it installs the base layer's own
+> Zenith's code and Zenith's repository are free software. Some hardware requires proprietary
+> firmware, which Zenith does not redistribute — it installs the base layer's own
 > `linux-firmware-*` packages, where the redistributor already holds the rights.
 
 Note what the base layer actually offers: there is **no `non-free-firmware` component**, and
@@ -366,15 +366,15 @@ Atheros — and some of it is not.
 
 Three consequences, all deliberate:
 
-1. **Ken references, it does not repackage.** The installer pulls the base layer's
-   `linux-firmware-<vendor>` packages rather than carrying firmware in a Ken package. This
-   keeps Ken's repository entirely free software and stops Ken taking on a redistribution it
+1. **Zenith references, it does not repackage.** The installer pulls the base layer's
+   `linux-firmware-<vendor>` packages rather than carrying firmware in a Zenith package. This
+   keeps Zenith's repository entirely free software and stops Zenith taking on a redistribution it
    has no right to.
 2. **A hardware profile declares what it needs.** `firmware:` in a profile names *packages*.
    That is the same mechanism a community profile already uses for its driver list, and it is
    why per-machine declaration scales — see [the hard list](#the-hard-list).
-3. **Nothing claims FSF eligibility.** Ken does not describe itself as a fully free
-   distribution, and no Ken ISO should be labelled that way. `firmware-reporter` would say
+3. **Nothing claims FSF eligibility.** Zenith does not describe itself as a fully free
+   distribution, and no Zenith ISO should be labelled that way. `firmware-reporter` would say
    otherwise within minutes of someone checking.
 
 ### The ISO question
@@ -408,24 +408,25 @@ rather than inherited from a draft.
 which undercuts the reason live-build was chosen in the first place. This is unresolved: the
 alternatives are a custom hook, or building the rootfs with `mmdebstrap` and the boot chain by
 hand.
-- Secure Boot is a two-key problem for Limine. Limine does **not** use UKS: it verifies
-  integrity by hash, not authenticity by signature. Signing the Limine EFI executable and
-  enrolling the **BLAKE2B hash of `limine.conf` inside it** is what enforces an unmodified
-  config, and once that hash is enrolled every file path in the config must carry a matching
-  `#<blake2b>` suffix. Separately, on Windows-initialised firmware only Microsoft keys are
-  enrolled, so shim must present a MOK for Ken's key before chainloading Limine at all.
 
-Package flow is an APT repository signed with Ken's own GPG key, referenced by `signed-by`
+Secure Boot is a two-key problem for Limine. Limine does **not** use UKS: it verifies
+integrity by hash, not authenticity by signature. Signing the Limine EFI executable and
+enrolling the **BLAKE2B hash of `limine.conf` inside it** is what enforces an unmodified
+config, and once that hash is enrolled every file path in the config must carry a matching
+`#<blake2b>` suffix. Separately, on Windows-initialised firmware only Microsoft keys are
+enrolled, so shim must present a MOK for Zenith's key before chainloading Limine at all.
+
+Package flow is an APT repository signed with Zenith's own GPG key, referenced by `signed-by`
 in `sources.list.d`. Releases are published with signed checksums.
 
 ---
 
 ## Performance plan
 
-Ken ships a deliberately small daemon set, which makes the performance work subtractive rather
+Zenith ships a deliberately small daemon set, which makes the performance work subtractive rather
 than desperate. In rough order of payoff:
 
-1. Ship only what the base layer provides that Ken actually uses — every extra package is
+1. Ship only what the base layer provides that Zenith actually uses — every extra package is
    boot time and memory
 2. `tracker3`, `gnome-software`, `packagekit` autoupdate, `apport`, `whoopsie`, cups-bsd — the
    image should not contain a software centre
@@ -440,7 +441,7 @@ than desperate. In rough order of payoff:
    decade, it ships no `postinst`, and it is fundamentally incompatible with ASLR. There is
    nothing to measure because there is nothing to install.
 
-Measure before claiming a win. `ken benchmark` should record idle RSS, boot time and CPU so
+Measure before claiming a win. `zenith benchmark` should record idle RSS, boot time and CPU so
 regressions are visible rather than anecdotal.
 
 ---
@@ -449,9 +450,11 @@ regressions are visible rather than anecdotal.
 
 | Question | Why it matters |
 |---|---|
+| **What draws the login screen** | The greeter runs before any user session exists, so neither Hyprland nor XWayland is available to it. Excluding the Xorg server is right for the *session* — XWayland covers X11 clients there — but something has to draw the greeter. Either SDDM's Wayland greeter is made to work on Qt 6, or the Xorg server stays in the image purely for the login screen. **Until this is decided the image cannot log in.** |
 | The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the portal seam](#the-portal-seam). |
-| Repository hosting | Ken's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
-| Plugin mechanism | Ken's shell has surfaces no stock desktop has. What a Ken plugin looks like is undefined. |
-| Hardware report scope | What `ken hardware report` captures, and how aggressively it strips PII before emitting. |
+| Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
+| Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |
+| Hardware report scope | What `zenith hardware report` captures, and how aggressively it strips PII before emitting. |
 | ISO firmware policy | Whether one ISO carries firmware or firmware is fetched at install time. See [firmware and free software](#firmware-and-free-software). |
+| live-build and Limine | live-build cannot emit a Limine ISO. A custom hook, or `mmdebstrap` plus a hand-built boot chain. |
 | Test matrix | Which Hyprland, Quickshell and kernel versions CI must pass before a release. |

@@ -1,18 +1,56 @@
 # The session path
 
-Ken from power-on to a desktop, and back down again. This document fixes the order of
-everything on that path and names the owner of each step. A desktop with two owners for
-one job is a desktop that breaks in ways nobody can reproduce, so every stage below has
-exactly one owner and the reason for every ordering is written next to it.
+Zenith from power-on to a desktop, and back down again. This document fixes the order of
+everything on that path and names the owner of each step. A desktop with two owners for one
+job is a desktop that breaks in ways nobody can reproduce, so every stage below has exactly
+one owner and the reason for every ordering is written next to it.
 
 Three rules run through the whole document:
 
-- **One owner per stage.** Where a base-layer component owns a step, Ken does not
-  duplicate it. Where no base-layer component owns it, Ken does.
-- **Order is a dependency, not a preference.** Where two things must happen in a
-  particular sequence, the failure that the sequence avoids is named.
-- **Everything is a file.** Every unit, config file and desktop entry named here is a
-  file on the image, with a path and an owner.
+- **One owner per stage.** Where a base-layer component owns a step, Zenith does not
+  duplicate it. Where no base-layer component owns it, Zenith does.
+- **Order is a dependency, not a preference.** Where two things must happen in a particular
+  sequence, the failure that the sequence avoids is named.
+- **Everything is a file.** Every unit, config file and desktop entry named here is a file
+  on the image, with a path and an owner.
+
+The companion documents are [`architecture.md`](architecture.md) for the decisions and
+[`adopting-zenith.md`](adopting-zenith.md) for putting an existing machine on this path.
+Where this document repeats a decision, it repeats the reason with it.
+
+---
+
+## Where Zenith's files live
+
+Zenith's packages write to `/usr/share/zenith/` and `/etc/zenith/`, and to nothing else that
+belongs to another package. A handful of files have to sit outside those two directories
+anyway, because the components that read them look nowhere else. Listing them is the point:
+a boundary that is not written down gets crossed by accident.
+
+| Path | What it is | Why it cannot live under `/usr/share/zenith/` |
+|---|---|---|
+| `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
+| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf` | Drop-in | systemd reads drop-ins from a fixed directory beside the unit |
+| `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
+| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. Pending: this one is not on the sanctioned list yet and should be added to [`architecture.md`](architecture.md#the-base-layer-boundary) |
+| `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory. Same pending note |
+| `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+
+These are registrations — pointers a third-party binary must find — not Zenith-owned content.
+The content stays at `/usr/share/zenith/session/`, `/usr/share/zenith/shell/`,
+`/usr/share/zenith/portal/` and `/usr/share/zenith/schemas/`, and `zenith doctor` reports
+drift between the two the same way it reports drift everywhere else.
+
+And the list of things Zenith deliberately does **not** touch:
+
+- `/etc/sddm.conf` and `/etc/sddm.conf.d/` — the login manager's configuration, which Zenith
+  leaves at its defaults.
+- `/etc/pam.d/` — the PAM stack. The keyring is unlocked by the base layer's own PAM module.
+- `/etc/initramfs-tools/` — the initramfs configuration. Zenith's copy lives in
+  `/etc/zenith/initramfs/` and is passed to `mkinitramfs` with `-d`.
+- `/usr/share/xdg-desktop-portal/portals/` — the dispatcher's backend directory.
+- `/usr/lib/udev/rules.d/`, `/etc/NetworkManager/`, and every other package's configuration.
 
 ---
 
@@ -20,13 +58,13 @@ Three rules run through the whole document:
 
 ### Stages and owners
 
-| Stage | Owner | What it owns | Ken's part |
+| Stage | Owner | What it owns | Zenith's part |
 |---|---|---|---|
 | Firmware | The machine | Secure Boot verification, the EFI variable store, the boot order | Nothing |
 | Secure Boot shim | Base layer | First-stage verification, the MOK manager, the chainloader slot | Nothing |
-| Limine | `ken-boot` | The boot menu, loading the kernel and the initramfs, the boot parameters | The config, the volume layout, the hashes |
+| Limine | `zenith-boot` | The boot menu, loading the kernel and the initramfs, the boot parameters | The config, the volume layout, the hashes |
 | Kernel | Base layer, pinned by `system/kernel/` | Drivers, the initramfs unpacker, early microcode | The fleet, the initramfs contents |
-| initramfs | Base layer's initramfs-tools, tuned by Ken | Root discovery, the microcode blob, zram | The config directory, the module list |
+| initramfs | Base layer's initramfs-tools, tuned by Zenith | Root discovery, the microcode blob, zram | The config directory, the module list |
 | systemd | Base layer | The system manager, logind, the per-user manager | The unit files, the session units |
 
 ### The four Limine stages
@@ -39,38 +77,38 @@ Three rules run through the whole document:
 | 4 | `limine-exec`, the final stage | Loading the kernel and the initramfs into memory, setting the video mode and the kernel boot parameters, handing over |
 
 Limine reads **FAT12/16/32 and ISO9660 and nothing else**. It cannot open an ext4
-partition. Two designs follow from that, and Ken takes the first:
+partition. Two designs follow from that, and Zenith takes the first:
 
-1. The kernel and the initramfs live on the FAT volume and Limine loads them directly.
-   No second bootloader is involved, so the Secure Boot chain is one link shorter and
-   there is no second boot configuration to keep in sync with the kernel fleet.
-2. Limine chainloads a second bootloader that can read ext4, and that bootloader loads
-   the kernel. The chain grows by one link, that bootloader becomes part of the trust
-   chain, and it becomes part of the update path.
+1. The kernel and the initramfs live on the FAT volume and Limine loads them directly. No
+   second bootloader is involved, so the Secure Boot chain is one link shorter and there is
+   no second boot configuration to keep in sync with the kernel fleet.
+2. Limine chainloads a second bootloader that can read ext4, and that bootloader loads the
+   kernel. The chain grows by one link, that bootloader becomes part of the trust chain, and
+   it becomes part of the update path.
 
 ### The boot volume
 
-The `KENBOOT` volume is FAT32 and is mounted at `/boot`. It is the ESP, and it carries
+The `ZENITHBOOT` volume is FAT32 and is mounted at `/boot`. It is the ESP, and it carries
 the whole boot chain.
 
-| Path on `KENBOOT` | Contents |
+| Path on `ZENITHBOOT` | Contents |
 |---|---|
 | `limine.sys` | The Limine configuration search target on the boot volume |
 | `limine-bios.sys` | The BIOS boot record payload |
 | `EFI/BOOT/BOOTX64.EFI` | Limine's EFI binary, and the fallback boot path |
-| `EFI/ken/shimx64.efi` | The Secure Boot first stage |
-| `EFI/ken/mmX64.efi` | The MOK manager |
-| `EFI/ken/grubx64.efi` | Shim's chainloader slot, holding Limine's EFI binary |
+| `EFI/zenith/shimx64.efi` | The Secure Boot first stage |
+| `EFI/zenith/mmX64.efi` | The MOK manager |
+| `EFI/zenith/grubx64.efi` | Shim's chainloader slot, holding Limine's EFI binary |
 | `vmlinuz-<version>` | The kernel |
 | `initrd.img-<version>` | The initramfs |
 | `limine.conf` | The boot configuration |
 
-FAT constrains what can live here, and the design works with the constraints rather
-than against them:
+FAT constrains what can live here, and the design works with the constraints rather than
+against them:
 
 - **No symbolic links.** `/boot/initrd.img` and `/boot/vmlinuz` do not exist. Limine is
   pointed at versioned file names.
-- **No execute bit.** Every helper script lives under `/usr/share/ken/`, never under
+- **No execute bit.** Every helper script lives under `/usr/share/zenith/`, never under
   `/boot`.
 - **Case-insensitive names.** Every kernel and initramfs file name is lower case.
 - **No ownership.** Nothing on `/boot` is trusted to be root-owned; Limine verifies the
@@ -78,16 +116,16 @@ than against them:
 
 ### The Limine configuration
 
-`/boot/limine.conf`, regenerated by `ken-boot` on every kernel change:
+`/boot/limine.conf`, regenerated by `zenith-boot` on every kernel change:
 
 ```ini
 timeout: 5
 default_entry: 1
 quiet: yes
-interface_branding: Ken OS
+interface_branding: Zenith OS
 interface_branding_colour: 000000
 
-/Ken OS
+/Zenith OS
 protocol: linux
 path: boot():/vmlinuz-6.14.0-33-generic#9f86d081884c7d659a2feaa0c55ad015
 module_path: boot():/initrd.img-6.14.0-33-generic#ca6914d2a3b8c1f0e5d6473ab19e5c0
@@ -96,52 +134,48 @@ cmdline: quiet loglevel=4 systemd.show_status=true root=UUID=6a1f9c40-2b7e-4d55-
 
 Four things in that file are load-bearing:
 
-- **The config lives at the volume root.** Limine searches, in order, the directory of
-  its own EFI application, then `/boot/limine/limine.conf`, `/boot/limine.conf`,
-  `/limine/limine.conf`, `/limine.conf`; the first match wins and the rest are ignored.
-  One canonical path means one file, and the installer must make sure no other volume
-  on the disk carries a `limine.conf` that would shadow it.
-- **The hash suffix is not optional under Secure Boot.** With a config hash enrolled,
-  Limine refuses to load any file whose path does not carry its BLAKE2B digest, and
-  panics on a mismatch. `ken-boot` computes the digests when it writes the file.
-- **The config hash is enrolled in the EFI binary.** `limine enroll-config` embeds the
-  BLAKE2B digest of `limine.conf` into `BOOTX64.EFI` at build time, which is what makes
-  the configuration itself tamper-evident. The trust chain is then: firmware verifies
-  shim, shim verifies Limine against the MOK, Limine verifies its own configuration and
-  every file it loads.
+- **The config lives at the volume root.** Limine searches, in order, the directory of its
+  own EFI application, then `/boot/limine/limine.conf`, `/boot/limine.conf`,
+  `/limine/limine.conf`, `/limine.conf`; the first match wins and the rest are ignored. One
+  canonical path means one file, and the installer must make sure no other volume on the
+  disk carries a `limine.conf` that would shadow it.
+- **The hash suffix is not optional once the config hash is enrolled.** Limine refuses to
+  load any file whose path does not carry its BLAKE2B digest, and panics on a mismatch.
+  `zenith-boot` computes the digests when it writes the file.
+- **Limine verifies by hash, not by signature.** It does not use a UKS. What enforces an
+  unmodified configuration is the **BLAKE2B hash of `limine.conf` enrolled inside the EFI
+  binary** with `limine enroll-config`, which is why every path in the file needs a digest
+  once that hash is enrolled. Separately, on a Windows-initialised firmware only Microsoft
+  keys are enrolled, so shim must present a MOK for Zenith's own key before it can chainload
+  Limine at all. Two separate problems, two separate answers.
 - **The kernel command line carries the root device.** The initramfs resolves the root
-  filesystem from it; the installer writes the UUID from the machine's partition table
-  and `ken-boot` rewrites the line on every kernel change.
+  filesystem from it; the installer writes the UUID from the machine's partition table and
+  `zenith-boot` rewrites the line on every kernel change.
 
 ### Microcode has to load early
 
 The CPU runs the wrong microcode until something loads the right one, and a machine that
-needs an update for stability is unstable during exactly the window that matters. The
-base layer's `intel-microcode` and `amd-ucode` packages therefore ship initramfs-tools
-hooks that call `prepend_earlyinitramfs`, and `mkinitramfs` writes that blob as a
-**separate cpio archive in front of** the main initramfs. The kernel's built-in
-early-microcode loader applies the first archive before it unpacks the real one, so the
-CPU is correct from the first instruction rather than from the moment the root
-filesystem is mounted.
+needs an update for stability is unstable during exactly the window that matters. The base
+layer's `intel-ucode` and `amd64-microcode` packages ship initramfs-tools hooks that call
+`prepend_earlyinitramfs`, and `mkinitramfs` writes that blob as a **separate cpio archive in
+front of** the main initramfs. The kernel's built-in early-microcode loader applies the
+first archive before it unpacks the real one, so the CPU is correct from the first
+instruction rather than from the moment the root filesystem is mounted.
 
-Three consequences for Ken:
+Two consequences for Zenith:
 
-- The microcode has to be **inside the initramfs**, not only in `/lib/firmware`. An
-  image built without the `intel-microcode` and `amd-ucode` packages boots on fallback
-  microcode for the whole initramfs phase.
-- `ken-boot` rebuilds the initramfs whenever a kernel **or a microcode package**
-  changes, so the blob is never stale relative to the kernel.
-- The initramfs is rebuilt with `mkinitramfs -d /etc/ken/initramfs`, so Ken's
-  configuration lives in `/etc/ken/initramfs/` and the base layer's
-  `/etc/initramfs-tools/` is never touched.
+- The microcode has to be **inside the initramfs**, not only in `/lib/firmware`. An image
+  built without those packages boots on fallback microcode for the whole initramfs phase.
+- `zenith-boot` rebuilds the initramfs whenever a kernel **or a microcode package** changes,
+  so the blob is never stale relative to the kernel.
 
 ### The initramfs
 
-The base layer uses initramfs-tools, and Ken keeps it. What Ken changes is the
+The base layer uses initramfs-tools, and Zenith keeps it. What Zenith changes is the
 configuration directory and the module set.
 
 ```
-mkinitramfs -d /etc/ken/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-33-generic
+mkinitramfs -d /etc/zenith/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-33-generic
 ```
 
 | Setting | Value | Why |
@@ -151,24 +185,25 @@ mkinitramfs -d /etc/ken/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-3
 | `BOOTSIZE` | `20%` | Enough for the storage drivers, small enough to stay in memory. |
 | `KEYMAP` | from the installer | The keyboard has to work at the login prompt, which is a VT, not a compositor. |
 
-Tier-1 machine profiles may drop `MODULES` to `dep` and ship a smaller initramfs, but
-only after the profile has proved the machine boots from that set. A profile that
-guesses wrong produces an unbootable machine that no amount of debugging can reach.
+Tier-1 machine profiles may drop `MODULES` to `dep` and ship a smaller initramfs, but only
+after the profile has proved the machine boots from that set. A profile that guesses wrong
+produces an unbootable machine that no amount of debugging can reach.
 
-`zram-generator` is in the initramfs, so the root filesystem is never written
-compressed by accident.
+zram is configured in the initramfs, not by the systemd generator: `systemd-zram-generator`
+is a systemd generator that runs at boot and writes the units that create and swap on a
+zram device, and it does not by itself place zram in the initramfs. The initramfs
+configuration is what does that.
 
 ### systemd takes over
 
-The initramfs mounts the root filesystem and executes `/sbin/init`, which is systemd.
-From that point the boot is a dependency graph, and the rest of this document is that
-graph.
+The initramfs mounts the root filesystem and executes `/sbin/init`, which is systemd. From
+that point the boot is a dependency graph, and the rest of this document is that graph.
 
 ---
 
 ## The systemd target chain
 
-The system side first, then the user side. The units Ken owns are marked.
+The system side first, then the user side.
 
 ### The system instance
 
@@ -195,262 +230,264 @@ default.target
 ```
 
 `default.target` is a symlink to `graphical.target`, and `graphical.target` wants
-`display-manager.service` — an alias created by the `[Install]` section of
-`sddm.service`. Ken never edits `sddm.service`; the only command that puts a login
-manager on the image is `systemctl enable display-manager.service`.
+`display-manager.service` — an alias created by the `[Install]` section of `sddm.service`.
+Zenith never edits `sddm.service`; the only command that puts a login manager on the image
+is `systemctl enable display-manager.service`.
 
 ### The user instance
 
 The session is not a system service. It is a set of user units, and the root of it is
-`graphical-session.target`, which systemd defines as "active whenever any graphical
-session is running".
+`graphical-session.target`, which systemd defines as "active whenever any graphical session
+is running".
 
 ```ini
 user@1000.service                                  started by systemd-logind for the seat session
 │                                                   PAMName=systemd-user, Slice=user-1000.slice
 └── systemd --user
     └── default.target
-        └── ken-session.target                       started by ken-session, the session leader
+        ├── graphical-session-pre.target             environment setup, agents, autostart
+        └── hyprland-session.target                 activated by the compositor itself
+            │                                        Wants=wireplumber.service
             │                                        BindsTo=graphical-session.target
-            │                                        Wants=graphical-session-pre.target
-            │                                        Wants=ken-session-pre.target
-            │                                        Wants=ken-wm.target
-            │                                        Wants=ken-portals.target
-            │                                        Wants=ken-shell.target
-            │                                        Wants=ken-control.target
-            ├── graphical-session-pre.target          environment setup, agents, autostart
-            ├── ken-session-pre.target                keyring, polkit agent
-            ├── ken-wm.target                        Requires=ken-wm.service
-            │   └── ken-wm.service                    the compositor
-            ├── ken-portals.target                   Requires=ken-wm.target
-            │   │                                    After=ken-wm.target
-            │   │                                    Before=ken-shell.target
-            │   ├── xdg-desktop-portal.service        the dispatcher, from the base layer
-            │   └── ken-portals.service               Ken's own portal backend
-            ├── ken-shell.target                     Requires=ken-portals.target
-            │   │                                    After=ken-portals.target
-            │   └── ken-shell.service                the shell
-            └── ken-control.target                   Requires=ken-shell.target
-                │                                    After=ken-shell.target
-                └── ken-control.service              the settings writer
+            ├── wireplumber.service                 audio policy
+            ├── zenith-portal.service                the portal dispatcher
+            │   │                                    After=hyprland-session.target
+            │   │                                    ConditionEnvironment=WAYLAND_DISPLAY
+            │   └── xdg-desktop-portal-hyprland      activated on demand by the dispatcher
+            │       xdg-desktop-portal-gtk          activated on demand by the dispatcher
+            └── zenith-shell.service                the shell
+                │                                    After=hyprland-session.target
+                │                                    After=zenith-portal.service
+                │                                    After=wireplumber.service
+                │                                    ConditionEnvironment=WAYLAND_DISPLAY
+                └── the shell's own children         lock screen, quick settings,
+                                                     notification server — inside the shell
 ```
 
 Two systemd mechanisms carry the weight here.
 
-- **`BindsTo=graphical-session.target` on the session target** starts the target when
-  the session starts and stops it when the session ends.
-- **`PartOf=graphical-session.target` on every session service** stops that service
-  when the session ends. A unit that is only `Wants=`-ed by the session target would
-  survive logout and be adopted by the next session, which is how a second copy of the
-  shell ends up running after a fast login cycle.
+- **`BindsTo=graphical-session.target` on the session target** starts the target when the
+  session starts and stops it when the session ends.
+- **`PartOf=graphical-session.target` on every session service** stops that service when
+  the session ends. A unit that is only `Wants=`-ed by the session target would survive
+  logout and be adopted by the next session, which is how a second copy of the shell ends up
+  running after a fast login cycle.
 
-The upstream compositor's own session target is the template for Ken's, and the shape is
-the same:
-
-```ini
-# /usr/lib/systemd/user/ken-session.target
-[Unit]
-Description=Ken session
-Documentation=man:ken-session(1)
-BindsTo=graphical-session.target
-Wants=graphical-session-pre.target
-Wants=ken-session-pre.target
-Wants=ken-wm.target
-Wants=ken-portals.target
-Wants=ken-shell.target
-Wants=ken-control.target
-After=graphical-session-pre.target
-```
-
-### The session units
+The upstream compositor ships its own session target, and Zenith's units attach to it with
+a drop-in. That is the sanctioned way to affect systemd without owning systemd:
 
 ```ini
-# /usr/lib/systemd/user/ken-wm.target
+# /usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf
 [Unit]
-Description=Ken compositor
-BindsTo=graphical-session.target
-Wants=ken-wm.service
-After=graphical-session-pre.target
-
-# /usr/lib/systemd/user/ken-wm.service
-[Unit]
-Description=Ken compositor
-PartOf=ken-wm.target
-After=graphical-session-pre.target
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/ken-wm --config /etc/ken/wm/hyprland.conf
-Restart=on-failure
-RestartSec=1
-Slice=session.slice
-
-# /usr/lib/systemd/user/ken-portals.target
-[Unit]
-Description=Ken portal stack
-BindsTo=graphical-session.target
-Requires=ken-wm.target
-After=ken-wm.target
-Before=ken-shell.target
-Wants=xdg-desktop-portal.service
-Wants=ken-portals.service
-
-# /usr/lib/systemd/user/ken-shell.target
-[Unit]
-Description=Ken shell
-BindsTo=graphical-session.target
-Requires=ken-portals.target
-After=ken-portals.target
-Wants=ken-shell.service
-
-# /usr/lib/systemd/user/ken-shell.service
-[Unit]
-Description=Ken shell
-PartOf=ken-shell.target
-After=ken-portals.target
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/quickshell -p /usr/share/ken/shell/shell.qml
-Restart=on-failure
-RestartSec=1
-Slice=session.slice
-
-# /usr/lib/systemd/user/ken-control.target
-[Unit]
-Description=Ken control daemons
-BindsTo=graphical-session.target
-Requires=ken-shell.target
-After=ken-shell.target
-Wants=ken-control.service
-
-# /usr/lib/systemd/user/ken-control.service
-[Unit]
-Description=Ken control daemon
-PartOf=ken-control.target
-After=ken-shell.service
-
-[Service]
-Type=notify
-ExecStart=/usr/bin/ken-shell --daemon
-Restart=on-failure
-RestartSec=1
-Slice=session.slice
+Wants=zenith-portal.service zenith-shell.service
+After=zenith-portal.service
 ```
 
-`ken-wm` is the compositor seam the architecture calls for. It starts the compositor,
-waits for the Wayland socket, publishes the compositor's environment into the user
-manager, and stays in the foreground for the life of the session. The seam is what makes
-the compositor swappable: nothing above it knows which compositor is running.
+### The units Zenith ships
+
+```ini
+# /usr/lib/systemd/user/zenith-portal.service
+[Unit]
+Description=Zenith portal dispatcher
+PartOf=graphical-session.target
+After=hyprland-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.portal.Desktop
+ExecStart=/usr/libexec/xdg-desktop-portal
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=hyprland-session.target
+
+# /usr/lib/systemd/user/zenith-shell.service
+[Unit]
+Description=Zenith shell (Quickshell)
+Documentation=man:zenith-shell(1)
+PartOf=graphical-session.target
+After=hyprland-session.target zenith-portal.service wireplumber.service
+Requires=hyprland-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/quickshell -p /usr/share/zenith/shell
+ExecReload=/bin/kill -SIGUSR1 $MAINPID
+Restart=on-failure
+RestartSec=1
+Slice=app.slice
+
+[Install]
+WantedBy=hyprland-session.target
+```
+
+`zenith-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
+a `zenith-` name, which is the pattern the base-layer boundary prescribes for a component
+that needs different configuration: never an edit in place, always a drop-in of your own.
+
+The base layer's unit must not also be enabled. Two dispatchers on one bus is one
+dispatcher that wins the name and one that loses it, and the loser exits — the name is
+taken from the bus, not from the unit, so the second instance terminates with "dbus name
+was lost" and takes the session's portal with it.
 
 ---
 
-## SDDM and the session file
+## The login manager and the session file
 
-SDDM is the base layer's login manager, and Ken uses it as shipped.
+The login manager is the base layer's, and Zenith uses it as shipped.
 
-### What SDDM does
+### What it does
 
 1. Starts the greeter on the first virtual terminal.
 2. Authenticates the user through PAM, in the `sddm-session` service.
-3. Starts the session file the user selected, as that user, with the session's
-   environment.
+3. Starts the session file the user selected, as that user, with the session's environment.
 
-The greeter is an **X11 client**. The base layer's SDDM has no Wayland greeter, so a
-Hyprland-only image still ships `xserver-xorg-core` for the login screen and nothing
-else. The greeter's X server runs on its own VT, the user session runs on another, and
-SDDM switches between them. The user session itself is pure Wayland; Xwayland is
-started by the compositor only if the session needs X11 applications.
+The greeter is an **X11 client**. The base layer's login manager has no Wayland greeter, so
+the login screen needs an X server of its own while the user session is pure Wayland.
+XWayland is a separate thing: it is how the compositor serves X11 applications, and it is
+not a second session type. The package manifest currently excludes the Xorg metapackage and
+ships XWayland, so the login screen's display server is an open item — see
+[open questions](#open-questions).
 
 ### The session file
 
-SDDM reads Wayland sessions from `/usr/share/wayland-sessions/` and runs the `Exec=`
-line of the selected file through `/usr/share/sddm/scripts/wayland-session`, which
-sources the user's login profile and then executes it.
+The login manager reads Wayland sessions from `/usr/share/wayland-sessions/` and runs the
+`Exec=` line of the selected file through its own session script, which sources the user's
+login profile and then executes it.
 
 ```ini
-# /usr/share/wayland-sessions/ken.desktop
+# /usr/share/zenith/session/zenith.desktop
+# materialized to /usr/share/wayland-sessions/zenith.desktop
 [Desktop Entry]
-Name=Ken
-Comment=Ken session
-Exec=/usr/bin/ken-session
 Type=Application
-DesktopNames=Ken
+Name=Zenith
+Comment=Zenith desktop
+TryExec=/usr/share/zenith/session/zenith-session
+Exec=/usr/share/zenith/session/zenith-session
+DesktopNames=Zenith
+Keywords=Hyprland;Quickshell;
 ```
 
 Three lines carry the design:
 
-- **`Exec=/usr/bin/ken-session`.** The session leader is a Ken binary, not a script and
-  not a stock session manager.
-- **`DesktopNames=Ken`** is what puts `XDG_CURRENT_DESKTOP=Ken` and
-  `XDG_SESSION_DESKTOP=Ken` into the session environment. SDDM takes the value
-  verbatim and converts `;` to `:`, so a list is possible. This name is load-bearing:
-  the portal dispatcher reads it to find its configuration, and it is the string that
-  tells an application that it is talking to Ken.
+- **`Exec=/usr/share/zenith/session/zenith-session`.** The session entry point is Zenith's
+  own script, and it runs from the packaged base rather than from a copy in the user's home.
+- **`DesktopNames=Zenith`**, not `GNOME`. The login manager uses this to group and label
+  the session, and the portal dispatcher derives its per-desktop configuration file name
+  from it. Setting it to anything else would make a display manager treat a Zenith session
+  as one of its own.
 - **The file lives in `/usr/share/wayland-sessions/`, not `/usr/share/xsessions/`.** The
-  directory is what decides the session type: SDDM sets `XDG_SESSION_TYPE=wayland` for
-  a file found there, and `x11` for one found in the other.
+  directory is what decides the session type: the login manager sets
+  `XDG_SESSION_TYPE=wayland` for a file found there, and `x11` for one found in the other.
 
-### The session leader
+`/etc/zenith/session/zenith.desktop` overrides the packaged base, and
+`~/.config/zenith/session/` — through the usual overlay — overrides both. That is where a
+machine-specific `Exec` line goes.
 
-`ken-session` is the process SDDM started, so it is the session leader, and it has to
-stay alive for the life of the session: SDDM ends the session when the process it
-started exits. `ken-session` therefore cannot be `systemctl --user start
-ken-session.target && exit`.
+### What `zenith-session` does
 
-What it does, in order:
+`/usr/share/zenith/session/zenith-session` is a small shell script, because it runs before
+anything else exists and it must be readable when the disk is having a bad day.
 
-1. **Wait for the user bus.** The per-user manager is started by `systemd-logind` when
-   the seat session is registered, and it may not be ready when the session command
-   runs. `ken-session` retries the connection to `$XDG_RUNTIME_DIR/bus` until it
-   answers, with a ten second ceiling, and fails loudly if it never does.
-2. **Publish the session environment** into the user manager, because every session
-   unit inherits the user manager's environment and nothing else:
-   `systemctl --user import-environment XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
-   XDG_SESSION_CLASS XDG_SESSION_ID XDG_SEAT XDG_VTNR XDG_RUNTIME_DIR XDG_DATA_DIRS`
-3. **Start the session target**: `systemctl --user start ken-session.target`.
-4. **Wait** for the target to be stopped, or for a termination signal from SDDM.
-5. **Stop the session target** and exit, so the greeter comes back.
+```sh
+#!/bin/sh
+# /usr/share/zenith/session/zenith-session
+set -eu
 
-The `XDG_DATA_DIRS` it publishes is `XDG_DATA_DIRS=/usr/share/ken/portal:/usr/local/share:/usr/share`.
-That one path is how Ken's portal configuration reaches the dispatcher without writing
-outside `/usr/share/ken/` and `/etc/ken/` — see [the portal configuration](#the-portal-configuration).
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/zenith/session.log"
+mkdir -p "$(dirname "$LOG")"
+exec >>"$LOG" 2>&1
+
+echo "--- zenith-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
+
+export XDG_SESSION_DESKTOP=zenith
+export XDG_CURRENT_DESKTOP=Zenith
+export DESKTOP_SESSION=zenith
+export XDG_SESSION_TYPE=wayland
+
+# Native Wayland dialogs everywhere, so scaling and theming are the shell's
+# problem and not the app's. Set unconditionally rather than inherited: a
+# GDK_BACKEND=x11 left in /etc/environment by a GNOME-era tweak would
+# otherwise give every GTK4 app an XWayland dialog at the wrong scale, and a
+# GDK_BACKEND left set at all is how the GNOME portal backend decides it is
+# not on a real GNOME session and silently drops interfaces.
+export GDK_BACKEND=wayland
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM=wayland
+export QT_QPA_PLATFORMTHEME=gtk3
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
+# Cursor sizing and theming for the XWayland apps that do not read GTK.
+export XCURSOR_SIZE=24
+export XCURSOR_THEME=Adwaita
+
+# Machine-level additions, then the user's overlay. Written as `if`, not as
+# `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
+# session before the compositor ever starts, which is a confusing way to fail.
+if [ -r /etc/zenith/session/zenith-session.env ]; then
+    . /etc/zenith/session/zenith-session.env
+fi
+if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env"
+fi
+
+# Make dbus-activated user services and anything the compositor spawns see the
+# desktop identity, or apps probe for GNOME and get confused.
+systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR
+dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
+
+echo "zenith-session: env ok, starting Hyprland"
+exec /usr/bin/Hyprland
+```
+
+The `exec` at the end is what makes a failure safe: anything that goes wrong before it — a
+bad `/etc/zenith/session/zenith-session.env`, an unreadable schema, a disk-full — exits with
+the compositor never started, and the display manager puts the user back on the login
+screen. A broken session that exits before the compositor is a safe failure mode by
+construction. Every step above is also written so that it cannot exit for a trivial reason,
+which is why the overlay files are guarded with `if` rather than with `&&`.
+
+Two details in the script are load-bearing beyond the obvious:
+
+- **`XDG_CURRENT_DESKTOP=Zenith` and `XDG_SESSION_DESKTOP=zenith` are different strings,
+  and both are deliberate.** The dispatcher lower-cases the current desktop to derive its
+  per-desktop configuration file name, so `Zenith` finds `zenith-portals.conf`. The session
+  desktop is the lower-case name the login manager records in `loginctl show-session`.
+- **The environment is published twice, to two different consumers.** `systemctl --user
+  import-environment` reaches the per-user manager, so every unit started from the manager
+  inherits it. `dbus-update-activation-environment --systemd` reaches the bus's activation
+  environment, so a service activated on demand inherits it. A backend that is D-Bus
+  activated rather than started as a unit sees nothing without the second one.
 
 ### How this differs from a stock desktop session
 
-| | A stock desktop session | The Ken session |
+| | A stock desktop session | The Zenith session |
 |---|---|---|
-| Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `ken.desktop` |
-| `Exec=` | A session manager that owns a private list of what a session is | `ken-session`, which starts a systemd target and then stays alive |
-| Root of the session | The session manager's own idea of a session | `graphical-session.target`; there is no second session manager |
+| Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `zenith.desktop` |
+| `Exec=` | A session manager that owns a private list of what a session is | A shell script that sets the environment and hands over to the compositor |
+| Root of the session | The session manager's own idea of a session | `hyprland-session.target` and `graphical-session.target`; there is no second session manager |
 | Services | Started by the session manager from a private list | systemd user units with `PartOf=graphical-session.target` |
-| Environment | The session manager's exports plus a desktop-specific `environment.d` | One environment published to the user manager by `ken-session` |
-| The display | The session manager talks to the compositor | The compositor is a session unit, started by `ken-wm` |
-| Login screen | The same login manager | The same login manager, on X11, with its embedded theme |
-
-The last row is a deliberate cost. A branded login screen would mean writing into the
-login manager's theme directory, which is outside the two directories Ken owns, so the
-greeter keeps the embedded theme until that has an answer.
+| Environment | The session manager's exports plus a desktop-specific `environment.d` | One environment, published to the user manager and to bus activation |
+| The display | The session manager talks to the compositor | The compositor is the session's anchor, and Zenith's units attach to its target |
+| The display name | The stock desktop's own name | `Zenith`, which is what every library branches on |
 
 ---
 
 ## What starts, in order
 
-The order below is the order in the graph above, and each step names what breaks if it
-is taken out of order.
-
-1. **`ken-session`** — the session leader. Waits for the user bus, publishes the
-   environment, starts `ken-session.target`.
-2. **`graphical-session-pre.target` and `ken-session-pre.target`** — the session
-   prerequisites: the keyring daemon, the polkit authentication agent, and the
-   autostart target.
-3. **`ken-wm.target`** — the compositor. `ken-wm` starts it, waits for the Wayland
-   socket, and imports `WAYLAND_DISPLAY` and the compositor's instance signature into
-   the user manager.
-4. **`ken-portals.target`** — the portal dispatcher, then Ken's own portal backend.
-5. **`ken-shell.target`** — the shell.
-6. **`ken-control.target`** — the control daemon that writes the settings the shell
-   renders.
+| Order | Unit | Started by | What it is |
+|---|---|---|---|
+| 0 | `zenith-session` | The display manager | Environment, bus activation, `exec Hyprland` |
+| 1 | `hyprland-session.target` | The compositor | The anchor for everything that needs a live compositor |
+| 2 | `wireplumber.service` | The session target | Audio policy, so the shell's volume widget has something to talk to |
+| 3 | `zenith-portal.service` | The drop-in | The portal dispatcher, which activates the backends on demand |
+| 4 | `zenith-shell.service` | The drop-in, ordered after the portals | The shell |
+| 5 | The shell's children | The shell | Lock screen, quick settings, notification server — inside the shell, not separate units |
 
 ### Why the compositor comes before the portal dispatcher
 
@@ -465,21 +502,21 @@ if (!m_sWaylandConnection.display) {
 }
 ```
 
-Its unit also carries `ConditionEnvironment=WAYLAND_DISPLAY`, so the backend is not
-even started unless the user manager's environment carries that variable. Both facts
-point the same way: the portal stack has to come after the compositor, and the
-compositor's environment has to be in the user manager before the backend is activated.
+Its unit also carries `ConditionEnvironment=WAYLAND_DISPLAY`, so the backend is not even
+started unless the environment carries that variable. Both facts point the same way: the
+portal stack has to come after the compositor, and the compositor's environment has to be
+in place before the backend is activated.
 
 Three more dependencies hide in the same backend:
 
 - **Screenshots need `grim` on `PATH`.** Without it the backend does not create its
-  Screenshot portal at all, and `Print` keybindings produce nothing.
+  Screenshot portal at all, and a screenshot key binding produces nothing.
 - **Region screenshots need `slurp`,** and colour picking needs `hyprpicker`.
-- **Screen sharing needs pipewire.** The backend opens a pipewire context; without it
-  it logs `Screensharing will not work` and the screencopy portal is never created.
+- **Screen sharing needs pipewire.** The backend opens a pipewire context; without it the
+  screencopy portal is never created.
 
-So the image carries `grim`, `slurp`, `hyprpicker` and pipewire, and the order is
-compositor first.
+So the image carries `grim`, `slurp`, `hyprpicker` and pipewire, and the order is compositor
+first.
 
 ### Why the portal dispatcher comes before the shell
 
@@ -487,186 +524,172 @@ This is the ordering that is easiest to get wrong, because both sides of it work
 individually and the failure is quiet.
 
 **The dispatcher resolves its backends once, at startup, and never re-reads them.** It
-reads `XDG_CURRENT_DESKTOP` and the `portals.conf` chain when it starts, decides which
-backend implements which interface, and caches that decision for the life of the
-process. A backend that appears later is not noticed. A configuration file that
-changes later is not re-read.
+reads `XDG_CURRENT_DESKTOP` and the `portals.conf` chain, decides which backend implements
+which interface, and only then takes its bus name. That decision holds for the life of the
+process: a backend that appears later is not noticed, and a configuration file that changes
+later is not re-read. Anything that changes the dispatcher's environment after it has
+started has no effect on it.
 
-**The dispatcher's default resolution would take notifications away from the shell.**
-The base layer's GTK backend implements `org.freedesktop.impl.portal.Notification`, and
-the Hyprland backend does not. With no explicit configuration, the dispatcher resolves
-the Notification interface to the GTK backend, and every portal notification in the
-session is rendered by a GTK window instead of by the shell's own surface. The
-notification daemon Ken does not ship is replaced by one Ken did not ask for, and
-nothing in the interface says so.
+**The dispatcher's default resolution would take notifications away from the shell.** The
+base layer's GTK backend implements `org.freedesktop.impl.portal.Notification`, and the
+Hyprland backend does not. With no explicit configuration, the dispatcher resolves the
+Notification interface to the GTK backend, and a portal notification is rendered by a GTK
+window instead of by the shell's own surface. The notification server Zenith does not ship
+is replaced by one Zenith did not ask for, and nothing in the interface says so.
 
-**The shell is both a client of the dispatcher and the implementation of one of its
-backends, and the dispatcher decides which before the shell exists.**
+**The shell's first interaction with the portal races the dispatcher's activation.** The
+shell draws a launcher with an "open file" action, a screen-share entry point and a print
+action. Each is a call to `org.freedesktop.portal.Desktop` on the session bus. If the
+dispatcher is not up when the user first clicks, the call goes through a D-Bus activation,
+and the activation is a separate event with its own latency. On a cold session the first
+such call pays for it, and if the activation cannot run at all the call fails with
+`org.freedesktop.DBus.Error.ServiceUnknown`. The user sees an empty dialog and a message
+that the file chooser could not be opened. The shell is the first thing the user touches, so
+it must not be the thing that triggers an activation.
 
-As a client, the shell draws a launcher with an "open file" action, a screen-share
-entry point and a print action. Each is a call to `org.freedesktop.portal.Desktop` on
-the session bus. If the dispatcher is not up when the user first clicks, the call goes
-through a D-Bus activation, and the activation is a separate event with its own
-latency. On a cold session the first such call pays for it, and if the activation
-cannot run at all the call fails with `org.freedesktop.DBus.Error.ServiceUnknown`. The
-user sees an empty dialog and a message that the file chooser could not be opened. The
-shell is the first thing the user touches, so it must not be the thing that triggers an
-activation.
-
-As an implementation, the shell is the Notification backend the dispatcher routes to.
-The dispatcher's routing table is fixed when it starts: it loads its configuration,
-resolves which backend implements which interface, and takes its bus name. It never
-re-reads that configuration and it never notices a backend that appears later. So if
-the dispatcher starts before the environment names Ken — or before the session target
-has published that environment at all — the Notification interface is bound to the
-base layer's GTK backend, and the shell's notification surface is bypassed for the
-rest of the session. The shell comes up healthy, draws its bar and its dock, and never
-receives a notification. Nothing in the interface says so, and no error is raised
-anywhere.
-
-Ordering the dispatcher first removes both failures: the backend set is resolved from
-an environment that already names Ken, and the dispatcher is already on the bus when
-the user first clicks something.
+Ordering the dispatcher first removes both failures: the backend set is resolved from an
+environment that already names Zenith, and the dispatcher is already on the bus when the
+user first clicks something.
 
 ### The portal configuration
 
-Because the dispatcher searches `$XDG_DATA_DIRS` for both the `.portal` files and the
-`portals.conf` files, and because `XDG_DATA_DIRS` includes `/usr/share/ken/portal`,
-Ken's portal configuration ships inside a directory Ken owns:
+The dispatcher reads its backend preference from a per-desktop file whose name is derived
+from `XDG_CURRENT_DESKTOP`, lower-cased. For a Zenith session that is `zenith-portals.conf`.
+The packaged base lives at `/usr/share/zenith/portal/zenith-portals.conf` and is
+materialized to the registration path, so the overlay rules apply to it like everything
+else.
 
 ```ini
-# /usr/share/ken/portal/xdg-desktop-portal/ken-portals.conf
+# /usr/share/zenith/portal/zenith-portals.conf
+# materialized to /usr/share/xdg-desktop-portal/zenith-portals.conf
 [preferred]
 default=hyprland;gtk
 org.freedesktop.impl.portal.ScreenCast=hyprland
 org.freedesktop.impl.portal.Screenshot=hyprland
-org.freedesktop.impl.portal.Notification=ken
-org.freedesktop.impl.portal.OpenURI=ken
-org.freedesktop.impl.portal.Secret=ken
-org.freedesktop.impl.portal.GlobalShortcuts=none
+org.freedesktop.impl.portal.GlobalShortcuts=hyprland
+org.freedesktop.impl.portal.InputCapture=hyprland
 ```
 
-```ini
-# /usr/share/ken/portal/xdg-desktop-portal/portals/ken.portal
-[portal]
-DBusName=org.freedesktop.impl.portal.desktop.ken
-Interfaces=org.freedesktop.impl.portal.Notification;org.freedesktop.impl.portal.OpenURI;org.freedesktop.impl.portal.Secret;
-UseIn=Ken
-```
+Reading it:
 
-Reading the two files:
+- **`[preferred]` is the group the dispatcher reads.** The older `[default] use=…` form is
+  not what the current dispatcher parses, and a file in that form is ignored rather than
+  half-honoured. A file with no `[preferred]` group is silently skipped, and the session
+  falls back to whatever the base layer ships.
+- **`default=hyprland;gtk` is the fallback list**, searched in order for every interface.
+  `hyprland` is the source name of the Hyprland backend's `.portal` file and `gtk` is the
+  source name of the GTK backend's; a backend's source name is its file name without the
+  `.portal` suffix.
+- **The explicit lines override the default** for those interfaces, so the compositor
+  interfaces cannot be taken by another backend that happens to sort first.
+- **The GTK backend is the fallback for everything it implements**: FileChooser, AppChooser,
+  Print, Notification, Inhibit, Access, Account, Email, DynamicLauncher, Lockdown and
+  Settings. `OpenURI` is not implemented by it directly, but the dispatcher's OpenURI only
+  needs an AppChooser backend, which the GTK backend is, so it resolves in practice.
+- **`Secret` is not in the file because no backend implements it.** See
+  [the Secret gap](#the-secret-gap).
 
-- **`default=hyprland;gtk`** is the fallback list, searched in order for every
-  interface. `hyprland` is the source name of the Hyprland backend's `.portal` file and
-  `gtk` is the source name of the GTK backend's; a backend's source name is its file
-  name without the `.portal` suffix.
-- **The explicit interface lines override the default** for those interfaces. Without
-  the Notification line, notifications go to the GTK backend.
-- **`GlobalShortcuts=none` disables the interface outright.** The Hyprland backend does
-  advertise `org.freedesktop.impl.portal.GlobalShortcuts`, and leaving it enabled would
-  let an application claim a global shortcut through the portal behind the shell's
-  back. Ken's shell is the only shortcut authority — see
-  [the shell's own surfaces](#what-the-shell-owns).
-- **`OpenURI` and `Secret` are Ken's, not the base layer's.** The base layer's GTK
-  backend implements FileChooser, Print, Notification, Inhibit, Access, Account, Email,
-  DynamicLauncher, and conditionally Wallpaper, Settings and Lockdown. It does not
-  implement OpenURI or Secret. Since the architecture requires that an application
-  which works on the base layer's stock desktop works on Ken, Ken's own backend
-  implements both, with `gnome-keyring` behind the Secret interface exactly as the
-  architecture requires. The base layer's portal table in `docs/architecture.md`
-  overstates what the GTK backend provides; this is the correction.
-
-The search order the dispatcher uses, highest precedence first, is
-`$XDG_CONFIG_HOME/xdg-desktop-portal/`, each `$XDG_CONFIG_DIRS` entry, `/etc/xdg-desktop-portal/`,
-`$XDG_DATA_HOME/xdg-desktop-portal/`, each `$XDG_DATA_DIRS` entry, and
-`/usr/share/xdg-desktop-portal/`. In each of those it looks for `<desktop>-portals.conf`
-first and `portals.conf` second, with `<desktop>` being the lower-cased
-`XDG_CURRENT_DESKTOP`. Ken's file is found in `/usr/share/ken/portal/` and, because
-that directory comes first in `XDG_DATA_DIRS`, it wins over any generic
-`portals.conf` the base layer ships in `/usr/share/`. The one thing that would beat it
-is a file in `/etc/xdg-desktop-portal/`, which an administrator can add to override
-Ken's choices — that is the intended escape hatch, and it is the only place a portal
-backend can be changed without rebuilding the image.
-
-### Ken's own portal backend
-
-`ken-portals` is a small Go daemon. It owns two bus names:
-
-- `org.freedesktop.impl.portal.desktop.ken`, the name the dispatcher resolves from
-  `ken.portal`, on which it implements the Notification, OpenURI and Secret
-  interfaces.
-- `org.freedesktop.Notifications`, the freedesktop notification specification name
-  that `libnotify` clients use directly, without the portal.
-
-Both forward to the shell over a private socket at `$XDG_RUNTIME_DIR/ken/shell.sock`.
-The daemon owns the bus names and the shell owns the surface, because the bus names
-have to survive a shell restart: a client asking for a notification during a shell
-reload must get an answer, not a silent drop.
-
-The Secret interface is backed by `gnome-keyring`'s Secret Service. The keyring daemon
-is started by the session, so the Secret portal works whether or not the base layer's
-PAM stack unlocks the keyring. When the keyring is locked, Ken's backend asks for the
-password through the shell and unlocks it with the answer.
+`zenith doctor` must assert that this file is the one being read. A session that does not
+declare itself correctly falls back to the base layer's `portals.conf` and silently uses the
+wrong backends, which is the failure mode that is hardest to notice and the easiest to
+cause.
 
 ---
 
 ## What the shell owns
 
-Three things in the session have no stock owner, because there is no stock desktop in
-the image. The shell owns all three.
+Everything a stock desktop shell used to provide is now the shell's job or the compositor's
+job. The notification server, the global shortcuts and the lock screen are the shell's
+outright, because no other component in the image provides them. Idle is the exception: it
+is split three ways, and confusing the split is how a laptop ends up suspending with the
+screen unlocked.
 
 ### The notification server
 
 There is no notification daemon in the image, so nothing else can own the notification
-surface. The shell draws it, and `ken-portals` carries the two bus names that reach
-it. An application that calls `notify-send` against a session with no notification
-server gets silence: no window, no error, no trace. That is the failure the shell
-exists to prevent.
+surface. The shell draws it and hosts the server.
 
-The shell also owns the *ordering* of notifications, their grouping, their urgency
-styling and their history, because those are surface decisions and the surface is the
-shell's.
+Two bus names reach the shell, and they are not the same name:
+
+- **`org.freedesktop.Notifications`** is the freedesktop notification specification name.
+  It is what `libnotify` clients call, which is to say what every ordinary GTK and Qt
+  application calls. The shell owns this name, and if the shell is not up, nothing is
+  notified and there is no fallback. The probe is one call:
+
+  ```bash
+  gdbus call --session --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications \
+    --method org.freedesktop.Notifications.Notify \
+    "portal probe" 0 "" "" [] {} 3000
+  #   (uint32 1,)      ← a banner must appear. A returned id with no banner means
+  #                     the shell is up but is not the server.
+  ```
+
+- **`org.freedesktop.portal.Notification`** is the portal path, and the dispatcher routes
+  it to a backend that implements the corresponding implementation interface. The GTK
+  backend implements it, so by default a portal client gets a GTK window rather than the
+  shell's surface. Routing that path to the shell needs a Zenith-owned portal backend, which
+  is a decision the portal seam has not made yet.
+
+The shell also owns the *ordering* of notifications, their grouping, their urgency styling
+and their history, because those are surface decisions and the surface is the shell's.
 
 ### Global shortcuts
 
-A global shortcut has to be caught by the compositor, in the input path, before
-anything else sees the key. The shell registers the session's bindings; the
-compositor is what observes them.
+A global shortcut has to be caught by the compositor, in the input path, before anything
+else sees the key. The split is:
 
-The bindings live in GSettings under `org.ken.shell` and are written into the
-compositor's configuration by the control daemon, which is the only writer of that
-schema. The compositor is then asked to reload through the `ken wm` seam. The portal's
-GlobalShortcuts interface is disabled in `ken-portals.conf`, so there is exactly one
-shortcut authority in the session and an application cannot install one behind the
-shell's back.
+- **Compositor-level keys** — the workspace switcher, the window switcher, the display
+  layout — are the compositor's own bindings, and they belong to it.
+- **Everything else** — the launcher, the terminal, quick settings, the lock key — is the
+  shell's, bound through the compositor's own configuration and verified with
+  `hyprctl binds`.
 
-The portal route is slower and less reliable for this: it is a request over D-Bus
-answered by a client that may not be running, and the binding is not installed until
-somebody answers.
+The *portal* interface is a different thing and is not the shell's. The Hyprland backend
+implements `org.freedesktop.impl.portal.GlobalShortcuts`, and the portal configuration above
+routes it there. The shell's bindings are faster and more reliable than the portal route,
+which is a request over D-Bus answered by a client that may not be running, and whose
+binding is not installed until somebody answers.
 
 ### The lock screen
 
-The shell implements `org.freedesktop.ScreenSaver` on the session bus, with `Lock`,
-`Unlock`, `GetActive`, `ActiveChanged`, `Inhibit` and `UnInhibit`, and draws the lock
-surface with `ext-session-lock-v1`. The compositor implements that protocol, so the
-lock is enforced by the compositor rather than by a window that merely looks in front
-of the others.
+The shell hosts the lock surface and speaks PAM itself — `pam_start`, `pam_authenticate`,
+`pam_acquire_authtok` — so that unlocking is a real authentication rather than a prompt
+with a password field bolted on. The lock surface is drawn with the session-lock protocol
+the compositor implements, so the lock is enforced by the compositor rather than by a
+window that merely looks in front of the others. The verified path is:
 
-The `Inhibit` and `UnInhibit` methods are what the base layer's portal Inhibit backend
-calls, so an application that asks the portal to hold the screensaver while a video
-plays holds Ken's lock as well.
+```bash
+systemctl --user lock-session
+```
 
-The shell also listens on the system bus for two signals:
+That command reaches logind, and logind does not call a lock interface on the shell's
+behalf: it emits the `org.freedesktop.login1.Session.Lock` signal on the system bus, and the
+shell's lock surface answers it. The shell therefore also listens for that signal directly.
 
-- **`org.freedesktop.login1.Session.Lock`**, which is what `loginctl lock-session`
-  emits. Logind does not call the ScreenSaver interface itself; it announces the
-  intent and the session's own lock screen performs it.
-- **`org.freedesktop.login1.Manager.PrepareForSleep`**, so the machine locks before it
-  suspends and unlocks after it resumes. The shell answers the `true` half while
-  holding a delay inhibitor, so the suspend waits for the lock to be up.
+The shell implements `org.freedesktop.ScreenSaver` on the session bus as well, with `Lock`,
+`Unlock`, `GetActive`, `ActiveChanged`, `Inhibit` and `UnInhibit`. The `Inhibit` and
+`UnInhibit` methods are what the base layer's portal Inhibit backend calls, so an
+application that asks the portal to hold the screensaver while a video plays holds Zenith's
+lock as well.
 
-The shell reports its state back with `org.freedesktop.login1.Session.SetLockedHint`,
-so `loginctl show-session` tells the truth.
+The shell reports its state back with `org.freedesktop.login1.Session.SetLockedHint`, so
+`loginctl show-session` tells the truth.
+
+### Idle
+
+Idle is the one place where the compositor, the shell and logind each own a different part,
+and confusing them is how a laptop ends up suspending with the screen unlocked.
+
+- **Detection is the compositor's.** The compositor knows when the user last did something;
+  no Wayland client can find that out for itself.
+- **The shell draws the idle screen** and locks at `org.zenith.desktop lock-delay`.
+- **The actions go through logind**, so the standard inhibitors apply. Locking is
+  `loginctl lock-session`; suspending is `systemctl suspend`.
+
+Idle is also the thing that makes the suspend path safe: the shell holds a delay inhibitor
+across the sleep request, so a machine that suspends while unlocked is a machine that was
+asked to suspend with the screen already locked, not one that raced.
 
 ---
 
@@ -674,57 +697,50 @@ so `loginctl show-session` tells the truth.
 
 ### Logout
 
-1. The user asks to log out. The shell asks the user manager to stop the session
-   target: `systemctl --user stop ken-session.target`.
-2. Stopping `ken-session.target` stops `graphical-session.target`, because the session
-   target is bound to it.
+1. The user asks to log out. The shell asks the user manager to stop the session:
+   `systemctl --user stop hyprland-session.target`.
+2. Stopping the session target stops `graphical-session.target`, because the session target
+   is bound to it.
 3. Every session service stops, because each one carries `PartOf=graphical-session.target`.
-   The compositor goes down last, so the shell can close its surfaces before the
-   display disappears.
-4. `ken-session` returns from its wait, stops the target, and exits.
-5. SDDM sees the session leader exit and returns to the greeter.
+4. The compositor exits, the session leader exits with it, and the display manager returns
+   to the greeter.
 
-A second session on the same machine is independent: it has its own user manager
-instance, its own `ken-session.target`, and its own compositor. The VT switch is
-SDDM's.
+A second session on the same machine is independent: it has its own user manager instance,
+its own session target, and its own compositor. The virtual terminal switch is the display
+manager's.
 
 ### Suspend and resume
 
-1. Something asks for the suspend: the user presses the power key, or `ken-idle`
-   reaches the suspend threshold.
+1. Something asks for the suspend: the user closes the lid, presses the power key, or the
+   shell's own idle policy reaches its threshold.
 2. The request goes to logind, which takes a delay inhibitor and emits
    `PrepareForSleep(true)`.
-3. The shell locks itself, answering the `true` half of the signal while it holds a
-   delay inhibitor, so the machine does not sleep with an unlocked screen.
-4. logind releases the inhibitor, `systemd-suspend.service` runs, and the machine
-   sleeps.
+3. The shell locks itself, answering the `true` half of the signal while it holds a delay
+   inhibitor, so the machine does not sleep with an unlocked screen.
+4. logind releases the inhibitor, `systemd-suspend.service` runs, and the machine sleeps.
 5. On resume, `PrepareForSleep(false)` arrives and the shell unlocks.
-
-`ken-idle` suspends its own idle timers while the machine is asleep, so the session
-does not wake up to a lock that was armed before the suspend.
 
 ### Shutdown and reboot
 
-The greeter's power buttons call the login manager's own halt and reboot commands,
-which are `systemctl poweroff` and `systemctl reboot`. They go through logind, which
-runs the shutdown inhibitors, and then the system stops. The session is torn down by
-the same path as a logout, because the session's units are stopped when the manager
-stops.
+The greeter's power buttons call the display manager's own halt and reboot commands, which
+are `systemctl poweroff` and `systemctl reboot`. They go through logind, which runs the
+shutdown inhibitors, and then the system stops. The session is torn down by the same path as
+a logout, because the session's units stop when the manager stops.
 
-Nothing in the login manager's configuration has to change for this, which is the
-reason it is worth checking: a change there would mean writing outside the two
-directories Ken owns.
+Nothing in the display manager's configuration has to change for this, which is the reason
+it is worth checking: a change there would mean writing outside the two directories Zenith
+owns.
 
 ### Who owns what
 
 | Concern | Owner | Mechanism |
 |---|---|---|
-| Screen lock | The shell | `org.freedesktop.ScreenSaver`, `ext-session-lock-v1` |
+| Screen lock | The shell | `org.freedesktop.ScreenSaver`, the session lock protocol, PAM |
 | Lock on suspend | The shell | `PrepareForSleep` on the system bus |
-| Idle detection | `ken-idle` | The compositor's idle notifications through the `ken wm` seam |
-| Idle policy | `ken-idle`, reading `org.ken.desktop` | The timeouts live in GSettings, and `ken-shell` and `ken-hub` are their only writers |
+| Idle detection | The compositor | Its own idle notifications, surfaced to the shell |
+| Idle policy | The shell, reading `org.zenith.desktop` | The timeouts live in GSettings, and `zenith-shell` and `zenith-hub` are their only writers |
 | Inhibitors | logind | Delay inhibitors are held by the shell and by logind itself |
-| Suspend, poweroff, reboot | logind | `systemctl`, the login manager's halt and reboot commands |
+| Suspend, poweroff, reboot | logind | `systemctl`, the display manager's halt and reboot commands |
 | Session teardown | systemd | `graphical-session.target` and `PartOf=` |
 
 ---
@@ -733,172 +749,187 @@ directories Ken owns.
 
 ### The compositor starts but the shell does not
 
-**What the user sees.** A black desktop with a working cursor and a working keyboard.
-No bar, no dock, no launcher, no popouts. The window switcher does nothing. The
-notification server is not answering, so notifications are lost rather than shown. The
-screen never locks, because the lock screen is the shell's.
+**What the user sees.** A black desktop with a working cursor and a working keyboard. No
+bar, no dock, no launcher, no popouts. The window switcher does nothing. Notifications are
+not answered, so they are lost rather than shown. The screen never locks, because the lock
+surface is the shell's.
 
-**Why.** `ken-shell.service` failed, or was never reached. In order of likelihood: the
-shell's QML failed to load and the process exited; a GSettings schema did not compile,
-so the shell aborted while reading it; a stale shell process from a previous session
-still holds the socket at `$XDG_RUNTIME_DIR/ken/shell.sock`.
+**Why.** `zenith-shell.service` failed, or was never reached. In order of likelihood: the
+shell's QML failed to load and the process exited; a GSettings schema did not compile, so
+the shell aborted while reading it; or the compositor's environment never reached the user
+manager, so the unit's `ConditionEnvironment=WAYLAND_DISPLAY` was never satisfied.
 
 **What to run.**
 
 ```bash
-systemctl --user status ken-shell.service
-journalctl --user -b -u ken-shell.service
-systemctl --user status ken-shell.target
-```
-
-If the unit is green but nothing is on screen, the shell is running and its surfaces
-are not being composited. Check the compositor's view:
-
-```bash
+systemctl --user status zenith-shell.service
+journalctl --user -b -u zenith-shell.service
+systemctl --user show-environment | grep WAYLAND_DISPLAY
 hyprctl clients
-journalctl --user -b -u ken-wm.service
 ```
 
-To see the shell's own error output, run it in the foreground:
+The second command is the one that matters: the shell's own error is in its journal, not in
+the display manager's. To see it in the foreground:
 
 ```bash
-systemctl --user stop ken-shell.service
-quickshell -p /usr/share/ken/shell/shell.qml
+systemctl --user stop zenith-shell.service
+quickshell -p /usr/share/zenith/shell
 ```
 
-**Recovery.** `systemctl --user restart ken-shell.service` restarts it in place. If the
+**Recovery.** `systemctl --user restart zenith-shell.service` restarts it in place. If the
 user's overlay is what broke, move it aside and restart:
 
 ```bash
-mv ~/.config/ken/shell/shell.qml ~/.config/ken/shell/shell.qml.bak
-systemctl --user restart ken-shell.service
+mv ~/.config/zenith/shell/shell.qml ~/.config/zenith/shell/shell.qml.bak
+systemctl --user restart zenith-shell.service
 ```
 
-`ken doctor` reports drift between the base and the overlay.
+`zenith doctor` reports drift between the base and the overlay.
 
 ### Portals are missing, so file choosers fail
 
-**What the user sees.** An application that opens a file chooser shows nothing, or an
-empty window, or "Could not open the file chooser". A "share screen" button does
-nothing at all. `notify-send` prints nothing and exits. A print action produces no
-dialog.
+**What the user sees.** An application that opens a file chooser shows nothing, or an empty
+window, or "Could not open the file chooser". A "share screen" button does nothing at all.
+A print action produces no dialog.
 
 **Why.** Either the dispatcher is not running, or it is running and has resolved an
-interface to a backend that does not implement it. The second case is the more
-common one and the more confusing, because the dispatcher is healthy and every request
-returns a well-formed "no implementation" error.
+interface to a backend that does not implement it. The second case is the more common one
+and the more confusing, because the dispatcher is healthy and every request returns a
+well-formed "no implementation" error.
 
 **What to run.**
 
 ```bash
-systemctl --user status xdg-desktop-portal.service
-journalctl --user -b -u xdg-desktop-portal.service
+systemctl --user status zenith-portal.service
+journalctl --user -b -u zenith-portal.service
 busctl --user list | grep -i portal
 ```
 
-To see which backend the dispatcher resolved for each interface, turn on its debug
-output and restart it:
+To see which backend the dispatcher resolved for each interface, turn on its debug output
+and restart it:
 
 ```bash
-systemctl --user set-property xdg-desktop-portal.service Environment=G_MESSAGES_DEBUG=all
-systemctl --user restart xdg-desktop-portal.service
-journalctl --user -b -u xdg-desktop-portal.service | grep 'Preferred portals'
+systemctl --user set-property zenith-portal.service Environment=G_MESSAGES_DEBUG=all
+systemctl --user restart zenith-portal.service
+journalctl --user -b -u zenith-portal.service | grep 'Preferred portals'
 ```
 
-To see who implements what on the image:
+To see who implements what on the image, and to check that Zenith's own preference file is
+the one in play:
 
 ```bash
 grep -H '^Interfaces=' /usr/share/xdg-desktop-portal/portals/*.portal
+ls -l /usr/share/xdg-desktop-portal/zenith-portals.conf
 ```
 
-To check that the dispatcher can see Ken's configuration at all:
+To check the file chooser itself:
 
 ```bash
-systemctl --user show-environment | grep XDG_DATA_DIRS
-ls /usr/share/ken/portal/xdg-desktop-portal/
+zenity --file-selection --title "portal probe"
 ```
 
-If `XDG_DATA_DIRS` does not contain `/usr/share/ken/portal`, the dispatcher never
-looked at `ken-portals.conf` and every interface falls back to the base layer's
-defaults — which is the case where notifications silently move to the GTK backend.
-
-**Recovery.** `systemctl --user restart xdg-desktop-portal.service` is enough for a
-dispatcher that is running with the wrong configuration, because the configuration is
-re-read at startup. A backend that is missing entirely is a packaging problem:
+**Recovery.** `systemctl --user restart zenith-portal.service` is enough for a dispatcher
+that is running with the wrong configuration, because the configuration is re-read at
+startup. A backend that is missing entirely is a packaging problem:
 `xdg-desktop-portal-gtk` for FileChooser and Print, `xdg-desktop-portal-hyprland` for
-ScreenCast and Screenshot, `ken-portals` for Notification, OpenURI and Secret.
+ScreenCast and Screenshot.
+
+### The secret gap
+
+**What the user sees.** An application that asks for a password to store gets no error and
+no store. A Flatpak that uses the Secret interface — Firefox, Thunderbird, Evolution, VS
+Code — has nowhere to keep a password. The request appears to succeed and the password is
+gone.
+
+**Why.** No backend in the stack implements `org.freedesktop.portal.Secret`. The dispatcher
+looks for a portal backend that declares the interface, finds none, and returns success
+without exporting the portal at all. `gnome-keyring` does not substitute: it exposes
+`org.freedesktop.Secret.Service` on the session bus, and the dispatcher never asks it.
+
+**What to run.**
+
+```bash
+busctl --user introspect org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop
+gdbus call --session --dest org.freedesktop.portal.Desktop \
+  --object-path /org/freedesktop/portal/desktop \
+  --method org.freedesktop.DBus.Properties.Get \
+  org.freedesktop.portal.Desktop version
+```
+
+The absence of `org.freedesktop.portal.Secret` in the dispatcher's object tree is the
+finding.
+
+**Recovery.** There is none yet, and the document should not pretend otherwise. The
+architecture records three ways out and none is chosen: ship the GNOME backend for Secret
+alone, adopt a Secret backend derived from another implementation, or write a small
+Zenith-owned backend over `gnome-keyring`'s service interface. The last one is the most
+control and the most work. Until one lands, the contract that an application which works on
+a stock desktop works on Zenith has the Secret interface as its known exception, and the
+image's own `libpam-gnome-keyring` module — which unlocks the keyring at login so a prompt
+does not ask for a second password — is the half of the problem that is already solved.
 
 ### The session hangs at login
 
-**What the user sees.** The password is accepted and then nothing happens. The screen
-sits on the greeter's background, or goes black. Sometimes the greeter comes back
-after a minute, which is the session leader exiting and the login manager falling back
-to the greeter.
+**What the user sees.** The password is accepted and then nothing happens. The screen sits
+on the greeter's background, or goes black. Sometimes the greeter comes back after a
+minute, which is the session leader exiting and the display manager falling back to the
+greeter.
 
 **Why, in order of likelihood.**
 
-1. The user bus is not up, so `ken-session` never gets past step one and the session
-   target is never started.
-2. The session file is missing or its `Exec=` line points at a binary that is not
-   installed.
-3. The compositor failed to start, usually a GPU driver problem. The session gets as
-   far as `ken-wm.target` and stops there.
-4. The shell failed to start. The compositor and the dispatcher are fine, the session
-   is just empty.
+1. The compositor never started, so `zenith-session` never reached its `exec`, and the
+   display manager returned the user to the login screen. This is the safe failure, and it
+   is safe by construction.
+2. The user bus is not up, so `zenith-session` cannot publish the environment and the
+   session never starts.
+3. The session file is missing or its `Exec=` line points at a file that is not there.
+4. The shell failed to start after a successful compositor start. The desktop is empty, but
+   the session is alive.
 
-**What to run.** From a virtual terminal — Ctrl+Alt+F2 gives a login prompt on a
-working image — or from another session:
+**What to run.** From a virtual terminal — Ctrl+Alt+F3 reaches a TTY that depends on none
+of this — or from another session:
 
 ```bash
 journalctl -b -u sddm.service
 journalctl -b _UID=1000
 loginctl session-status
-cat ~/.local/share/sddm/wayland-session.log
+cat ~/.local/state/zenith/session.log
 ```
 
-The last one is the login manager's own session log, and it holds the session command's
-own output.
+The last one is Zenith's own session log, written by `zenith-session` before it execs
+anything. It is the first thing to read, because it records the session's environment
+hand-off and the moment the compositor was started.
 
 To see the session units from outside the session, as the user, with the right runtime
 directory:
 
 ```bash
-su - <user> -c 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status ken-session.target'
-su - <user> -c 'XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -b -u ken-session.target'
+runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status zenith-shell.service
+runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -b -u zenith-portal.service
+loginctl user-status <user>
 ```
 
-To check the session file itself:
+To check the session registration itself:
 
 ```bash
-ls -l /usr/share/wayland-sessions/ken.desktop
-grep '^Exec=' /usr/share/wayland-sessions/ken.desktop
+ls -l /usr/share/wayland-sessions/zenith.desktop
+grep -E '^(Exec|TryExec|DesktopNames)=' /usr/share/wayland-sessions/zenith.desktop
 ```
 
-To check that the compositor started, in a session where it did:
-
-```bash
-ls -l /run/user/1000/hyprland
-hyprctl version
-```
-
-**Recovery.** Most hangs at login are a stale session rather than a broken image.
-Killing the session's leader and starting a new one from the greeter is enough:
+**Recovery.** Most hangs at login are a stale session rather than a broken image. Killing
+the session's leader and starting a new one from the greeter is enough:
 
 ```bash
 loginctl terminate-session <session-id>
 ```
 
-If the session cannot be reached at all, the same commands work from the virtual
-terminal. If the session file is missing, the `ken-session` package is not installed or
-not unpacked, and `dpkg -V ken-session` shows which file is wrong.
+If the session cannot be reached at all, the same commands work from the virtual terminal.
 
-**The fallback surface.** A hang that reaches the compositor but not the shell leaves
-the user at a black screen with no way to find out why. `ken-session` therefore starts
-a plain diagnostic surface if `ken-shell.service` has not succeeded within fifteen
-seconds of the session target starting. The surface shows the last twenty lines of the
-shell's journal and the four commands above, and it exits on its own when the shell
-comes up. If the compositor itself is what failed there is no display to draw on, and
-`ken-session` writes the same diagnostic to the login manager's session log instead.
+**The black screen.** A hang that reaches the compositor but not the shell leaves the user
+at a black screen with no way to find out why. Two things narrow that window: the shell's
+unit carries `Restart=on-failure` with a one second delay, so a crash in the shell's QML is
+a one second gap rather than a session's end; and the shell's own journal is the only place
+the error is, which is why the failure mode has to name the command.
 
 ---
 
@@ -906,7 +937,8 @@ comes up. If the compositor itself is what failed there is no display to draw on
 
 | Question | Why it matters |
 |---|---|
-| Login screen on X11 | The base layer's login manager has no Wayland greeter, so the image carries an X server that exists only for the login screen. Whether that is acceptable, or whether the login screen should be replaced, is a distribution-identity decision, not a technical one. |
-| The `ken` portal backend's scope | Notification, OpenURI and Secret are implemented in Ken today because the base layer's GTK backend does not implement them. Whether that set grows — Settings, Wallpaper, Account — decides how much of the base layer's portal surface Ken takes over. |
-| Idle detection source | `ken-idle` gets idle time through the `ken wm` seam. A compositor that implements the staging idle-notify protocol can report it directly; the seam exists so that this is the only place that has to change. |
-| The `ken-session` binary's scope | It is the session leader today. Whether it also becomes the thing that owns the fallback surface, the login manager's environment hand-off, and the session's own diagnostics is not decided. |
+| The login screen's display server | The base layer's display manager has no Wayland greeter, so the login screen needs an X server, and the package manifest currently excludes the Xorg metapackage. Either the exclusion is narrowed, or Zenith writes its own greeter. The session path is the half of the product a user sees before any of it works. |
+| The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the secret gap](#the-secret-gap). |
+| The shell as a portal backend | The shell owns `org.freedesktop.Notifications`, so every ordinary application is served. The portal's own Notification interface still resolves to the GTK backend, because the shell is not a registered portal backend. Whether it becomes one decides whether a portal client sees the shell's surface or a GTK window. |
+| The `zenith-session` script's scope | It is the session entry point today. Whether it also owns the pre-flight checks — the portal preference file, the PAM stack, the keyring — is not decided. The failure modes above are all "something was wrong and nobody was told", and that is the argument for it. |
+| Idle reporting to logind | Logind's own idle actions only fire if a session reports its idle state, and on Wayland nothing does by default. Whether the shell reports the hint or drives the timers itself decides whether `IdleAction` in logind's configuration is a setting or a dead letter. |

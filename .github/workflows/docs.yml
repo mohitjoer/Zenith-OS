@@ -28,13 +28,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Where Ken's documentation lives.
+  # Where Zenith's documentation lives.
   #
   # The list is explicit rather than `**/*.md` on purpose: the gate should
-  # cover what Ken maintains, and that list belongs in one readable place rather
+  # cover what Zenith maintains, and that list belongs in one readable place rather
   # than being implied by whatever happens to be in the tree. A wildcard also
   # sweeps in archived material that is kept for its history and is not held to
-  # Ken's documentation standard.
+  # Zenith's documentation standard.
   #
   # A pattern that matches nothing is harmless here, so a tree can be listed
   # before it has any Markdown in it.
@@ -67,10 +67,14 @@ jobs:
       # commit, which is the one thing a gate must never do.
       - name: Lint Markdown
         run: |
-          # $DOC_GLOBS is expanded unquoted on purpose: it is a list of glob
-          # patterns, and each has to reach markdownlint as its own argument.
-          # shellcheck disable=SC2086
-          npx --yes markdownlint-cli2@0.23.3 --config .markdownlint.yml $DOC_GLOBS
+          # DOC_GLOBS is split into an array rather than expanded unquoted.
+          # An unquoted expansion is globbed by the shell against the checkout
+          # before markdownlint ever sees it, and `docs/**/*.md` without
+          # globstar collapses to `docs/*/*.md` — which matches
+          # docs/journal/README.md and silently skips every file sitting
+          # directly in docs/. The linter has to receive the patterns intact.
+          read -r -a globs <<< "$DOC_GLOBS"
+          npx --yes markdownlint-cli2@0.23.3 --config .markdownlint.yml "${globs[@]}"
 
   # --------------------------------------------------------------------------
   # Links and paths.
@@ -110,8 +114,9 @@ jobs:
       # make an external check otherwise useless.
       - name: Check links, paths and anchors
         run: |
-          # $DOC_GLOBS is expanded unquoted so each glob is its own argument.
-          # shellcheck disable=SC2086
+          # Same array treatment as the markdownlint step, and for the same
+          # reason: lychee must see the patterns, not the shell's expansion.
+          read -r -a globs <<< "$DOC_GLOBS"
           "$RUNNER_TEMP/lychee" \
             --no-progress \
             --include-fragments \
@@ -119,7 +124,7 @@ jobs:
             --max-retries 3 \
             --timeout 20 \
             --base . \
-            $DOC_GLOBS
+            "${globs[@]}"
 
   # --------------------------------------------------------------------------
   # Spelling.
@@ -140,7 +145,7 @@ jobs:
           "$RUNNER_TEMP/spelling/bin/pip" install --quiet "codespell==2.4.3"
 
       # The ignore list is the project's own vocabulary, not a suppression of
-      # findings. Ken's names, the components it is built from and the hardware
+      # findings. Zenith's names, the components it is built from and the hardware
       # terms in the profile schema are correct words that a general-purpose
       # dictionary reads as misspellings. Everything else still has to be
       # spelled properly.
@@ -149,14 +154,14 @@ jobs:
       # and a "misspelling" inside one is noise, not a finding.
       - name: Spell-check prose and data files
         run: |
-          # git ls-files is expanded unquoted so each tracked file reaches
-          # codespell as its own argument.
-          # shellcheck disable=SC2046
+          # git ls-files emits one path per line; read into an array so each one
+          # reaches codespell as its own argument regardless of what it contains.
+          read -r -a files <<< "$(git ls-files '*.md' '*.yaml' '*.yml' '*.json')"
           "$RUNNER_TEMP/spelling/bin/codespell" \
             --quiet-level 2 \
-            --ignore-words-list "ken,hypr,hyprland,quickshell,limine,sddm,dconf,dkms,dmi,edid,wlr,hda,mok,uefi,gpt,fwupd,apt,codename,ect,foss,spdx" \
+            --ignore-words-list "zenith,hypr,hyprland,quickshell,limine,sddm,dconf,dkms,dmi,edid,wlr,hda,mok,uefi,gpt,fwupd,apt,codename,ect,foss,spdx" \
             --skip ".git,*.svg,*.css,*.js,*.ts,*.py,*.sh,*.xml,node_modules" \
-            $(git ls-files '*.md' '*.yaml' '*.yml' '*.json')
+            "${files[@]}"
 
   # --------------------------------------------------------------------------
   # YAML.
@@ -180,7 +185,9 @@ jobs:
       # GitHub's issue-form schema, and all three fail quietly on bad YAML.
       - name: Lint YAML
         run: |
-          "$RUNNER_TEMP/yaml/bin/yamllint" --strict --config .yamllint.yml .
+          # --config-file, not --config: yamllint resolves the short prefix
+          # against both --config-file and --config-data and refuses to guess.
+          "$RUNNER_TEMP/yaml/bin/yamllint" --strict --config-file .yamllint.yml .
 
       # Parsing is not the same as being valid. A GitHub issue form that parses
       # but is missing `body`, or carries a block with no `id`, is silently

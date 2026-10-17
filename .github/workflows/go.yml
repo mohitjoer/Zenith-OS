@@ -1,6 +1,6 @@
 # Go control tools.
 #
-# There is no Go in this repository yet. The `ken`, `ken-shell` and `ken-hub`
+# There is no Go in this repository yet. The `zenith`, `zenith-shell` and `zenith-hub`
 # tools are the second milestone, and this workflow is written now so that the
 # first Go commit is covered by CI rather than covered by a later retro-fit.
 #
@@ -63,7 +63,7 @@ jobs:
             echo "go.mod found; running the Go checks."
           else
             echo "has-module=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No go.mod in this tree. Ken has no Go module yet, so the" \
+            echo "::notice::No go.mod in this tree. Zenith has no Go module yet, so the" \
                  "gofmt, vet and test steps are skipped rather than reported as passing."
           fi
 
@@ -100,17 +100,15 @@ jobs:
       # cannot fail a commit that did not touch it.
       - name: gofmt
         run: |
-          go_files="$(git ls-files '*.go')"
-          if [ -z "$go_files" ]; then
+          # Read into an array rather than expanded unquoted, so a tracked path
+          # containing shell glob characters is passed to gofmt verbatim.
+          read -r -a go_files <<< "$(git ls-files '*.go')"
+          if [ "${#go_files[@]}" -eq 0 ]; then
             echo "::notice::A go.mod exists but there are no tracked .go files; nothing to format."
             exit 0
           fi
 
-          # The unquoted expansion is deliberate. git ls-files emits one path per
-          # line and gofmt takes them as separate arguments; quoting it would
-          # hand gofmt a single filename containing newlines.
-          # shellcheck disable=SC2086
-          unformatted="$(gofmt -l $go_files)"
+          unformatted="$(gofmt -l "${go_files[@]}")"
           if [ -n "$unformatted" ]; then
             echo "::error::These files are not gofmt-clean. Run 'gofmt -w' on them:"
             printf '%s\n' "$unformatted"

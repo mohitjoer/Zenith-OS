@@ -1,7 +1,7 @@
 # Licence hygiene.
 #
-# Ken is free software, and the licence is not under one licence — LICENSING.md
-# spells out the three-way split between Ken's own code, the base layer and the
+# Zenith is free software, and the licence is not under one licence — LICENSING.md
+# spells out the three-way split between Zenith's own code, the base layer and the
 # firmware blobs. The rule this workflow enforces is the mechanical half of
 # that: every file named LICENSE in this repository is byte-identical to the
 # root LICENSE.

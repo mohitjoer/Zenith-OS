@@ -1,7 +1,7 @@
-# Ken kernel fleet.
+# Zenith kernel fleet.
 #
 # A single kernel cannot both keep old drivers working and support new
-# silicon. Ken ships a pinned set and lets each hardware profile choose a
+# silicon. Zenith ships a pinned set and lets each hardware profile choose a
 # flavour. Never add a patch-version pin here — pin a flavour, not a version.
 #
 # Every entry ships its headers, because DKMS is unavoidable for parts of the
@@ -97,7 +97,7 @@ microcode:
 # hwe reaches more hardware, and that is the whole argument for it. It loses on
 # three counts. A tier 3 machine is by definition one nobody has tested, which
 # is also the machine most likely to be new silicon whose radio needs a newer
-# kernel — and if that machine does not come up, `ken-firmware load` from a USB
+# kernel — and if that machine does not come up, `zenith-firmware load` from a USB
 # stick is the only path left, and it cannot load a kernel. The boot-time cost
 # of hwe has not been measured on this base layer. And the reach is not lost
 # either way, because a profile that names hwe takes the machine to tier 2
@@ -105,5 +105,5 @@ microcode:
 #
 # system/hardware/tiers.yaml `fallback.kernel` is the same decision, and the
 # installer, the matcher and the report all read one value. Revisit once
-# `ken benchmark` can report boot time across real machines.
+# `zenith benchmark` can report boot time across real machines.
 default_for_unknown: generic

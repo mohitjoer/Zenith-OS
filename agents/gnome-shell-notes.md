@@ -1,6 +1,6 @@
 # GNOME Shell notes — archived reference
 
-**None of this applies to Ken.** Ken replaces GNOME Shell with Hyprland and its own
+**None of this applies to Zenith.** Zenith replaces GNOME Shell with Hyprland and its own
 Quickshell-drawn shell, so there is no `Main.panel`, no `St`, no `Clutter`, no unlock
 dialog and no GDM greeter to theme.
 
@@ -70,7 +70,7 @@ Ship it as an extension and let `ExtensionManager` auto-load it. It picks the fi
 
 The Zeo project shipped background daemons in both TypeScript and Python so that users with
 either environment could run them (Python + PyGObject first, then Bun/tsx/Node, then
-`gsettings monitor` as a last resort). Ken's equivalent is not decided yet — Ken's control
+`gsettings monitor` as a last resort). Zenith's equivalent is not decided yet — Zenith's control
 tools are Go, which may remove the need for this entirely.
 
 ## Verification commands used

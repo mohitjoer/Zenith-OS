@@ -1,16 +1,21 @@
-# 健 Ken OS
+# 天 Zenith OS
 
-**healthy · robust · strong**
+**untouchable · dominating**
 
-健 — *ken* — carries the meaning the whole project is built on: a system that is sound,
-holds together, and survives contact with real hardware.
+天 — read *ten* — is heaven: the highest point of the sky. A zenith is that same point. The
+mark and the name say one thing, and they say it about the architecture as much as the
+project: this is the top of the stack, and it sits above everything it is built on.
 
-Ken is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS. Everything above that
-line is Ken's own — its compositor configuration, its shell drawn in Quickshell, its control
+Nothing reaches up to touch it. That is the standard the project holds itself to, and it is
+why the base layer is treated as substrate and never as identity — see
+[the base-layer boundary](docs/architecture.md#the-base-layer-boundary).
+
+Zenith is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS. Everything above that
+line is Zenith's own — its compositor configuration, its shell drawn in Quickshell, its control
 tools, its hardware matrix, its updater.
 
-Ken is not an Ubuntu flavour. Ubuntu supplies the substrate and nothing else. Ken is the
-distribution; Ubuntu is what Ken is built on top of.
+Zenith is not an Ubuntu flavour. Ubuntu supplies the substrate and nothing else. Zenith is the
+distribution; Ubuntu is what Zenith is built on top of.
 
 > **Status: pre-alpha.** Nothing here is bootable. This repository currently holds the
 > design, the licensing, the hardware support framework, and the pinned package and kernel
@@ -19,9 +24,9 @@ distribution; Ubuntu is what Ken is built on top of.
 
 ---
 
-## What Ken is
+## What Zenith is
 
-Most Linux desktops are a distribution's defaults plus whatever you can find. Ken is a
+Most Linux desktops are a distribution's defaults plus whatever you can find. Zenith is a
 single coherent opinion: a curated package set, one design language applied everywhere, a
 hardware profile for your specific machine, and an updater that can roll back.
 
@@ -30,9 +35,9 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Base layer | Ubuntu 26.04 LTS — the substrate only |
 | Compositor | Hyprland |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets |
-| Control tools | Go — `ken`, `ken-shell`, `ken-hub` |
+| Control tools | Go — `zenith`, `zenith-shell`, `zenith-hub` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
-| Terminal | kitty — built from source by Ken, because the base layer does not package it |
+| Terminal | kitty — built from source by Zenith, because the base layer does not package it |
 | User shell | zsh + starship |
 | Editor | Neovim |
 | Boot chain | Limine |
@@ -44,28 +49,28 @@ hardware profile for your specific machine, and an updater that can roll back.
 
 ### Why Ubuntu is the base layer
 
-Ubuntu's reason for existing in Ken is hardware reach, not convenience. Ken targets laptops,
+Ubuntu's reason for existing in Zenith is hardware reach, not convenience. Zenith targets laptops,
 and the hardest part of that is drivers. Ubuntu's archive has the widest firmware, DKMS and
 hardware-enablement coverage of any Linux distribution, and it carries the firmware packages
-laptops need, which Ken references rather than repackages. The base is chosen for hardware
+laptops need, which Zenith references rather than repackages. The base is chosen for hardware
 reach.
 
 26.04 LTS specifically: the HWE kernel stream is an archive of its own here, and that stream is
 the hardware reach the whole distribution exists for.
 
 The terminal is the deliberate exception, and the cost is stated rather than hidden. The base
-layer maintains a terminal for us; it does not package kitty, so Ken builds kitty from source
-and owns that build for the life of the project. That is a real ongoing cost and Ken pays it on
+layer maintains a terminal for us; it does not package kitty, so Zenith builds kitty from source
+and owns that build for the life of the project. That is a real ongoing cost and Zenith pays it on
 purpose: kitty is the most capable terminal in the stack, and the terminal is the surface a
 developer looks at all day.
 
 ### No GNOME
 
-Ken contains no GNOME — not GNOME Shell, not the GNOME daemons, not the GNOME portal backend.
+Zenith contains no GNOME — not GNOME Shell, not the GNOME daemons, not the GNOME portal backend.
 It draws its own shell on Hyprland and owns the surfaces a stock desktop used to provide:
 notifications, global shortcuts, locking, idle handling, and quick settings.
 
-What this costs: Ken writes those surfaces itself. What it simplifies: there is no
+What this costs: Zenith writes those surfaces itself. What it simplifies: there is no
 `xdg-desktop-portal-gnome` to convince, and no GNOME daemon stack to fight. See
 [`docs/architecture.md`](docs/architecture.md) for the portal arrangement, and
 [`agents/agents.md`](agents/agents.md) for the archived GNOME Shell notes.
@@ -74,7 +79,7 @@ What this costs: Ken writes those surfaces itself. What it simplifies: there is 
 
 ## Hardware support
 
-Ken publishes support tiers rather than claiming universal support, because no Linux
+Zenith publishes support tiers rather than claiming universal support, because no Linux
 distribution supports every laptop. Every machine falls into one of these.
 
 | Tier | Meaning |
@@ -89,11 +94,11 @@ a machine gets, and where the two disagree that file is right.
 
 The matrix grows through [`system/hardware/`](system/hardware/) — a database of verified
 machine profiles in this repository. Nobody can test every laptop, but every user can test
-one. A machine that boots successfully emits a candidate profile via `ken hardware report`;
+one. A machine that boots successfully emits a candidate profile via `zenith hardware report`;
 contributors attach it to a pull request; merged profiles ship in the next ISO and are
 selected automatically at install time.
 
-This is the single most important mechanism in Ken. It turns an unbounded hardware problem
+This is the single most important mechanism in Zenith. It turns an unbounded hardware problem
 into a union of working setups that grows without anyone owning a hardware lab.
 
 ---
@@ -112,10 +117,10 @@ tests/               CI checks
 ```
 
 The desktop source lives under `desktop/`, never in a directory named after one of the
-control tools — a `ken/` directory collides with the built binary of the same name and
+control tools — a `zenith/` directory collides with the built binary of the same name and
 silently defeats the repository's own ignore rules.
 
-Detection is not a directory. It is `ken hardware` code that does not exist yet;
+Detection is not a directory. It is `zenith hardware` code that does not exist yet;
 `system/hardware/` holds the data those probes will read and the tiers they resolve against.
 
 ## Branches
@@ -135,7 +140,7 @@ what lands in what order.
 
 ## Design system
 
-Ken's visual language is monochrome by construction: black, grey and white, with accent
+Zenith's visual language is monochrome by construction: black, grey and white, with accent
 colour never carrying meaning. The rules live in [`agents/agents.md`](agents/agents.md) and
 are binding, not advisory:
 
@@ -153,7 +158,7 @@ Aesthetic character comes from material, shape and rhythm — never from hue.
 
 ## Contributing
 
-Ken is open source and contributions are the point. **Hardware profiles are the most valuable
+Zenith is open source and contributions are the point. **Hardware profiles are the most valuable
 contribution and the easiest for a new person to make** — you need one machine and no code.
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to contribute, including hardware profiles
@@ -167,11 +172,11 @@ Contributions are made under the Developer Certificate of Origin.
 
 ## Licence
 
-Ken is free software, but not under one licence, and not entirely free of proprietary code on
+Zenith is free software, but not under one licence, and not entirely free of proprietary code on
 disk. Both facts matter, so both are documented:
 
-- Ken's own code and Ken's own repository are **GPL-3.0** and entirely free.
-- Some laptop hardware needs proprietary firmware. Ken references the base layer's
+- Zenith's own code and Zenith's own repository are **GPL-3.0** and entirely free.
+- Some laptop hardware needs proprietary firmware. Zenith references the base layer's
   `linux-firmware-*` packages rather than redistributing firmware itself, and declares per
   machine what is needed.
 

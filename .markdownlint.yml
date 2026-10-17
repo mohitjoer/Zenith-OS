@@ -1,4 +1,4 @@
-# markdownlint configuration for Ken OS.
+# markdownlint configuration for Zenith OS.
 #
 # Tuned against the documentation as it exists, not against an idealised style
 # guide. Every rule switched off below has a stated reason, and the reason is
@@ -26,7 +26,7 @@ MD013: false
 
 # Fenced blocks without a language tag.
 # Ten prose and directory-tree fences currently carry no tag (README.md:88,
-# docs/architecture.md:139, and several in docs/adopting-ken.md and
+# docs/architecture.md:139, and several in docs/adopting-zenith.md and
 # docs/hardware-detection.md). Turning this on would gate the whole
 # documentation suite on reformatting files nobody is editing. It is the first
 # rule to enable once those fences are tagged — the intent of the codebase is
@@ -47,8 +47,8 @@ MD047: false
 MD051: false
 
 # Bare URLs.
-# The house style for a contact address is the plain address: `conduct@kenos.dev`
-# in CODE_OF_CONDUCT.md, `security@kenos.dev` in SECURITY.md. Wrapping them in
+# The house style for a contact address is the plain address: `conduct@zenithos.dev`
+# in CODE_OF_CONDUCT.md, `security@zenithos.dev` in SECURITY.md. Wrapping them in
 # angle brackets would be noise for a reader who is looking for the address.
 MD034: false
 
@@ -59,7 +59,7 @@ MD034: false
 MD038: false
 
 # Ragged tables.
-# On. It was off while docs/adopting-ken.md carried a single five-cell row in a
+# On. It was off while docs/adopting-zenith.md carried a single five-cell row in a
 # four-column table; that row is fixed, and a row whose cell count disagrees
 # with its header is a real rendering bug in a project whose documentation is
 # the product.
@@ -168,11 +168,11 @@ MD010:
 # Vocabulary.
 # --------------------------------------------------------------------------
 
-# Ken's own terms. A spell checker working from a general dictionary will read
+# Zenith's own terms. A spell checker working from a general dictionary will read
 # these as misspellings, and a lowercase package or schema name in prose must
 # not be forced to match a capitalised heading.
 MD044:
-  # The lowercase forms are real and correct in context: `ken` is the command,
+  # The lowercase forms are real and correct in context: `zenith` is the command,
   # `hypr` is the CLI, and a package or schema name in prose is lowercase by
   # definition. Only the bare word in running prose is checked.
   ignore_inline_code: true

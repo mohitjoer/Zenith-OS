@@ -1,8 +1,8 @@
-# Ken hardware support tiers.
+# Zenith hardware support tiers.
 #
 # Machine-readable definition of what each tier promises. The installer, the
-# docs, and `ken hardware report` all read this file — there is exactly one
-# definition of a tier in Ken, and prose that describes one is a rendering of
+# docs, and `zenith hardware report` all read this file — there is exactly one
+# definition of a tier in Zenith, and prose that describes one is a rendering of
 # this file rather than a second copy of it.
 #
 # A machine's tier is decided by whether a verified profile exists for it.
@@ -44,7 +44,7 @@ tiers:
       fingerprint: any
     granted_by: maintainer
     note: >-
-      Tier 1 is a claim Ken makes about hardware it has been run on. It
+      Tier 1 is a claim Zenith makes about hardware it has been run on. It
       requires a maintainer's sign-off precisely because someone has to answer
       for it when it breaks.
 
@@ -62,7 +62,7 @@ tiers:
       audio_output: true
     granted_by: contributor
     note: >-
-      The profile must have come from `ken hardware report` on the machine it
+      The profile must have come from `zenith hardware report` on the machine it
       describes. A hand-written profile describing someone else's laptop is
       tier 3.
 

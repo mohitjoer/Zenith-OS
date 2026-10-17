@@ -19,7 +19,7 @@ secrets/
 # ---------------------------------------------------------------------------
 # Hardware reports contain identifying data.
 #
-# `ken hardware report` emits a machine profile for a pull request, but a raw
+# `zenith hardware report` emits a machine profile for a pull request, but a raw
 # report captured with extra debugging on can carry usernames, hostnames,
 # serial numbers, MAC addresses and home-directory paths. Raw output stays
 # local; only the reviewed, sanitised profile under
@@ -28,7 +28,7 @@ secrets/
 *.hardware.raw.yaml
 *.hardware.raw.json
 *-report-raw.yaml
-/var/log/ken/
+/var/log/zenith/
 .diag/
 
 # ---------------------------------------------------------------------------
@@ -61,8 +61,8 @@ cache/
 # ---------------------------------------------------------------------------
 # Go control tools
 #
-# Binaries are never ignored by name. The tools are called `ken`, `ken-shell`
-# and `ken-hub`, and a name-based pattern also matches a directory of the same
+# Binaries are never ignored by name. The tools are called `zenith`, `zenith-shell`
+# and `zenith-hub`, and a name-based pattern also matches a directory of the same
 # name — which silently swallows source. Build output goes to /bin and is
 # ignored as a directory instead.
 # ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ coverage.out
 # carry their build output
 # ---------------------------------------------------------------------------
 dkms/
-/usr/src/linux-headers-ken/
+/usr/src/linux-headers-zenith/
 *.ko
 *.o.tmp
 
@@ -112,8 +112,8 @@ Thumbs.db
 
 # ---------------------------------------------------------------------------
 # The source tree is `desktop/`, never a directory named after a tool.
-# If a `ken` entry appears here, it is a stray build artifact, not a directory.
+# If a `zenith` entry appears here, it is a stray build artifact, not a directory.
 # ---------------------------------------------------------------------------
-/ken
-/ken-shell
-/ken-hub
+/zenith
+/zenith-shell
+/zenith-hub

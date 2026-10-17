@@ -1,6 +1,6 @@
-# Ken package manifest.
+# Zenith package manifest.
 #
-# What Ken installs from the base layer — and, just as important, what it
+# What Zenith installs from the base layer — and, just as important, what it
 # refuses to install. Read this before adding a line. Per the base-layer
 # boundary in docs/architecture.md, every package in an image is a liability on
 # the next rebase, so this file is a reviewed artefact rather than a wish list.
@@ -8,13 +8,13 @@
 #
 # Three rules this file encodes.
 #
-# 1. Ken's packages write only to /usr/share/ken/ and /etc/ken/. A base-layer
-#    package with the wrong configuration gets a Ken config package or a
-#    drop-in shadowing it under a ken- name, never an in-place edit. The list
-#    below is therefore also the list of things Ken must never patch.
-# 2. Ken references the base layer's components; it never repackages them.
+# 1. Zenith's packages write only to /usr/share/zenith/ and /etc/zenith/. A base-layer
+#    package with the wrong configuration gets a Zenith config package or a
+#    drop-in shadowing it under a zenith- name, never an in-place edit. The list
+#    below is therefore also the list of things Zenith must never patch.
+# 2. Zenith references the base layer's components; it never repackages them.
 #    Every entry resolves to an archive component of the base layer. Rebuilding
-#    one as a Ken deb would make Ken the distributor of software and firmware
+#    one as a Zenith deb would make Zenith the distributor of software and firmware
 #    blobs it has no licence to redistribute — which is why firmware is a named
 #    group of references rather than a vendored directory in this tree.
 # 3. A name this manifest gets wrong must fail at image build time, loudly.
@@ -58,13 +58,13 @@ base:
     # firmware blob in this image ships inside an ordinary archive package —
     # see the `firmware` group.
   notes: >-
-    Nothing in this file comes from Ken's own repository. Ken's own packages —
-    ken, ken-shell, ken-hub, ken-session, the shell's assets, the SDDM theme,
-    the icon and cursor themes — ship from Ken's signed APT repository and are
+    Nothing in this file comes from Zenith's own repository. Zenith's own packages —
+    zenith, zenith-shell, zenith-hub, zenith-session, the shell's assets, the SDDM theme,
+    the icon and cursor themes — ship from Zenith's signed APT repository and are
     not a base-layer dependency of anything listed here. If a package below is
     not in the base archive, it is a bug in this file, not a reason to build it.
     There is exactly one recorded exception, and it is stated where it lives:
-    the terminal is not carried by this archive, so Ken builds it — see
+    the terminal is not carried by this archive, so Zenith builds it — see
     terminal-and-shell.
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ base:
 #
 # Deliberately absent: a second bootloader, any crash reporter that collects
 # state and ships it somewhere, and any daemon that updates packages behind
-# `ken update`'s back.
+# `zenith update`'s back.
 # ---------------------------------------------------------------------------
 
 essential:
@@ -91,7 +91,7 @@ essential:
     # flavour takes its headers from the fleet's own common list.
     - linux-image-generic
 
-    # The base layer's initramfs tooling, tuned rather than replaced. Ken keeps
+    # The base layer's initramfs tooling, tuned rather than replaced. Zenith keeps
     # initramfs-tools and adds the systemd zram generator beside it rather than
     # swapping in another generator — a swap would be a fork, not a
     # configuration.
@@ -110,7 +110,7 @@ essential:
     - dbus
     - dbus-user-session
 
-    # Authorisation is a daemon, not a dialog. Nothing in Ken's UI asks for a
+    # Authorisation is a daemon, not a dialog. Nothing in Zenith's UI asks for a
     # password; polkitd is what it asks on the user's behalf.
     - polkitd
 
@@ -133,7 +133,7 @@ essential:
     # the installer brings its own.
     - cryptsetup
 
-    # git is a runtime dependency, not a developer convenience. `ken update`
+    # git is a runtime dependency, not a developer convenience. `zenith update`
     # snapshots ~/.config to a repository before it replaces anything, so a
     # machine without it cannot roll back.
     - git
@@ -143,29 +143,29 @@ essential:
     # it broke on.
     - sudo
 
-    # Without it apt cannot verify Ken's own signed repository over HTTPS, and
+    # Without it apt cannot verify Zenith's own signed repository over HTTPS, and
     # an install fails at the one step that cannot be retried offline.
     - ca-certificates
 
     # Keyboard layout and locale are answered at install time and stored under
-    # /etc/default, which Ken reads and never writes.
+    # /etc/default, which Zenith reads and never writes.
     - locales
     - keyboard-configuration
 
   exclude:
     ubuntu-desktop: >-
       Pulls the GNOME session, the GNOME daemons and the bundled application
-      suite. Ken ships none of them and wants none of them.
+      suite. Zenith ships none of them and wants none of them.
     ubuntu-standard: >-
-      The same objection one level down. Ken starts from ubuntu-minimal and adds
+      The same objection one level down. Zenith starts from ubuntu-minimal and adds
       only what it can justify.
     grub-efi-amd64: >-
-      Limine is the boot chain. A second bootloader is a filesystem owner Ken
+      Limine is the boot chain. A second bootloader is a filesystem owner Zenith
       does not have and a merge conflict on every rebase.
     grub-efi-amd64-signed: >-
       Same reason, plus two Secure Boot chains that both believe they are first.
     grub-pc: >-
-      The BIOS path. Ken targets UEFI machines; the one that does not boot is
+      The BIOS path. Zenith targets UEFI machines; the one that does not boot is
       not a tier, it is out of scope.
     plymouth: >-
       A cosmetic splash in front of an initramfs doing real work. It costs boot
@@ -178,16 +178,16 @@ essential:
     whoopsie: >-
       The telemetry half of apport. Same objection.
     unattended-upgrades: >-
-      A second writer for package state. `ken update` owns that, and one writer
+      A second writer for package state. `zenith update` owns that, and one writer
       per setting is what makes rollback possible at all.
     command-not-found: >-
       It exists to advertise the base layer's archive at the exact moment a user
-      is stuck. Ken's own surface owns suggestions, and nudging a Ken user
-      toward the base archive is an argument Ken should not be making.
+      is stuck. Zenith's own surface owns suggestions, and nudging a Zenith user
+      toward the base archive is an argument Zenith should not be making.
     openssh-server: >-
       A listening network service is a security decision, not a base layer
-      default. Ken has not made that decision. When it does, it makes it in
-      /etc/ken and leaves the service disabled until the user asks.
+      default. Zenith has not made that decision. When it does, it makes it in
+      /etc/zenith and leaves the service disabled until the user asks.
 
 # ---------------------------------------------------------------------------
 # desktop
@@ -199,7 +199,7 @@ essential:
 # The portal stack is exactly four components and no more. GlobalShortcuts has
 # no portal backend and is the shell's job directly; Notifications has no
 # daemon in the image and the shell hosts the server. An application that works
-# on the base layer with GNOME must work on Ken — a portal regression is a
+# on the base layer with GNOME must work on Zenith — a portal regression is a
 # distribution-wide bug, not a cosmetic one.
 #
 # Deliberately absent: every GNOME daemon, the GNOME portal backend, and any
@@ -208,13 +208,13 @@ essential:
 
 desktop:
   packages:
-    # The compositor. Behind a `ken wm` seam so it can be swapped; the package
+    # The compositor. Behind a `zenith wm` seam so it can be swapped; the package
     # is chosen once here and the seam is where a second one would be added.
     - hyprland
 
     # The shell. QML, compositor-agnostic. Name to verify on 26.04: it is young
     # enough to the archive that the package spelling should be checked rather
-    # than assumed, and if it is absent from universe it ships from Ken's
+    # than assumed, and if it is absent from universe it ships from Zenith's
     # repository instead — which is a repository fact, not a manifest change.
     - quickshell
 
@@ -242,7 +242,7 @@ desktop:
     # qt6-wayland or qtwayland6.
     - qt6-wayland
 
-    # The GTK 4 and libadwaita runtimes. Ken's own UI is Quickshell, not GTK —
+    # The GTK 4 and libadwaita runtimes. Zenith's own UI is Quickshell, not GTK —
     # but third-party GTK 4 applications are on the desktop and will not start
     # without them, which is the whole reason they are here.
     - libgtk-4-1
@@ -262,23 +262,23 @@ desktop:
   # the base archive, so each line below is a decision rather than an absence.
   exclude:
     gnome-shell: >-
-      The desktop shell is Ken's own. Shipping the stock one would mean fighting
+      The desktop shell is Zenith's own. Shipping the stock one would mean fighting
       it for every pixel of the bar while still paying its memory cost.
     gnome-session: >-
-      The session is `ken-session`, from Ken's repository. A GNOME session
+      The session is `zenith-session`, from Zenith's repository. A GNOME session
       binary assumes a GNOME compositor under it and starts differently when it
       finds something else.
     gnome-session-bin: >-
       Same reason as gnome-session; this is the part that would end up on PATH.
     gnome-session-flashback: >-
-      A compatibility session for running GNOME extensions. Ken has no extension
+      A compatibility session for running GNOME extensions. Zenith has no extension
       mechanism, so this would be a second session type with no reason to exist.
     gnome-settings-daemon: >-
       Printers, remotes, tablets, colour, users, keyboards, and the session
-      daemon itself. Ken's shell owns the desktop surfaces, and the base layer's
+      daemon itself. Zenith's shell owns the desktop surfaces, and the base layer's
       own tools cover the hardware.
     gnome-control-center: >-
-      A settings centre duplicating Ken Hub page for page. Two front ends
+      A settings centre duplicating Zenith Hub page for page. Two front ends
       writing one setting is the exact bug class the overlay model exists to
       prevent.
     gnome-color-manager: >-
@@ -286,7 +286,7 @@ desktop:
       state fights the shell over the same CRTC and loses on at least one of
       them.
     gnome-power-manager: >-
-      power-profiles-daemon is the power daemon on Ken. Two of them both
+      power-profiles-daemon is the power daemon on Zenith. Two of them both
       setting a governor means the machine's power state depends on which one
       won the race.
     gnome-bluetooth: >-
@@ -300,17 +300,17 @@ desktop:
       shipping GNOME at all removes both the problem and the drop-in.
     gnome-software: >-
       A software centre. The image contains none — performance plan item 2 — and
-      `ken` is the only way the system is allowed to change.
+      `zenith` is the only way the system is allowed to change.
     packagekit: >-
       Its update check is a second writer for package state, and its daemon is a
-      permanent resident on a system that has `ken update` for that.
+      permanent resident on a system that has `zenith update` for that.
     gnome-initial-setup: >-
-      A first-boot wizard that writes settings. Ken Hub is the first-boot
+      A first-boot wizard that writes settings. Zenith Hub is the first-boot
       surface, and a wizard that writes before the user has chosen anything is
       drift by construction.
     "gnome-* (application suite)": >-
       The bundled applications — text editor, calculator, image viewer, clocks.
-      A Ken image ships an editor and a terminal and nothing else; applications
+      A Zenith image ships an editor and a terminal and nothing else; applications
       are per-user installs.
     "*-desktop, *-desktop-minimal": >-
       Any other desktop environment's metapackage. One compositor, one shell,
@@ -320,7 +320,7 @@ desktop:
 # session
 #
 # Login manager and the display-server side of a session. The chain is
-# SDDM → ken-session → Hyprland → Quickshell, and only the first link is a
+# SDDM → zenith-session → Hyprland → Quickshell, and only the first link is a
 # base-layer package.
 #
 # Deliberately absent: every other display manager, Xorg, and the base layer's
@@ -330,7 +330,7 @@ desktop:
 session:
   packages:
     # The login manager. Themable, no GNOME session assumptions, and it writes
-    # nothing Ken has to shadow. The theme itself is a Ken package — see base.
+    # nothing Zenith has to shadow. The theme itself is a Zenith package — see base.
     - sddm
 
     # Hyprland runs XWayland for X11 clients, so a machine gets X11 support
@@ -344,7 +344,7 @@ session:
       manager, and two of them fighting for it is a support ticket every time.
     lightdm: >-
       Same reason as gdm3. It is also themable in ways that tempt an install
-      towards a theme Ken would then have to replace anyway.
+      towards a theme Zenith would then have to replace anyway.
     xdm: >-
       Same reason, and it is ancient enough that its configuration files are
       where every "my login manager will not start" thread begins.
@@ -352,14 +352,14 @@ session:
       Hyprland's XWayland covers X11 clients. A second display server owns the
       VT, ships a second input stack, and is a rebase liability for nothing.
     "sddm-theme-*": >-
-      The base layer's greeter themes, including its default. Ken ships its own
-      theme from Ken's repository; carrying two means the login screen depends
+      The base layer's greeter themes, including its default. Zenith ships its own
+      theme from Zenith's repository; carrying two means the login screen depends
       on which one sddm happened to pick.
 
 # ---------------------------------------------------------------------------
 # terminal-and-shell
 #
-# The terminal and the user's shell on a tty. Ken's desktop shell is in
+# The terminal and the user's shell on a tty. Zenith's desktop shell is in
 # `desktop`; this group is the one you land in when the desktop does not start.
 #
 # Four separate places must declare the terminal the default, and if any one
@@ -380,7 +380,7 @@ terminal-and-shell:
     # This is the one entry in the file the base archive does not carry, so
     # rule 2 above has a single recorded exception and it is written here rather
     # than discovered later. The archive ships no kitty package, so
-    # `ken-terminal` builds it from source and the project owns that build: the
+    # `zenith-terminal` builds it from source and the project owns that build: the
     # source pin, the rebuild against each rebase, and the breakage when
     # upstream moves under the pin are a recurring maintenance cost a reader of
     # this manifest should know about before assuming `apt install`.
@@ -389,7 +389,7 @@ terminal-and-shell:
     # terminal, and the shell integration the fourth declaration above depends
     # on, are not separate entries either: the archive has no packages for them,
     # because kitty's build produces both out of the same source tree as the
-    # binary and Ken installs them alongside it.
+    # binary and Zenith installs them alongside it.
     - kitty
 
     # The login shell. fish and blesh ship alongside zsh for users who prefer
@@ -398,7 +398,7 @@ terminal-and-shell:
     - zsh
     - fish
     # Name to verify: blesh is young in the archive. If it is absent from 26.04
-    # it ships from Ken's repository; if it never lands, it is dropped rather
+    # it ships from Zenith's repository; if it never lands, it is dropped rather
     # than carried as a dependency of nothing.
     - blesh
 
@@ -434,19 +434,19 @@ terminal-and-shell:
       Same reason. Every additional terminal in the archive is one more package
       to rebase and one more inconsistent answer.
     guake: >-
-      Same reason. A drop-down terminal also duplicates a surface Ken's shell
+      Same reason. A drop-down terminal also duplicates a surface Zenith's shell
       owns.
     yakuake: >-
       Same reason as guake.
     "zsh-theme-*": >-
       Prompt frameworks installed beside starship. starship is the prompt; a
-      second one loaded from /etc/ken is a second writer for the same line.
+      second one loaded from /etc/zenith is a second writer for the same line.
 
 # ---------------------------------------------------------------------------
 # languages
 #
 # One official version manager per language, each managing only its own: rustup
-# for Rust, fnm for Node, mise for the rest, uv for Python. Ken deliberately
+# for Rust, fnm for Node, mise for the rest, uv for Python. Zenith deliberately
 # does not put a single opinion across all three — each ecosystem expects its
 # own tool, and the architecture record says so.
 #
@@ -462,7 +462,7 @@ terminal-and-shell:
 languages:
   packages:
     # Rust, and nothing else from the archive. The shared toolchain lives at
-    # /opt/ken/rust so every account on the machine compiles against the same
+    # /opt/zenith/rust so every account on the machine compiles against the same
     # one; the archive's rustc lags by years and a second compiler in the image
     # is a rebase liability with no upside.
     - rustup
@@ -480,13 +480,13 @@ languages:
     - python3-venv
     - python3-dev
 
-    # The one cross-language tool Ken keeps, and only for the languages that
+    # The one cross-language tool Zenith keeps, and only for the languages that
     # have no official manager of their own. It does not manage Rust and it does
     # not manage Node.
     - mise
 
     # Node's version manager. Name to verify: fnm is young, and if 26.04 does
-    # not carry it then it comes from Ken's repository. It is still the packaged
+    # not carry it then it comes from Zenith's repository. It is still the packaged
     # choice either way — see the nvm exclusion below for why the obvious
     # alternative is not.
     - fnm
@@ -523,20 +523,20 @@ languages:
       PEP 668 marks system Python externally managed, and a pip on the system
       path is precisely how it stops being. uv installs into environments.
     python-is-python3: >-
-      A script that runs `python` on a Ken machine has a bug. Ken's own tooling
+      A script that runs `python` on a Zenith machine has a bug. Zenith's own tooling
       calls python3 explicitly, and adding the alias makes that bug survivable
       instead of visible.
     pyenv: >-
-      A shell-profile editor. Ken does not let a package manager edit a shell
-      init file, because that file's base is /etc/ken and has exactly one
+      A shell-profile editor. Zenith does not let a package manager edit a shell
+      init file, because that file's base is /etc/zenith and has exactly one
       writer. mise is the packaged equivalent.
     nvm: >-
       Not a package at all — a shell function, sourced from a profile, which
-      means it edits the same content Ken owns. fnm is the packaged equivalent
+      means it edits the same content Zenith owns. fnm is the packaged equivalent
       and does the same job without a second writer.
     conda: >-
       A second Python runtime with its own layout under /opt, installed outside
-      the two directories Ken owns. It would be the one thing on the machine
+      the two directories Zenith owns. It would be the one thing on the machine
       that nothing could roll back.
 
 # ---------------------------------------------------------------------------
@@ -562,7 +562,7 @@ graphics-and-media:
     - libgl1-mesa-dri
     - mesa-vulkan-drivers
 
-    # glxinfo and vulkaninfo. `ken hardware report`, the bug template and every
+    # glxinfo and vulkaninfo. `zenith hardware report`, the bug template and every
     # profile review read them — a machine's GL renderer string is the first
     # thing anybody asks for and the last thing a user can find unaided.
     - mesa-utils
@@ -616,7 +616,7 @@ graphics-and-media:
       and on a Secure Boot machine it forces module signing during an install
       that has no keyring yet. The profile decides; see by_profile above.
     "xserver-xorg-video-*": >-
-      Driver modules for a display server Ken does not ship. XWayland drives X11
+      Driver modules for a display server Zenith does not ship. XWayland drives X11
       clients through Mesa or the NVIDIA userspace; it never needs Xorg's
       modules.
     "gstreamer1.0-plugins-*": >-
@@ -652,7 +652,7 @@ power-and-hardware-services:
     # after the next rebase.
     - power-profiles-daemon
 
-    # Battery reporting. Ken reads it; nothing else does, which is the point.
+    # Battery reporting. Zenith reads it; nothing else does, which is the point.
     - upower
 
     # Real-time scheduling priority for the audio stack. Without it PipeWire
@@ -665,8 +665,8 @@ power-and-hardware-services:
     - network-manager
 
     # On this base layer NetworkManager's persistent configuration is read from
-    # here, so the package is not optional even though Ken never writes to
-    # /etc/netplan. Ken configures NetworkManager through its own APIs and
+    # here, so the package is not optional even though Zenith never writes to
+    # /etc/netplan. Zenith configures NetworkManager through its own APIs and
     # through GSettings, never by editing either tree.
     - netplan.io
 
@@ -678,7 +678,7 @@ power-and-hardware-services:
     - ddcutil
 
     # Firmware updates over LVFS. The alternative is a vendor tool per machine,
-    # which is the exact problem Ken exists to remove.
+    # which is the exact problem Zenith exists to remove.
     - fwupd
 
     # Hybrid graphics on machines where switching the mux is a userspace switch
@@ -700,9 +700,9 @@ power-and-hardware-services:
     wpa_supplicant: >-
       iwd is the wireless backend. NetworkManager driving both is a known source
       of interface flapping and of laptops that will not reassociate after
-      suspend — the most-reported hardware bug class Ken has.
+      suspend — the most-reported hardware bug class Zenith has.
     network-manager-gnome: >-
-      A GNOME applet and a GNOME keyfile plugin. Ken's shell is the network
+      A GNOME applet and a GNOME keyfile plugin. Zenith's shell is the network
       surface and reads NetworkManager's state directly.
     avahi-daemon: >-
       mDNS answering on every network a laptop joins, including coffee-shop
@@ -714,7 +714,7 @@ power-and-hardware-services:
 #
 # What a user needs to build something on the machine, and no more. This group
 # is small on purpose: a -dev package is a full toolchain's worth of headers
-# re-checked on every rebase, and Ken's own code is built in CI.
+# re-checked on every rebase, and Zenith's own code is built in CI.
 #
 # Deliberately absent: the -dev packages, the packaging toolchain, and every
 # editor that is not Neovim.
@@ -734,7 +734,7 @@ dev-tools:
     - ninja-build
     - pkg-config
 
-    # Go, because `ken` is written in it and a user reporting a bug should be
+    # Go, because `zenith` is written in it and a user reporting a bug should be
     # able to rebuild the tool that has it.
     - golang-go
 
@@ -746,9 +746,9 @@ dev-tools:
     "*-dev": >-
       Not one of them on a user machine. The image carries none of them at all —
       the terminal's build happens in CI against the build environment rather
-      than here, and everything else Ken builds is a Ken package built in CI.
+      than here, and everything else Zenith builds is a Zenith package built in CI.
     debhelper: >-
-      Ken's debs are built and signed in CI, where reproducibility is a
+      Zenith's debs are built and signed in CI, where reproducibility is a
       requirement rather than a hope. dh-make, dh-golang and the rest are four
       hundred packages of liability for a job that has to be reproducible
       anyway.
@@ -762,9 +762,9 @@ dev-tools:
 # ---------------------------------------------------------------------------
 # fonts-and-icons
 #
-# Type, and nothing else. Ken's own interface font, icon theme and cursor theme
-# are assets of the shell and ship from Ken's repository; what is here is only
-# what an application needs before Ken has been asked anything.
+# Type, and nothing else. Zenith's own interface font, icon theme and cursor theme
+# are assets of the shell and ship from Zenith's repository; what is here is only
+# what an application needs before Zenith has been asked anything.
 #
 # Deliberately absent: every second icon theme, and any UI font that would
 # compete with the shell's.
@@ -781,7 +781,7 @@ fonts-and-icons:
     # Latin plus every script the base layer's own interface strings use.
     - fonts-noto-core
 
-    # Ken is Japanese-named and its own strings are Japanese. A missing CJK font
+    # Zenith is Japanese-named and its own strings are Japanese. A missing CJK font
     # is not a cosmetic bug on a machine whose distribution name will not
     # render.
     - fonts-noto-cjk
@@ -792,28 +792,28 @@ fonts-and-icons:
 
   exclude:
     fonts-cantarell: >-
-      The GNOME UI font. Ken's interface font is an asset of the shell, ships
-      from Ken's repository, and is not something an image-wide font package
+      The GNOME UI font. Zenith's interface font is an asset of the shell, ships
+      from Zenith's repository, and is not something an image-wide font package
       gets to decide.
     papirus-icon-theme: >-
       A second icon theme means every application falls back differently
       depending on which one it picked, and half of them pick the wrong one.
-      Ken's icon theme ships from Ken's repository.
+      Zenith's icon theme ships from Zenith's repository.
     fonts-urw-base35: >-
       A general-purpose font family installed to satisfy a document that
-      specifies no font. The noto set above already covers the scripts a Ken
+      specifies no font. The noto set above already covers the scripts a Zenith
       user can actually read.
 
 # ---------------------------------------------------------------------------
 # firmware
 #
 # Referenced, never repackaged. Every entry here resolves to a base-layer
-# component, and Ken takes it from the archive. This is the single most
-# important boundary in the file: a Ken deb containing a firmware blob would
-# make Ken the redistributor of that blob, under a licence Ken did not write and
+# component, and Zenith takes it from the archive. This is the single most
+# important boundary in the file: a Zenith deb containing a firmware blob would
+# make Zenith the redistributor of that blob, under a licence Zenith did not write and
 # cannot grant.
 #
-# Two consequences follow, both recorded in LICENSING.md. A Ken image is not
+# Two consequences follow, both recorded in LICENSING.md. A Zenith image is not
 # fully free software, and must not be presented as though it were. And some
 # firmware forbids redistribution outright, which is why `policy` below has a
 # fetch-at-install-time rule rather than an ISO-staging directory.
@@ -848,9 +848,9 @@ firmware:
   policy:
     redistribution: >-
       Each package here is redistributed by its own packager under its own
-      licence, and Ken fetches it from the archive. The moment Ken builds a deb
-      containing a blob, Ken is the redistributor, and per-file licensing
-      becomes Ken's problem instead of the base layer's.
+      licence, and Zenith fetches it from the archive. The moment Zenith builds a deb
+      containing a blob, Zenith is the redistributor, and per-file licensing
+      becomes Zenith's problem instead of the base layer's.
     fetched_at_install_time: >-
       Firmware that forbids redistribution is neither on the ISO nor named in
       this file. The installer fetches it from the base layer's archive on the
@@ -858,7 +858,7 @@ firmware:
     offline: >-
       A laptop whose WiFi needs an unloaded driver cannot fetch that driver over
       the network it does not have. The full bundle above is what ships on the
-      ISO, and `ken-firmware load` from a USB stick is the path that does not
+      ISO, and `zenith-firmware load` from a USB stick is the path that does not
       need the network at all.
 
   by_profile:
@@ -885,11 +885,11 @@ firmware:
 # ---------------------------------------------------------------------------
 # optional
 #
-# Printed by `ken`, offered by the installer, installed by nobody by default.
+# Printed by `zenith`, offered by the installer, installed by nobody by default.
 # Every entry says why it is not on the image, because "it was in the list once"
 # is how a desktop metapackage gets rebuilt one package at a time.
 #
-# These are not exclusions — a user may install any of them and Ken will not
+# These are not exclusions — a user may install any of them and Zenith will not
 # argue. They are simply not something the image does to every machine.
 # ---------------------------------------------------------------------------
 
@@ -897,7 +897,7 @@ optional:
   packages:
     gaming:
       gamemode: >-
-        A daemon that reconfigures a process tree for games. Nothing in Ken
+        A daemon that reconfigures a process tree for games. Nothing in Zenith
         detects games yet, so it would sit idle holding a D-Bus name forever.
       gamescope: >-
         The nested compositor for gaming sessions and for a gamescope-shaped
@@ -922,15 +922,15 @@ optional:
 
     containers:
       docker: >-
-        A daemon with root-equivalent access that no part of Ken uses. Ken's
+        A daemon with root-equivalent access that no part of Zenith uses. Zenith's
         build and release story does not run containers on a user's machine.
       podman: >-
         Rootless and lighter, and still a second way to change the machine's
-        packages. `ken` owns that.
+        packages. `zenith` owns that.
 
     sandboxed-applications:
       flatpak: >-
-        A download and sandbox mechanism, which is `ken`'s job. Without a
+        A download and sandbox mechanism, which is `zenith`'s job. Without a
         software centre it leaves the user running a package manager by hand;
         with one it means two front ends to the same machine, and the second one
         is excluded above.
@@ -947,7 +947,7 @@ optional:
     diagnostics:
       lm-sensors: >-
         Reads hardware sensors, which is a support activity rather than a
-        desktop one. `ken hardware report` can pull it in on request.
+        desktop one. `zenith hardware report` can pull it in on request.
       smartmontools: >-
         Disk health, likewise on demand rather than resident. Its daemon and
         its udev rules touch every machine's storage stack to answer a question

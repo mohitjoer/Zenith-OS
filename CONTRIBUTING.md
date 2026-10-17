@@ -1,10 +1,10 @@
-# Contributing to Ken OS
+# Contributing to Zenith OS
 
-Ken is a distribution, and a distribution is a union of other people's work. Nobody can test
+Zenith is a distribution, and a distribution is a union of other people's work. Nobody can test
 every laptop; everybody can test one. Those two facts decide what a contribution to this
 project is worth.
 
-Ken runs pre-alpha. Nothing is bootable yet, so the contributions that matter today are a
+Zenith runs pre-alpha. Nothing is bootable yet, so the contributions that matter today are a
 hardware profile, a decision, or documentation. See [`docs/roadmap.md`](docs/roadmap.md) for
 what lands in what order.
 
@@ -12,11 +12,11 @@ what lands in what order.
 
 ## Hardware profiles — the primary path
 
-This is the most valuable contribution in Ken and the cheapest to make. It needs one machine
+This is the most valuable contribution in Zenith and the cheapest to make. It needs one machine
 and no code.
 
-1. Install Ken and boot it.
-2. Run `ken hardware report`. It emits a candidate profile from live detection, with
+1. Install Zenith and boot it.
+2. Run `zenith hardware report`. It emits a candidate profile from live detection, with
    identifying data stripped.
 3. Fill in what only a human on the machine knows: does suspend work, does the GPU switch,
    what fails.
@@ -28,7 +28,7 @@ contain. Do not write a profile from memory — the report is the input, and
 [`profiles/example.yaml`](system/hardware/profiles/example.yaml) is the annotated target.
 
 A profile submitted from real detection output lands at **tier 2, community confirmed**. Tier
-1 requires a maintainer's sign-off, because it is a claim about hardware Ken has not been run
+1 requires a maintainer's sign-off, because it is a claim about hardware Zenith has not been run
 on by the people who answer for it. Expect the tier rather than asking for it.
 
 ### If your machine is boring
@@ -49,14 +49,14 @@ Two rules in [`agents/agents.md`](agents/agents.md) bind every contribution to t
 repository, not just some of them.
 
 **One writer per setting.** If a setting has a command or a tool that owns it, that tool is
-the only thing allowed to write it. `ken-shell` and `ken-hub` are the only writers of
-`org.ken.shell` and `org.ken.desktop`. Hand-editing dconf causes drift, and drift is the most
+the only thing allowed to write it. `zenith-shell` and `zenith-hub` are the only writers of
+`org.zenith.shell` and `org.zenith.desktop`. Hand-editing dconf causes drift, and drift is the most
 expensive bug class in a distribution. A new setting needs a schema entry and an owning tool
 in the same pull request, or it does not land.
 
 **Never edit a shipped file in place.** Files laid into the system by a package are replaced
 on update. A change to one belongs in an override, in the store the owning tool reads, or in
-the tool itself. Ken's packages write only to `/usr/share/ken/` and `/etc/ken/` — never to
+the tool itself. Zenith's packages write only to `/usr/share/zenith/` and `/etc/zenith/` — never to
 another package's files, and never to `~`. A patch against `/etc/NetworkManager/` is not a
 contribution, it is a fork, and it is what stops the next rebase onto a newer Ubuntu.
 
@@ -85,7 +85,7 @@ git push --force-with-lease
 ```
 
 An unsigned commit is not rejected on principle; it is unmergeable, because the licence of
-the contribution is undetermined. See [`LICENSING.md`](LICENSING.md) for what Ken's own
+the contribution is undetermined. See [`LICENSING.md`](LICENSING.md) for what Zenith's own
 GPL-3.0 code, the base layer, and the firmware blobs each oblige you to.
 
 ---
@@ -116,7 +116,7 @@ request. If a check is not configured yet, the checklist item says so — that i
 | A bug | The issue forms. If it is about one specific laptop, use the **hardware support** form — it is the intake path that becomes a profile. |
 | A design decision | An issue. [`docs/architecture.md`](docs/architecture.md) separates settled decisions from open questions; check which side of that line your question is on before arguing it. |
 | Packaging, repository, release | An issue. Say which command failed and paste what it printed. |
-| Conduct | `conduct@kenos.dev`. See [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). |
+| Conduct | `conduct@zenithos.dev`. See [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). |
 | A vulnerability | **Not** a public issue. See [`SECURITY.md`](SECURITY.md). |
 
 Before opening an issue, read [`docs/architecture.md`](docs/architecture.md) and
