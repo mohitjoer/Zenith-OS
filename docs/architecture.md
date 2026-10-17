@@ -13,16 +13,19 @@ closed question or assumes an open one is closed.
 | Decision | Choice | Reason |
 |---|---|---|
 | Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
+| Filesystem & Rollback | Btrfs subvolumes with automated pre-APT snapshot hooks | Enables atomic updates and instant rollback without wasting space on full system copies. |
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Shell | Quickshell (QML) | Compositor-agnostic, proven, and the design language already lives in QML/CSS. |
-| Desktop stack | No GNOME | No GNOME Shell, no GNOME daemons, no GNOME portal backend. See [the portal seam](#the-portal-seam). |
-| Control tools | Go (`zenith`, `zenith-shell`, `zenith-hub`) | Static binaries, cross-compiles cleanly, fast startup. |
-| Terminal | kitty | The most capable terminal in the stack — graphics protocol, `kitty @`, shell integration. Chosen over the terminal the base layer packages, on the understanding that **Zenith owns its source build forever**. A deliberate trade, not an oversight. |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter | Compositor-agnostic, proven, and the design language already lives in QML/CSS. |
+| Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
+| Terminal | Ghostty — built and pinned upstream by Zenith to bypass frozen base-layer packages | GPU-accelerated, feature-rich, and built from source to ensure we track the latest upstream. |
 | User shell | zsh + starship | fish and blesh ship alongside as alternatives. |
-| Settings store | GSettings + dconf | Typed, validated, per-user, atomic. Strictly better than a hand-rolled JSON store. |
-| Boot chain | Limine | Small, modern, and already proven on the reference system. |
-| Login manager | SDDM | Works on Ubuntu, themable, no GNOME session assumptions. |
-| ISO tooling | live-build + live-installer | Subiquity is Python and near-unforkable. |
+| Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
+| Boot chain | Limine + Unified Kernel Images (UKI) | Limine is small, modern, and proven; UKIs reduce boot complexity and improve security. |
+| Login manager | `greetd` — rendered natively by Quickshell on Hyprland | Avoids GTK/QT dependencies and renders the greeter natively on the compositor. |
+| Desktop services | pipewire + wireplumber, tuned-ppd, iwd + NetworkManager, fprintd | Integrated audio/video, platform daemons, wireless/ wired networking, and fingerprint support. |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, with `gnome-keyring` for secrets | Hyprland-native portal backend with GTK fallback; secrets handled via gnome-keyring. |
+| Package manager | APT, backed by Zenith's signed first-party repository | Familiar, robust, and cryptographically signed for trustworthy updates. |
+| Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
 | Scope | Open source, all laptops | Hardware reach is the product. |
 | Identity | Zenith is the distribution; Ubuntu is the base layer | See [the base-layer boundary](#the-base-layer-boundary). |
