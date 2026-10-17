@@ -53,7 +53,7 @@ jobs:
     outputs:
       has-module: ${{ steps.check.outputs.has-module }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Look for go.mod
         id: check
@@ -80,11 +80,11 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The Go version comes from go.mod rather than a literal here, so the
       # module and CI cannot drift apart: one place declares it.
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           # Caching is keyed on go.sum, so the cache is invalidated exactly when
