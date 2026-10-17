@@ -1,0 +1,102 @@
+# Ken hardware support tiers.
+#
+# Machine-readable definition of what each tier promises. The installer, the
+# docs, and `ken hardware report` all read this file — there is exactly one
+# definition of a tier in Ken, and prose that describes one is a rendering of
+# this file rather than a second copy of it.
+#
+# A machine's tier is decided by whether a verified profile exists for it.
+# It is never a marketing claim. See system/hardware/README.md.
+
+version: 1
+
+# A `requires:` value is `true`, meaning the check must have been exercised on
+# the physical machine and pass, or — for a check whose hardware a machine may
+# not have — one of:
+#
+#   required          the machine has the hardware, and it was exercised
+#   any               exercised if the machine has it; not having it passes
+#   not_applicable    the machine does not have it, and the profile says so
+#
+# `not_applicable` is a claim about hardware, so it is the one value a profile
+# cannot use to skip a check the machine is capable of doing.
+
+tiers:
+  - id: 1
+    key: verified
+    name: Verified
+    summary: >-
+      Installs, boots, suspend/resume, GPU acceleration, audio and peripherals
+      all confirmed on this machine by a maintainer.
+    requires:
+      # What must have been exercised on the physical machine before a profile
+      # may claim this tier. Not aspirational — this is the checklist.
+      boots: true
+      login_manager: true
+      desktop_session: true
+      network: true
+      audio_output: true
+      suspend_resume: true
+      gpu_acceleration: true
+      display_brightness: true
+      external_display: any        # any | required | not_applicable
+      bluetooth: any
+      fingerprint: any
+    granted_by: maintainer
+    note: >-
+      Tier 1 is a claim Ken makes about hardware it has been run on. It
+      requires a maintainer's sign-off precisely because someone has to answer
+      for it when it breaks.
+
+  - id: 2
+    key: community
+    name: Community confirmed
+    summary: >-
+      Working on a contributor's machine, with a profile submitted from real
+      detection output. Not independently verified.
+    requires:
+      boots: true
+      login_manager: true
+      desktop_session: true
+      network: true
+      audio_output: true
+    granted_by: contributor
+    note: >-
+      The profile must have come from `ken hardware report` on the machine it
+      describes. A hand-written profile describing someone else's laptop is
+      tier 3.
+
+  - id: 3
+    key: best-effort
+    name: Best effort
+    summary: >-
+      No matching profile. Installs conservative defaults — the `generic`
+      kernel, full firmware bundle — and may need manual intervention.
+    requires:
+      boots: true
+    granted_by: fallback
+    note: >-
+      This is the floor, not an excuse. It is a real tier with real behaviour,
+      and a machine sitting here with a working community profile should be
+      raised to tier 2 by submitting one.
+
+# What the installer does when a profile is absent.
+#
+# `kernel:` is a flavour key from system/kernel/fleet.yaml, not a package name,
+# and it is the same value as that file's `default_for_unknown`. Tier 3 never
+# takes `oem`: that key exists for a profile that names a specific vendor
+# kernel, and a machine with no profile has no vendor kernel to name.
+fallback:
+  kernel: generic
+  firmware_bundle: full
+  gpu_driver: auto
+  install_firmware_rescue: true
+  warn_tier: true
+
+# Matching is exact-then-narrowing: most specific profile first, then broader.
+# Ambiguity between two profiles of different tiers resolves to the higher tier,
+# because a confirmed-working recipe beats a more specific guess.
+matching:
+  strategy: exact_then_narrowing
+  ambiguous_resolution: highest_tier
+  probe_order: [dmi, pci, usb, acpi, edid]

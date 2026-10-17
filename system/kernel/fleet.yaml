@@ -1,0 +1,109 @@
+# Ken kernel fleet.
+#
+# A single kernel cannot both keep old drivers working and support new
+# silicon. Ken ships a pinned set and lets each hardware profile choose a
+# flavour. Never add a patch-version pin here — pin a flavour, not a version.
+#
+# Every entry ships its headers, because DKMS is unavoidable for parts of the
+# laptop market and a kernel without headers cannot build a module against it.
+#
+# A hardware profile's `kernel:` is one of the `key:` values below and nothing
+# else. Two of them are fleet flavours with an upstream package on the base
+# layer; `oem` has none, because a vendor kernel is named per profile rather
+# than per fleet.
+
+version: 1
+
+default: generic
+
+flavours:
+  - key: generic
+    upstream: linux-generic
+    role: Baseline. Always boots. Chosen when no profile matches.
+    when_to_use:
+      - No profile matches this machine (tier 3)
+      - A profile exists but names no kernel
+
+  - key: hwe
+    upstream: linux-generic-hwe-26.04
+    role: >-
+      Recent hardware enablement, backported continuously by the base layer.
+      The right default for most laptops, because new chips ship with new
+      hardware support and an older kernel simply does not have it.
+    when_to_use:
+      - A profile names it
+      - Newer hardware that the baseline does not recognise
+
+  - key: oem
+    upstream: null    # Profile-specific; the profile supplies the exact flavour
+    role: >-
+      Vendor or OEM kernel, only where a profile demands it. Named per profile
+      because these are not interchangeable across machines. This is a
+      per-profile escape hatch rather than a fleet flavour: no default and no
+      fallback ever resolves to it, so a machine can only reach it by having a
+      profile that asks for it by name.
+    when_to_use:
+      - A profile names it and nothing else boots the machine
+
+# Packages every kernel flavour installs alongside itself.
+#
+# These are logical entries. In the archive every package in this family
+# carries the flavour and the patch level, so the installer resolves each one
+# against the flavour it has already chosen — `linux-headers-generic`,
+# `linux-headers-generic-hwe-26.04` — instead of installing the name below
+# literally.
+#
+# `linux-modules-extra` used to be here and is gone: the base layer carries no
+# such package, so documenting it would have meant documenting a name that
+# resolves to nothing. The modules a flavour ships are that flavour's own
+# `linux-modules-<version>-<flavour>`.
+common:
+  - linux-headers
+
+# Microcode loads early in the initramfs, before any other driver. A machine
+# with the wrong microcode loaded late can fail in ways that look like a kernel
+# bug. `intel-microcode` and `amd64-microcode` are the base layer's names for
+# these two; `intel-ucode` and `amd-ucode` are not package names here and
+# resolve to nothing.
+microcode:
+  - intel-microcode
+  - amd64-microcode
+
+# Firmware is not pinned here. It is named per machine, by the hardware profile,
+# as packages and never as files, and the base layer's firmware packages are:
+#
+#   linux-firmware            a metapackage, and its dependencies are the
+#                             authoritative list of what the base layer carries
+#   linux-firmware-<vendor>   the per-vendor packages it pulls in —
+#                             linux-firmware-mediatek,
+#                             linux-firmware-intel-wireless,
+#                             linux-firmware-broadcom-wireless,
+#                             linux-firmware-realtek,
+#                             linux-firmware-amd-graphics
+#   firmware-sof-signed       signed Sound Open Firmware for the audio codecs
+#                             that need it
+#
+# There is no `linux-firmware-nonfree` and no `firmware-nonfree`: this base
+# layer has no `non-free-firmware` component, and the firmware is in the
+# packages above. The split itself is a property of the archive and moves with
+# it, so resolve the current names from the archive rather than from this file,
+# and fail loudly on a name it does not carry.
+
+# The installer's suggested flavour for a machine no profile matches, which is
+# every tier 3 machine. `default:` above is the floor the image ships; this is
+# the answer the installer gives a user it knows nothing about. The two agree
+# today by decision rather than by measurement.
+#
+# hwe reaches more hardware, and that is the whole argument for it. It loses on
+# three counts. A tier 3 machine is by definition one nobody has tested, which
+# is also the machine most likely to be new silicon whose radio needs a newer
+# kernel — and if that machine does not come up, `ken-firmware load` from a USB
+# stick is the only path left, and it cannot load a kernel. The boot-time cost
+# of hwe has not been measured on this base layer. And the reach is not lost
+# either way, because a profile that names hwe takes the machine to tier 2
+# with it, which is how this project grows.
+#
+# system/hardware/tiers.yaml `fallback.kernel` is the same decision, and the
+# installer, the matcher and the report all read one value. Revisit once
+# `ken benchmark` can report boot time across real machines.
+default_for_unknown: generic

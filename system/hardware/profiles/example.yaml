@@ -1,0 +1,102 @@
+# Annotated hardware profile schema.
+#
+# This example is documentation, not a real machine. Copy it, delete what does
+# not apply, and keep the structure: the installer reads every key here, and a
+# profile that guesses is worse than a profile that admits it does not know.
+#
+# Submit a real profile from `ken hardware report` — see
+# system/hardware/README.md.
+
+version: 1
+
+# What this profile is under. Profiles are configuration data and are GPL-3.0 by
+# convention, which is all a profile needs when it only names base-layer
+# packages: a package name is not a licence grant, and the blob's own copyright
+# file governs. A profile that carries something a third party wrote — a vendor
+# patch, a quoted licence, firmware terms — records that work's terms here
+# instead. See LICENSING.md.
+license: GPL-3.0
+
+# Stable identifier. Lowercase, hyphens. This is the filename stem and the key
+# used in bug reports, so it must survive being typed by a human.
+id: vendor-model-variant
+
+# 1 = verified, 2 = community confirmed, 3 = best effort.
+# The installer will not let a contributor raise this to 1.
+tier: 2
+
+# How this profile claims the machine. `match:` is the match key — `id` is only
+# a human label. All listed fields must match for this profile to be selected.
+match:
+  sys_vendor: Example Corp
+  product_name: Example Pro 16
+  product_version: "1.0"
+  board_name: EX16-1A
+  # Optional narrowing. Every field present must match.
+  chassis_type: notebook
+  bios_date: ">=2024-01-01"
+
+# Kernel flavour. Never pin a patch version — profiles that do stop matching on
+# the next security update. The valid set is closed, and it is exactly the
+# `key:` list in system/kernel/fleet.yaml:
+#   generic, hwe   fleet flavours, each with an upstream package on the base
+#                  layer
+#   oem            a per-profile escape hatch for a vendor kernel. The fleet
+#                  carries no upstream for it, so this profile is the only
+#                  thing that can name it and no fallback may select it.
+kernel: hwe
+
+gpu:
+  # What Ken should install for each device.
+  #   discrete: nouveau | nvidia | nvidia-open | auto
+  #   integrated: auto
+  discrete: nvidia-open
+  integrated: auto
+  # Hybrid graphics. Remove the block if this machine has one GPU.
+  hybrid_mux:
+    enabled: true
+    mechanism: supergfxctl   # supergfxctl | envy | none
+    # Which mode the machine is expected to boot in.
+    default: hybrid          # hybrid | dGPU | optimus
+
+network:
+  # Kernel module for each wireless device. Empty for wired-only machines.
+  wifi:
+    - driver: mt7921e
+      # Firmware packages required. Names only, never firmware files, and only
+      # names the base archive carries — `linux-firmware` plus the
+      # per-vendor `linux-firmware-<vendor>` packages. See
+      # system/hardware/README.md for the package-name shapes.
+      firmware: [linux-firmware, linux-firmware-mediatek]
+
+audio:
+  codec: sof
+  # Pipewire profile quirks, if the machine needs one.
+  quirks: []
+
+storage:
+  # Nothing here is usually required. Add a block only for a machine that
+  # needs it, and say why in notes.
+  quirks: []
+
+firmware:
+  # Additional packages beyond the rescue bundle.
+  packages: []
+  # Microcode. Usually detected, but a profile may pin it when detection is unsure.
+  # The names are in system/kernel/fleet.yaml.
+  microcode: []
+
+# Things only a human on the machine can answer. This is the part `ken hardware
+# report` cannot produce, and the part that makes a profile worth reading.
+verified:
+  suspend_resume: works
+  external_display: works
+  bluetooth: works
+  fingerprint: untested
+  # Anything that failed, with the symptom rather than the conclusion.
+  known_issues:
+    - "External display over the USB-C dock drops to 30Hz after suspend."
+
+notes: >
+  Replace this with anything a future maintainer needs and cannot derive from
+  the machine itself. Write what you tried, not just what you concluded.

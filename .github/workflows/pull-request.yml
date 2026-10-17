@@ -1,0 +1,195 @@
+# Pull request gate.
+#
+# agents/agents.md carries a Definition of Done, and most of it is not
+# mechanically checkable: whether a change maps back to a roadmap goal, whether
+# a new rule was recorded, whether the reviewer was thorough. Automating those
+# would produce a green check that means nothing.
+#
+# Two items on that list are checkable, and they are the two checked here.
+#
+#   Sign-off.        Every commit carries a DCO `Signed-off-by:` line.
+#   Forbidden paths. Nothing that must never be committed is added.
+#
+# Both run only on pull requests. The sign-off check in particular is not worth
+# failing a direct push over, because a push to main has already been reviewed.
+
+name: pull-request
+
+on:
+  pull_request:
+    branches: [main, dev-unstable]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Read-only. Neither job writes anything, and neither needs to resolve secrets.
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Developer Certificate of Origin.
+  # --------------------------------------------------------------------------
+  # An unsigned commit is not rejected on principle — CONTRIBUTING.md is
+  # explicit about that. It is unmergeable, because the licence of the
+  # contribution is undetermined. This job turns that into a red run before a
+  # reviewer spends time on the diff.
+  sign-off:
+    name: DCO sign-off
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, because the check needs the real commit range between
+          # the base branch and the head. A shallow checkout of one commit
+          # cannot compute `base..head`, and the alternative — guessing — would
+          # let an unsigned commit through by making the range empty.
+          fetch-depth: 0
+
+      - name: Every commit is signed off
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+
+          failed=0
+          checked=0
+
+          # The comparison is the whole requirement: a `Signed-off-by:` line is
+          # only a DCO sign-off if it names the person making the commit. A
+          # blanket grep for the string would pass a commit signed off by
+          # somebody else, which is the case that actually happens when a
+          # branch is rebased by one person and contributed by another.
+          #
+          # `grep -Fqx` is a fixed-string, whole-line match. Fixed string
+          # because a name or address can contain characters that are regular
+          # expression syntax, and whole-line because `Signed-off-by: A. Person`
+          # must not be satisfied by `Signed-off-by: A. Person <a@old-address>`.
+          while IFS= read -r sha; do
+            checked=$((checked + 1))
+
+            # %cn <%ce> is the committer. The DCO is satisfied by the author
+            # naming themselves, which is the same identity for any commit made
+            # through the normal GitHub flow.
+            committer="$(git log -1 --format='%cn <%ce>' "$sha")"
+            body="$(git log -1 --format=%B "$sha")"
+
+            if [ -z "$committer" ]; then
+              echo "::error::Could not read the committer of ${sha}."
+              failed=1
+              continue
+            fi
+
+            if ! grep -Fqx "Signed-off-by: ${committer}" <<<"$body"; then
+              echo "::error::Commit ${sha} has no 'Signed-off-by: ${committer}' trailer."
+              failed=1
+            fi
+          done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}")
+
+          if [ "$checked" -eq 0 ]; then
+            echo "::notice::No commits between ${BASE_SHA} and ${HEAD_SHA}; nothing to check."
+            exit 0
+          fi
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::Sign-off is required. CONTRIBUTING.md: every contribution is" \
+                 "made under the Developer Certificate of Origin, and the sign-off is one" \
+                 "command — 'git commit -s -m \"<message>\"'. To fix commits that are" \
+                 "already made: 'git rebase --signoff <base>' and push with" \
+                 "--force-with-lease. An unsigned commit is unmergeable because the" \
+                 "licence of the contribution is undetermined."
+            exit 1
+          fi
+
+          echo "All ${checked} commit(s) carry a DCO sign-off."
+
+  # --------------------------------------------------------------------------
+  # Files that must never be committed.
+  # --------------------------------------------------------------------------
+  forbidden-paths:
+    name: forbidden paths
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Two classes of file, both of which the repository already declares must
+      # never exist here.
+      #
+      # Signing material. A private key committed by accident is a leaked key:
+      # it is in the history, every clone has it, and the fix is rotating it,
+      # not deleting the file. .gitignore already lists these patterns; this
+      # check is what makes the ignore rule load-bearing rather than advisory,
+      # because .gitignore does not stop `git add --force`.
+      #
+      # Raw hardware reports. `ken hardware report` emits a machine profile for
+      # a pull request with identifying data stripped. A raw capture taken with
+      # extra debugging carries usernames, hostnames, serial numbers, MAC
+      # addresses and home-directory paths, and CONTRIBUTING.md is blunt about
+      # it: a profile containing them is rejected rather than sanitised.
+      #
+      # The patterns are enumerated rather than read from .gitignore on purpose.
+      # The list is short, it is the authoritative statement of what must never
+      # be committed, and a reviewer can read it without chasing a negation
+      # pattern through an ignore file to work out what it actually excludes.
+      - name: No forbidden file was added or modified
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+
+          reason_for() {
+            case "$1" in
+              *.key | *.pem | *.p12 | *.gpg | *.asc | *.jks | *.keystore)
+                printf 'signing key material — a leaked private key is a broken distribution'
+                ;;
+              secrets/*)
+                printf 'secret directory'
+                ;;
+              release/keys/* | release/trusted/* | release/signing/*)
+                printf 'release signing material'
+                ;;
+              *.hardware.raw.yaml | *.hardware.raw.json | *-report-raw.yaml)
+                printf 'raw hardware report — carries serials, MAC addresses, hostnames or home paths'
+                ;;
+              var/log/ken/*)
+                printf 'captured system log'
+                ;;
+              .diag/*)
+                printf 'diagnostic capture'
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          count=0
+
+          # --diff-filter=ACMR is added, copied, modified and renamed files.
+          # A deleted file is not a violation: removing a key that was committed
+          # by mistake is the first half of fixing it.
+          while IFS= read -r path; do
+            if reason="$(reason_for "$path")"; then
+              count=$((count + 1))
+              echo "::error::${path} must never be committed: ${reason}"
+            fi
+          done < <(git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${HEAD_SHA}")
+
+          if [ "$count" -ne 0 ]; then
+            echo "::error::${count} file(s) in this pull request must never be committed." \
+                 "Remove them from the commit and rebase, then rotate anything that was" \
+                 "already published: a key or an identifier that has reached the history" \
+                 "has to be treated as compromised, because deleting the file does not" \
+                 "remove it from the history."
+            exit 1
+          fi
+
+          echo "No forbidden path in this pull request."

@@ -1,0 +1,93 @@
+# Licence hygiene.
+#
+# Ken is free software, and the licence is not under one licence — LICENSING.md
+# spells out the three-way split between Ken's own code, the base layer and the
+# firmware blobs. The rule this workflow enforces is the mechanical half of
+# that: every file named LICENSE in this repository is byte-identical to the
+# root LICENSE.
+#
+# It matters because a second, edited copy of a licence file is the ordinary way
+# a repository ends up making a claim it does not mean. A vendored copy that
+# picked up a line reformatting, a year changed in the copyright header, or a
+# licence text from a different version is a different legal instrument, and
+# nothing else in the tree would notice.
+
+name: licence
+
+on:
+  push:
+    branches: [main, dev-unstable]
+  pull_request:
+    branches: [main, dev-unstable]
+  workflow_dispatch:
+
+# Read-only. This workflow only reads bytes.
+permissions:
+  contents: read
+
+concurrency:
+  group: licence-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  licence:
+    name: licence files match
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # `cmp` and not `diff`, deliberately.
+      #
+      # `cmp` compares bytes and stops at the first difference. `diff` compares
+      # lines and has opinions about whitespace, and it will report two files
+      # that differ only by a trailing carriage return as identical under
+      # enough flags. A licence is a legal instrument: a byte that differs is a
+      # different file, so the comparison must be made on bytes and must not be
+      # tunable. `cmp -s` gives a status, which is what this loop wants; the
+      # report below says which files differed and why that matters.
+      #
+      # `git ls-files` rather than `find`, so only tracked files are compared.
+      # An untracked copy that happens to be lying in the working directory of a
+      # contributor is not a licence this repository ships, and the check should
+      # not pass or fail on it.
+      - name: Every LICENSE is the root LICENSE
+        run: |
+          set -u
+
+          reference="LICENSE"
+
+          if [ ! -f "$reference" ]; then
+            echo "::error::No root ${reference} in this tree. There is nothing to compare" \
+                 "the other licence files against, so licence hygiene cannot be verified."
+            exit 1
+          fi
+
+          count=0
+          report=""
+
+          while IFS= read -r candidate; do
+            # The root file is the reference, so it is never compared with itself.
+            [ "$candidate" = "$reference" ] && continue
+
+            if ! cmp -s "$reference" "$candidate"; then
+              count=$((count + 1))
+              report="${report}  - ${candidate}"$'\n'
+              echo "MISMATCH: ${candidate}"
+            fi
+          done < <(git ls-files | grep -E '(^|/)LICENSE$' || true)
+
+          if [ "$count" -gt 0 ]; then
+            echo "::error::${count} licence file(s) are not byte-identical to the root" \
+                 "LICENSE. agents/agents.md requires every file named LICENSE to match" \
+                 "the root exactly, because a divergent copy is a different legal" \
+                 "instrument and nothing else in the tree would notice."
+            printf '%b' "$report"
+            echo "::error::Fix by copying the root file over each of the above" \
+                 "(cp LICENSE <path>), and commit the result. If a directory" \
+                 "genuinely needs different licence terms, that is a licensing" \
+                 "question for LICENSING.md, not a licence file edit."
+            exit 1
+          fi
+
+          echo "Every LICENSE in this repository is byte-identical to the root LICENSE."

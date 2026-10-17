@@ -1,0 +1,122 @@
+name: Bug report
+description: Something in Ken does not behave as documented. For problems with one specific laptop, use the hardware support form instead.
+title: "[bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening this, check `docs/architecture.md` and `docs/roadmap.md` — most
+        questions arrive as an issue after already being answered. If the problem is with a
+        specific machine, close this and use the **hardware support** form: those reports are
+        the intake path that becomes a hardware profile.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem
+      description: Pick the narrowest one that fits.
+      options:
+        - "`ken` control tool"
+        - "`ken-shell` — bar, dock, launcher, widgets"
+        - "`ken-hub` — settings application"
+        - "Updater and rollback — `ken update`, `ken rollback`, `ken doctor`"
+        - "Installer or ISO"
+        - "Packaging and APT repository"
+        - "Hardware detection — `ken hardware report`, `ken hardware match`"
+        - "Base layer / Ubuntu package interaction"
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Ken version
+      description: Output of `ken --version`, or the ISO filename you booted.
+      placeholder: ken 0.1-pre-alpha
+    validations:
+      required: true
+
+  - type: input
+    id: base
+    attributes:
+      label: Base layer
+      description: Usually the Ubuntu release this is built on.
+      default: "26.04 LTS"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: context
+    attributes:
+      label: How are you running Ken
+      options:
+        - Installed system
+        - Live ISO, booted without installing
+        - Virtual machine
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What the documentation or the intended behaviour says should happen.
+    validations:
+      required: false
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The symptom, not the diagnosis. "The bar does not appear after resume" is usable; "Hyprland is broken" is not.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows it every time, starting from a known state.
+      placeholder: |
+        1. Boot the ISO
+        2. `ken update`
+        3. Reboot
+        4. Close and open the lid
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs and output
+      description: |
+        `ken doctor` output, `journalctl -b -u <unit>`, `ken --version`, and the exact
+        command output you are quoting. Please redact serials, MAC addresses, hostnames and
+        home directory paths.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, what you already tried, and whether this is a regression.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing open and closed issues for this.
+        - label: My logs contain no serials, MAC addresses, hostnames or home paths.
+        - label: This is not a problem with one specific laptop (those belong in the hardware support form).
+    validations:
+      required: true

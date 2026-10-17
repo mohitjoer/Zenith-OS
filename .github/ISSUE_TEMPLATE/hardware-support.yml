@@ -1,0 +1,179 @@
+name: Hardware support request
+description: "My laptop is not supported, or something on it is broken. The highest-value report in Ken — every working machine here can become a hardware profile."
+title: "[hardware]: "
+labels:
+  - hardware
+  - needs-profile
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most valuable issue you can file. A working machine becomes a profile via
+        `ken hardware report`, and merged profiles ship in the next ISO and are matched
+        automatically at install time. Nobody can test every laptop, but everybody can test
+        one.
+
+        **Paste your `ken hardware report` output below.** That output is what turns this
+        report into a profile, and a report without it stays a conversation.
+
+        Do not paste serials, MAC addresses, hostnames, usernames or home paths. `ken hardware
+        report` strips them; if yours does not, strip them yourself.
+
+  - type: input
+    id: vendor
+    attributes:
+      label: Manufacturer
+      description: The DMI `sys_vendor` value, which is what a profile matches on.
+      placeholder: ASUSTeK
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The DMI `product_name` value. Include the variant if there is one.
+      placeholder: ROG Strix G16
+    validations:
+      required: true
+
+  - type: input
+    id: board
+    attributes:
+      label: Board name and product version
+      description: Optional, but it is how two configurations of the same model are told apart.
+      placeholder: G614 / 1.0
+    validations:
+      required: false
+
+  - type: input
+    id: ken-version
+    attributes:
+      label: Ken version
+      placeholder: ken 0.1-pre-alpha
+    validations:
+      required: true
+
+  - type: input
+    id: kernel
+    attributes:
+      label: Kernel in use
+      description: Output of `uname -r`, or the flavour from `/etc/ken/kernel`.
+      placeholder: 6.17.0-31-generic
+    validations:
+      required: false
+
+  - type: dropdown
+    id: reached
+    attributes:
+      label: How far does it get
+      options:
+        - Does not install — installer fails or hangs
+        - Installs, will not boot — black screen or firmware message
+        - Boots, will not reach the login manager
+        - Reaches the login manager, will not log in
+        - Logs in, session fails to start or loops
+        - Session works, hardware does not
+        - Works, but I want a profile so it survives the next update
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: working
+    attributes:
+      label: What works
+      description: Everything true on this machine right now. Unticking a box is not a report on its own — see below.
+      options:
+        - label: Boots to the login manager
+        - label: Desktop session starts
+        - label: Network (wired or wireless)
+        - label: Audio output and input
+        - label: GPU acceleration
+        - label: Internal display brightness control
+        - label: External display
+        - label: Bluetooth
+        - label: Fingerprint reader
+        - label: Keyboard backlight
+        - label: "Ports: USB, Thunderbolt, card reader"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: suspend
+    attributes:
+      label: Suspend and resume
+      description: The most-reported laptop failure mode, and the one most likely to become a profile.
+      options:
+        - Works — suspend and resume both clean
+        - Works, but something is broken after resume
+        - Resumes to a black screen
+        - Never returns from suspend
+        - Lid close does not suspend
+        - Hibernate works, suspend does not
+        - Not tested
+    validations:
+      required: true
+
+  - type: textarea
+    id: broken
+    attributes:
+      label: What does not work
+      description: |
+        The symptom, not the verdict. "WiFi drops after resume and needs a module reload"
+        becomes a profile; "WiFi is broken" does not.
+
+        Include what you see on screen and what the journal says at the time.
+    validations:
+      required: false
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver in use
+      description: Optional. For hybrid machines, say what the mode is set to and which tool controls it.
+      placeholder: Intel Xe (i915) integrated + nvidia-open discrete, supergfxctl in hybrid mode
+    validations:
+      required: false
+
+  - type: input
+    id: wireless
+    attributes:
+      label: Wireless adapter and driver
+      placeholder: MediaTek MT7921E (mt7921e)
+    validations:
+      required: false
+
+  - type: textarea
+    id: firmware
+    attributes:
+      label: Drivers or firmware you had to install by hand
+      description: |
+        Anything loaded manually, from a DKMS build, a firmware blob fetched by hand, or a
+        package that is not in the default set. This is the most valuable section on the form —
+        it is exactly what a profile needs to record, and exactly what the offline rescue
+        bundle exists for.
+    validations:
+      required: false
+
+  - type: textarea
+    id: report
+    attributes:
+      label: "`ken hardware report` output"
+      description: |
+        Paste the whole thing. If the command does not exist yet on this build, say so and paste
+        `ken hardware match` and `ken doctor` instead.
+      placeholder: "paste the report here"
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Profile consent
+      options:
+        - label: This report and the attached `ken hardware report` output may be turned into a hardware profile in `system/hardware/profiles/`, and appear in the support matrix.
+        - label: I have checked the output above for serials, MAC addresses, hostnames, usernames and home paths.
+        - label: I have read the output above and everything in it describes the machine I am reporting, not one I have only read about.
+    validations:
+      required: true

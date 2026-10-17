@@ -1,6 +1,119 @@
-.agent
+# ---------------------------------------------------------------------------
+# Signing material — a leaked private key is a broken distribution.
+# Nothing in this list may ever be committed.
+# ---------------------------------------------------------------------------
+*.key
+*.pem
+*.p12
+*.gpg
+*.asc
+*.p12
+*.jks
+*.keystore
+secrets/
+/release/keys/
+/release/trusted/
+/release/signing/
+!/release/keys/README.md
+
+# ---------------------------------------------------------------------------
+# Hardware reports contain identifying data.
+#
+# `ken hardware report` emits a machine profile for a pull request, but a raw
+# report captured with extra debugging on can carry usernames, hostnames,
+# serial numbers, MAC addresses and home-directory paths. Raw output stays
+# local; only the reviewed, sanitised profile under
+# system/hardware/profiles/ is committed.
+# ---------------------------------------------------------------------------
+*.hardware.raw.yaml
+*.hardware.raw.json
+*-report-raw.yaml
+/var/log/ken/
+.diag/
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+/build/
+/dist/
+/out/
+/work/
+*.iso
+*.deb
+*.ddeb
+*.udeb
+*.qcow2
+*.squashfs
+*.tar.zst
+
+# ---------------------------------------------------------------------------
+# ISO and installer scratch (live-build, mmdebstrap, live-installer)
+# ---------------------------------------------------------------------------
+/installation/lb_*/
+/installation/live-build-*/
+/installation/.build/
+/installation/cache/
+/installation/chroot/
+lb_config/
+cache/
+/live/
+
+# ---------------------------------------------------------------------------
+# Go control tools
+#
+# Binaries are never ignored by name. The tools are called `ken`, `ken-shell`
+# and `ken-hub`, and a name-based pattern also matches a directory of the same
+# name — which silently swallows source. Build output goes to /bin and is
+# ignored as a directory instead.
+# ---------------------------------------------------------------------------
+/bin/
+*.test
+coverage.out
+
+# ---------------------------------------------------------------------------
+# Kernel and DKMS build trees — profiles reference DKMS modules but must never
+# carry their build output
+# ---------------------------------------------------------------------------
+dkms/
+/usr/src/linux-headers-ken/
+*.ko
+*.o.tmp
+
+# ---------------------------------------------------------------------------
+# GSettings — compiled schemas are build output, never source
+# ---------------------------------------------------------------------------
 gschemas.compiled
-agents/
-AGENTS.md
-GEMINI.md
-CLAUDE.md
+*.gschema.override
+# Overrides are only ignored outside the profile schema, where they are
+# hand-maintained data.
+!system/**/*.gschema.override
+
+# ---------------------------------------------------------------------------
+# Quickshell / QML build output
+# ---------------------------------------------------------------------------
+*.qmlc
+*.jsc
+.qmlcache/
+
+# ---------------------------------------------------------------------------
+# Local machine state and environment
+# ---------------------------------------------------------------------------
+*.local
+.env
+.env.*
+!.env.example
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---------------------------------------------------------------------------
+# The source tree is `desktop/`, never a directory named after a tool.
+# If a `ken` entry appears here, it is a stray build artifact, not a directory.
+# ---------------------------------------------------------------------------
+/ken
+/ken-shell
+/ken-hub
