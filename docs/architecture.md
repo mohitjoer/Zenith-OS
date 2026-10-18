@@ -278,9 +278,16 @@ floor in the same release.
 
 Build dependencies `zenith-terminal` carries beyond the base layer, which are **required, not
 optional**: `gtk4-layer-shell` — absent from a stock Ubuntu image — plus `libglslang`, `libhwy`,
-`libsimdutf` and `oniguruma`, and the split `ghostty-shell-integration` and `ghostty-terminfo`
-packages. Also `gtk4`, `libadwaita`, `freetype`, `fontconfig`, `harfbuzz`, `pixman`, `libpng`,
-`zlib`, `wayland` and `libx11` from the archive.
+`libsimdutf` and `oniguruma`. Also `gtk4`, `libadwaita`, `freetype`, `fontconfig`, `harfbuzz`,
+`pixman`, `libpng`, `zlib`, `wayland` and `libx11` from the archive.
+
+**One archive entry, not three.** Arch splits Ghostty's shell integration and terminfo into
+`ghostty-shell-integration` and `ghostty-terminfo`. The base layer does not: Ubuntu's single
+`ghostty` package ships `/usr/share/ghostty/shell-integration/zsh/ghostty-integration` and
+`/usr/share/terminfo/x/xterm-ghostty` inside itself, verified against the 26.04 Contents index.
+Naming the split packages would fail the build on packages that do not exist here. That same
+index confirms the `x-terminal-emulator` alternative is *not* registered by the package, which is
+why the third declaration above is entirely Zenith's work.
 
 What Ghostty brings that a stock terminal does not, and why it is worth the build:
 

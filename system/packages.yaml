@@ -64,8 +64,9 @@ base:
     not a base-layer dependency of anything listed here. If a package below is
     not in the base archive, it is a bug in this file, not a reason to build it.
     There is exactly one recorded exception, and it is stated where it lives:
-    the terminal is not carried by this archive, so Zenith builds it — see
-    terminal-and-shell.
+    the terminal is carried by this archive only in `universe` and behind
+    upstream, so Zenith builds and pins it — see terminal-and-shell. That entry is
+    also what fixes `release` above.
 
 # ---------------------------------------------------------------------------
 # essential
@@ -374,54 +375,91 @@ session:
 
 terminal-and-shell:
   packages:
-    # The terminal: kitty. Client-side rendered, so it costs far less than a
+    # The terminal: Ghostty. Client-side rendered, so it costs far less than a
     # VTE-based one.
     #
-    # This is the one entry in the file the base archive does not carry, so
-    # rule 2 above has a single recorded exception and it is written here rather
-    # than discovered later. The archive ships no kitty package, so
-    # `zenith-terminal` builds it from source and the project owns that build: the
-    # source pin, the rebuild against each rebase, and the breakage when
-    # upstream moves under the pin are a recurring maintenance cost a reader of
-    # this manifest should know about before assuming `apt install`.
+    # The archive does carry Ghostty, in `universe` — but behind upstream, which
+    # is a component the base layer does not treat as part of a release. So
+    # `zenith-terminal` builds and pins it from source and the project owns that
+    # build: the source pin, the rebuild against each rebase, and the breakage
+    # when upstream moves under the pin are a recurring maintenance cost a reader
+    # of this manifest should know about before assuming `apt install` gets the
+    # version Zenith ships. This is the file's single recorded exception to rule 2,
+    # and it is written here rather than discovered later.
     #
-    # The terminfo entry other applications need in order to run inside the
-    # terminal, and the shell integration the fourth declaration above depends
-    # on, are not separate entries either: the archive has no packages for them,
-    # because kitty's build produces both out of the same source tree as the
-    # binary and Zenith installs them alongside it.
-    - kitty
+    # This entry is also what sets the base version. Ghostty's own policy is
+    # "minimum GTK/Adwaita in the most recent LTS at the time of a minor release",
+    # and Zenith adopts it verbatim: 1.2.x needs GTK 4.14 and Adwaita 1.5, 1.1.x
+    # needs GTK 4.8 and Adwaita 1.2. A rebase that moves the base moves Ghostty's
+    # floor in the same release, so `base.release` above is not a free parameter.
+    #
+    # One entry, not three, and the reason is worth recording because it looks
+    # like a bug otherwise. Arch splits the shell integration and terminfo into
+    # `ghostty-shell-integration` and `ghostty-terminfo`; the base layer does
+    # not. Ubuntu's single `ghostty` package ships all of it, verified against
+    # the 26.04 Contents index: `usr/share/ghostty/shell-integration/zsh/ghostty-integration`
+    # and `usr/share/terminfo/x/xterm-ghostty` are both inside it. Naming the two
+    # split packages here would fail the build on a package that does not exist.
+    #
+    # The same index is how the fourth declaration above is confirmed rather than
+    # assumed: the integration file is where `adopting-zenith.md` sources from.
+    #
+    # Also verified absent from that package: `/usr/bin/x-terminal-emulator` and
+    # any `/etc/alternatives` entry. The third declaration is entirely Zenith's.
+    - ghostty
 
     # The login shell. fish and blesh ship alongside zsh for users who prefer
     # them — all three are installed, none is configured, and the choice belongs
     # to /etc/skel rather than to this manifest.
     - zsh
     - fish
-    # Name to verify: blesh is young in the archive. If it is absent from 26.04
-    # it ships from Zenith's repository; if it never lands, it is dropped rather
-    # than carried as a dependency of nothing.
+    # Verified absent: `blesh` is in no component of 26.04 — checked against
+    # main, universe and multiverse on 2026-10-18. Per the tie-break written
+    # here, it now has two possible homes and no third: it either ships from
+    # Zenith's own repository as `zenith-blesh`, or it is dropped. Unresolved,
+    # and deliberately left unresolved rather than quietly decided by whoever
+    # runs the build first. Until it is resolved this entry will fail the build
+    # loudly, which is rule 3 working as intended.
     - blesh
 
     # The prompt. One prompt implementation, on every shell, so a user's prompt
     # does not change with their login shell.
     - starship
 
-  # Deliberately empty, and that is the honest state of it. The terminal's build
-  # happens in CI against the build environment rather than in the shipped
-  # image, so no archive -dev package rides along for it here. For the record:
-  # kitty is C++ and Python built from its own repository, and on Linux its
-  # floor is a C++ compiler, python3 and glibc — beyond that it links whatever
-  # the features it was built with need, which for a usable desktop binary means
-  # font rendering plus a Wayland or X11 backend. That set is the build recipe's
-  # to resolve. Name to verify on 26.04: read the recipe rather than trusting
-  # this paragraph.
-  build_dependencies: []
+  # Not empty, and that is the honest state of it. The terminal's build happens
+  # in CI against the build environment rather than in the shipped image, so none
+  # of these ride along in the runtime image — but every one of them is required
+  # to build the pinned Ghostty, so a missing name breaks the terminal build
+  # rather than a runtime feature.
+  #
+  # `gtk4-layer-shell` is the one that is not in a stock Ubuntu image at all, and
+  # it is required, not optional. `libglslang`, `libhwy`, `libsimdutf` and
+  # `oniguruma` are Ghostty's own dependencies and are likewise required; the rest
+  # come from the archive but are named so the recipe is complete rather than
+  # relying on a transitive resolve.
+  #
+  # Name to verify on 26.04: read the recipe rather than trusting this list.
+  build_dependencies:
+    - gtk4-layer-shell
+    - libglslang
+    - libhwy
+    - libsimdutf
+    - oniguruma
+    - gtk4
+    - libadwaita
+    - freetype
+    - fontconfig
+    - harfbuzz
+    - pixman
+    - libpng
+    - zlib
+    - wayland
+    - libx11
 
   exclude:
-    ghostty: >-
-      The terminal was Ghostty and the terminal is now kitty. Adding it back
-      beside kitty is a second emulator, which is the objection every entry
-      below this one records.
+    kitty: >-
+      The terminal is Ghostty. Adding kitty beside it is a second emulator, which
+      is the objection every entry below this one records.
     gnome-terminal: >-
       A terminal is the answer to one question, and this image already has one.
       A second emulator means a different font, different ligature behaviour and
@@ -429,7 +467,8 @@ terminal-and-shell:
     xterm: >-
       Same reason, and it is on the image only because something depends on it
       as a fallback. The fallback is `x-terminal-emulator`, which update-
-      alternatives points at kitty.
+      alternatives points at Ghostty. Ghostty's own packages register no
+      alternative, so `zenith-terminal` owns registering the only one.
     tilix: >-
       Same reason. Every additional terminal in the archive is one more package
       to rebase and one more inconsistent answer.
@@ -772,7 +811,7 @@ dev-tools:
 
 fonts-and-icons:
   packages:
-    # The default terminal font. kitty's ligature rendering wants a Nerd Font.
+    # The default terminal font. Ghostty's ligature rendering wants a Nerd Font.
     # Name to verify: the archive's fonts-jetbrains-mono may or may not be the
     # Nerd-patched build, and a terminal with ligature rendering enabled and no
     # ligature glyphs installed renders boxes where code should be.
