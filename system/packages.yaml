@@ -312,6 +312,16 @@ desktop:
     - libgtk-4-1
     - libadwaita-1-0
 
+    # gsettings. The control tool reads and writes Zenith's settings through it,
+    # and the postinst already runs glib-compile-schemas from this same package,
+    # so the schema file and the tool that compiles it arrive together.
+    #
+    # Shelling out to `gsettings` rather than linking a GSettings binding: it is
+    # the interface GLib documents, it reads the same dconf the shell reads, and
+    # it is the thing someone can run by hand when the tool and dconf disagree.
+    # The alternative is a C library, and the control plane is zero-CGo.
+    - libglib2.0-bin
+
     # xdg-open, xdg-email, xdg-settings: the three entry points an application
     # uses to reach the desktop at all. Small, standard, and nothing on the
     # desktop works without them.

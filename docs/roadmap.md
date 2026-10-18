@@ -261,10 +261,25 @@ four real faults while it was being written.*
 
 ## M7 — Zenith Hub
 
-- `zenith-hub`, the settings application: a Go binary like `zenith` and `zenith-shell`, window
-  drawn in Quickshell (QML) — one UI toolkit and one design system on the desktop, not two
-- Sole writer of `org.zenith.desktop`
-- Every setting that has a command also has a page, and vice versa
+*Status: the settings catalogue and the page registry exist, and the invariant
+between them is checked by `zenith doctor` rather than asserted. The Hub's window
+is not written.*
+
+- `zenith config` — `list`, `get`, `set`, `reset`, `pages`. Values are validated
+  against the key's type, range and enum *before* the write, because a value that
+  is well-formed GVariant and outside a declared range is accepted by GSettings,
+  committed to dconf, and then read by the shell, which does something nobody
+  asked for
+- A typed catalogue of all 14 settings, read from the shipped `.gschema.xml`
+  rather than from `gschemas.compiled` — the compiled file answers "what is this
+  set to", and the tool needs "what is this, and what will it accept"
+- The page registry, and the check that **every setting has a page and every page
+  has a command**, in both directions. A key with no page is a setting only a
+  command line can change; a page with no command is a control the user can see
+  and use that either does nothing or writes dconf behind the tool's back
+- [ ] `zenith-hub`, the window drawn in Quickshell (QML) — one UI toolkit and
+  one design system on the desktop, not two
+- [ ] The Hub window reading the page registry rather than repeating it
 
 ## M8 — Repository and release
 

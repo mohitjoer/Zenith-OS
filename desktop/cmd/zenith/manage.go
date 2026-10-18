@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"zenith/desktop/internal/hub"
 	"zenith/desktop/internal/overlay"
 	"zenith/desktop/internal/portal"
 	"zenith/desktop/internal/shell"
@@ -244,7 +245,41 @@ func reportSessionChecks() int {
 	if shellCode := reportShell(); shellCode != exitOK {
 		code = shellCode
 	}
+	if hubCode := reportHub(); hubCode != exitOK {
+		code = hubCode
+	}
 	return code
+}
+
+// reportHub checks the claim that every setting has a Hub page and every page
+// has a command.
+//
+// That sentence in the architecture record is a claim about two lists — the keys
+// the control tool can reach and the pages the Hub draws — and nothing else
+// compares them. Both directions fail silently: a key with no page is a setting
+// only a command line can change, and a page with no command is a control the
+// user can see and use that either does nothing or writes dconf behind the
+// tool's back.
+func reportHub() int {
+	fmt.Println()
+	fmt.Println("Settings and Hub pages")
+
+	catalogue, err := settingsCatalogue()
+	if err != nil {
+		fmt.Printf("  problem           %v\n", err)
+		return exitFail
+	}
+
+	findings := hub.Check(catalogue)
+	if len(findings) == 0 {
+		fmt.Printf("  all %d setting(s) have a page, and all %d page(s) have "+
+			"commands", len(catalogue.Refs()), len(hub.Pages))
+		return exitOK
+	}
+	for _, finding := range findings {
+		fmt.Printf("  %s\n", finding)
+	}
+	return exitFail
 }
 
 // reportShell checks the shell's source.

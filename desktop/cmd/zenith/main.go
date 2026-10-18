@@ -41,6 +41,7 @@ var commands = map[string]func(args []string) int{
 	"rollback":    zenithRollback,
 	"materialize": zenithMaterialize,
 	"reset":       zenithReset,
+	"config":      zenithConfig,
 	"doctor":      zenithDoctor,
 	"status":      zenithStatus,
 	"version":     runVersion,
@@ -91,6 +92,7 @@ Commands:
   rollback      re-materialize the previous revision
   materialize   re-lay the base, clobbering shipped content
   reset PATH    drop one user edit back to the base
+  config        read and write Zenith's settings
   doctor        report drift between base and overlay
   status        revision, paths, and how much drift
   version       print the version
