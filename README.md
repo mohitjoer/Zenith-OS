@@ -162,6 +162,7 @@ on nothing outside the standard library; `desktop/` is a second module that depe
 The commands that reach it:
 
 ```console
+$ zenith adopt --check                # can this machine switch? changes nothing
 $ zenith hardware report              # this machine, redacted, safe to paste
 $ zenith hardware report --profile    # a candidate profile to review and submit
 $ zenith hardware match               # which profile claims this machine, and at what tier
@@ -186,6 +187,10 @@ matched — an answer, not a failure.
 
 The one rule the overlay model exists to keep: **a user's override wins at its mirrored path,
 and no update can clobber it.**
+
+`zenith adopt --check` is a preflight for moving an existing GNOME desktop over in place. It
+needs no root, changes nothing, and exits `0` ready, `1` blocked, `2` ready with warnings — so a
+script can tell the three cases apart. `--json` emits the same report machine-readably.
 
 ## Branches
 

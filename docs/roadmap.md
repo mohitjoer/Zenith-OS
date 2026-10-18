@@ -178,6 +178,10 @@ a guard that cannot fail is not a guard.
 
 ## M9 — Adoption
 
+*Status: the preflight is written and tested — all eleven checks, the three exit codes, and the
+never-write promises enforced as data rather than prose. `zenith adopt` itself does not exist,
+and the preflight has never been run against a machine that was about to be switched.*
+
 Switching an existing GNOME desktop on the base layer over to the Zenith shell, in place,
 without reinstalling and without touching the user's data. Designed in
 [`adopting-zenith.md`](adopting-zenith.md).
@@ -185,16 +189,33 @@ without reinstalling and without touching the user's data. Designed in
 This is also the project's growth path: it is how someone decides whether they want Zenith
 before they commit to installing it. That is worth more than a landing page.
 
-- `zenith adopt --check` — preflight. Reports what would change and changes nothing
-- `zenith adopt` — the least-invasive step: install a Zenith session so it appears at the existing
-  login screen. Reversible by picking the other session
-- `zenith adopt --verify` — confirm login, apps, audio, displays, suspend, screen sharing, file
-  choosers, printing, notifications and shortcuts
-- `zenith adopt --prune` — opt-in, dry-run by default, lists every package it would remove
-- `zenith adopt --undo` — return to a working GNOME desktop
+- [x] `zenith adopt --check` — preflight. Reports what would change and changes nothing, needs
+  no root, and is safe to run as often as the user likes
+- [x] Eleven checks, each with its own fail condition: base release, desktop session, display
+  manager, GNOME version, GPU and driver, composite support, portal availability, disk space,
+  APT health, third-party extensions, boot chain
+- [x] Blockers separated from report-only warnings, with three distinct exit codes so the same
+  command is usable from a script
+- [x] `--json`, which is how `zenith adopt` re-runs the preflight as its own step zero rather
+  than reimplementing any of it
+- [x] The never-write promises encoded as data, so a test can assert against them instead of a
+  comment being trusted
+- [ ] `zenith adopt` — install the session so it appears at the login screen
+- [ ] `zenith adopt --verify`, `--prune`, `--undo`
 
-Design constraints that are not negotiable: the first step is reversible, nothing is removed
-unless asked, and no failure mode may leave a machine unbootable.
+Two decisions in the preflight are worth recording because they are counterintuitive.
+
+**The GPU check never blocks.** Refusing adoption for a GPU this project does not recognise
+would put a ceiling on reach at exactly the hardware the project exists to support, and adoption
+installs no driver. So an unusual GPU is a warning naming it, and a blocker only appears when
+the *portal backends cannot be installed* — the one future-facing check that genuinely blocks,
+because a desktop whose file choosers and screen sharing silently do not work is not a desktop.
+
+**A dpkg lock file is a warning, not a blocker.** A lock file existing is normal; apt creates
+one per operation. What cannot be established without `fuser` is *who* holds it, so the honest
+answer is a warning that says so. A half-configured package from `dpkg --audit` is different,
+and is a blocker — running apt in that state is unsafe.
+
 
 ## M10 — Agent layer
 
