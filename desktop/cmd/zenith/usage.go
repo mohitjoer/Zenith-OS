@@ -45,3 +45,52 @@ fixture cannot contain a serial.
   --out DIR     required; the directory to write
   --root DIR    read this sysfs tree instead of /sys
 `
+
+const updateUsage = `Usage: zenith update [flags]
+
+Snapshots the config tree to git, preserves the current base, fetches packages,
+and re-materializes. The user's edits survive every step.
+
+  --root DIR       operate on a tree under this directory
+  --dry-run        do the snapshot and preserve steps, fetch nothing
+  --no-snapshot    skip the config snapshot
+`
+
+const rollbackUsage = `Usage: zenith rollback [flags]
+
+Restores the previous base and re-materializes. The user's edits survive; files
+the newer base added are removed, because restoring over the top is not a
+rollback.
+
+  --root DIR   operate on a tree under this directory
+`
+
+const materializeUsage = `Usage: zenith materialize [flags]
+
+Re-lays the whole base into the config tree, clobbering shipped content. User
+edits are preserved. For one file, use ` + "`zenith reset <path>`" + `.
+
+  --root DIR   operate on a tree under this directory
+`
+
+const resetUsage = `Usage: zenith reset <path> [flags]
+
+Drops one user edit and restores that file from the base. This is the only
+command that destroys a change you made, so it takes exactly one path.
+
+  --root DIR   operate on a tree under this directory
+`
+
+const doctorUsage = `Usage: zenith doctor [flags]
+
+Reports drift between the base and the config tree. It changes nothing.
+
+  --root DIR   operate on a tree under this directory
+`
+
+const statusUsage = `Usage: zenith status [flags]
+
+The current revision, the paths in use, and how much drift there is.
+
+  --root DIR   operate on a tree under this directory
+`

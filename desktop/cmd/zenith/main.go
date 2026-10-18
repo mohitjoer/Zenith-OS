@@ -35,8 +35,14 @@ func main() {
 // It is a map rather than a switch because the subcommand list is also the usage
 // text, and one source for it cannot drift from the other.
 var commands = map[string]func(args []string) int{
-	"hardware": runHardware,
-	"version":  runVersion,
+	"hardware":    runHardware,
+	"update":      zenithUpdate,
+	"rollback":    zenithRollback,
+	"materialize": zenithMaterialize,
+	"reset":       zenithReset,
+	"doctor":      zenithDoctor,
+	"status":      zenithStatus,
+	"version":     runVersion,
 }
 
 // Exit codes. Declared once so a caller reading this file sees the contract in
@@ -79,6 +85,12 @@ Usage:
 
 Commands:
   hardware      read this machine, and the profile database
+  update        snapshot, fetch packages, re-materialize
+  rollback      re-materialize the previous revision
+  materialize   re-lay the base, clobbering shipped content
+  reset PATH    drop one user edit back to the base
+  doctor        report drift between base and overlay
+  status        revision, paths, and how much drift
   version       print the version
 
 Run "zenith <command>" with no arguments for that command's own usage.
@@ -140,7 +152,35 @@ Exit codes:
 // newFlags builds a flag set that reports a usage error the way this tool does:
 // the message on stderr and exit 2, never a panic.
 func newFlags(name string, usageText string) *flag.FlagSet {
-	set := flag.NewFlagSet("zenith hardware "+name, flag.ContinueOnError)
+	set := flag.NewFlagSet("zenith "+name, flag.ContinueOnError)
 	set.Usage = func() { fmt.Fprint(os.Stderr, usageText) }
 	return set
+}
+
+// parseFlags parses arguments and returns the positional ones.
+//
+// The standard flag package stops at the first non-flag argument, which makes
+// "zenith reset ghostty/config --root DIR" silently drop the --root flag: the
+// path becomes the only positional and the flag is never seen. That is a trap in
+// a tool a person types by hand, so flags after a positional are honoured too.
+//
+// The arguments are consumed one positional at a time and the remainder is
+// re-parsed, which is what makes interspersed flags work. A single re-parse of
+// the whole remainder does not: its own first argument is the positional that
+// stopped the previous parse, so it stops there again.
+func parseFlags(set *flag.FlagSet, args []string) ([]string, error) {
+	var positional []string
+	rest := args
+
+	for {
+		if err := set.Parse(rest); err != nil {
+			return nil, err
+		}
+		rest = set.Args()
+		if len(rest) == 0 {
+			return positional, nil
+		}
+		positional = append(positional, rest[0])
+		rest = rest[1:]
+	}
 }

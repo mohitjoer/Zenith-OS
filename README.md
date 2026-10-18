@@ -169,9 +169,23 @@ $ zenith hardware lint-profiles       # check the database
 $ zenith hardware capture --out DIR   # write this machine as a test fixture
 ```
 
-`report` takes `--root DIR`, so every one of these runs against a captured machine as happily
-as against the live one. Exit code 3 from `match` means no profile matched — an answer, not a
-failure.
+And the overlay model, which is what makes an update safe to automate:
+
+```console
+$ zenith status          # revision, paths, how much drift
+$ zenith doctor          # what differs between the base and your config — changes nothing
+$ zenith materialize     # re-lay the base, clobbering shipped content
+$ zenith reset PATH      # drop one of your edits back to the base
+$ zenith update          # snapshot, fetch, re-materialize; your edits survive
+$ zenith rollback        # re-materialize the previous revision
+```
+
+Every command takes `--root DIR`, so the whole surface runs against a temporary tree or a
+captured machine as happily as against the live one. Exit code 3 from `match` means no profile
+matched — an answer, not a failure.
+
+The one rule the overlay model exists to keep: **a user's override wins at its mirrored path,
+and no update can clobber it.**
 
 ## Branches
 

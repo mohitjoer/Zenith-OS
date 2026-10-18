@@ -31,18 +31,31 @@ decision has somewhere to be written down.
 
 ## M2 — The `zenith` control tool
 
+*Status: the overlay model, the update sequence and all six commands are written and tested. The
+exit criterion is met against a temporary tree, not against a stock base-layer image, and
+`zenith update`'s fetch step has never run against a real APT repository.*
+
 The first working code. Go, because the tools must be static binaries that start instantly.
 
-- `zenith update` / `rollback` / `materialize` / `reset` / `doctor` — the command surface
+- [x] `zenith update` / `rollback` / `materialize` / `reset` / `doctor` — the command surface
   `docs/architecture.md` defines
-- `zenith status` — current revision, resolved profile and overlay state at a glance. New in
+- [x] `zenith status` — current revision, resolved profile and overlay state at a glance. New in
   this milestone; the command table in `docs/architecture.md` has no row for it yet
-- The overlay model: base in `/usr/share/zenith/`, user overlay in `~/.config/zenith/user_edits/`
-- A git snapshot of `~/.config` before every update
+- [x] The overlay model: base in `/usr/share/zenith/`, user overlay in `~/.config/zenith/user_edits/`
+- [x] A git snapshot of `~/.config` before every update
+- [ ] Verified against a stock base-layer image and a real APT repository, which is what the
+  exit criterion actually asks for
+
+The invariant the whole model rests on is that a user's override wins at its mirrored path and
+no update can clobber it. That means the user's content is *written* to
+`~/.config/zenith/<path>`, not left to be shadowed from `user_edits/` — applications read the
+mirrored path and know nothing of the overlay directory, so a model that skipped writing it
+would resolve the edit in the one place nothing reads.
 
 Exit criterion: on a stock image of the base layer, `zenith update` lays down a base and an
 overlay, a user edit survives the next update, and `zenith rollback` restores the previous
-revision.
+revision. **The last two hold and are tested; the first has not been run against a real image.**
+
 
 ## M3 — Hardware detection
 
