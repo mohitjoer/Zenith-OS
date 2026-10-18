@@ -154,9 +154,27 @@ stock GNOME session of the base layer.
 
 ## M8 — Repository and release
 
-- Signed APT repository, `signed-by` in `sources.list.d`
-- Reproducible builds: pinned `SOURCE_DATE_EPOCH`, buildinfo diffed in CI
-- Signed ISO checksums
+*Status: the control-tool package builds reproducibly and the repository signs and validates
+against the keyring it ships. Nothing has been published, and `zenith update`'s apt step has
+still never run against this repository.*
+
+- [x] The `zenith` package, built reproducibly: `SOURCE_DATE_EPOCH` pinned, `-trimpath`, mtimes
+  and modes normalized. Two builds are byte-identical, which is checked rather than asserted
+- [x] Signed APT repository with `Release.gpg`, `InRelease`, and a keyring shipped alongside it,
+  referenced by `Signed-By` in `sources.list.d`
+- [x] `release/check-boundary.sh`, which refuses a package that installs a path outside
+  `/usr/share/zenith/` and `/etc/zenith/` other than the sanctioned ones — checked on the
+  staged tree, so it sees what `dpkg-deb` will emit rather than what the script appears to copy
+- [ ] The other packages the stack names — `zenith-terminal`, `zenith-shell`, `zenith-hub`,
+  and the session and portal packages — none of which has anything to package yet
+- [ ] Published, and `zenith update` verified against a machine that installed from it
+
+The boundary check exists because a package that quietly gains a file another package owns is
+a fork of that package, and that cost arrives at the next rebase as a conflict nobody remembers
+the origin of. A reviewer reading a build script cannot see what `dpkg-deb` will emit, so the
+check runs on the staged tree. Its own test asserts that a planted violation is refused —
+a guard that cannot fail is not a guard.
+
 
 ## M9 — Adoption
 

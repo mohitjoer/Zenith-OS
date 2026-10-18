@@ -1,0 +1,23 @@
+#!/bin/sh
+# Post-installation.
+#
+# The only thing worth doing here is telling the user the two commands that
+# matter. An update tool that silently rewrites a user's configuration is the
+# thing users are afraid of, and the answer to that fear is that they can see
+# what it would do before it does it.
+set -e
+
+case "$1" in
+    configure)
+        echo "zenith $2 installed."
+        echo "  zenith doctor    — what differs between the base and your config"
+        echo "  zenith status    — current revision and drift"
+        echo "  zenith hardware report --profile — contribute this machine's profile"
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

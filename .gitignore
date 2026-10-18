@@ -9,6 +9,7 @@ desktop/zenith
 quickshell/quickshell
 
 # Build artifacts
+build/
 *.o
 *.a
 *.so

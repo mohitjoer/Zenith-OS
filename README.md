@@ -119,7 +119,7 @@ desktop/             the control tools: cmd/zenith, and the shell, hub, agent la
 system/hardware/     detection, matching, redaction, reports, profiles and tiers
 system/kernel/       pinned kernel fleet
 installation/        installer backend and ISO build
-release/             .deb packaging, signed APT repository, keyring
+release/             .deb packaging, signed APT repository, boundary check
 docs/                guides and architecture notes
 agents/              the agent contract and the design system
 tests/               CI checks

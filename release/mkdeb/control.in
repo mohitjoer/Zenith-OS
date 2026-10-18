@@ -1,0 +1,19 @@
+Package: zenith
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: Zenith OS <zenith@localhost>
+Installed-Size: @SIZE@
+Section: admin
+Priority: optional
+Homepage: https://github.com/mohitjoer/Zenith-OS
+Depends: libc6, git
+Recommends: hyprland
+Description: Zenith OS control tool
+ Reads machine hardware out of sysfs, resolves which hardware profile claims the
+ machine and at what support tier, and manages the overlay that makes an update
+ safe: a user's override wins at its mirrored path and no update can clobber it.
+ .
+ This package installs the control tool and the hardware profile database. It is
+ configuration data and the binary; it installs no kernel, no bootloader and no
+ driver, and it is the only Zenith package that writes outside
+ /usr/share/zenith/ and /etc/zenith/ by way of its executables in /usr/bin.

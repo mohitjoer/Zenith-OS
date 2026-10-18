@@ -109,6 +109,7 @@ violation until it is added:
 | `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
 | `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory |
 | `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+| `/usr/bin/zenith`, `/usr/bin/zenith-shell`, `/usr/bin/zenith-hub` | The executables | `PATH` resolution looks nowhere else. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
 
 Content stays inside the two directories: the login surface's own files belong at
 `/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. A
