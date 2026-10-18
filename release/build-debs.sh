@@ -72,6 +72,19 @@ cp "$STAGE/usr/share/zenith/units/"*.service "$STAGE/usr/lib/systemd/user/"
 cp "$STAGE/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf" \
    "$STAGE/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
 
+# ------------------------------------------------------------------- the shell
+# The Quickshell configuration. This is the directory `quickshell -p` is pointed
+# at, so it is the difference between a shell and an empty window.
+mkdir -p "$STAGE/usr/share/zenith/shell/Widgets"
+cp "$REPO_ROOT/shell/"*.qml "$STAGE/usr/share/zenith/shell/"
+cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
+
+# The schema is a registration: GLib compiles from this fixed directory and
+# nowhere else. The postinst runs glib-compile-schemas over it, because the XML
+# on its own is not readable by GSettings.
+mkdir -p "$STAGE/usr/share/glib-2.0/schemas"
+cp "$REPO_ROOT/shell/"org.zenith.*.gschema.xml "$STAGE/usr/share/glib-2.0/schemas/"
+
 # The SDDM drop-in is deliberately NOT installed yet.
 #
 # Its entire content is DisplayServer=wayland with

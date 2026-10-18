@@ -187,15 +187,30 @@ ignore its exit code.
 
 ## M6 — The shell
 
+*Status: the shell's source exists — the schema, the entry point, the bar, the
+dock, the launcher and the widget catalogue — and is packaged. It has never been
+run, because Quickshell is built from source and is not in the archive, so there
+is no quickshell here to run and no qmllint to check the QML with. What is
+checked instead is everything checkable without an engine, and that check found
+four real faults while it was being written.*
+
 - `zenith-greeter`, which runs `weston --shell=kiosk` and hosts Zenith's own login
   surface. It had no owner until the SDDM drop-in made the dependency explicit:
   the drop-in points at it, so the login screen cannot ship without it. M6 owns it
   because it is a Quickshell surface like everything else on the desktop.
-- Quickshell bar and dock, layout driven by `org.zenith.shell` schemas
-- `zenith-shell` as the only writer of those schemas
-- Launcher, popouts, widget catalogue
-- The surfaces a stock desktop used to own: notification server, lock, idle screen,
-  quick settings, status icons
+- [x] `org.zenith.shell` and `org.zenith.desktop`, the schemas the shell reads.
+  The keys adoption imports into — `wallpaper-path`, `wallpaper-path-dark`,
+  `favorites`, `dock-position` — keep the names and types
+  [adopting-zenith.md](adopting-zenith.md) already uses
+- [x] The bar, the dock, the launcher and the widget catalogue, driven by
+  `org.zenith.shell`
+- [x] `zenith-shell` as the only writer of those schemas
+- [x] `zenith doctor` checks the shell's source: the widget catalogue naming a
+  file that is not there, a surface reading a property the settings wrapper does
+  not declare, a `schemaId` with no schema file, a path outside the boundary, an
+  import outside the closed module list
+- [ ] Popovers, and the surfaces a stock desktop used to own: notification
+  server, lock, idle screen, quick settings, status icons
 
 ## M7 — Zenith Hub
 

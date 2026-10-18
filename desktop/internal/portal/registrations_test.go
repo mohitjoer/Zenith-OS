@@ -78,6 +78,8 @@ func TestEveryRegistrationIsSanctioned(t *testing.T) {
 		"/usr/lib/systemd/user/zenith-portal.service":                    true,
 		"/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf": true,
 		"/etc/sddm.conf.d/10-zenith.conf":                                true,
+		"/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml":       true,
+		"/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml":     true,
 	}
 
 	for _, registration := range registrations {

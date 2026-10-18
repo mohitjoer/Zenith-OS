@@ -7,6 +7,26 @@
 # what it would do before it does it.
 set -e
 
+# ---------------------------------------------------------------- schemas
+#
+# GSettings cannot read a schema from its XML. It reads gschemas.compiled, which
+# glib-compile-schemas produces by reading every .xml in the schema directory
+# together — so it has to run after the file lands, and it has to run even when
+# an unrelated schema changed.
+#
+# Skipping this is the quietest failure in the package: the schema is installed,
+# the file is on disk, and `Settings { schemaId: "org.zenith.shell" }` fails at
+# run time with "Settings schema 'org.zenith.shell' is not installed" while
+# glib-compile-schemas sits right there saying the XML is fine.
+if command -v glib-compile-schemas >/dev/null 2>&1; then
+    glib-compile-schemas /usr/share/glib-2.0/schemas || {
+        echo "zenith: glib-compile-schemas failed; org.zenith.shell will not" >&2
+        echo "zenith: be usable and every GSettings read of it will fall back" >&2
+        echo "zenith: to a compiled-in default." >&2
+        exit 1
+    }
+fi
+
 case "$1" in
     configure)
         echo "zenith $2 installed."

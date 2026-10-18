@@ -71,6 +71,18 @@ var registrations = []Registration{
 		Sanctioned: true,
 	},
 	{
+		Name:       "shell schema",
+		Path:       "/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml",
+		Target:     "",
+		Sanctioned: true,
+	},
+	{
+		Name:       "desktop schema",
+		Path:       "/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml",
+		Target:     "",
+		Sanctioned: true,
+	},
+	{
 		Name: "login manager preferences",
 		Path: "/etc/sddm.conf.d/10-zenith.conf",
 		// No target yet, because there is no greeter. The drop-in's whole

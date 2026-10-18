@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  org.zenith.shell — bar layout, dock, widgets, launcher.
+
+  The shell daemon and zenith-hub are the only writers. Hand-editing dconf
+  directly causes drift and `zenith doctor` reports it, which is the whole reason
+  these keys exist rather than a config file the shell reads at startup.
+
+  Four of these keys — wallpaper-path, wallpaper-path-dark, favorites and
+  dock-position — are named by docs/adopting-zenith.md, which imports into them
+  from the GNOME schemas during adoption. Their names and types are a contract
+  with that document and with the importer, not a choice made here.
+-->
+<schemalist>
+
+  <enum id="org.zenith.shell.Edge">
+    <value nick="top" value="0"/>
+    <value nick="bottom" value="1"/>
+    <value nick="left" value="2"/>
+    <value nick="right" value="3"/>
+  </enum>
+
+  <schema id="org.zenith.shell" path="/org/zenith/shell/">
+
+    <!-- ============================================================ wallpaper
+         Imported by adoption from org.gnome.desktop.background. Both keys exist
+         rather than one key with a light/dark switch, because GNOME has two and
+         the importer maps each to its own. -->
+    <key name="wallpaper-path" type="s">
+      <default>''</default>
+      <summary>Light-mode wallpaper</summary>
+      <description>A URI. Empty means the shell draws its own background.</description>
+    </key>
+
+    <key name="wallpaper-path-dark" type="s">
+      <default>''</default>
+      <summary>Dark-mode wallpaper</summary>
+      <description>A URI, used when the colour scheme is prefer-dark.</description>
+    </key>
+
+    <!-- =============================================================== the bar
+         Widget names rather than a layout tree. The catalogue is fixed in the
+         shell, so a stored layout is a list of names the shell either knows or
+         skips — which is what makes an unknown name a visible warning rather
+         than a silent gap in the bar. -->
+    <key name="bar-position" enum="org.zenith.shell.Edge">
+      <default>'top'</default>
+      <summary>Which edge the bar is on</summary>
+    </key>
+
+    <key name="bar-widgets" type="as">
+      <default>['workspaces','clock','system','volume','battery','network']</default>
+      <summary>Widgets in the bar, left to right</summary>
+      <description>
+        Each entry is a widget name from the shell's catalogue. A name the shell
+        does not recognise is skipped and reported by `zenith doctor`, never
+        dropped in silence.
+      </description>
+    </key>
+
+    <key name="bar-height" type="i">
+      <default>32</default>
+      <range min="20" max="96"/>
+      <summary>Bar height in logical pixels</summary>
+    </key>
+
+    <!-- =============================================================== the dock
+         dock-position imports from org.gnome.desktop.wm.preferences
+         button-layout, so it is an Edge rather than GNOME's left/right/top/
+         bottom string layout. -->
+    <key name="dock-position" enum="org.zenith.shell.Edge">
+      <default>'left'</default>
+      <summary>Which edge the dock is on</summary>
+    </key>
+
+    <key name="dock-autohide" type="b">
+      <default>false</default>
+      <summary>Whether the dock hides until the pointer reaches it</summary>
+    </key>
+
+    <key name="favorites" type="as">
+      <default>[]</default>
+      <summary>Applications pinned to the dock</summary>
+      <description>
+        Desktop file IDs, not paths. Imported from
+        org.gnome.shell favorite-apps, so the importer's values have to stay
+        valid here unchanged.
+      </description>
+    </key>
+
+    <!-- ============================================================= the launcher -->
+    <key name="launcher-apps" type="as">
+      <default>[]</default>
+      <summary>Applications offered by the launcher</summary>
+      <description>
+        Empty means every application on the machine that declares it is
+        launchable, which is the correct default: an empty list is a policy
+        decision, and the common one is not to make it.
+      </description>
+    </key>
+
+    <key name="launcher-columns" type="i">
+      <default>0</default>
+      <range min="0" max="12"/>
+      <summary>Launcher grid columns</summary>
+      <description>0 means choose from the launcher's own width.</description>
+    </key>
+
+  </schema>
+
+</schemalist>

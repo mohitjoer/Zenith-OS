@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  org.zenith.desktop — desktop-level behaviour.
+
+  Separate from org.zenith.shell because the shell is a consumer of these
+  decisions, not their owner. The colour scheme belongs to the desktop: the hub
+  writes it, the shell reads it, and if the shell owned a copy it would be a
+  second decision that could disagree with the first.
+
+  Adoption imports `color-scheme` here from org.gnome.desktop.interface, so that
+  key's name and type are a contract with docs/adopting-zenith.md.
+-->
+<schemalist>
+
+  <enum id="org.zenith.desktop.ColorScheme">
+    <value nick="default" value="0"/>
+    <value nick="prefer-dark" value="1"/>
+    <value nick="prefer-light" value="2"/>
+  </enum>
+
+  <schema id="org.zenith.desktop" path="/org/zenith/desktop/">
+
+    <key name="color-scheme" enum="org.zenith.desktop.ColorScheme">
+      <default>'default'</default>
+      <summary>Whether the desktop prefers light or dark</summary>
+      <description>
+        Imported by adoption from org.gnome.desktop.interface. The shell reads
+        this and does not write it.
+      </description>
+    </key>
+
+  </schema>
+
+</schemalist>

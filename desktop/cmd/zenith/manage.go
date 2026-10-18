@@ -8,6 +8,7 @@ import (
 
 	"zenith/desktop/internal/overlay"
 	"zenith/desktop/internal/portal"
+	"zenith/desktop/internal/shell"
 )
 
 // overlayPaths resolves the overlay model against the running user.
@@ -240,7 +241,37 @@ func reportSessionChecks() int {
 	if registrationCode := reportRegistrations(); registrationCode != exitOK {
 		code = registrationCode
 	}
+	if shellCode := reportShell(); shellCode != exitOK {
+		code = shellCode
+	}
 	return code
+}
+
+// reportShell checks the shell's source.
+//
+// It cannot run the shell: Quickshell is built from source and is not in the
+// archive, so there is no quickshell here to run and no qmllint to check the
+// QML with. What it can do is check the things that are silent at run time — a
+// widget catalogue naming a file that is not there, a surface reading a
+// property the settings wrapper does not declare, a QML file naming a path
+// outside the boundary. Each of those produces a shell that comes up slightly
+// wrong, with nothing in the journal saying why.
+//
+// What it cannot do is check behaviour, and this does not pretend otherwise.
+func reportShell() int {
+	fmt.Println()
+	fmt.Println("Shell")
+
+	findings := shell.Check(shell.Env{Dir: "/usr/share/zenith/shell"})
+	if len(findings) == 0 {
+		fmt.Println("  source checks pass")
+		fmt.Println("  note    behaviour is unverified: no quickshell on this machine")
+		return exitOK
+	}
+	for _, finding := range findings {
+		fmt.Printf("  %-22s %s\n", finding.Rule, finding.Detail)
+	}
+	return exitFail
 }
 
 // reportRegistrations asserts that every registration is installed and that what
