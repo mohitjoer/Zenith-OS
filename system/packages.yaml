@@ -23,8 +23,12 @@
 #    Where the base layer carries nothing at all, Zenith builds it and says so
 #    under `zenith_built:` — a different key, never mixed into `packages:`,
 #    because the whole point is that it does not resolve to the archive. There
-#    are two such entries, both written where they live: the terminal
-#    (see terminal-and-shell) and the shell (see desktop).
+#    is one such entry, written where it lives: the shell (see desktop).
+#
+#    The terminal used to be the second. It is not any more. `ghostty` is
+#    installed from the archive like everything else, and rule 2 is applied
+#    literally: the base layer carries it, so Zenith does not repackage it.
+#    The cost of that decision is recorded under terminal-and-shell.
 # 3. A name this manifest gets wrong must fail at image build time, loudly.
 #    A package that fails to install is a bug report. A package that quietly
 #    vanished is a hardware report six months later. Where an exact 26.04 name
@@ -36,9 +40,17 @@
 # re-litigate. The GNOME exclusions live in one place, under `desktop`; no
 # other group repeats them.
 #
-# gnome-keyring is deliberately present. It is a standalone daemon and the only
-# backing store the Secret portal has — it is not GNOME. See
-# docs/architecture.md, "the portal seam".
+# gnome-keyring is deliberately present. It is a standalone daemon, not GNOME,
+# and it is the obvious backing store for the Secret portal.
+#
+# It is not, on its own, a working Secret portal. gnome-keyring exposes
+# org.freedesktop.Secret.Service on the session bus, but no portal *backend* in
+# this stack declares org.freedesktop.portal.Secret, so the dispatcher finds no
+# backend, exports nothing, and returns success without a word. Until a backend
+# is chosen — see the open question in docs/architecture.md — every Flatpak that
+# stores a password has nowhere to put it. Do not read this entry as the Secret
+# interface working; read it as the daemon being in place for whichever backend
+# gets picked.
 #
 # Install with --no-install-recommends. Recommends is where a desktop
 # metapackage sneaks back into an image nobody reviewed.
@@ -136,9 +148,11 @@ essential:
     # tool that enrolls a machine owner key.
     - efibootmgr
     - mokutil
-    # Name to verify on 26.04: the shim package has moved between `shim`,
-    # `shim-signed` and distro-specific signed variants, and getting it wrong
-    # means nothing installs on a locked laptop.
+    # The package has moved between `shim`, `shim-signed` and distro-specific
+    # signed variants, so the name was worth checking rather than assuming, and
+    # getting it wrong means nothing installs on a locked laptop. Verified:
+    # `shim-signed` resolves on 26.04 (suite `resolute`) against the archive
+    # index, and `shim` is not published under that bare name here.
     - shim-signed
 
     # Root encryption. A laptop is the target hardware and an encrypted root is
@@ -245,8 +259,9 @@ desktop:
 
     # Qt applications reach Wayland through the Qt platform plugin instead of
     # XWayland, which is what stops them flickering on resize and going grey at
-    # fractional scaling. Name to verify: the archive carries this as either
-    # qt6-wayland or qtwayland6.
+    # fractional scaling. The archive has carried this as either `qt6-wayland`
+    # or `qtwayland6`; verified, `qt6-wayland` is the 26.04 name and
+    # `qtwayland6` is not published here.
     - qt6-wayland
 
     # The GTK 4 and libadwaita runtimes. Zenith's own UI is Quickshell, not GTK —
@@ -287,9 +302,9 @@ desktop:
 
   # Build-only. None of this is in the runtime image; it is what `zenith-shell`'s
   # build needs, and a name missing here breaks the shell build rather than a
-  # runtime feature.
-  #
-  # Name to verify on 26.04: read the recipe rather than trusting this list.
+  # runtime feature. This is the terminal's old job, gone with the terminal
+  # build — the shell is the only thing Zenith compiles for itself. All ten
+  # resolve on 26.04 (suite `resolute`).
   build_dependencies:
     - qt6-declarative-dev
     - qt6-wayland
@@ -378,8 +393,8 @@ session:
     - sddm
 
     # Hyprland runs XWayland for X11 clients, so a machine gets X11 support
-    # without a second session type ever being selectable. Name to verify: older
-    # archives spelled this xorg-xwayland.
+    # without a second session type ever being selectable. Older archives
+    # spelled this `xorg-xwayland`; verified, `xwayland` is the 26.04 name.
     - xwayland
 
   exclude:
@@ -421,20 +436,33 @@ terminal-and-shell:
     # The terminal: Ghostty. Client-side rendered, so it costs far less than a
     # VTE-based one.
     #
-    # The archive does carry Ghostty, in `universe` — but behind upstream, which
-    # is a component the base layer does not treat as part of a release. So
-    # `zenith-terminal` builds and pins it from source and the project owns that
-    # build: the source pin, the rebuild against each rebase, and the breakage
-    # when upstream moves under the pin are a recurring maintenance cost a reader
-    # of this manifest should know about before assuming `apt install` gets the
-    # version Zenith ships. This is the file's single recorded exception to rule 2,
-    # and it is written here rather than discovered later.
+    # Installed from the archive, at the archive's version, and that is the
+    # whole decision. The base layer carries Ghostty in `universe`; Zenith takes
+    # that package rather than rebuilding it, so rule 2 applies to the terminal
+    # like to every other entry in this file and `zenith-terminal` is not a
+    # build at all — it is configuration.
     #
-    # This entry is also what sets the base version. Ghostty's own policy is
-    # "minimum GTK/Adwaita in the most recent LTS at the time of a minor release",
-    # and Zenith adopts it verbatim: 1.2.x needs GTK 4.14 and Adwaita 1.5, 1.1.x
-    # needs GTK 4.8 and Adwaita 1.2. A rebase that moves the base moves Ghostty's
-    # floor in the same release, so `base.release` above is not a free parameter.
+    # What that gives up is a terminal a version behind upstream, for as long
+    # as the archive's stays behind. What it buys is the permanent absence of
+    # every cost a source pin carries: no build dependencies to carry, no
+    # rebase breakage when a shader or SIMD library moves, no source pin to
+    # resolve when upstream tags, and no `zenith-terminal` release to ship when
+    # Ghostty patches. A version behind is a gap; a build is a liability that
+    # grows every release cycle. The gap is the cheaper one, and the terminal
+    # is not the surface that decides whether the desktop is usable.
+    #
+    # Nothing here depends on a rebuild, so nothing here needs a build
+    # environment. There is no `build_dependencies:` list in this group and that
+    # is the record of the decision, not an omission.
+    #
+    # This also severs the coupling that used to pin `base.release` above.
+    # Ghostty's own policy is "minimum GTK/Adwaita in the most recent LTS at
+    # the time of a minor release". While Zenith built the terminal, adopting
+    # that policy verbatim meant a rebase moved Ghostty's floor in the same
+    # release and the base version stopped being a free parameter. Installing
+    # from the archive hands the floor to the archive, so `base.release` is
+    # chosen for its own reasons — hardware reach — and nothing else constrains
+    # it.
     #
     # One entry, not three, and the reason is worth recording because it looks
     # like a bug otherwise. Arch splits the shell integration and terminfo into
@@ -444,11 +472,15 @@ terminal-and-shell:
     # and `usr/share/terminfo/x/xterm-ghostty` are both inside it. Naming the two
     # split packages here would fail the build on a package that does not exist.
     #
-    # The same index is how the fourth declaration above is confirmed rather than
-    # assumed: the integration file is where `adopting-zenith.md` sources from.
+    # The same index is how the fourth declaration in `architecture.md` is
+    # confirmed rather than assumed: the integration file is where
+    # `adopting-zenith.md` sources from, and it is in the package already
+    # installed here.
     #
     # Also verified absent from that package: `/usr/bin/x-terminal-emulator` and
-    # any `/etc/alternatives` entry. The third declaration is entirely Zenith's.
+    # any `/etc/alternatives` entry. The third declaration is entirely Zenith's,
+    # and it is configuration rather than packaging — the only thing the
+    # terminal still asks of Zenith.
     - ghostty
 
     # The login shell. fish and blesh ship alongside zsh for users who prefer
@@ -464,40 +496,6 @@ terminal-and-shell:
     # The prompt. One prompt implementation, on every shell, so a user's prompt
     # does not change with their login shell.
     - starship
-
-  # Not empty, and that is the honest state of it. The terminal's build happens
-  # in CI against the build environment rather than in the shipped image, so none
-  # of these ride along in the runtime image — but every one of them is required
-  # to build the pinned Ghostty, so a missing name breaks the terminal build
-  # rather than a runtime feature.
-  #
-  # `gtk4-layer-shell` is the one that is not in a stock Ubuntu image at all, and
-  # it is required, not optional. The four below are Ghostty's own shader, SIMD
-  # and regex dependencies; note that every one of them is a *different name*
-  # from what Ghostty's upstream docs call them, which is exactly the class of
-  # mistake rule 3 exists to catch. Verified against the 26.04 indexes:
-  # `libglslang` does not exist here and the name is `glslang-dev`; `libhwy`,
-  # `libsimdutf` and `oniguruma` exist only as runtime packages and the build
-  # needs `libhwy-dev`, `libsimdutf-dev` and `libonig-dev`. The runtime halves
-  # arrive as dependencies of the terminal itself and are not listed here.
-  #
-  # Name to verify on 26.04: read the recipe rather than trusting this list.
-  build_dependencies:
-    - gtk4-layer-shell
-    - glslang-dev
-    - libhwy-dev
-    - libsimdutf-dev
-    - libonig-dev
-    - gtk4
-    - libadwaita
-    - freetype
-    - fontconfig
-    - harfbuzz
-    - pixman
-    - libpng
-    - zlib
-    - wayland
-    - libx11-dev
 
   exclude:
     kitty: >-
@@ -857,10 +855,26 @@ dev-tools:
 
 fonts-and-icons:
   packages:
-    # The default terminal font. Ghostty's ligature rendering wants a Nerd Font.
-    # Name to verify: the archive's fonts-jetbrains-mono may or may not be the
-    # Nerd-patched build, and a terminal with ligature rendering enabled and no
-    # ligature glyphs installed renders boxes where code should be.
+    # The default terminal font. Verified by extracting the package: this is the
+    # upstream JetBrains Mono build (2.304+ds-6) and it ships JetBrainsMono*.ttf
+    # and JetBrainsMonoNL*.ttf only. **It is not the Nerd Font patched build** —
+    # there is no `*Nerd*` file anywhere in the package.
+    #
+    # That matters because this archive carries no Nerd Font at all, under any
+    # name: searching every component of 26.04 for a Nerd Font package returns
+    # nothing. So the devicon and powerline glyphs the shell's dock and status
+    # area want are not obtainable from the base layer, and a terminal with
+    # ligature rendering enabled and no ligature glyphs renders boxes where code
+    # should be.
+    #
+    # Two ways out, neither chosen — see the open question in
+    # docs/architecture.md. Either Zenith uses an icon font the archive does
+    # carry (`fonts-fork-awesome`, `fonts-material-design-icons-iconfont`,
+    # `fonts-elusive-icons`, `fonts-weather-icons`) and keeps the boundary
+    # intact, or Zenith vendors a Nerd Font as a documented exception and
+    # becomes the distributor of a font blob, which is the same licensing
+    # problem the firmware group exists to avoid. What this manifest will not do
+    # is claim a Nerd Font while installing a package that does not contain one.
     - fonts-jetbrains-mono
 
     # Latin plus every script the base layer's own interface strings use.
@@ -922,7 +936,8 @@ firmware:
 
     # Sound Open Firmware, for the Intel laptops whose audio codec is driven by
     # SOF. A machine with no sound and no visible cause is usually this package
-    # missing. Name to verify: it has been renamed more than once.
+    # missing. It has been renamed more than once historically; verified,
+    # `firmware-sof-signed` is the 26.04 name and resolves.
     - firmware-sof-signed
 
     # The build system for out-of-tree modules. Nothing on a default image needs

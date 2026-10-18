@@ -442,10 +442,19 @@ update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /
 #   fi
 ```
 
-The shell integration ships in the split `ghostty-shell-integration` package, which is why it
-is a separate install rather than a file the terminal binary carries. The `update-alternatives`
-call needs no `--slave`: Ghostty's packages register no alternatives of their own, so Zenith
-registers the only one and nothing shadows it later.
+Ghostty is not rebuilt by Zenith — it is the base layer's `ghostty` package, installed as-is. See
+[`architecture.md`](architecture.md#terminal-ghostty) for why. That matters here in one concrete
+way: the shell integration this block sources is **already on the machine** as part of that
+package, so adoption configures the terminal and never installs, builds or replaces it.
+
+The integration lives inside Ubuntu's single `ghostty` package at
+`/usr/share/ghostty/shell-integration/zsh/ghostty-integration`, not in the split
+`ghostty-shell-integration` package Arch carries — verified against the 26.04 Contents index. So
+there is nothing to install for declaration four, and the `[ -f ... ]` guard above is about a
+file being absent from an older package, not about a package being unpacked first.
+
+The `update-alternatives` call needs no `--slave`: Ghostty's package registers no alternatives
+of its own, so Zenith registers the only one and nothing shadows it later.
 
 The `org.gnome.desktop.default-applications.terminal` write takes effect at the next GNOME
 login too, so `zenith` records the previous value and `--undo` restores it. The

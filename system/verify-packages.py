@@ -71,7 +71,6 @@ def fetch(url: str, cache_dir: str | None, cache_name: str | None = None) -> str
     if cache_dir is None:
         return read_url(url)
 
-    import os
     import pathlib
 
     path = pathlib.Path(cache_dir) / name
@@ -161,7 +160,7 @@ def load_release_components(
             break
 
     if not components:
-        sys.exit(f"no Components field in the {release} Release file")
+        sys.exit(f"no Components field in the {codename} Release file")
     return components
 
 
@@ -184,7 +183,7 @@ def load_packages(
 
         if not names:
             sys.exit(
-                f"{component}/{release} has no packages. Either the component "
+                f"{component}/{codename} has no packages. Either the component "
                 "is not published for this suite or the index is empty."
             )
         index[component] = names

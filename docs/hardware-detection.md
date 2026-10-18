@@ -141,9 +141,40 @@ privileged `/dev/mem`, so both are root-only and both are opt-in.
 - **Firmware sufficiency.** A machine with a valid-looking DMI table can still be running BIOS
   firmware older than its own silicon needs. DMI reports what the firmware says, never whether
   it is adequate.
-- **Anything at all on a machine with no DMI.** An ARM board with a device tree and no SMBIOS
-  table yields an empty `Fields` and can never match a profile as the schema stands. This is a
-  real limitation, recorded in [open questions](#open-questions).
+- **Nothing at all on a machine with no SMBIOS and no device tree.** DMI alone cannot see such a
+  machine, but a device tree can, and the device-tree probe now supplies the identity the match
+  key needs — see [the device tree](#the-device-tree) below. What remains unreachable is a board
+  that answers in neither, and that case degrades to tier 3 with `reason: dmi unavailable`.
+
+### The device tree
+
+DMI is an SMBIOS structure, and a growing class of machines has no SMBIOS table at all: ARM
+boards and the ARM laptops built on them carry a **flattened device tree** instead. Reading DMI
+alone therefore caps reach on the whole architecture — an ARM laptop that worked perfectly would
+be pinned at tier 3 for good, because nothing could ever claim it. That is a ceiling on support
+rather than a limitation of it, and support is the product.
+
+**Reads** `/sys/firmware/devicetree/base/`: `model` and `compatible`. Properties here are a
+sequence of **NUL-terminated strings**, not a line, so a parser that trims a trailing newline
+leaves the separators in and yields a `compatible` value like `qcom,x1e-generic<NUL>qcom,sc8280`
+that no profile could name.
+
+The `serial-number` property is read and **not carried**. A device-tree serial is an asset
+identifier exactly as a SMBIOS one is, and the probe's whole purpose is to reach a board without
+collecting it. The struct has no field for it, so the omission cannot be undone by accident.
+
+**Vocabulary.** The device tree is projected onto the *existing* match-key fields — `model`
+becomes `product_name`, and the head of `compatible` becomes `sys_vendor`. A parallel
+`devicetree_model:` key would mean every profile is written twice, neither copy is checked
+against the other, and the reach problem returns in a different shape. One vocabulary means a
+profile is written once and works on whichever architecture answers.
+
+**Cannot determine:**
+
+- **Which sub-variant.** The device tree's failure is the same as DMI's, not smaller: boards
+  sharing an SoC family and a compatible string can still differ in the peripherals that matter.
+- **Anything wired.** A device tree describes the board, not the topology behind it, exactly as
+  DMI does not.
 
 ### PCI
 
@@ -948,7 +979,8 @@ applied to the code.
 | `match` | Inline profile tables, no hardware | Each of the five tie-break rules, individually and in combination |
 | `match` | Two profiles tying on tier and specificity, disagreeing on `gpu.discrete` | **Conflict**, both IDs named, tier 3 fallback |
 | `match` | A machine matching nothing | Tier 3 with the `fallback:` block applied |
-| `match` | An ARM fixture with no DMI | Tier 3 with `reason: dmi unavailable`, no crash |
+| `match` | An ARM laptop fixture with no DMI but a device tree | Reaches tier 2 on an ordinary DMI-vocabulary profile, no crash |
+| `match` | A board with neither DMI nor a device tree | Tier 3 with `reason: dmi unavailable`, no crash |
 | `redact` | Synthetic DMI tree seeded with canaries | Zero canaries in the rendered bytes |
 | `redact` | An injected serial, MAC and home path | The sweep refuses, names the key, exits non-zero |
 | `lint` | Every file in `profiles/` | No patch-version kernel pin, no firmware file, no unclassified field, `id` matches its filename stem, every `match:` field is in the detection vocabulary |
@@ -959,7 +991,9 @@ applied to the code.
 Half the interesting cases are machines that are wrong or incomplete, and those are exactly the
 cases nobody captures from real hardware. They are written by hand:
 
-- An ARM board with no `/sys/class/dmi/id` at all.
+- An ARM laptop with no `/sys/class/dmi/id` at all, but a full device tree — the case that
+  used to be unreachable and now resolves to a tier.
+- A board with neither SMBIOS nor a device tree: nothing at all to match on.
 - A virtual machine whose DMI is `To Be Filled By O.E.M.` in every identity field.
 - A hybrid machine with two GPUs and neither driver bound.
 - A desktop with no ACPI battery and no backlight device.

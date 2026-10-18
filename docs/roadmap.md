@@ -22,8 +22,9 @@ decision has somewhere to be written down.
 - [x] `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, the `.github/` issue forms and
   pull request template, and the markdown gate
 - [x] `docs/architecture.md` — decisions, rationale, rejected options
-- [x] `docs/adopting-zenith.md` and `docs/hardware-detection.md` — the session path and the
-  detection subsystem, decided before either is written as code
+- [x] `docs/adopting-zenith.md`, `docs/hardware-detection.md` and `docs/session.md` — the
+  adoption path, the detection subsystem and the session chain, all decided before any of them
+  is written as code
 - [x] `system/hardware/` — support tiers, the profile schema and an annotated example profile
 - [x] `system/kernel/fleet.yaml` and `system/packages.yaml` — the pinned kernel fleet and the
   reviewed package manifest, GNOME exclusions included
@@ -45,17 +46,42 @@ revision.
 
 ## M3 — Hardware detection
 
+*Status: the detection, matching, redaction, report and profile-lint libraries are written and
+tested, and `zenith hardware report|match|lint-profiles|capture` reaches all of them. This has
+been exercised only against captured fixture trees, never against a real laptop.*
+
 The subsystem that decides whether Zenith works on someone else's laptop.
 
-- Detection: DMI, PCI, USB, ACPI, EDID, network chips, GPU topology
-- Profile matching with a defined tie-break when several match, and a reported conflict
+- [x] Detection: DMI, PCI, USB, ACPI, EDID, device tree, network chips, GPU topology
+- [x] Every reader takes a filesystem root, enforced by an AST test, so a captured machine is a
+  fixture and the subsystem is testable without a hardware lab
+- [x] Profile matching with a defined tie-break when several match, and a reported conflict
   when the tie-break cannot decide
-- `zenith hardware report` — emit a candidate profile, with PII stripped
-- `zenith hardware match` — report tier and the profile that matched. Also new in this
-  milestone; `docs/architecture.md` names only `report`
+- [x] Report redaction, two layers: the reader allowlist and a sweep that refuses to emit
+- [x] `zenith hardware report` — text, JSON and the candidate profile shape, swept before it is
+  emitted; `--raw` refuses under CI
+- [x] `zenith hardware report --profile` — render a candidate profile, schema-shaped and
+  token-free, with no kernel patch pin and no firmware file
+- [x] `zenith hardware match` — report tier and the profile that matched, plus the candidates
+  that matched and lost. Also new in this milestone; `docs/architecture.md` names only `report`
+- [x] `zenith hardware lint-profiles` — every rule in "what a profile must not contain",
+  plus the database-wide overlap check that catches the profile pair which becomes a
+  conflict once a third arrives
+- [x] `zenith hardware capture` — write a machine's sysfs tree as a fixture, filtered through an
+  allowlist of what the readers consume, so a committed fixture cannot carry a serial
+
+The whole milestone is now reachable from one binary, and `probe → report → lint` closes: a
+profile generated from a captured machine passes the linter that checks it.
+
+The device tree is in the list because DMI alone caps the whole architecture. An ARM laptop
+answers in a device tree and not in SMBIOS, so a probe set without it could never claim one and
+every ARM machine would be tier 3 permanently — a ceiling on support rather than a limitation of
+it. Its identity is projected onto the same match-key fields rather than a second vocabulary, so
+a profile is written once and works whichever architecture answers.
 
 Exit criterion: detection correctly identifies GPU, WiFi, audio codec and storage on a real
-laptop and produces a candidate profile that a human can read and confirm.
+x86 laptop *and* a real ARM laptop, and produces a candidate profile that a human can read and
+confirm.
 
 ## M4 — Bootable ISO
 
@@ -80,6 +106,13 @@ Before any shell work, because it validates the base-layer bet.
 - The two interfaces no backend provides, which makes them Zenith's own work: global
   shortcuts, as compositor bindings here and as the shell's own in M6, and the
   notification server, which the shell hosts once it exists
+- **The gaps this milestone does not close, stated so they are not mistaken for closed.**
+  `xdg-desktop-portal-gtk` does not actually implement the Secret interface, so the
+  `gnome-keyring`-behind-Secret pairing above does not work as written and no backend in the
+  stack exports Secret; and no backend at all implements Camera. Both are open questions in
+  [`architecture.md`](architecture.md#open-questions), and until they are chosen this milestone
+  verifies ScreenCast, Screenshot, FileChooser, OpenURI and Print — and reports the other two as
+  unsupported rather than letting an application fail silently
 - `zenith-session` — a small `/bin/sh` entry point that sets the session environment,
   imports it into dbus activation and `exec`s Hyprland, so whatever fails before the
   compositor puts the user back at the login screen rather than on a black one

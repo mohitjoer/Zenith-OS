@@ -1,11 +1,26 @@
 # Compiled binaries
+#
+# `go build ./...` in a module with a main package writes the binary into the
+# current directory, so the real output lands at desktop/zenith rather than
+# anywhere near the old cli/zenith guess. Both are listed, and /bin/ below
+# covers the conventional build directory.
 cli/zenith
+desktop/zenith
 quickshell/quickshell
 
 # Build artifacts
 *.o
 *.a
 *.so
+
+# Python bytecode
+#
+# system/verify-packages.py is the only Python in the repository and is run as a
+# script, so it never needs a compiled cache. One was committed before this rule
+# existed — a build of an older revision of that script, which is the worst kind
+# of stale file to carry because it looks current and runs silently.
+__pycache__/
+*.py[cod]
 
 # Go build artifacts
 /bin/
@@ -23,15 +38,39 @@ quickshell/quickshell
 .DS_Store
 Thumbs.db
 
-# Agent entry pointers, local only.
+# Coding agent files, local only.
 #
-# CLAUDE.md and GEMINI.md are symlinks to AGENTS.md, so each name needs its own
-# entry — a symlink is matched by its own path, not by what it points at.
+# Every one of these is a machine-local pointer or per-tool configuration. None
+# of them is reviewed, none belongs in the repository, and committing one
+# leaks a contributor's editor layout into a project that has no opinion about
+# it.
 #
-# The contract these point to, agents/agents.md, stays tracked. It is the master
+# The contract they point to, agents/agents.md, stays tracked. It is the master
 # agent contract and the design system, CONTRIBUTING and the pull request
 # template both bind contributors to it, and the CI workflows cite it as the
 # source of the commands they run. Only the pointers are machine-local.
+#
+# AGENTS.md, CLAUDE.md and GEMINI.md are symlinks to agents/agents.md, so each
+# name needs its own entry — a symlink is matched by its own path, not by what
+# it points at. Keep this list anchored to the repository root: a bare
+# `AGENTS.md` would also hide `system/agents.md` and `agents/agents.md`'s
+# siblings in any subtree, which is how a real source file goes missing.
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+
+# Generated diagram output. The HTML is a build artifact of the archify tool,
+# not a source file; the candidate JSON next to it is the thing worth keeping.
+.archify/
+
+# Per-tool agent and assistant configuration, same reasoning.
+.cursorrules
+.cursor/
+.github/copilot-instructions.md
+.windsurfrules
+.aider*
+.mcp.json
+.cline/
+.continue/
+.codex/
+.ampproject/

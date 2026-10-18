@@ -37,13 +37,13 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets, built by Zenith |
 | Control tools | Go — `zenith`, `zenith-shell`, `zenith-hub` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
-| Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version |
+| Terminal | Ghostty, from the base layer's archive — configured by Zenith, never rebuilt |
 | User shell | zsh + starship |
 | Editor | Neovim |
 | Boot chain | Limine |
 | Login manager | SDDM, in Wayland greeter mode |
 | Desktop services | pipewire + wireplumber, power-profiles-daemon, iwd, NetworkManager, fprintd |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, with `gnome-keyring` for secrets |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`. **The Secret interface is unsolved** — no backend in the stack implements it |
 | Package manager | APT, with a signed first-party repository |
 | Agent layer | resident OS agent with a local knowledge vault |
 
@@ -58,13 +58,20 @@ reach.
 26.04 LTS specifically: the HWE kernel stream is an archive of its own here, and that stream is
 the hardware reach the whole distribution exists for.
 
-The terminal is the deliberate exception, and the cost is stated rather than hidden. The base
-layer carries Ghostty, but in `universe` and a version behind upstream, so Zenith builds and
-pins it from source and owns that build for the life of the project. That is a real ongoing cost
-and Zenith pays it on purpose: Ghostty is the most capable terminal in the stack, and the
-terminal is the surface a developer looks at all day. It is also what fixes the base version —
-Ghostty's own policy is "minimum GTK/Adwaita in the most recent LTS at the time of a minor
-release", and Zenith adopts that verbatim, so base and terminal move together deliberately.
+One thing the base layer's reach does not settle is the terminal. It carries Ghostty, but in
+`universe` and a version behind upstream, which leaves two honest options: build it, or take
+what the archive has. Zenith takes what the archive has. It installs that package as-is rather
+than rebuilding it, and accepts the gap in exchange for a terminal that costs nothing to
+maintain — no source pin to resolve, no rebuild against each rebase, and no `zenith-terminal`
+release to ship when Ghostty patches. A version behind is a gap; a build is a liability that
+grows every release cycle, and the gap is the cheaper one. Ghostty is still the most capable
+terminal in the stack, and what Zenith ships around it is configuration, not packaging.
+
+Taking the archive's terminal also means the base version is a free parameter again. Ghostty's
+own policy is "minimum GTK/Adwaita in the most recent LTS at the time of a minor release", and a
+distribution building it would have inherited that as a constraint. Zenith does not build it, so
+the floor is the archive's problem and `26.04` is chosen above for one reason only: hardware
+reach.
 
 ### No GNOME
 
@@ -108,8 +115,8 @@ into a union of working setups that grows without anyone owning a hardware lab.
 ## Repository layout
 
 ```
-desktop/             the desktop stack: shell, hub, agent layer, assets
-system/hardware/     machine profiles and support tiers
+desktop/             the control tools: cmd/zenith, and the shell, hub, agent layer
+system/hardware/     detection, matching, redaction, reports, profiles and tiers
 system/kernel/       pinned kernel fleet
 installation/        installer backend and ISO build
 release/             .deb packaging, signed APT repository, keyring
@@ -122,8 +129,49 @@ The desktop source lives under `desktop/`, never in a directory named after one 
 control tools — a `zenith/` directory collides with the built binary of the same name and
 silently defeats the repository's own ignore rules.
 
-Detection is not a directory. It is `zenith hardware` code that does not exist yet;
-`system/hardware/` holds the data those probes will read and the tiers they resolve against.
+The four design documents, and what each one decides:
+
+| Document | Decides |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | The stack and the reasoning behind it — settled decisions, rejected options, the base-layer boundary, the portal seam |
+| [`docs/hardware-detection.md`](docs/hardware-detection.md) | The subsystem that decides whether Zenith works on someone else's laptop — probes, matching, PII stripping, tier assignment |
+| [`docs/session.md`](docs/session.md) | The boot and login chain — Limine through systemd to Hyprland, the session entry point, what starts in what order, and who owns logout, suspend and shutdown |
+| [`docs/adopting-zenith.md`](docs/adopting-zenith.md) | `zenith adopt` — switching an existing GNOME desktop over in place, built around a reversibility contract |
+
+[`docs/roadmap.md`](docs/roadmap.md) orders the work.
+
+Detection is code, and it lives beside its data. `system/hardware/` holds both: the tiers and
+profiles the probes resolve against, and the Go that reads them —
+
+```
+system/hardware/
+  probe/               five sysfs readers, each taking a filesystem root
+  match/               pure resolution: candidates, tie-breaks, conflicts
+  redact/              the report redaction policy, two layers
+  tiers.yaml           the three support tiers, the authority
+  profiles/            the machine database, one YAML per machine
+```
+
+It lives there rather than under `desktop/` because every byte of hardware-dependent code is
+behind a filesystem root, which is what makes the whole subsystem testable without a hardware
+lab: `probe` readers take a root, so a captured directory tree is a machine. `TestNoAbsoluteSysfsPath`
+walks the AST of package `probe` and fails on any hard-coded `/sys` or `/proc` path, so the
+property cannot decay into a review comment. `system/hardware/` is its own Go module and depends
+on nothing outside the standard library; `desktop/` is a second module that depends on it.
+
+The commands that reach it:
+
+```console
+$ zenith hardware report              # this machine, redacted, safe to paste
+$ zenith hardware report --profile    # a candidate profile to review and submit
+$ zenith hardware match               # which profile claims this machine, and at what tier
+$ zenith hardware lint-profiles       # check the database
+$ zenith hardware capture --out DIR   # write this machine as a test fixture
+```
+
+`report` takes `--root DIR`, so every one of these runs against a captured machine as happily
+as against the live one. Exit code 3 from `match` means no profile matched — an answer, not a
+failure.
 
 ## Branches
 

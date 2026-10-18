@@ -17,13 +17,13 @@ closed question or assumes an open one is closed.
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter, built by Zenith because the base layer carries no such shell | Compositor-agnostic, proven, and the design language already lives in QML/CSS. See [the shell](#the-shell). |
 | Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
-| Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version | GPU-accelerated and client-side rendered; Ghostty's own GTK/Adwaita floor policy is adopted verbatim, so base and terminal move together on purpose. |
-| User shell | zsh + starship | fish and blesh ship alongside as alternatives. |
+| Terminal | Ghostty, installed from the base layer's archive and configured by Zenith, never rebuilt | GPU-accelerated and client-side rendered. The archive's version is behind upstream and Zenith accepts that rather than owning a source pin, a rebuild and a release. See [terminal: Ghostty](#terminal-ghostty). |
+| User shell | zsh + starship | fish ships alongside as an alternative. blesh does not — see [user shell: zsh](#user-shell-zsh). |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
 | Boot chain | Limine + Unified Kernel Images (UKI) | Limine is small, modern, and proven; UKIs reduce boot complexity and improve security. |
 | Login manager | `sddm` in Wayland greeter mode, with the login surface drawn by Zenith | The base layer's login manager, run as shipped, with a greeter Zenith owns. See [what draws the login screen](#what-draws-the-login-screen). |
 | Desktop services | pipewire + wireplumber, tuned-ppd, iwd + NetworkManager, fprintd | Integrated audio/video, platform daemons, wireless/ wired networking, and fingerprint support. |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, with `gnome-keyring` for secrets | Hyprland-native portal backend with GTK fallback; secrets handled via gnome-keyring. |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, plus interfaces Zenith owns itself | Hyprland-native portal backend with GTK fallback. `gnome-keyring` is installed as a daemon, but it does **not** satisfy the Secret interface — that is an open question, not a settled decision. See [the portal seam](#the-portal-seam). |
 | Package manager | APT, backed by Zenith's signed first-party repository | Familiar, robust, and cryptographically signed for trustworthy updates. |
 | Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
@@ -43,6 +43,13 @@ closed question or assumes an open one is closed.
   machines still running 22.04 or 24.04.
 - **snap.** The overlay model gives better rollback, and dropping snapd off the boot path is
   free performance.
+- **Building the terminal.** Zenith used to build and pin Ghostty from source, and no longer
+  does. The archive carries Ghostty a version behind, and a version behind is a gap the user can
+  see and the archive can close; a source pin is a liability that compounds every release cycle —
+  build dependencies to carry and verify on each rebase, a rebuild when upstream's shader or SIMD
+  requirements move, a tag to resolve, and a `zenith-terminal` release to ship. It also handed
+  Ghostty's "most recent LTS" floor a veto over `base.release`, which bought nothing. See
+  [terminal: Ghostty](#terminal-ghostty).
 - **A unified version manager (mise and friends) for all three languages.** Each language's
   own official tool is what its ecosystem expects; Zenith should not put its own opinion in the
   way. See [runtime stack](#runtime-stack).
@@ -192,7 +199,14 @@ declare itself correctly falls back to `portals.conf` and silently uses the wron
 
 Interfaces Zenith still owns itself, because no backend provides them:
 
-- **Camera.** No portal backend implements it; capture is Pipewire's job.
+- **Camera.** No portal backend implements it; capture is Pipewire's job. **This one is currently
+  unassigned** — Notifications has an owner in the shell (M6), Camera has none. `pipewire` and
+  `wireplumber` are in the manifest, so the capture side of the stack is installed, but nothing
+  exports `org.freedesktop.portal.Camera` to an application that asks for it. A Flatpak with a
+  camera permission is refused rather than prompted. Until a backend exports it, either Zenith
+  ships a small Camera backend over Pipewire, or Zenith ships none and this interface is
+  documented as unsupported rather than silently failing. That choice is not made yet — see
+  [open questions](#open-questions).
 - **Notifications.** With no notification daemon in the image, the shell hosts the
   notification server.
 
@@ -255,8 +269,11 @@ popouts, widget catalogue, notification server, lock, idle screen, quick setting
 and status icons, and the Hub window as well, in one compositor-agnostic toolkit,
 so that the desktop has one UI toolkit and one design system rather than two.
 
-That makes this the second recorded exception to the base-layer boundary, alongside
-the terminal. It is a comfortable one: Quickshell is MIT, and the build needs
+That makes this the recorded exception to the base-layer boundary, and it used to have a
+companion: the terminal, which Zenith also used to build. The terminal is not built any more —
+see [terminal: Ghostty](#terminal-ghostty) — so this exception is now the only one, and the
+shell is the only thing in the stack Zenith compiles for itself. It is a comfortable one:
+Quickshell is MIT, and the build needs
 nothing the archive does not already carry — `qt6-declarative-dev`, `qt6-wayland`,
 `qml6-module-qtquick`, `qml6-module-qtquick-controls`, `qml6-module-qtquick-layouts`,
 `qt6-base-dev`, `meson`, `ninja-build`, `cmake` and `pkgconf` are all archive
@@ -279,39 +296,53 @@ to rebuild when upstream moves.
 ### Terminal: Ghostty
 
 Client-side rendered on the GPU, with its own renderer rather than a VTE text grid, so it costs
-far less than a GTK terminal. It is the most capable terminal in the stack and it is the one
-thing here Zenith is willing to accept a packaging burden for, because the terminal is the
-surface every developer looks at all day.
+far less than a GTK terminal. It is the most capable terminal in the stack, and it is the one
+thing here Zenith is willing to give up currency for, because the terminal is the surface every
+developer looks at all day and a version behind is a far smaller cost than a permanent build.
 
 Four places declare it the default, and all four must be set or the desktop is inconsistent:
 
 1. **Zenith's shell** — the terminal-launcher setting the bar button calls
 2. **`gsettings set org.gnome.desktop.default-applications.terminal exec ghostty`** — so the
    file manager's "Open in Terminal" and GTK dialogs use it
-3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator` with an explicit `--slave` and
-   alternatives name — for applications that hardcode the VTE path. Ghostty's own packages do
-   not register this alternative, so `zenith-terminal` owns doing it.
+3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator`, registered under an explicit
+   alternatives name — for applications that hardcode the VTE path. No `--slave` is needed or
+   wanted: Ghostty is not itself a registered alternative here, and registering it as a slave of
+   something it does not implement would give the user a second way to be wrong. Ghostty's own
+   package registers no alternative at all, so `zenith-terminal` owns registering the only one.
 4. **Ghostty's zsh shell integration**, sourced from `~/.zshrc` — prompt marking via OSC 133,
    which is what the pager integration and starship's own status reporting depend on
 
-**Packaging consequence, stated plainly:** Ghostty is carried by the base layer's archive, but
-at a version behind upstream, and it is in `universe` — the component the base layer does not
-treat as part of a release. So Zenith builds and pins Ghostty itself in `zenith-terminal` and
-owns that build for the life of the project. That is a deliberate trade: the archive would
-maintain one binary for us, and we maintain a current one ourselves. See
+**Packaging consequence, stated plainly:** Ghostty is carried by the base layer's archive, at a
+version behind upstream, in `universe` — the component the base layer does not treat as part of
+a release. Zenith installs that package as-is. It does not build Ghostty, does not pin a source
+tag, and does not own a rebuild. `zenith-terminal` is a configuration package, not a build.
+
+This is the decision that most distinguishes Zenith from a typical "I compile my dotfiles" setup,
+and it is worth stating as a trade rather than a virtue. Zenith gives up a current terminal. It
+buys back every cost a source pin accrues: no build dependencies to carry and verify on each
+rebase, no breakage when Ghostty's shader or SIMD dependencies move, no source tag to resolve
+when upstream tags, and no `zenith-terminal` release to ship when Ghostty patches a release. A
+version behind is a gap the user can see and the archive can close. A build is a liability that
+compounds every release cycle and needs a maintainer forever. The gap is the cheaper one, and
+the terminal is not the surface that decides whether this desktop is usable.
+
+**The base version is not set by the terminal.** Ghostty's own version policy is *"minimum
+GTK/Adwaita in the most recent LTS at the time of a minor release."* A distribution that built
+Ghostty would adopt that policy and inherit a hard constraint: Ghostty 1.2.x needs GTK 4.14 and
+Adwaita 1.5, 1.1.x needs GTK 4.8 and Adwaita 1.2, so moving the base would move Ghostty's floor
+in the same release and `base.release` would stop being a free parameter. Zenith does not build
+it, so it does not adopt that policy, and the floor belongs to the archive. `base.release` is
+chosen for hardware reach and nothing else constrains it.
+
+**No build dependencies, because there is no build.** Zenith used to carry Ghostty's build
+requirements explicitly — `gtk4-layer-shell`, `glslang-dev`, `libhwy-dev`, `libsimdutf-dev`,
+`libonig-dev` and ten more, every one a name that had to be verified against the 26.04 indexes
+because every one of them is spelled differently on this archive than in Ghostty's upstream
+docs. That list is gone, and its absence is the record of the decision rather than an omission.
+This is also why the terminal is no longer an entry in the manifest's `zenith_built:` key: a
+package the base layer carries is installed, not rebuilt. See
 [the rejected options](#rejected-and-why).
-
-**That choice is what sets the base version, and the coupling is deliberate.** Ghostty's own
-version policy is *"minimum GTK/Adwaita in the most recent LTS at the time of a minor release."*
-Zenith adopts that policy verbatim, which means the base version and the terminal version are
-coupled on purpose rather than by accident. Ghostty 1.2.x needs GTK 4.14 and Adwaita 1.5;
-1.1.x needs GTK 4.8 and Adwaita 1.2. A Zenith release that moves its base moves Ghostty's
-floor in the same release.
-
-Build dependencies `zenith-terminal` carries beyond the base layer, which are **required, not
-optional**: `gtk4-layer-shell` — absent from a stock Ubuntu image — plus `libglslang`, `libhwy`,
-`libsimdutf` and `oniguruma`. Also `gtk4`, `libadwaita`, `freetype`, `fontconfig`, `harfbuzz`,
-`pixman`, `libpng`, `zlib`, `wayland` and `libx11` from the archive.
 
 **One archive entry, not three.** Arch splits Ghostty's shell integration and terminfo into
 `ghostty-shell-integration` and `ghostty-terminfo`. The base layer does not: Ubuntu's single
@@ -319,9 +350,10 @@ optional**: `gtk4-layer-shell` — absent from a stock Ubuntu image — plus `li
 `/usr/share/terminfo/x/xterm-ghostty` inside itself, verified against the 26.04 Contents index.
 Naming the split packages would fail the build on packages that do not exist here. That same
 index confirms the `x-terminal-emulator` alternative is *not* registered by the package, which is
-why the third declaration above is entirely Zenith's work.
+why the third declaration above is entirely Zenith's work — and why that declaration is
+configuration rather than packaging.
 
-What Ghostty brings that a stock terminal does not, and why it is worth the build:
+What Ghostty brings that a stock terminal does not, and why it is the terminal:
 
 | | |
 |---|---|
@@ -331,8 +363,13 @@ What Ghostty brings that a stock terminal does not, and why it is worth the buil
 | `ghostty +…` CLI | `ghostty +show-config`, `ghostty +list-fonts`, `ghostty +version` — the config is inspectable and scriptable rather than a GUI-only surface |
 | Single config file | `~/.config/ghostty/config`, which sits under Zenith's overlay like everything else, so `zenith update` cannot clobber it |
 
-Default font: **JetBrainsMono Nerd Font** — for devicon and powerline glyphs, not because
-ligatures require it.
+Default font: **JetBrains Mono** — for the terminal's own text. It is deliberately *not* called a
+Nerd Font, because it is not one: `fonts-jetbrains-mono` on this base layer is the upstream build
+and ships no patched glyphs, and no Nerd Font package exists in any component of 26.04 under any
+name. Verified by extracting the package rather than by reading its description. The devicon and
+powerline glyphs the shell's dock and status area want therefore have no archive source, and
+which way to get them is an [open question](#open-questions) — an archive icon font, or a
+documented boundary exception.
 
 ### User shell: zsh
 
@@ -344,7 +381,11 @@ zsh is the shell, starship is the prompt, and Ghostty is where they meet.
   not error on the missing file
 - `starship` renders the prompt; its configuration lives under Zenith's overlay like everything
   else, so `zenith update` cannot clobber it
-- fish and blesh ship alongside zsh for users who prefer them; neither is the default
+- fish ships alongside zsh for users who prefer it; neither is the default
+- blesh does not ship, and this is a decision rather than an omission. It is absent from every
+  component of the base layer, and it belongs with mise, fnm and uv in the setup step's offer: an
+  alternative shell is something a user asks for at setup, not something every machine carries. See
+  the manifest's `terminal-and-shell` group, which is the authority.
 
 Zenith's overlay model gives the shell the same protection as the rest of the desktop: a change
 to `~/.zshrc` is a user's change and survives every update.
@@ -359,9 +400,6 @@ to `~/.zshrc` is a user's change and survives every update.
 
 Preinstalled Rust tooling, because they are near-universal wins:
 `stable` toolchain, `cargo-edit`, `just`, `sccache`, `mold`, `cargo-nextest`, `ripgrep`, `fd`.
-
-The system shell is **zsh** with starship. fish and blesh ship alongside it for users who
-prefer them.
 
 ---
 
@@ -578,6 +616,8 @@ shipped file is never edited in place.
 |---|---|
 | ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the portal seam](#the-portal-seam). |
+| The Camera portal | No backend implements `org.freedesktop.portal.Camera`, and no milestone assigns one — unlike Notifications, which the shell takes in M6. A camera-permissioned Flatpak is refused rather than prompted. Ship a small Zenith Camera backend over Pipewire, or document the interface as unsupported rather than letting it fail silently. See [the portal seam](#the-portal-seam). |
+| The icon font | The shell's dock and status area want devicon and powerline glyphs. The base layer carries no Nerd Font in any component of 26.04, and `fonts-jetbrains-mono` is the unpatched upstream build, so there is no archive source for them. Either adopt an icon font the archive carries, or vendor a Nerd Font as a documented exception to the base-layer boundary and accept becoming its distributor — the same problem the firmware group exists to avoid. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |
 | Hardware report scope | What `zenith hardware report` captures, and how aggressively it strips PII before emitting. |

@@ -3,6 +3,17 @@
 Zenith's master agent contract. `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` are pointers to this
 file. Everything below is binding unless it says otherwise.
 
+Those three are symlinks, created once per clone and deliberately untracked — which agent you run
+is your machine's business, and the contract they point to is what the repository actually cares
+about. A fresh clone does not have them, so create them before your first pull request or the
+Definition of Done cannot be satisfied:
+
+```sh
+ln -s agents/agents.md AGENTS.md
+ln -s agents/agents.md CLAUDE.md
+ln -s agents/agents.md GEMINI.md
+```
+
 ## What Zenith is
 
 Zenith's wordmark is **天** — *zenith* — healthy, robust, strong. Use it as the logo and as the
