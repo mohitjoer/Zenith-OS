@@ -10,6 +10,11 @@ It checks three ways, because each catches a different mistake:
 
   install entries      must exist in a declared component, or the image cannot
                        be built. A missing name is an error.
+  `zenith_built:`      the inverse: must NOT exist in the archive, or the base
+                       layer already carries it and rebuilding it would be the
+                       fork that rule 2 exists to prevent. Its build
+                       dependencies must resolve, because those do come from
+                       the archive.
   exclusion patterns   are matched as globs against what the archive really
                        contains, so `gnome-*` is verified as a pattern rather
                        than as a package that does not exist.
@@ -232,6 +237,35 @@ def looks_like_a_pattern(text: str) -> bool:
     return any(ch in text for ch in "*?[]")
 
 
+def iter_built_entries(manifest: dict):
+    """Yield (group, name) for every package Zenith builds for itself.
+
+    These are the manifest's one deliberate departure from rule 2, and they are
+    under their own key so that departure is visible rather than implied.
+    """
+    for group, body in manifest.items():
+        if group in ("version", "base") or not isinstance(body, dict):
+            continue
+
+        for name in body.get("zenith_built") or []:
+            yield group, name
+
+
+def iter_build_dependencies(manifest: dict):
+    """Yield (group, name) for build-only names.
+
+    These never enter the runtime image, so they are checked apart from install
+    entries: a missing one does not break the image, it breaks the build that
+    produces a package the image needs.
+    """
+    for group, body in manifest.items():
+        if group in ("version", "base") or not isinstance(body, dict):
+            continue
+
+        for name in body.get("build_dependencies") or []:
+            yield group, name
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=MANIFEST)
@@ -289,6 +323,36 @@ def main() -> int:
             "as such, or it is a name that was never verified."
         )
 
+    # `zenith_built` entries are the inverse check: they must be absent from the
+    # archive, because the entire reason they are under their own key is that
+    # the base layer carries nothing. If one turns up upstream later, rebuilding
+    # it becomes a fork of a package the base layer maintains, and the entry
+    # should move back under `packages:`.
+    built = 0
+    for group, name in iter_built_entries(manifest):
+        if name in everywhere:
+            warnings.append(
+                f"{group}: builds {name!r}, but {codename} now carries it in "
+                f"{', '.join(c for c in index if name in index[c])}. Rebuilding a "
+                "package the base layer ships is the fork rule 2 exists to "
+                "prevent; move it to packages: and let the archive own it."
+            )
+        else:
+            built += 1
+
+    # Build dependencies come from the archive, so they resolve the same way
+    # install entries do — but a miss here breaks a build rather than the image.
+    deps = 0
+    for group, name in iter_build_dependencies(manifest):
+        if name in everywhere:
+            deps += 1
+            continue
+        warnings.append(
+            f"{group}: build dependency {name!r} is in no component of "
+            f"{codename}. The image still builds, but the package that needs it "
+            "does not."
+        )
+
     protected = 0
     for group, key in iter_exclusions(manifest):
         if looks_like_a_pattern(key):
@@ -312,7 +376,9 @@ def main() -> int:
             )
 
     print(
-        f"\n{installed} install entries resolve, {protected} exclusions verified"
+        f"\n{installed} install entries resolve, {built} Zenith-built packages "
+        f"confirmed absent upstream, {deps} build dependencies resolve, "
+        f"{protected} exclusions verified"
     )
 
     for warning in warnings:
