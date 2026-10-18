@@ -136,6 +136,51 @@ fi
 grep -q 'zenith-session' "$WORK/state/zenith/session.log"
 check "the session logs what it did" $?
 
+# ------------------------------------------------------------------- units
+# A unit with a key in the wrong section is not a unit that fails loudly. systemd
+# logs "Unknown key ... ignoring" at the level that nobody reads, the limiter it
+# was meant to configure is silently not applied, and the service restarts
+# forever instead of giving up. This caught StartLimitIntervalSec sitting in
+# [Service] rather than [Unit].
+#
+# Skipped when systemd-analyze is absent, because a packaging machine without it
+# should not fail over a check it cannot run.
+echo
+echo "checking the units"
+if command -v systemd-analyze >/dev/null 2>&1; then
+    for unit in "$REPO_ROOT"/session/units/*.service; do
+        # Errors that are about the tree rather than about this unit: hyprland
+        # is not installed on a packaging machine, and the two binaries are M6's.
+        PROBLEMS=$(systemd-analyze verify "$unit" 2>&1 \
+            | grep -vE "hyprland-session.target not found|not executable" || true)
+
+        rc=0; [ -z "$PROBLEMS" ] || rc=$?
+        check "$(basename "$unit") has no unknown keys or bad directives" $rc
+
+        if [ -n "$PROBLEMS" ]; then
+            echo "$PROBLEMS" | sed 's/^/      /'
+        fi
+    done
+
+    # The start order is the part of the session that is easiest to get wrong
+    # and quietest when it is wrong, so it is asserted rather than eyeballed.
+    rc=0; grep -q '^After=zenith-portal.service$'         "$REPO_ROOT/session/units/zenith-shell.service" || rc=$?
+    check "the shell is ordered after the portal dispatcher" $rc
+
+    rc=0; grep -q '^Requires=zenith-portal.service$'         "$REPO_ROOT/session/units/zenith-shell.service" || rc=$?
+    check "the shell requires the portal dispatcher" $rc
+
+    rc=0; grep -q '^After=hyprland-session.target$'         "$REPO_ROOT/session/units/zenith-portal.service" || rc=$?
+    check "the portal dispatcher is ordered after the compositor" $rc
+
+    for unit in zenith-shell zenith-portal; do
+        rc=0; grep -q '^PartOf=graphical-session.target$'             "$REPO_ROOT/session/units/$unit.service" || rc=$?
+        check "$unit is part of the graphical session" $rc
+    done
+else
+    echo "skip  — systemd-analyze is not installed"
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
     echo "all session checks passed"

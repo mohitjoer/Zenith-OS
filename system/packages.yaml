@@ -246,6 +246,23 @@ desktop:
     - xdg-desktop-portal-hyprland
     - xdg-desktop-portal-gtk
 
+    # The screenshot toolchain, and this is not a convenience group. The Hyprland
+    # portal backend shells out to these rather than implementing them, and each
+    # one is load-bearing in a way that fails silently:
+    #
+    #   grim        without it the backend does not create its Screenshot portal
+    #               at all — not a broken screenshot, an absent interface, and a
+    #               screenshot keybinding that produces nothing
+    #   slurp       the same for a region screenshot
+    #   hyprpicker  the same for colour picking
+    #
+    # Nothing errors. The portal is simply not exported, and the user reports a
+    # keybinding that stopped working rather than a missing package. Verified to
+    # exist in the 26.04 index.
+    - grim
+    - slurp
+    - hyprpicker
+
     # gnome-keyring is a standalone daemon, and it is deliberately allowed: it
     # is the only backing store the Secret portal has. Forbidden here are
     # gnome-shell, gnome-session and xdg-desktop-portal-gnome, none of which

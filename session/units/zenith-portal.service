@@ -1,0 +1,29 @@
+# The portal dispatcher, with Zenith's environment and ordering.
+#
+# This is a drop-in on the base layer's own portal service rather than a
+# replacement for it. The dispatcher ships in the base layer and this project's
+# rule is that a shipped file is never edited in place, so what Zenith owns is the
+# drop-in that orders the existing unit and gives it the environment it needs.
+#
+# The ordering is not cosmetic. The Hyprland backend connects to a Wayland
+# compositor at startup and exits if it cannot, and its unit carries
+# ConditionEnvironment=WAYLAND_DISPLAY — so the portal stack has to come after the
+# compositor, and the compositor's environment has to be in place before any
+# backend is activated.
+[Unit]
+Description=Zenith portal dispatcher
+Documentation=https://github.com/mohitjoer/Zenith-OS
+PartOf=graphical-session.target
+After=graphical-session.target
+After=hyprland-session.target
+Requires=hyprland-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=exec
+ExecStart=/usr/share/zenith/portal/zenith-portal
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=graphical-session.target

@@ -10,6 +10,21 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+# An assertion is written as
+#
+#     rc=0; <command> || rc=$?
+#     check "what it was checking" $rc
+#
+# and not as the more obvious
+#
+#     <command>
+#     check "what it was checking" $?
+#
+# because the second form cannot report a failure at all. Under `set -e` a bare
+# failing command aborts the run on the spot, so `check` is never reached and the
+# suite dies mid-output with no verdict. A suite that cannot print FAIL is a
+# suite that reads as passing. `|| rc=$?` puts the command in an exempt context
+# and carries its status to the check that reports it.
 fail=0
 check() {
     if [ "$2" = "0" ]; then
@@ -27,16 +42,16 @@ echo "building twice"
 
 A=$(sha256sum "$WORK"/a/*.deb | cut -d' ' -f1)
 B=$(sha256sum "$WORK"/b/*.deb | cut -d' ' -f1)
-[ "$A" = "$B" ]
-check "two builds are byte-identical" $?
+rc=0; [ "$A" = "$B" ] || rc=$?
+check "two builds are byte-identical" $rc
 
 # ---------------------------------------------------------------- boundary
 echo "checking the boundary"
 STAGE="$WORK/stage"
 mkdir -p "$STAGE"
 dpkg-deb -x "$WORK"/a/*.deb "$STAGE"
-"$REPO_ROOT/release/check-boundary.sh" "$STAGE" zenith >/dev/null
-check "the package installs only inside the boundary" $?
+rc=0; "$REPO_ROOT/release/check-boundary.sh" "$STAGE" zenith >/dev/null 2>&1 || rc=$?
+check "the package installs only inside the boundary" $rc
 
 # A package that gains another package's file must be refused, or the check is
 # decorative.
@@ -52,8 +67,8 @@ fi
 # ------------------------------------------------------------- permissions
 echo "checking installed modes"
 WRONG=$(dpkg-deb -c "$WORK"/a/*.deb | awk '$1 !~ /^drwxr-xr-x/ && $1 !~ /^-rw-r--r--/ && $1 !~ /^-rwxr-xr-x/ {print $1, $NF}')
-[ -z "$WRONG" ]
-check "installed files carry 0644, 0755 or directories at 0755" $?
+rc=0; [ -z "$WRONG" ] || rc=$?
+check "installed files carry 0644, 0755 or directories at 0755" $rc
 
 # The mode check above is deliberately loose — 0644 is fine for content — which
 # means it cannot catch the one mode that matters most: something the system
@@ -61,36 +76,74 @@ check "installed files carry 0644, 0755 or directories at 0755" $?
 # non-executable one fails on every login rather than at build time.
 MODES=$(dpkg-deb -c "$WORK"/a/*.deb)
 
-echo "$MODES" | grep -q '^-rwxr-xr-x .*zenith-session$'
-check "the session entry point is executable" $?
+rc=0; echo "$MODES" | grep -q '^-rwxr-xr-x .*zenith-session$' || rc=$?
+check "the session entry point is executable" $rc
 
-echo "$MODES" | grep -q '^-rwxr-xr-x .*/zenith$'
-check "the control tool is executable" $?
+rc=0; echo "$MODES" | grep -q '^-rwxr-xr-x .*/zenith$' || rc=$?
+check "the control tool is executable" $rc
 
 # ---------------------------------------------------------------- repository
 echo "building the repository"
-"$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1
+# One secret keyring, reused for both builds, exactly as a release process
+# would. It sits beside the served tree rather than inside it.
+SECRET="$WORK/.zenith-archive-secret.gpg"
+ZENITH_SECRET_KEYRING="$SECRET" \
+    "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1
 
-[ -f "$WORK/repo/dists/stable/InRelease" ]
-check "the repository publishes an InRelease" $?
+rc=0; [ -f "$WORK/repo/dists/stable/InRelease" ] || rc=$?
+check "the repository publishes an InRelease" $rc
 
-gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
+rc=0; gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
      "$WORK/repo/dists/stable/Release.gpg" \
-     "$WORK/repo/dists/stable/Release" >/dev/null 2>&1
-check "the shipped keyring validates the detached signature" $?
+     "$WORK/repo/dists/stable/Release" >/dev/null 2>&1 || rc=$?
+check "the shipped keyring validates the detached signature" $rc
 
-gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
-     "$WORK/repo/dists/stable/InRelease" >/dev/null 2>&1
-check "the shipped keyring validates InRelease" $?
+rc=0; gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
+     "$WORK/repo/dists/stable/InRelease" >/dev/null 2>&1 || rc=$?
+check "the shipped keyring validates InRelease" $rc
 
-grep -q '^Signed-By:' "$WORK/repo/zenith.sources"
-check "the sources line names a keyring rather than a keyserver" $?
+rc=0; grep -q '^Signed-By:' "$WORK/repo/zenith.sources" || rc=$?
+check "the sources line names a keyring rather than a keyserver" $rc
 
 # A Release file whose checksums do not match its indexes is exactly the failure
 # the signature cannot catch, so it is checked here rather than assumed.
-( cd "$WORK/repo/dists/stable" && \
-  grep -A5 '^SHA256:' Release | grep 'Packages.gz' ) >/dev/null
-check "the Release file carries checksums for the index" $?
+rc=0; ( cd "$WORK/repo/dists/stable" && \
+  grep -A5 '^SHA256:' Release | grep 'Packages.gz' ) >/dev/null 2>&1 || rc=$?
+check "the Release file carries checksums for the index" $rc
+
+# The signing key has to survive a rebuild, or every rebuild invalidates every
+# machine that already trusts it. This is a regression test for that: an earlier
+# mkrepo.sh kept the secret key in a temporary GNUPGHOME, deleted it at the end
+# of the run, and then tried to reuse it on the next one, failing at "no secret
+# key" every time.
+echo
+echo "checking that a rebuild keeps the same key"
+keyid_of() {
+    gpg --batch --with-colons --import-options show-only --import "$1" 2>/dev/null \
+        | awk -F: '/^fpr:/ {print $10; exit}'
+}
+FIRST_KEY=$(keyid_of "$WORK/repo/zenith-archive-keyring.gpg")
+
+# The second build must not merely succeed; it must succeed with the same key.
+# A rebuild that quietly makes a new one still produces a valid InRelease that
+# verifies against its own new keyring, and every machine that trusted the old
+# key now rejects the repository. Only the key comparison catches that.
+rc=0; ZENITH_SECRET_KEYRING="$SECRET" \
+    "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo-again" >/dev/null 2>&1 || rc=$?
+check "a second build signs" $rc
+
+rc=0; [ -s "$WORK/repo-again/dists/stable/InRelease" ] || rc=$?
+check "a second build publishes an InRelease" $rc
+
+rc=0; [ "$FIRST_KEY" = "$(keyid_of "$WORK/repo-again/zenith-archive-keyring.gpg")" ] || rc=$?
+check "a rebuild publishes the same key, not a new one" $rc
+
+rc=0; gpgv --keyring "$WORK/repo-again/zenith-archive-keyring.gpg" \
+    "$WORK/repo-again/dists/stable/InRelease" >/dev/null 2>&1 || rc=$?
+check "a rebuilt repository verifies against its own keyring" $rc
+
+rc=0; [ ! -e "$WORK/repo/.zenith-archive-secret.gpg" ] || rc=$?
+check "the secret key is not inside the served tree" $rc
 
 echo
 if [ "$fail" -eq 0 ]; then

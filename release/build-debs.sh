@@ -48,6 +48,33 @@ cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"
 cp "$REPO_ROOT/session/zenith-portals.conf" "$STAGE/usr/share/zenith/session/"
 chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
 
+# The units and drop-ins ship as content under /usr/share/zenith/units/. The
+# registrations that point at them are written below and are the only paths this
+# package owns outside its own two directories.
+mkdir -p "$STAGE/usr/share/zenith/units"
+cp "$REPO_ROOT/session/units/"*.service "$REPO_ROOT/session/units/"*.conf \
+   "$STAGE/usr/share/zenith/units/"
+
+# --------------------------------------------------------------- registrations
+# Every path here is on the sanctioned list in docs/architecture.md, because
+# each one is in a fixed directory that a third-party binary scans and nowhere
+# else. The boundary check below is what stops a seventh one appearing.
+mkdir -p "$STAGE/usr/share/wayland-sessions"
+cp "$STAGE/usr/share/zenith/session/zenith.desktop" \
+   "$STAGE/usr/share/wayland-sessions/zenith.desktop"
+
+mkdir -p "$STAGE/usr/share/xdg-desktop-portal"
+cp "$STAGE/usr/share/zenith/session/zenith-portals.conf" \
+   "$STAGE/usr/share/xdg-desktop-portal/zenith-portals.conf"
+
+mkdir -p "$STAGE/usr/lib/systemd/user/hyprland-session.target.d"
+cp "$STAGE/usr/share/zenith/units/"*.service "$STAGE/usr/lib/systemd/user/"
+cp "$STAGE/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf" \
+   "$STAGE/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
+
+mkdir -p "$STAGE/etc/sddm.conf.d"
+cp "$STAGE/usr/share/zenith/units/10-zenith.conf" "$STAGE/etc/sddm.conf.d/"
+
 # --------------------------------------------------------------- hardware data
 mkdir -p "$STAGE/usr/share/zenith/hardware/profiles"
 cp "$REPO_ROOT/system/hardware/tiers.yaml" "$STAGE/usr/share/zenith/hardware/"

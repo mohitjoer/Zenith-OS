@@ -17,7 +17,6 @@ DEBS=${1:?usage: mkrepo.sh <debs-dir> <repo-dir> [suite] [component]}
 REPO=${2:?missing repository directory}
 SUITE=${3:-stable}
 COMPONENT=${4:-main}
-KEYID=${ZENITH_KEYID:-}
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
 
@@ -38,19 +37,23 @@ echo "indexing $(ls -1 "$DEBS"/*.deb | wc -l) package(s)"
 # every time it is rebuilt and a mirror cannot tell a real change from a clock
 # tick.
 
-# A key that already exists is reused: regenerating it would invalidate every
-# machine that already trusts it.
+# The key lives in two files, and the split between them is the whole design.
 #
-# GNUPGHOME has to stay alive until the signature is made, not merely until the
-# public key is exported — signing needs the secret key, and removing the
-# directory first leaves gpg with nothing to sign with.
+#   $KEYRING         public, ships with the image, is what sources.list.d names
+#   $SECRET_KEYRING  private, signs, and is deliberately kept OUT of $REPO
+#
+# The secret keyring is not inside $REPO on purpose. $REPO is the tree that gets
+# published, and a private key in a published tree is a published private key.
+# It sits beside it, and ZENITH_SECRET_KEYRING points it somewhere else in CI.
+#
+# A key that already exists is reused: regenerating it would invalidate every
+# machine that already trusts it, which is the exact failure the shipped keyring
+# exists to prevent. This is only true because the secret half survives the
+# first run — an earlier version kept the secret key in a temporary GNUPGHOME,
+# deleted it at the end, and then claimed to reuse a key it had just destroyed.
+# The second build failed at "no secret key" every time.
 KEYRING="$REPO/zenith-archive-keyring.gpg"
-CREATED_KEY=0
-
-if [ ! -s "$KEYRING" ]; then
-    echo "generating a repository signing key"
-    CREATED_KEY=1
-fi
+SECRET_KEYRING=${ZENITH_SECRET_KEYRING:-"$REPO/../.zenith-archive-secret.gpg"}
 
 if [ -z "${GNUPGHOME:-}" ]; then
     GNUPGHOME=$(mktemp -d)
@@ -59,17 +62,28 @@ if [ -z "${GNUPGHOME:-}" ]; then
     CREATED_HOME=1
 fi
 
-if [ "$CREATED_KEY" -eq 1 ]; then
+if [ ! -s "$SECRET_KEYRING" ]; then
+    echo "generating a repository signing key"
     gpg --batch --quiet --passphrase '' \
         --quick-generate-key "Zenith OS archive signing key <zenith@localhost>" \
         rsa3072 sign never >/dev/null 2>&1
     KEYID=$(gpg --batch --with-colons --list-keys | awk -F: '/^fpr:/ {print $10; exit}')
-    gpg --batch --quiet --export "$KEYID" > "$KEYRING"
-    echo "$KEYID" > "$REPO/.keyid"
+    gpg --batch --quiet --export-secret-keys "$KEYID" > "$SECRET_KEYRING"
 else
-    KEYID=$(cat "$REPO/.keyid" 2>/dev/null || echo "$KEYID")
     echo "reusing the existing signing key"
+    gpg --batch --quiet --import "$SECRET_KEYRING" >/dev/null 2>&1
+    KEYID=$(gpg --batch --with-colons --list-secret-keys \
+        | awk -F: '/^fpr:/ {print $10; exit}')
 fi
+
+if [ -z "$KEYID" ]; then
+    echo "no signing key available; refusing to build an unsigned repository" >&2
+    exit 1
+fi
+
+# The public keyring is rewritten every run from whatever key was found, so it
+# always describes the key the Release file was actually signed with.
+gpg --batch --quiet --export "$KEYID" > "$KEYRING"
 
 # The Release file lists the hashes apt verifies before it trusts an index. It
 # is generated with -o APT::FTPArchive::Release::Origin so apt knows what it is

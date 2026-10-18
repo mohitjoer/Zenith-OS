@@ -18,10 +18,19 @@ PKG=${2:-zenith}
 
 # The closed list, as path prefixes relative to the staging root. /usr/bin/$PKG is
 # on the sanctioned list because PATH resolution looks nowhere else.
+# Everything outside /usr/share/zenith/ and /etc/zenith/ must be on the closed
+# sanctioned list in docs/architecture.md. Each entry is a registration: a file
+# in a fixed directory that a third-party binary scans and nowhere else.
 ALLOWED="usr/share/zenith/
 etc/zenith/
+etc/sddm.conf.d/10-zenith.conf
 usr/share/doc/$PKG/
-usr/bin/$PKG"
+usr/share/wayland-sessions/zenith.desktop
+usr/share/xdg-desktop-portal/zenith-portals.conf
+usr/bin/$PKG
+usr/lib/systemd/user/$PKG-shell.service
+usr/lib/systemd/user/$PKG-portal.service
+usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
 
 LIST=$(mktemp)
 VIOLATIONS=$(mktemp)

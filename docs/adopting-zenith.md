@@ -547,7 +547,7 @@ Zenith session works.
 | `gnome-shell-extension-appindicator` | The Zenith shell hosts `StatusNotifierItem` itself. Removing this is the single most likely thing to surprise a user, so it is listed last and warned about. |
 | `gnome-software`, `gnome-software-common` | Nothing on a GNOME session. **Removed only with `--prune --apply` and only if the user asks; a software centre is not required to run Zenith and some people use it.** |
 | `yaru`, `yaru-icon-theme`, `yaru-cursor-theme`, `yaru-theme-gtk` | Purely cosmetic, and Zenith is monochrome. Optional; kept by default. |
-| `ubuntu-desktop` (metapackage) | Pulls GNOME back in on the next install. Replaced with `zenith-desktop` + `ubuntu-desktop-minimal`. |
+| `ubuntu-desktop` (metapackage) | Pulls GNOME back in on the next install. Replaced with `zenith` + `ubuntu-desktop-minimal`. |
 
 A note on metapackages, because this is where prune usually goes wrong. `apt-get remove
 gnome-shell` alone leaves `ubuntu-desktop` declaring a dependency that is gone, so the next

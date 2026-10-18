@@ -1,0 +1,42 @@
+# Zenith's shell.
+#
+# PartOf=graphical-session.target rather than WantedBy= it. A shell started as a
+# WantedBy of the target is a separate lifetime: it survives the target going
+# away, and it is not torn down with it. PartOf ties the two directions, so
+# ending the session ends the shell and ending the shell ends the session.
+#
+# After=zenith-portal.service is the load-bearing line. The dispatcher resolves
+# its backends once, at startup, and never re-reads them: it reads
+# XDG_CURRENT_DESKTOP and the portals.conf chain, decides which backend implements
+# which interface, and only then takes its bus name. That decision holds for the
+# life of the process. The shell therefore has to wait for the dispatcher to have
+# made it, or the shell asks the bus for a portal the dispatcher has not decided
+# it implements.
+[Unit]
+Description=Zenith shell
+Documentation=https://github.com/mohitjoer/Zenith-OS
+PartOf=graphical-session.target
+After=graphical-session.target
+After=zenith-portal.service
+Requires=zenith-portal.service
+# Without a compositor there is no surface to draw on, and the shell would exit
+# immediately and take the session's appearance with it.
+ConditionEnvironment=WAYLAND_DISPLAY
+# A shell that has to be killed nine times in ten seconds is a shell that cannot
+# start; give up rather than spin.
+#
+# The two StartLimit settings live in [Unit], not [Service]. systemd reads the
+# rate limiter from the unit, and systemd-analyze verify says so plainly —
+# "Unknown key 'StartLimitIntervalSec' in section [Service], ignoring" — which is
+# the difference between a limiter that works and one that was never applied.
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecStart=/usr/share/zenith/shell/zenith-shell
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=graphical-session.target

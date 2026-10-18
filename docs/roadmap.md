@@ -111,11 +111,12 @@ image boots into the base layer's stock Hyprland session entry. Zenith's own ses
 
 ## M5 — Session and portals
 
-*Status: the session entry point, the session registration and the portal
-configuration are written and tested — the script is executed under a stubbed
-environment, and the portal resolution is asserted against machines that do not
-exist. Nothing has been run under a login manager, a compositor, or a display, so
-the milestone's own verification criterion is not met.*
+*Status: the session is now wired end to end in source and packaged — entry
+point, both systemd units, the session-target drop-in, the SDDM drop-in and all
+six registrations, with `zenith doctor` asserting that every registration is
+installed and that every unit points at a binary that exists. It has still never
+been run under a login manager, a compositor, or a display, so the milestone's
+own verification criterion is not met.*
 
 Before any shell work, because it validates the base-layer bet.
 
@@ -127,10 +128,29 @@ Before any shell work, because it validates the base-layer bet.
   deliberately absent and `Secret` present but stated as not working
 - [x] Portal resolution, and the `zenith doctor` assertion that the
   configuration is actually being read
-- [ ] Session wiring under a login manager: SDDM → `zenith-session` → Hyprland,
-  with the shell's unit ordered after the portals
+- [x] `zenith-shell.service` and `zenith-portal.service` — the two user units,
+  the second ordered after `hyprland-session.target` and the first after the
+  second, which is the order that is easiest in the session to get wrong and
+  fails quietly when it is
+- [x] The session-target drop-in and the SDDM drop-in, both additive: adoption
+  still leaves gdm3 in place, so a user who wants the old session has two to
+  choose from rather than a machine that no longer boots
+- [x] All six registrations packaged, every one on the sanctioned list in
+  [architecture.md](architecture.md), each a pointer to content under
+  `/usr/share/zenith/`
+- [x] `zenith doctor` asserts every registration is installed and every unit's
+  `ExecStart` names an existing binary — the packaging faults that are silent
+  in both the package build and the login
+- [x] The screenshot toolchain in the manifest: `grim`, `slurp` and `hyprpicker`.
+  The portal backend shells out to them, so without them it does not create the
+  Screenshot portal at all and a screenshot keybinding produces nothing
 - [ ] Verified under screen sharing, screenshot, camera access, the GTK file
   chooser and a secret round-trip — none of which can be done without a display
+
+The units name a shell and a portal wrapper that do not exist yet. That is the
+honest state of the tree, and it is why `zenith doctor` reports them: the units
+are installed and correct, and they point at binaries this milestone has not
+shipped. M6 owns the shell and the wrapper.
 
 **The portal assertion is the point of this milestone.** `xdg-desktop-portal`
 derives its per-desktop configuration file name from `XDG_CURRENT_DESKTOP`,

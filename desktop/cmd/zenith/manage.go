@@ -189,7 +189,7 @@ func zenithDoctor(args []string) int {
 	// configuration would go unnoticed.
 	if len(findings) == 0 {
 		fmt.Println("no drift: the config tree matches the base")
-		return reportPortals()
+		return reportSessionChecks()
 	}
 
 	counts := map[string]int{}
@@ -222,7 +222,50 @@ func zenithDoctor(args []string) int {
 	// is a dispatcher trying to activate a backend that is not installed. Nothing
 	// is printed and nothing fails, and the symptom is a file chooser that is
 	// wrong.
-	return reportPortals()
+	return reportSessionChecks()
+}
+
+// reportSessionChecks runs the checks that are not about drift between the base
+// and the overlay. Both are here rather than in the overlay report because they
+// answer a different question: not "what changed" but "is this machine wired
+// up correctly at all".
+//
+// It is one function called from both return paths on purpose. An early return
+// on the clean case would skip every one of these checks on exactly the machine
+// where nothing else has gone wrong, which is the machine where a silently
+// misread portal configuration or a registration pointing at nothing would go
+// unnoticed.
+func reportSessionChecks() int {
+	code := reportPortals()
+	if registrationCode := reportRegistrations(); registrationCode != exitOK {
+		code = registrationCode
+	}
+	return code
+}
+
+// reportRegistrations asserts that every registration is installed and that what
+// it points at exists.
+//
+// The architecture record requires this of doctor, and the reason is that both
+// failures are silent in the same way: a registration that is missing means the
+// desktop does not appear, and a registration pointing at nothing means a unit
+// fails 203/EXEC once per login. Neither warns at build time.
+func reportRegistrations() int {
+	fmt.Println()
+	fmt.Println("Registrations")
+
+	env := portal.RegistrationEnv{}
+	findings := append(portal.CheckRegistrations(env), portal.CheckUnits(env)...)
+
+	if len(findings) == 0 {
+		fmt.Printf("  all %d registration(s) installed and pointing at content",
+			len(portal.Registrations()))
+		return exitOK
+	}
+	for _, finding := range findings {
+		fmt.Printf("  %-22s %s\n", finding.Name, finding.Reason)
+	}
+	return exitFail
 }
 
 // reportPortals asserts that the portal configuration is actually being read.
@@ -352,10 +395,10 @@ func aptFetch() error {
 		return fmt.Errorf("apt-get update: %w", err)
 	}
 
-	command = exec.Command("apt-get", "install", "--yes", "zenith-desktop")
+	command = exec.Command("apt-get", "install", "--yes", "zenith")
 	command.Stdout, command.Stderr = os.Stdout, os.Stderr
 	if err := command.Run(); err != nil {
-		return fmt.Errorf("apt-get install zenith-desktop: %w", err)
+		return fmt.Errorf("apt-get install zenith: %w", err)
 	}
 	return nil
 }
