@@ -223,6 +223,7 @@ four real faults while it was being written.*
   three booleans, so opening the third cannot leave two orphaned surfaces with
   no keybinding that closes them
 - [x] Quick settings and the status area
+- [x] The icon font, settled from the archive rather than vendored: `fonts-font-awesome` (4.7, no dependencies) for the status set and `fonts-powerline` for separators. Every glyph is declared in `Icons.qml` as a `\uXXXX` escape and checked to be inside its font's real range — which caught that the first draft used U+F8FF and U+F8C0, neither of which is a Font Awesome 4.7 glyph
 - [x] `zenith-greeter` — the kiosk Weston wrapper, which is the part that can be
   tested without a display, plus twelve checks that run it against stubbed weston
   and modetest

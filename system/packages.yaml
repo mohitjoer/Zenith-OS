@@ -948,15 +948,46 @@ fonts-and-icons:
     # ligature rendering enabled and no ligature glyphs renders boxes where code
     # should be.
     #
-    # Two ways out, neither chosen — see the open question in
-    # docs/architecture.md. Either Zenith uses an icon font the archive does
-    # carry (`fonts-fork-awesome`, `fonts-material-design-icons-iconfont`,
-    # `fonts-elusive-icons`, `fonts-weather-icons`) and keeps the boundary
-    # intact, or Zenith vendors a Nerd Font as a documented exception and
-    # becomes the distributor of a font blob, which is the same licensing
-    # problem the firmware group exists to avoid. What this manifest will not do
-    # is claim a Nerd Font while installing a package that does not contain one.
+    # Two ways out. Either Zenith uses an icon font the archive does carry and
+    # keeps the boundary intact, or Zenith vendors a Nerd Font as a documented
+    # exception and becomes the distributor of a font blob, which is the same
+    # licensing problem the firmware group exists to avoid. What this manifest
+    # will not do is claim a Nerd Font while installing a package that does not
+    # contain one.
+    #
+    # It takes the first way out. The whole archive was enumerated for glyph
+    # fonts; these are what it carries: fonts-circos-symbols,
+    # fonts-elusive-icons, fonts-font-awesome, fonts-fork-awesome,
+    # fonts-glyphicons-halflings, fonts-material-design-icons-iconfont,
+    # fonts-materialdesignicons-webfont, fonts-opensymbol, fonts-powerline,
+    # fonts-symbola, fonts-weather-icons. Nothing among them is a Nerd Font and
+    # nothing among them needs to be.
     - fonts-jetbrains-mono
+
+    # The icon font for the status area and the settings surfaces.
+    #
+    # Font Awesome 4.7, 1.4 MB installed, and **no dependencies at all** — which
+    # is why it is chosen over fonts-fork-awesome, whose newer glyph set is not
+    # worth pulling a package in for. It covers the whole status set the shell
+    # needs, and each of these is a real codepoint in it: bluetooth U+F293,
+    # battery U+F240–F244, wifi U+F1EB, volume-up U+F028, volume-off U+F026,
+    # lock U+F023, settings U+F013.
+    #
+    # Font Awesome rather than a Nerd Font is also the honest choice. A Nerd
+    # Font is a patched font plus a redistribution obligation, and this project
+    # already has a firmware group precisely so that it is not the distributor of
+    # blobs. An icon font from the archive has neither problem.
+    #
+    # Every glyph the shell uses is declared in one place — Icons.qml — with the
+    # family it comes from, and the shell check asserts no glyph is used outside
+    # it. A codepoint the font does not have renders as a box, and nothing on the
+    # machine says so.
+    - fonts-font-awesome
+
+    # Powerline separators for the bar. 26 KB, one dependency, and it is the
+    # only one of the archive's fonts that is specifically a set of separators
+    # rather than a general icon set.
+    - fonts-powerline
 
     # Latin plus every script the base layer's own interface strings use.
     - fonts-noto-core

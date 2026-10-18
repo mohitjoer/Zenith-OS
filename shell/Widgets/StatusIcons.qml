@@ -23,29 +23,42 @@ Item {
 
         StatusIcon {
             label: "vol"
-            // Three states rather than two, because a muted sink at full volume
-            // and an unmuted one at full volume are different states and an icon
-            // that cannot tell them apart is decoration.
-            state: volume.muted ? "muted"
-                : volume.level < 0.001 ? "zero"
-                : volume.level < 0.5 ? "low" : "high"
+            // Four states rather than two, because a muted sink at full volume
+            // and an unmuted one at full volume are different states, and an
+            // icon that cannot tell them apart is decoration.
+            glyph: volume.muted ? "volume-mute"
+                : volume.level < 0.001 ? "volume-mute"
+                : volume.level < 0.5 ? "volume-low"
+                : "volume-high"
         }
 
         StatusIcon {
             label: "net"
-            state: network.connected ? "on" : "off"
+            glyph: network.connected ? "wifi" : ""
         }
 
         StatusIcon {
             label: "bat"
             visible: battery.present
-            state: battery.charging ? "chg" : "bat"
+            glyph: battery.charging ? "battery-charging"
+                : battery.charge < 0.1 ? "battery-empty"
+                : battery.charge < 0.5 ? "battery-quarter"
+                : battery.charge < 0.9 ? "battery-half"
+                : "battery-full"
         }
 
         StatusIcon {
             label: "bt"
             visible: bluetooth.powered
-            state: bluetooth.connected ? "on" : "idle"
+            glyph: bluetooth.connected ? "bluetooth" : ""
+        }
+
+        // The lock. Only while the session is locked, which is the only time it
+        // says anything — an always-present padlock is a claim that the machine
+        // is locked, and it is not.
+        StatusIcon {
+            visible: idle.locked
+            glyph: "lock"
         }
     }
 }

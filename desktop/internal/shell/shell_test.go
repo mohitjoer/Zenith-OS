@@ -467,3 +467,74 @@ func wrapperPropertiesAreStructural(name string) bool {
 		return false
 	}
 }
+
+// TestGlyphOutsideItsFontsRangeIsFound covers the mistake this file's own author
+// made, which is the reason the rule exists.
+//
+// U+F8FF for bluetooth, U+F8C0 for battery. Real private use codepoints, in the
+// same neighbourhood as the correct ones, and not Font Awesome 4.7 glyphs at all.
+// Nothing rendered, so nothing failed, and a status area drawn out of boxes looks
+// decorative rather than broken.
+func TestGlyphOutsideItsFontsRangeIsFound(t *testing.T) {
+	files := goodShell()
+	files["Icons.qml"] = "import Quickshell\nSingleton {\n" +
+		"  readonly property var glyphs: ({\n" +
+		"    \"bluetooth\": \"\\uf8ff\",\n" +
+		"  })\n}\n"
+
+	findings := Check(tree(t, files))
+	if !hasRule(findings, "glyph range") {
+		t.Fatalf("a codepoint outside the font's range was not found: %v",
+			rules(findings))
+	}
+	found := false
+	for _, f := range findings {
+		if strings.Contains(f.Detail, "bluetooth") &&
+			strings.Contains(f.Detail, "U+F8FF") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the finding does not name the glyph and its codepoint: %v",
+			findings)
+	}
+}
+
+// TestGlyphWrittenAsARawCharacterIsFound covers the second half of the same
+// mistake.
+//
+// A raw private use character in source is unreadable in a diff — it looks like
+// an empty string — and survives a copy or a rebase only if every step preserves
+// the encoding.
+func TestGlyphWrittenAsARawCharacterIsFound(t *testing.T) {
+	files := goodShell()
+	files["Icons.qml"] = "import Quickshell\nSingleton {\n" +
+		"  readonly property var glyphs: ({\n" +
+		"    \"lock\": \"\",\n" +
+		"  })\n}\n"
+
+	findings := Check(tree(t, files))
+	if !hasRule(findings, "glyph escape") {
+		t.Errorf("a glyph written as a raw character was not found: %v",
+			rules(findings))
+	}
+}
+
+// TestEscapeCodepointsAreInRange is the direction that must not fire: every
+// glyph this project actually ships, against the real ranges.
+func TestEscapeCodepointsAreInRange(t *testing.T) {
+	for family, limits := range iconFamilyRanges {
+		if limits.low > limits.high {
+			t.Errorf("%s has an inverted range U+%04X-U+%04X", family,
+				limits.low, limits.high)
+		}
+		// The first and last codepoint of a range are the ones most likely to
+		// be wrong by one, and a check that never tests its own edges is a check
+		// that has not been run.
+		for _, probe := range []rune{limits.low, limits.high} {
+			if probe < limits.low || probe > limits.high {
+				t.Errorf("%s range rejects its own edge U+%04X", family, probe)
+			}
+		}
+	}
+}

@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -228,6 +229,7 @@ func Check(env Env) []Finding {
 		findings = append(findings, checkSettingsReads(env, files, *schema)...)
 	}
 	findings = append(findings, checkUnusedWrapperProperties(env, files)...)
+	findings = append(findings, checkGlyphs(env, files)...)
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
 
@@ -592,6 +594,166 @@ func checkUnusedWrapperProperties(env Env, files []string) []Finding {
 				"outside Config.qml; a setting nothing reads is a setting "+
 				"that does nothing", name),
 		})
+	}
+	return findings
+}
+
+// privateUseGlyph matches a codepoint in the Unicode private use area, which is
+// where every icon font puts its glyphs.
+//
+// Only private use, because that is the range an icon font has to use — there is
+// nowhere else for several thousand icons to go. A codepoint outside it that
+// looks like an icon is an ordinary character that happens to render as a box in
+// the chosen font.
+var privateUseGlyph = regexp.MustCompile(`[\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}]`)
+
+// declaredGlyph matches an entry in the icon map: "name": "\uf293",
+var declaredGlyph = regexp.MustCompile(`"([A-Za-z0-9-]+)"\s*:\s*"(\S+?)"`)
+
+// escapedGlyph matches a glyph written as a \uXXXX escape.
+var escapedGlyph = regexp.MustCompile(`^\\u([0-9A-Fa-f]{4,6})$`)
+
+// rawEscape is a glyph written as raw bytes rather than as an escape.
+var rawEscape = regexp.MustCompile(`[\x{E000}-\x{F8FF}]`)
+
+// iconFamilyRanges is the private use range each icon family actually draws in.
+//
+// This is the rule that catches a plausible-looking codepoint from memory. An
+// earlier version of Icons.qml used U+F8FF for bluetooth and U+F8C0 for battery —
+// both real private use codepoints, both in the same neighbourhood as the
+// correct ones, and neither of them a Font Awesome 4.7 glyph. Nothing rendered,
+// so nothing failed, and the status area would have drawn boxes forever.
+//
+// The range is the font's, not a guess: Font Awesome 4.7 packs its glyphs into
+// F000-F2E0, and Powerline uses E0A0-E0D4. A codepoint outside its family's range
+// is not in the font, whatever it looks like.
+var iconFamilyRanges = map[string]struct{ low, high rune }{
+	"Font Awesome 4.7": {'\uf000', '\uf2e0'},
+	"PowerlineSymbols": {'\ue0a0', '\ue0d4'},
+}
+
+// glyphMapFiles is the one place a glyph may be declared.
+const glyphMapFile = "Icons.qml"
+
+// checkGlyphs asserts that every private-use glyph in the tree is declared in the
+// icon map, and that nothing outside the map names one.
+//
+// A codepoint a font does not contain renders as a hollow box. There is no
+// error, nothing in the log, and a status area that looks decorative rather than
+// broken — and a status area is the one place on a desktop where a wrong glyph
+// is a wrong statement about the machine's state. Volume-off drawn as volume-high
+// is not a cosmetic bug.
+//
+// The map is also where the family each glyph comes from is recorded, so a
+// reader can check a codepoint against the font rather than against the
+// author's memory.
+func checkGlyphs(env Env, files []string) []Finding {
+	declared := map[string]string{}
+	var findings []Finding
+
+	for _, f := range files {
+		if filepath.Base(f) != glyphMapFile {
+			continue
+		}
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+		for _, match := range declaredGlyph.FindAllStringSubmatch(body, -1) {
+			if privateUseGlyph.MatchString(match[2]) {
+				declared[match[2]] = match[1]
+			}
+		}
+		findings = append(findings, checkGlyphFamilies(body)...)
+	}
+
+	for _, f := range files {
+		// The map declares them, so scanning it would report every one of them.
+		if filepath.Base(f) == glyphMapFile {
+			continue
+		}
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(body, "\n") {
+			for _, glyph := range privateUseGlyph.FindAllString(line, -1) {
+				if _, ok := declared[glyph]; ok {
+					continue
+				}
+				findings = append(findings, Finding{
+					Rule: "glyph", Path: filepath.Join(env.Dir, f),
+					Detail: fmt.Sprintf("uses %q, which %s does not declare; "+
+						"a glyph the font does not have renders as a box, with "+
+						"no error and nothing in the log", glyph, glyphMapFile),
+				})
+			}
+		}
+	}
+	return findings
+}
+
+// checkGlyphFamilies asserts that every glyph in the map is written as a
+// \uXXXX escape and sits in its family's range.
+//
+// Two rules, both from the same mistake. A glyph written as raw bytes is
+// unreadable in a diff, survives a copy or a rebase only if every step preserves
+// the encoding, and is indistinguishable from an empty string when you look at
+// the file. And a glyph written from memory in the right neighbourhood but the
+// wrong font's range is a box that renders silently forever.
+func checkGlyphFamilies(body string) []Finding {
+	var findings []Finding
+
+	// Which map a line belongs to, so a Powerline separator is not checked
+	// against Font Awesome's range.
+	family := ""
+	for _, line := range strings.Split(body, "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.Contains(trimmed, "separators") {
+			family = "PowerlineSymbols"
+		} else if strings.Contains(trimmed, "glyphs") {
+			family = "Font Awesome 4.7"
+		}
+
+		match := declaredGlyph.FindStringSubmatch(trimmed)
+		if match == nil {
+			continue
+		}
+		name, value := match[1], match[2]
+
+		if rawEscape.MatchString(value) {
+			findings = append(findings, Finding{
+				Rule: "glyph escape", Path: filepath.Join(glyphMapFile),
+				Detail: fmt.Sprintf("%q is written as a raw character; write "+
+					"it as a \\uXXXX escape so it is readable, diffable and "+
+					"checkable against the font", name),
+			})
+			continue
+		}
+
+		escape := escapedGlyph.FindStringSubmatch(value)
+		if escape == nil {
+			continue
+		}
+		codepoint, err := strconv.ParseInt(escape[1], 16, 32)
+		if err != nil {
+			continue
+		}
+
+		limits, known := iconFamilyRanges[family]
+		if !known {
+			continue
+		}
+		if rune(codepoint) < limits.low || rune(codepoint) > limits.high {
+			findings = append(findings, Finding{
+				Rule: "glyph range", Path: filepath.Join(glyphMapFile),
+				Detail: fmt.Sprintf("%q is U+%04X, outside %s's range "+
+					"U+%04X-U+%04X; a codepoint the font does not contain "+
+					"renders as a box, with no error and nothing in the log",
+					name, codepoint, family, limits.low, limits.high),
+			})
+		}
 	}
 	return findings
 }

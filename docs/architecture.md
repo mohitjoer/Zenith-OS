@@ -625,6 +625,45 @@ means either X11 or writing a KMS/DRM renderer into the login path; both are new
 critical path for no user-visible gain. Choosing `greetd` would have meant owning a display
 manager to get a login screen the base layer already provides.
 
+### The icon font
+
+The base layer carries no Nerd Font in any component of 26.04, and
+`fonts-jetbrains-mono` is the unpatched upstream build — 2.304+ds-6, shipping
+`JetBrainsMono*.ttf` and `JetBrainsMonoNL*.ttf` only, with no `*Nerd*` file in the
+package. So the devicon and powerline glyphs a shell's dock and status area want
+have no archive source *under those names*.
+
+They do have archive sources under other names. The whole font set was
+enumerated; what 26.04 carries is `fonts-font-awesome`, `fonts-fork-awesome`,
+`fonts-material-design-icons-iconfont`, `fonts-materialdesignicons-webfont`,
+`fonts-elusive-icons`, `fonts-circos-symbols`, `fonts-symbola`,
+`fonts-opensymbol`, `fonts-powerline`, `fonts-glyphicons-halflings` and
+`fonts-weather-icons`.
+
+`fonts-font-awesome` is the choice: Font Awesome 4.7 covers the entire status
+set — bluetooth U+F293, battery U+F240–F244, wifi U+F1EB, the volume pair at
+U+F026–U+F028, lock U+F023 — in 1.4 MB with **no dependencies at all**, which is
+why it beats `fonts-fork-awesome`, whose newer glyph set is not worth pulling a
+package in for.
+
+This is also the honest answer rather than the comfortable one. A Nerd Font is a
+patched font plus a redistribution obligation, and this project already has a
+firmware group precisely so that it is not the distributor of blobs. An icon
+font from the archive has neither problem, and nothing about a shell's status
+area needs the several thousand devicon glyphs a Nerd Font exists to carry.
+
+Every glyph the shell draws is declared in one file, `Icons.qml`, as a `\uXXXX`
+escape with the family it comes from, and the shell check enforces three things
+about it: that no glyph is used outside that map, that each is written as an
+escape rather than as a raw character, and that each codepoint is inside its
+family's real range (Font Awesome 4.7 is F000–F2E0; Powerline is E0A0–E0D4).
+
+The last of those exists because it was violated. An earlier draft used U+F8FF
+for bluetooth and U+F8C0 for battery — real private use codepoints, in the same
+neighbourhood as the correct ones, and neither of them a Font Awesome 4.7 glyph.
+A codepoint a font does not contain renders as a hollow box: no error, nothing in
+the log, and a status area that reads as decorative rather than broken.
+
 **Why Weston and not the Xorg server.** The obvious alternative was keeping `xorg-server` in the
 image purely so the greeter could draw on it. That keeps a display server Zenith otherwise has
 no use for, adds an X11 login path whose failure modes nobody would be watching, and means the
@@ -647,7 +686,7 @@ shipped file is never edited in place.
 | ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
 | ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
-| The icon font | The shell's dock and status area want devicon and powerline glyphs. The base layer carries no Nerd Font in any component of 26.04, and `fonts-jetbrains-mono` is the unpatched upstream build, so there is no archive source for them. Either adopt an icon font the archive carries, or vendor a Nerd Font as a documented exception to the base-layer boundary and accept becoming its distributor — the same problem the firmware group exists to avoid. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
+| ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and Zenith does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |
 | Hardware report scope | What `zenith hardware report` captures, and how aggressively it strips PII before emitting. |
