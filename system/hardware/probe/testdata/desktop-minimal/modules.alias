@@ -1,0 +1,4 @@
+# generated fixture
+alias pci:v* drm
+alias usb:v* usbcore
+alias pci:v00008086d00003E92sv*sd*bc03sc00i00 i915

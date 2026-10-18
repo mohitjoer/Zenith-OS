@@ -1,0 +1,4 @@
+# generated fixture
+alias pci:v* drm
+alias usb:v* usbcore
+alias pci:v* drm drm

@@ -1,0 +1,4 @@
+# generated fixture
+alias pci:v* drm
+alias usb:v* usbcore
+alias pci:v00001234d00001111sv*sd*bc03sc00i00 bochs-drm

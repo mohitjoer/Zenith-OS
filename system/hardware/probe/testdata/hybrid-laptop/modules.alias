@@ -1,0 +1,10 @@
+# generated fixture
+alias pci:v* drm
+alias usb:v* usbcore
+alias pci:v00008086d000046A6sv*sd*bc03sc00i00 i915
+alias pci:v00008086d000046A6sv*sd*bc03sc00i00 xe
+alias pci:v00008086d000051F0sv*sd*bc02sc00i00 iwlwifi
+alias pci:v0000144Dd0000A80Asv*sd*bc01sc00i00 nvme
+alias pci:v000010DED00002684sv*sd*bc03sc00i00 nvidia
+alias pci:v00008086d0000A0C8sv*sd*bc04sc00i00 snd_hda_intel
+alias pci:v00008086d0000A0C8sv*sd*bc04sc00i00 snd_sof

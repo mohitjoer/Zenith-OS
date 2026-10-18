@@ -1,0 +1,5 @@
+# generated fixture
+alias pci:v* drm
+alias usb:v* usbcore
+alias pci:v00008086d00009A49sv*sd*bc03sc00i00 i915
+alias pci:v000010DED000024B0sv*sd*bc03sc00i00 nvidia
