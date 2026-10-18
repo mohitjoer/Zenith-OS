@@ -209,8 +209,22 @@ four real faults while it was being written.*
   file that is not there, a surface reading a property the settings wrapper does
   not declare, a `schemaId` with no schema file, a path outside the boundary, an
   import outside the closed module list
-- [ ] Popovers, and the surfaces a stock desktop used to own: notification
-  server, lock, idle screen, quick settings, status icons
+- [x] Popovers — one at a time, tracked by a single `currentPopover` rather than
+  three booleans, so opening the third cannot leave two orphaned surfaces with
+  no keybinding that closes them
+- [x] Quick settings and the status area
+- [x] `zenith-greeter` — the kiosk Weston wrapper, which is the part that can be
+  tested without a display, plus twelve checks that run it against stubbed weston
+  and modetest
+- [ ] The login surface itself, and the SDDM drop-in with it. Both stay
+  uninstalled: a greeter that cannot authenticate is worse than no greeter,
+  because it is a machine that takes a password and does nothing with it. What is
+  left is the sddm-greeter authentication protocol
+- [ ] The surfaces a stock desktop used to own: notification server, lock, idle
+  screen. The notification server is not optional — no notification daemon is in
+  the manifest, so nothing else on the machine holds
+  `org.freedesktop.Notifications`. The lock screen is not optional either, and
+  like the greeter it ships only once it actually locks
 
 ## M7 — Zenith Hub
 

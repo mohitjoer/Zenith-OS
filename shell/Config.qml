@@ -55,4 +55,32 @@ Singleton {
     readonly property int edgeBottom: 1
     readonly property int edgeLeft: 2
     readonly property int edgeRight: 3
+
+    // ---------------------------------------------------------------- writers
+    //
+    // Writes go through here rather than being spread across the surfaces that
+    // want them, for two reasons. It keeps Config.qml the only file that knows
+    // which Settings object owns which key — org.zenith.desktop owns
+    // color-scheme and org.zenith.shell owns dock-autohide, and a surface that
+    // guessed wrong would write the right key to the wrong schema, which is a
+    // setting that appears to work.
+    //
+    // And it keeps the surfaces readable: a switch says what it means
+    // ("setDockAutohide"), not how.
+    //
+    // The shell daemon is one of the two permitted writers of these schemas —
+    // the other is zenith-hub — so a write from here is not a rule violation.
+    // What would be is a surface reaching past this wrapper.
+
+    function setDockAutohide(value) {
+        shell.dockAutohide = value
+    }
+
+    function setColorScheme(value) {
+        desktop.colorScheme = value
+    }
+
+    function setLauncherColumns(value) {
+        shell.launcherColumns = value
+    }
 }

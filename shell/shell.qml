@@ -29,14 +29,27 @@ ShellRoot {
     // Popovers are children of the root rather than of the surface that opened
     // them, so closing a popover is closing one object instead of tracking which
     // surface owns it. Two popovers open at once is two independent objects.
+    //
+    // Exactly one is open at a time, and that is the point of `currentPopover`
+    // rather than three separate booleans: with three booleans, opening the
+    // third leaves the first two open and the user gets two orphaned surfaces
+    // with no keybinding that closes them.
+    property string currentPopover: ""
+
+    function togglePopover(name) {
+        currentPopover = currentPopover === name ? "" : name
+    }
+
     Popover {
         id: launcherPopover
-        visible: false
+        visible: root.currentPopover === "launcher"
+        Launcher {}
     }
 
     Popover {
         id: quickSettingsPopover
-        visible: false
+        visible: root.currentPopover === "quick"
+        QuickSettings {}
     }
 
     // The two always-present surfaces. The bar and the dock are siblings of the

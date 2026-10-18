@@ -42,6 +42,15 @@ trap 'rm -rf "$STAGE"' EXIT
 # ----------------------------------------------------------------- session
 # Content lives under /usr/share/zenith/session/; the registrations that point at
 # it are a separate concern and belong to the packages that own the session.
+# The greeter wrapper. It ships without the login surface and without the SDDM
+# drop-in, because a greeter that cannot authenticate is worse than no greeter:
+# it is a machine that takes a password and does nothing with it. What ships is
+# the part that is testable on its own — bringing up a kiosk Weston with a sane
+# mode — and session/greeter_test.sh runs it.
+mkdir -p "$STAGE/usr/share/zenith/session"
+cp "$REPO_ROOT/session/zenith-greeter" "$STAGE/usr/share/zenith/session/"
+chmod 0755 "$STAGE/usr/share/zenith/session/zenith-greeter"
+
 mkdir -p "$STAGE/usr/share/zenith/session"
 cp "$REPO_ROOT/session/zenith-session" "$STAGE/usr/share/zenith/session/"
 cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"

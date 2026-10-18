@@ -492,10 +492,18 @@ func wrapperProperties(env Env, files []string) map[string]bool {
 		if err != nil {
 			continue
 		}
-		for _, match := range regexp.MustCompile(
+		// Properties and functions are both part of the wrapper's vocabulary.
+		// A surface calls config.setDockAutohide(...) as legitimately as it
+		// reads config.dockAutohide, and a check that only knew about
+		// properties would report every write as an undefined read.
+		for _, pattern := range []string{
 			`readonly\s+property\s+\w+\s+([A-Za-z_][A-Za-z0-9_]*)\s*:`,
-		).FindAllStringSubmatch(body, -1) {
-			wrapper[match[1]] = true
+			`\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`,
+		} {
+			for _, match := range regexp.MustCompile(pattern).
+				FindAllStringSubmatch(body, -1) {
+				wrapper[match[1]] = true
+			}
 		}
 	}
 	return wrapper

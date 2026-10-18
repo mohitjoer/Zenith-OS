@@ -1,0 +1,97 @@
+#!/bin/sh
+# The login screen's compositor.
+#
+# SDDM runs this as CompositorCommand when the greeter is in Wayland mode. It
+# brings up a kiosk Weston and hosts Zenith's own login surface on it.
+#
+# A shell script, for the same reason the session entry point is one: this runs
+# before anything else exists, on a machine that may be in a bad way, and it has
+# to be readable when the disk is having a bad day.
+#
+# The one rule this script follows is that the greeter always comes up. Every
+# branch that fails falls back to plain Weston rather than exiting: a login
+# screen that is plain and wrong beats no login screen at all, because no login
+# screen is a machine nobody can get into.
+set -eu
+
+# The layout is fixed and is the one in docs/session.md, not wherever this script
+# happens to be installed from. The session script and this one sit in the same
+# directory and both name /usr/share/zenith/session explicitly for that reason.
+PREFIX=/usr/share/zenith
+SHELL_DIR="$PREFIX/greeter"
+WESTON_BIN=${ZENITH_WESTON:-weston}
+MODETEST=${ZENITH_MODETEST:-modetest}
+
+CONFIG=$(mktemp -d)
+trap 'rm -rf "$CONFIG"' EXIT
+INI="$CONFIG/weston.ini"
+
+# The login surface, and nothing else. No lock screen, because the greeter has
+# no session to lock, and a kiosk Weston that thinks it is the desktop is a
+# window manager with no windows.
+cat > "$INI" <<EOF
+[core]
+# A kiosk compositor with a shell and no desktop. desktop-shell-helper is a
+# GNOME client and starting it here would be a second session on the same DRM
+# card.
+shell=kiosk-shell.so
+require-input=false
+locker=false
+[session]
+locker=false
+EOF
+
+# Pick the first mode modetest reports for the first connected connector.
+#
+# modetest reads the connectors' modes without taking DRM master, so it is safe
+# to run before Weston grabs the card. Every failure here is non-fatal by
+# design: no modetest, no connector, an empty parse — all of them mean the same
+# thing, which is "let Weston choose", and Weston choosing is always a working
+# answer.
+mode_pair() {
+    command -v "$MODETEST" >/dev/null 2>&1 || return 1
+
+    report=$("$MODETEST" -c 2>/dev/null) || return 1
+    [ -n "$report" ] || return 1
+
+    # The first connected connector is the one the user is looking at. Taking
+    # the first instead of preferring the panel's native mode is deliberate:
+    # on a laptop with an external display the connector order is not the
+    # display order, and Weston is in a better position to know which is which.
+    # The first connected connector is the one the user is looking at.
+    #
+    # The disconnected test has to come first and has to be its own pattern.
+    # "/connected/" also matches "disconnected", so a laptop with an unplugged
+    # external display listed first hands its mode to the greeter — which is
+    # exactly the machine where getting it wrong is most visible.
+    #
+    # Taking the connector's first mode rather than its preferred one is
+    # deliberate. On a multi-display machine the connector order is not the
+    # display order, and Weston is in a better position to know which connector
+    # is the panel.
+    echo "$report" | awk '
+        !found && !/disconnected/ && /connected/ {
+            n = split($0, f, /[ \t]+/)
+            for (i = 1; i <= n; i++)
+                if (f[i] ~ /^[0-9]+x[0-9]+$/) { print f[i]; found = 1; exit }
+        }' | head -1
+}
+
+if PAIR=$(mode_pair 2>/dev/null) && [ -n "${PAIR:-}" ]; then
+    printf '[output]\nname=preferred\nmode=%s\n' "$PAIR" >> "$INI"
+    echo "zenith-greeter: using mode $PAIR"
+else
+    echo "zenith-greeter: letting weston choose a mode"
+fi
+
+# The login surface itself.
+#
+# The surface directory is named unconditionally and the shell binary is named
+# only if it exists, because the two failures are different. A missing directory
+# is Zenith's, and a missing quickshell is the package's; Weston is started
+# either way, so the greeter comes up as a kiosk with nothing in it — visible,
+# and not a machine that will not boot.
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+printf '[shell]\ncommand=%s -p %s\n' "$QUICKSHELL_BIN" "$SHELL_DIR" >> "$INI"
+
+exec "$WESTON_BIN" --config="$INI"
