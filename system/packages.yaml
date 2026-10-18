@@ -53,9 +53,12 @@ base:
     - main
     - universe        # compositors, portals, language tooling, most of this
     - multiverse      # a handful of packages with no free reimplementation
-    - non-free
-    # There is no `non-free-firmware` component on this base layer. Every
-    # firmware blob in this image ships inside an ordinary archive package —
+    # `non-free` is deliberately absent and it is not an oversight. This release
+    # publishes only main, restricted, universe and multiverse: verified against
+    # the suite's own Release file, which lists exactly those four, and against
+    # 404s on `non-free` and `non-free-firmware` for this suite. Adding either
+    # name here would put a 404 in the image's sources on first `apt update`.
+    # Every firmware blob ships inside an ordinary free component package —
     # see the `firmware` group.
   notes: >-
     Nothing in this file comes from Zenith's own repository. Zenith's own packages —
@@ -699,7 +702,7 @@ power-and-hardware-services:
     - rtkit
 
     # The wireless backend, and NetworkManager itself. iwd rather than
-    # wpa_supplicant — see the exclusion below.
+    # wpasupplicant — see the exclusion below.
     - iwd
     - network-manager
 
@@ -736,8 +739,11 @@ power-and-hardware-services:
     cpufrequtils: >-
       The same objection. The governor belongs to a single service, and that
       service is already in this list.
-    wpa_supplicant: >-
-      iwd is the wireless backend. NetworkManager driving both is a known source
+    wpasupplicant: >-
+      iwd is the wireless backend. The name is `wpasupplicant` with no
+      underscore — checked against the archive, where the underscore spelling
+      does not exist. Written the other way round this exclusion silently
+      protected nothing and both backends stayed installed. NetworkManager driving both is a known source
       of interface flapping and of laptops that will not reassociate after
       suspend — the most-reported hardware bug class Zenith has.
     network-manager-gnome: >-
