@@ -261,6 +261,20 @@ and `zenith doctor` reports it.
 
 ### The shell
 
+> **The lock screen is not drawn by the shell, and that is a deliberate
+> correction to the rule below.** Everything else the shell owns is drawn in
+> Quickshell. The locker is not, because there is no QML PAM API: a shell-drawn
+> lock screen cannot authenticate, and the usual workaround — calling something
+> over D-Bus — produces a lock screen that accepts any password. A lock screen
+> that does not lock is worse than no lock screen, because it teaches the user
+> the machine is locked.
+>
+> So the division is: the shell owns **when** locking happens (`org.zenith.desktop`'s
+> `idle-*` keys, and `Idle.qml`), and `hyprlock` does the locking. hyprlock is in
+> the archive, which under the base-layer rule settles it — the base layer carries
+> it, so Zenith does not repackage it. Every competing locker is excluded, so the
+> image has exactly one and which one is in front never depends on start order.
+
 Quickshell, and Zenith builds it. The base layer carries no compositor-agnostic
 shell toolkit at all — verified rather than assumed: `quickshell`, `ags`, `eww` and
 `ironbar` are in no component of 26.04. What the archive does carry is *panels* —

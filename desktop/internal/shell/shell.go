@@ -302,6 +302,8 @@ var schemaID = regexp.MustCompile(`schemaId\s*:\s*"([A-Za-z0-9_.-]+)"`)
 // either — the shell has to work on the machine it ships to, and on that
 // machine this project's schemas are the only ones it may depend on.
 func checkSchemaIds(env Env, files []string) []Finding {
+	var findings []Finding
+
 	// Every schema file in the tree, keyed by the id it declares. A schema the
 	// tree does not ship is exactly the fault, so an allowlist of known-good ids
 	// would be worse than useless: it would let the shell depend on a schema
@@ -316,13 +318,26 @@ func checkSchemaIds(env Env, files []string) []Finding {
 			continue
 		}
 		schema, err := ParseSchema(env.path(entry.Name()))
-		if err != nil || schema.ID == "" {
+		if err != nil {
+			// Reported as itself rather than as a missing id. A schema that will
+			// not parse is the problem; "no schema declares it" sends the reader
+			// looking for a schema that is sitting right there, malformed.
+			findings = append(findings, Finding{
+				Rule: "schema", Path: filepath.Join(env.Dir, entry.Name()),
+				Detail: err.Error(),
+			})
+			continue
+		}
+		if schema.ID == "" {
+			findings = append(findings, Finding{
+				Rule: "schema", Path: filepath.Join(env.Dir, entry.Name()),
+				Detail: "declares no schema id",
+			})
 			continue
 		}
 		declared[schema.ID] = true
 	}
 
-	var findings []Finding
 	for _, f := range files {
 		body, err := source(env, f)
 		if err != nil {
@@ -563,10 +578,20 @@ func checkImports(env Env, files []string) []Finding {
 // one reading a stray file in /usr.
 var outsideBoundary = regexp.MustCompile(`["'](/(?:usr|etc|var|opt)/[A-Za-z0-9_./-]*)["']`)
 
-// boundaryAllowance is the one absolute path the shell legitimately reads from
-// outside its own tree: the base layer's portal dispatcher, which the unit runs
-// rather than the QML. It is listed so that the check's exception is visible.
-var boundaryAllowance = map[string]bool{}
+// boundaryAllowance is the short list of absolute paths the shell legitimately
+// reaches for outside its own tree, and each one is a binary it runs rather than
+// a file it reads.
+//
+// It is an explicit list rather than a rule, because "the shell may exec
+// anything under /usr/bin" is the same as no rule at all: the shell would then
+// be able to depend on a tool any user installed, and the base image would stop
+// being the thing that decides what the desktop is made of. Naming each one
+// makes the dependency reviewable and makes adding one a decision.
+var boundaryAllowance = map[string]bool{
+	// The locker. The shell owns *when* to lock and this does the locking,
+	// because it authenticates against PAM and a QML lock screen cannot.
+	"/usr/bin/hyprlock": true,
+}
 
 func checkBoundaries(env Env, files []string) []Finding {
 	var findings []Finding

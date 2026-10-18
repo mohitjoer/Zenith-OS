@@ -30,6 +30,15 @@ Singleton {
 
     readonly property int colorScheme: desktop.colorScheme
 
+    // Idle policy. Seconds, and 0 means never — not "now". A timeout of 0 that
+    // means "immediately" is a key whose default locks the machine the moment
+    // it is installed, and every "0 means never" key in a desktop exists
+    // because somebody got that backwards once.
+    readonly property int idleDimSeconds: desktop.idleDimSeconds
+    readonly property int idleBlankSeconds: desktop.idleBlankSeconds
+    readonly property int idleLockSeconds: desktop.idleLockSeconds
+    readonly property bool lockOnSuspend: desktop.lockOnSuspend
+
     // Derived here rather than on the root. Every widget asks the wrapper
     // "config.dark", so the answer has to be on the wrapper; leaving it on the
     // root means a widget reads a property the wrapper does not have, and
@@ -82,5 +91,29 @@ Singleton {
 
     function setLauncherColumns(value) {
         shell.launcherColumns = value
+    }
+
+    function setIdleLockSeconds(value) {
+        desktop.idleLockSeconds = value
+    }
+
+    // ------------------------------------------------------------------- lock
+    //
+    // The shell decides *when* to lock and hyprlock does the locking. That
+    // division is not a compromise on convenience: a QML lock screen cannot
+    // authenticate against PAM, because there is no QML PAM API, and the usual
+    // workaround is to call something over D-Bus — which produces a lock screen
+    // that accepts any password.
+    //
+    // So the shell never draws a lock surface. It runs the timers and execs a
+    // locker that actually authenticates.
+    property string locker: "/usr/bin/hyprlock"
+
+    function lock() {
+        // The lockers take a --locker command so a compositor-native session
+        // can be used instead of the greeter on unlock. Unchanged here: hyprlock
+        // restores the session it locked, and a wrong command here is how a
+        // machine ends up at the greeter after unlocking.
+        exec.lock()
     }
 }

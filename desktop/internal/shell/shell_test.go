@@ -363,3 +363,52 @@ func TestKebabCaseAndCamelCaseCompareEqual(t *testing.T) {
 		t.Error("two different keys folded together")
 	}
 }
+
+// TestAllowanceListIsReviewed covers the thing that turns the boundary allowance
+// from a rule into a loophole.
+//
+// "/usr/bin/hyprlock" is allowed because the shell runs it, not because the rule
+// says anything under /usr/bin is fine. A test that only checked the check would
+// not notice that difference, because the allowlist would just keep growing.
+func TestAllowanceListIsReviewed(t *testing.T) {
+	// Every allowance is a binary under /usr/bin: the shell runs these, and it
+	// must not be reading them.
+	for path := range boundaryAllowance {
+		if !strings.HasPrefix(path, "/usr/bin/") {
+			t.Errorf("%s is allowed but is not a binary under /usr/bin",
+				path)
+		}
+	}
+
+	// And the list has not become a prefix rule. A dozen entries means the
+	// check is no longer a boundary.
+	if len(boundaryAllowance) > 8 {
+		t.Errorf("the allowance list has %d entries; it has stopped being a "+
+			"short list and become a rule", len(boundaryAllowance))
+	}
+}
+
+// TestSchemaIdCheckNamesTheMalformedSchema covers reporting.
+//
+// A schema that will not parse reported as "no schema declares it" sends the
+// reader looking for a schema that is sitting right there, malformed.
+func TestSchemaIdCheckNamesTheMalformedSchema(t *testing.T) {
+	files := goodShell()
+	files["Config.qml"] += "\n"
+	files["Widgets/Clock.qml"] = "import Quickshell\nItem {}\n"
+	files["Bar.qml"] = strings.Replace(files["Bar.qml"],
+		"import Quickshell",
+		"import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.zenith.desktop\" }", 1)
+	files["org.zenith.desktop.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
+
+	findings := Check(tree(t, files))
+	found := false
+	for _, f := range findings {
+		if f.Rule == "schema" && strings.Contains(f.Detail, "well-formed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a malformed schema was not reported as malformed: %v", findings)
+	}
+}

@@ -292,6 +292,27 @@ desktop:
     # desktop works without them.
     - xdg-utils
 
+    # The locker.
+    #
+    # This is the one surface the shell does not draw, and the reason is the
+    # only reason that matters for a lock screen: it is the one surface where a
+    # hand-rolled implementation is not a worse version of the real thing but a
+    # security hole. A QML lock screen cannot authenticate against PAM — there
+    # is no QML PAM API and calling one over D-Bus is how you end up shipping a
+    # lock screen that accepts any password.
+    #
+    # hyprlock is in the archive (resolute-universe, 0.9.2, depends on
+    # libpam0g), which under rule 2 in the header settles it: the base layer
+    # carries it, so Zenith does not repackage it. It authenticates through PAM,
+    # which is the thing that makes a lock screen a lock screen.
+    #
+    # The shell still owns *when* locking happens — see org.zenith.desktop's
+    # idle-* keys and Idle.qml. hypridle is deliberately not installed: the
+    # shell is already the idle implementation, and two idle daemons both
+    # deciding when to lock is a machine that locks at a time neither of them
+    # was asked for.
+    - hyprlock
+
     # The Wayland clipboard tool. There is no xclip in this image, and both the
     # shell and Hyprland's keybind scripts need a clipboard owner that speaks
     # Wayland rather than X11.
@@ -369,6 +390,24 @@ desktop:
       bluez is the daemon, and it is installed. This is the GNOME agent and
       settings half; the shell will own that surface, and a daemon with no UI is
       not a reason to ship somebody else's.
+    # Lockers. hyprlock is installed and these are not, so the image has exactly
+    # one. Two lockers is not "the user picks one": both draw, both grab the
+    # keyboard, and which one is in front depends on which started second.
+    i3lock: >-
+      An X11 locker. Not wrong, just not for this image: it locks the X session,
+      which under Hyprland is XWayland and is not what the user is looking at.
+    swaylock: >-
+      The same idea as hyprlock, for Sway. Carrying both means two lockers and
+      no reason to prefer one.
+    light-locker: >-
+      An X11 screen locker that suspends rather than covers. On a Wayland
+      session with XWayland it can lock while the Wayland session keeps drawing.
+    xfce4-screensaver: >-
+      A screen saver and locker with its own X11 dependencies. The shell draws
+      the desktop; this would be a second desktop behind it.
+    gnome-screensaver: >-
+      The GNOME locker and idler. The shell owns idle, and a GNOME idler runs
+      its own timers alongside it.
     xdg-desktop-portal-gnome: >-
       It reads GDK_BACKEND to decide whether it is on a real GNOME session and
       silently drops interfaces when it decides it is not. Earlier drafts

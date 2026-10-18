@@ -62,6 +62,10 @@ ShellRoot {
     Bar {}
     Dock {}
 
+    // Idle. It is always running and always empty: the shell does not show an
+    // idle screen, hyprlock does, and what this owns is the timers.
+    Idle {}
+
     // The notification popup. It is a child of the root and not of the popovers,
     // for the reason the popovers are: a notification that arrives while the
     // quick settings are open must not be dismissed by them closing, and a

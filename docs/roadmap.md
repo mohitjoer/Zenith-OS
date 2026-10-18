@@ -227,9 +227,17 @@ four real faults while it was being written.*
   not, and the body is `Text.PlainText` to match; persistence is not advertised,
   because there is no notification centre yet and a client that believes it need
   not show its own reminder is a client with no reminder and no history
-- [ ] The lock screen and the idle screen. Both are security properties, not
-  surfaces: a lock screen that does not lock is worse than none, for the same
-  reason the greeter's login surface is held
+- [x] Idle policy in `org.zenith.desktop` — dim, blank and lock timeouts, each
+  independent, 0 meaning never — and `Idle.qml`, which owns the timers and
+  re-arms the lock after an unlock
+- [x] The lock itself, by `hyprlock` rather than by the shell. A shell-drawn lock
+  screen cannot authenticate against PAM, and the usual D-Bus workaround is a
+  lock screen that accepts any password. `hyprlock` is in the archive
+  (resolute-universe, depends on `libpam0g`), so rule 2 settles it; every
+  competing locker is now excluded, so the image has exactly one
+- [ ] The idle screen. The timers exist and the locker is wired, but nothing is
+  drawn while idle — hyprlock covers the screen, and the question of whether
+  Zenith wants its own surface there is still open
 
 ## M7 — Zenith Hub
 
