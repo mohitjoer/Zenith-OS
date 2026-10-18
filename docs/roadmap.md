@@ -130,6 +130,12 @@ Before any shell work, because it validates the base-layer bet.
   that stores a password had nowhere to store one. `zenith doctor` reads each
   named backend's `.portal` file, so an interface pointed at a backend that
   cannot serve it is reported rather than sitting there looking handled
+- [x] The Camera portal, which looked like a missing backend and was not. No
+  backend implements `org.freedesktop.portal.Camera` — but the interface is
+  implemented by `xdg-desktop-portal` itself, and it asks an **Access** backend
+  for consent before opening a device. Access was un-named, so it fell to
+  `[default] use=hyprland`, and Hyprland does not implement it. Naming
+  `Access` → `gtk` is the whole fix
 - [x] Portal resolution, and the `zenith doctor` assertion that the
   configuration is actually being read
 - [x] `zenith-shell.service` and `zenith-portal.service` — the two user units,

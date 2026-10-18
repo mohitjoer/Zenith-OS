@@ -27,6 +27,9 @@ use=gtk;
 
 [org.gnome.impl.portal.Secret]
 use=lxqt;
+
+[org.gnome.impl.portal.Access]
+use=gtk;
 `
 
 // machine is a synthetic machine with a portal configuration on disk.
@@ -70,7 +73,8 @@ func (m *machine) writeShippedBackends() {
 		"org.freedesktop.impl.portal.ScreenCast;"+
 			"org.freedesktop.impl.portal.Screenshot;")
 	m.writeBackend("gtk", "org.freedesktop.portal.impl.portal.Gtk",
-		"org.freedesktop.impl.portal.FileChooser;"+
+		"org.freedesktop.impl.portal.Access;"+
+			"org.freedesktop.impl.portal.FileChooser;"+
 			"org.freedesktop.impl.portal.OpenURI;"+
 			"org.freedesktop.impl.portal.Print;")
 	m.writeBackend("lxqt", "org.freedesktop.portal.impl.portal.LXQt",
@@ -269,7 +273,8 @@ func TestInterfaceNamedToABackendThatCannotServeIt(t *testing.T) {
 		"org.freedesktop.impl.portal.ScreenCast;"+
 			"org.freedesktop.impl.portal.Screenshot;")
 	m.writeBackend("gtk", "org.freedesktop.portal.impl.portal.Gtk",
-		"org.freedesktop.impl.portal.FileChooser;"+
+		"org.freedesktop.impl.portal.Access;"+
+			"org.freedesktop.impl.portal.FileChooser;"+
 			"org.freedesktop.impl.portal.OpenURI;"+
 			"org.freedesktop.impl.portal.Print;")
 

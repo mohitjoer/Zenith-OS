@@ -208,6 +208,16 @@ var required = []struct {
 	// it — a confident answer in a configuration file is worse than no answer,
 	// because a reader checking the file sees the interface handled.
 	{"org.gnome.impl.portal.Secret", "lxqt"},
+	// Access is named explicitly because [default] is hyprland, which does not
+	// implement it. Access is what the dispatcher's own Camera portal asks for
+	// consent, so leaving it to the default meant Camera could never open a
+	// device — while no backend has ever implemented Camera, which makes it look
+	// like an unimplemented interface rather than a missing consent prompt.
+	//
+	// Camera is deliberately not in this list. It is not a backend interface at
+	// all: desktop-portal/camera.c lives in the dispatcher binary. Naming a
+	// backend for it would be asking for something no backend has.
+	{"org.gnome.impl.portal.Access", "gtk"},
 }
 
 // The Secret gap is closed.

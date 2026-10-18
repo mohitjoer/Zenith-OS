@@ -208,6 +208,11 @@ confirm portal behaviour, and a portal regression is a distribution-wide bug, no
 per-desktop file name is derived from `XDG_CURRENT_DESKTOP`, and a session that does not
 declare itself correctly falls back to `portals.conf` and silently uses the wrong backends.
 
+It must also assert that each interface named in `portals.conf` is one the named backend
+**actually implements**, read from that backend's own `.portal` file. Every gap above was a
+configuration that looked correct: `Secret` named `gtk`, which does not implement it, and
+`Access` was never named at all. Both files read as though the interfaces were handled.
+
 Interfaces Zenith still owns itself, because no backend provides them:
 
 - **Camera.** No portal backend implements it; capture is Pipewire's job. **This one is currently
@@ -641,7 +646,7 @@ shipped file is never edited in place.
 |---|---|
 | ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
-| The Camera portal | No backend implements `org.freedesktop.portal.Camera`, and no milestone assigns one — unlike Notifications, which the shell takes in M6. A camera-permissioned Flatpak is refused rather than prompted. Ship a small Zenith Camera backend over Pipewire, or document the interface as unsupported rather than letting it fail silently. See [the portal seam](#the-portal-seam). |
+| ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
 | The icon font | The shell's dock and status area want devicon and powerline glyphs. The base layer carries no Nerd Font in any component of 26.04, and `fonts-jetbrains-mono` is the unpatched upstream build, so there is no archive source for them. Either adopt an icon font the archive carries, or vendor a Nerd Font as a documented exception to the base-layer boundary and accept becoming its distributor — the same problem the firmware group exists to avoid. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |
