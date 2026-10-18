@@ -55,6 +55,18 @@ WRONG=$(dpkg-deb -c "$WORK"/a/*.deb | awk '$1 !~ /^drwxr-xr-x/ && $1 !~ /^-rw-r-
 [ -z "$WRONG" ]
 check "installed files carry 0644, 0755 or directories at 0755" $?
 
+# The mode check above is deliberately loose — 0644 is fine for content — which
+# means it cannot catch the one mode that matters most: something the system
+# executes and cannot. The session entry point is that something, and a
+# non-executable one fails on every login rather than at build time.
+MODES=$(dpkg-deb -c "$WORK"/a/*.deb)
+
+echo "$MODES" | grep -q '^-rwxr-xr-x .*zenith-session$'
+check "the session entry point is executable" $?
+
+echo "$MODES" | grep -q '^-rwxr-xr-x .*/zenith$'
+check "the control tool is executable" $?
+
 # ---------------------------------------------------------------- repository
 echo "building the repository"
 "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1

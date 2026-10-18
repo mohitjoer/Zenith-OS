@@ -1,0 +1,74 @@
+#!/bin/sh
+# Zenith session entry point.
+#
+# Packaged at /usr/share/zenith/session/zenith-session. It is a shell script
+# because it runs before anything else exists and it must be readable when the
+# disk is having a bad day.
+#
+# The exec at the end is what makes a failure safe: anything that goes wrong
+# before it exits with the compositor never started, and the display manager puts
+# the user back on the login screen. A broken session that exits before the
+# compositor is a safe failure mode by construction.
+
+set -eu
+
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/zenith/session.log"
+mkdir -p "$(dirname "$LOG")"
+exec >>"$LOG" 2>&1
+
+echo "--- zenith-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
+
+# The two desktop names are different strings and both are deliberate.
+# XDG_CURRENT_DESKTOP is what the portal dispatcher lower-cases to derive its
+# per-desktop configuration file name, so "Zenith" finds "zenith-portals.conf".
+# XDG_SESSION_DESKTOP is the lower-case name the login manager records.
+export XDG_SESSION_DESKTOP=zenith
+export XDG_CURRENT_DESKTOP=Zenith
+export DESKTOP_SESSION=zenith
+export XDG_SESSION_TYPE=wayland
+
+# Native Wayland dialogs everywhere, so scaling and theming are the shell's
+# problem and not the app's. Set unconditionally rather than inherited: a
+# GDK_BACKEND=x11 left in /etc/environment by a GNOME-era tweak would otherwise
+# give every GTK4 app an XWayland dialog at the wrong scale, and a GDK_BACKEND
+# left set at all is how the GNOME portal backend decides it is not on a real
+# GNOME session and silently drops interfaces.
+export GDK_BACKEND=wayland
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM=wayland
+export QT_QPA_PLATFORMTHEME=gtk3
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
+# Cursor sizing and theming for the XWayland apps that do not read GTK.
+export XCURSOR_SIZE=24
+export XCURSOR_THEME=Adwaita
+
+# Machine-level additions, then the user's overlay. Written as `if`, not as
+# `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
+# session before the compositor ever starts, which is a confusing way to fail.
+if [ -r /etc/zenith/session/zenith-session.env ]; then
+    . /etc/zenith/session/zenith-session.env
+fi
+if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env"
+fi
+
+# Make dbus-activated user services and anything the compositor spawns see the
+# desktop identity, or apps probe for GNOME and get confused.
+#
+# The environment is published twice, to two different consumers.
+# systemctl --user import-environment reaches the per-user manager, so every unit
+# started from the manager inherits it. dbus-update-activation-environment
+# --systemd reaches the bus's activation environment, so a service activated on
+# demand inherits it. A backend that is D-Bus activated rather than started as a
+# unit sees nothing without the second one.
+systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR
+dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
+
+echo "zenith-session: env ok, starting Hyprland"
+
+# Overridable for testing: the session's one job is the environment, and testing
+# that needs a target that is not a compositor.
+exec "${ZENITH_COMPOSITOR:-/usr/bin/Hyprland}" "$@"

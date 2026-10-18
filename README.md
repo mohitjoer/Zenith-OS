@@ -120,6 +120,7 @@ system/hardware/     detection, matching, redaction, reports, profiles and tiers
 system/kernel/       pinned kernel fleet
 installation/        installer backend and ISO build
 release/             .deb packaging, signed APT repository, boundary check
+session/             the session entry point, its registration and portal config
 docs/                guides and architecture notes
 agents/              the agent contract and the design system
 tests/               CI checks
@@ -174,7 +175,7 @@ And the overlay model, which is what makes an update safe to automate:
 
 ```console
 $ zenith status          # revision, paths, how much drift
-$ zenith doctor          # what differs between the base and your config — changes nothing
+$ zenith doctor          # drift, plus whether the portal config is really being read
 $ zenith materialize     # re-lay the base, clobbering shipped content
 $ zenith reset PATH      # drop one of your edits back to the base
 $ zenith update          # snapshot, fetch, re-materialize; your edits survive

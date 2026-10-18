@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"zenith/desktop/internal/overlay"
+	"zenith/desktop/internal/portal"
 )
 
 // overlayPaths resolves the overlay model against the running user.
@@ -182,9 +183,13 @@ func zenithDoctor(args []string) int {
 		fmt.Fprintln(os.Stderr, "zenith doctor:", err)
 		return exitFail
 	}
+	// The portal assertion runs whatever this finds. An early return here would
+	// skip it on every healthy machine, which is exactly the machine where
+	// nothing else has gone wrong and the one where a silently-misread portal
+	// configuration would go unnoticed.
 	if len(findings) == 0 {
 		fmt.Println("no drift: the config tree matches the base")
-		return exitOK
+		return reportPortals()
 	}
 
 	counts := map[string]int{}
@@ -204,7 +209,66 @@ func zenithDoctor(args []string) int {
 		fmt.Printf("%d user edit(s) — these are yours and survive every update\n",
 			counts[overlay.DriftUserEdit])
 	}
-	return exitOK
+
+	// The portal assertion, which the architecture record requires doctor to
+	// make. It is here rather than in the overlay report because it is a
+	// different kind of check: not drift between files, but whether the session
+	// is declaring itself so that the portal dispatcher reads the right
+	// configuration at all.
+	//
+	// That failure is silent. A session that does not declare itself correctly
+	// finds no per-desktop configuration, falls back to the system default, and
+	// quietly uses whatever that names — on a machine adopted from GNOME that
+	// is a dispatcher trying to activate a backend that is not installed. Nothing
+	// is printed and nothing fails, and the symptom is a file chooser that is
+	// wrong.
+	return reportPortals()
+}
+
+// reportPortals asserts that the portal configuration is actually being read.
+func reportPortals() int {
+	fmt.Println()
+	fmt.Println("Portals")
+
+	resolution := portal.Resolve(portal.Env{
+		XDGConfigHome:  os.Getenv("XDG_CONFIG_HOME"),
+		Home:           homeDir(),
+		CurrentDesktop: os.Getenv("XDG_CURRENT_DESKTOP"),
+	})
+
+	fmt.Printf("  session identity  %s (looks for %s)\n",
+		orNone(resolution.CurrentDesktop), resolution.ConfigFile)
+
+	if resolution.Source == portal.SourceNone {
+		fmt.Println("  configuration     none found")
+	} else {
+		fmt.Printf("  configuration     %s\n", resolution.Source)
+	}
+
+	for _, notice := range resolution.Notices {
+		fmt.Printf("  known limit       %s\n", notice)
+	}
+
+	if len(resolution.Problems) == 0 {
+		if len(resolution.Notices) == 0 {
+			fmt.Println("  backends          every interface has the backend it needs")
+		}
+		// A known limit is not a misconfiguration. Failing here would train
+		// users to ignore the exit code, and they have no lever on it.
+		return exitOK
+	}
+	for _, problem := range resolution.Problems {
+		fmt.Printf("  problem           %s\n", problem)
+	}
+	return exitFail
+}
+
+func homeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
 }
 
 // zenithStatus is the one-glance answer.

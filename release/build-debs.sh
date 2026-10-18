@@ -39,6 +39,15 @@ trap 'rm -rf "$STAGE"' EXIT
   CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" \
     -o "$STAGE/usr/bin/zenith" ./cmd/zenith )
 
+# ----------------------------------------------------------------- session
+# Content lives under /usr/share/zenith/session/; the registrations that point at
+# it are a separate concern and belong to the packages that own the session.
+mkdir -p "$STAGE/usr/share/zenith/session"
+cp "$REPO_ROOT/session/zenith-session" "$STAGE/usr/share/zenith/session/"
+cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"
+cp "$REPO_ROOT/session/zenith-portals.conf" "$STAGE/usr/share/zenith/session/"
+chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
+
 # --------------------------------------------------------------- hardware data
 mkdir -p "$STAGE/usr/share/zenith/hardware/profiles"
 cp "$REPO_ROOT/system/hardware/tiers.yaml" "$STAGE/usr/share/zenith/hardware/"
@@ -65,7 +74,11 @@ printf '/usr/bin/zenith\n' > "$STAGE/DEBIAN/zenith.list"
 # group-writable profile database that any user on the machine can edit.
 find "$STAGE" -type d -exec chmod 0755 {} +
 find "$STAGE" -type f -exec chmod 0644 {} +
+# The two files something executes. Everything else is content and stays 0644:
+# a session entry point that is not executable is a login manager whose Exec=
+# line fails, and it fails on every login rather than at build time.
 chmod 0755 "$STAGE/usr/bin/zenith"
+chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
 chmod 0755 "$STAGE/DEBIAN/postinst"
 chmod 0640 "$STAGE/DEBIAN/control"
 chmod 0644 "$STAGE/DEBIAN/zenith.list"

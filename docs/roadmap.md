@@ -111,31 +111,52 @@ image boots into the base layer's stock Hyprland session entry. Zenith's own ses
 
 ## M5 — Session and portals
 
+*Status: the session entry point, the session registration and the portal
+configuration are written and tested — the script is executed under a stubbed
+environment, and the portal resolution is asserted against machines that do not
+exist. Nothing has been run under a login manager, a compositor, or a display, so
+the milestone's own verification criterion is not met.*
+
 Before any shell work, because it validates the base-layer bet.
 
-- The portal stack, four components and no more: `xdg-desktop-portal` as the dispatcher,
-  `xdg-desktop-portal-hyprland` for ScreenCast and Screenshot, `xdg-desktop-portal-gtk`
-  for FileChooser, OpenURI, Print and Secret, and `gnome-keyring` behind Secret
-- The two interfaces no backend provides, which makes them Zenith's own work: global
-  shortcuts, as compositor bindings here and as the shell's own in M6, and the
-  notification server, which the shell hosts once it exists
-- **The gaps this milestone does not close, stated so they are not mistaken for closed.**
-  `xdg-desktop-portal-gtk` does not actually implement the Secret interface, so the
-  `gnome-keyring`-behind-Secret pairing above does not work as written and no backend in the
-  stack exports Secret; and no backend at all implements Camera. Both are open questions in
-  [`architecture.md`](architecture.md#open-questions), and until they are chosen this milestone
-  verifies ScreenCast, Screenshot, FileChooser, OpenURI and Print — and reports the other two as
-  unsupported rather than letting an application fail silently
-- `zenith-session` — a small `/bin/sh` entry point that sets the session environment,
-  imports it into dbus activation and `exec`s Hyprland, so whatever fails before the
-  compositor puts the user back at the login screen rather than on a black one
-- Session wiring: SDDM → `zenith-session` → Hyprland, with the shell's unit ordered after
-  the portals
-- Verified under screen sharing, screenshot, camera access, the GTK file chooser and a
-  secret round-trip
+- [x] `zenith-session` — a `/bin/sh` entry point that sets the session
+  environment, imports it into dbus activation, and `exec`s Hyprland
+- [x] `zenith.desktop` — the session registration, with `DesktopNames=Zenith` so
+  the portal dispatcher derives the right configuration file name
+- [x] `zenith-portals.conf` — the backend preference, with `GlobalShortcuts`
+  deliberately absent and `Secret` present but stated as not working
+- [x] Portal resolution, and the `zenith doctor` assertion that the
+  configuration is actually being read
+- [ ] Session wiring under a login manager: SDDM → `zenith-session` → Hyprland,
+  with the shell's unit ordered after the portals
+- [ ] Verified under screen sharing, screenshot, camera access, the GTK file
+  chooser and a secret round-trip — none of which can be done without a display
 
-Exit criterion: an app that has never heard of Zenith behaves identically on Zenith and on a
-stock GNOME session of the base layer.
+**The portal assertion is the point of this milestone.** `xdg-desktop-portal`
+derives its per-desktop configuration file name from `XDG_CURRENT_DESKTOP`,
+lower-cased. A session that does not declare itself correctly finds no
+`zenith-portals.conf`, falls back to the system `portals.conf`, and quietly uses
+whatever that names — on a machine adopted from GNOME, a dispatcher activating a
+backend that is not installed. Nothing is printed and nothing fails. The symptom
+is a file chooser that is wrong, reported as "Zenith's file chooser is broken"
+rather than as a session identity problem, and `zenith doctor` now names it.
+
+Two details in that resolution are pinned by tests because both look like
+non-issues and neither is:
+
+- **`XDG_CURRENT_DESKTOP=Zenith` and `XDG_SESSION_DESKTOP=zenith` are different
+  strings.** The dispatcher lower-cases the first to derive the file name, so the
+  capitalisation is load-bearing. A session that swaps them still resolves a
+  filename — just the wrong one.
+- **Lower-casing means `zenith` finds the same file `Zenith` does.** The
+  configuration is read either way, and the identity is still wrong. The report
+  says so rather than passing on the strength of the file being found.
+
+The Secret limitation is reported as a **notice, not a problem**, and `zenith
+doctor` exits 0 on a healthy machine despite it. A gap the user has no lever on
+is not a misconfiguration, and a doctor that fails for one teaches users to
+ignore its exit code.
+
 
 ## M6 — The shell
 
