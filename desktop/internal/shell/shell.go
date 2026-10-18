@@ -227,6 +227,7 @@ func Check(env Env) []Finding {
 	if schema != nil {
 		findings = append(findings, checkSettingsReads(env, files, *schema)...)
 	}
+	findings = append(findings, checkUnusedWrapperProperties(env, files)...)
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
 
@@ -522,6 +523,77 @@ func wrapperProperties(env Env, files []string) map[string]bool {
 		}
 	}
 	return wrapper
+}
+
+// wrapperExempt are properties Config.qml owns for itself rather than as a
+// bridge to a setting: the two Settings objects, the locker path, and the
+// colour scheme the dark flag is derived from.
+//
+// They are exempt because the "is it read anywhere else" question has the wrong
+// shape for them. A Settings object exists to be used, so finding no use site
+// for it is not evidence of anything, and colorScheme is read here to compute
+// dark rather than by a surface.
+//
+// An exemption is only for a property of that shape. An ordinary setting added
+// here to stop the unused check complaining is the check being defeated rather
+// than satisfied, which is why TestWrapperExemptionsStaySmall exists.
+var wrapperExempt = map[string]bool{
+	"shell":       true,
+	"desktop":     true,
+	"locker":      true,
+	"colorScheme": true,
+}
+
+// checkUnusedWrapperProperties asserts that every property Config.qml re-exports
+// is read somewhere else.
+//
+// This is the check that catches a setting that appears to work and does
+// nothing. Config.qml is the bridge between GSettings and the shell, so a key
+// there with no use site is a key the Hub writes and the shell never looks at:
+// both are working, and they disagree, and nothing says so. `zenith doctor`
+// reporting "the idle timeout is 0" is not useful if nothing reads the idle
+// timeout.
+//
+// It is also the check that catches an over-built wrapper. A property added for
+// a surface that was never written is dead weight that reads as an unfinished
+// feature, which is exactly what it is.
+func checkUnusedWrapperProperties(env Env, files []string) []Finding {
+	declared := wrapperProperties(env, files)
+	if len(declared) == 0 {
+		return nil
+	}
+
+	// Everything outside Config.qml. A property's declaration is not a use of
+	// it — counting the declaration would make every property "read".
+	used := map[string]bool{}
+	for _, f := range files {
+		if filepath.Base(f) == "Config.qml" {
+			continue
+		}
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+		for _, match := range regexp.MustCompile(
+			`\bconfig\.([A-Za-z_][A-Za-z0-9_]*)`,
+		).FindAllStringSubmatch(body, -1) {
+			used[match[1]] = true
+		}
+	}
+
+	var findings []Finding
+	for name := range declared {
+		if used[name] || wrapperExempt[name] {
+			continue
+		}
+		findings = append(findings, Finding{
+			Rule: "unused setting", Path: filepath.Join(env.Dir, "Config.qml"),
+			Detail: fmt.Sprintf("config.%s is declared and read by nothing "+
+				"outside Config.qml; a setting nothing reads is a setting "+
+				"that does nothing", name),
+		})
+	}
+	return findings
 }
 
 // allowedImports is the set of modules the shell may import.

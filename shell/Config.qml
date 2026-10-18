@@ -34,10 +34,13 @@ Singleton {
     // means "immediately" is a key whose default locks the machine the moment
     // it is installed, and every "0 means never" key in a desktop exists
     // because somebody got that backwards once.
+    //
+    // lock-on-suspend is deliberately not here. It was a key the shell could
+    // not honour: Quickshell exposes no way to observe a suspend, so the shell
+    // would have carried a setting that looked like it worked and did not.
     readonly property int idleDimSeconds: desktop.idleDimSeconds
     readonly property int idleBlankSeconds: desktop.idleBlankSeconds
     readonly property int idleLockSeconds: desktop.idleLockSeconds
-    readonly property bool lockOnSuspend: desktop.lockOnSuspend
 
     // Derived here rather than on the root. Every widget asks the wrapper
     // "config.dark", so the answer has to be on the wrapper; leaving it on the
@@ -87,14 +90,6 @@ Singleton {
 
     function setColorScheme(value) {
         desktop.colorScheme = value
-    }
-
-    function setLauncherColumns(value) {
-        shell.launcherColumns = value
-    }
-
-    function setIdleLockSeconds(value) {
-        desktop.idleLockSeconds = value
     }
 
     // ------------------------------------------------------------------- lock

@@ -59,12 +59,19 @@ ShellRoot {
     // The two always-present surfaces. The bar and the dock are siblings of the
     // popovers rather than children of them: a popover that closes must not take
     // the bar with it.
+    // The wallpaper first, because QML draws siblings in declaration order and
+    // nothing else. A wallpaper declared after the bar is a wallpaper the bar
+    // is drawn over.
+    Wallpaper {}
+
     Bar {}
     Dock {}
 
-    // Idle. It is always running and always empty: the shell does not show an
-    // idle screen, hyprlock does, and what this owns is the timers.
+    // Idle owns the timers and the overlay draws what they mean. The overlay is
+    // declared last so it is on top of everything, which is the whole point of
+    // it.
     Idle {}
+    IdleOverlay {}
 
     // The notification popup. It is a child of the root and not of the popovers,
     // for the reason the popovers are: a notification that arrives while the

@@ -46,6 +46,7 @@ func goodShell() map[string]string {
 			"}\n",
 		"Bar.qml": "import Quickshell\nPanelWindow {\n" +
 			"  readonly property int edge: config.barPosition\n" +
+			"  implicitHeight: config.barHeight\n" +
 			"  readonly property var catalogue: ({ \"clock\": \"Clock\" })\n" +
 			"  source: \"Widgets/\" + catalogue[name] + \".qml\"\n}\n",
 		"Widgets/Clock.qml": "import Quickshell\nItem {}\n",
@@ -410,5 +411,59 @@ func TestSchemaIdCheckNamesTheMalformedSchema(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("a malformed schema was not reported as malformed: %v", findings)
+	}
+}
+
+// TestUnusedWrapperPropertyIsFound covers the class of dead code that is
+// invisible at run time.
+//
+// Config.qml is the bridge between GSettings and the shell, so a property there
+// with no use site is a key the Hub writes and the shell never reads. Both are
+// working. Nothing says so. `zenith doctor` reporting "the idle timeout is 0" is
+// not useful if nothing reads the idle timeout.
+func TestUnusedWrapperPropertyIsFound(t *testing.T) {
+	files := goodShell()
+	files["Config.qml"] = strings.Replace(files["Config.qml"],
+		"readonly property int barPosition: shell.barPosition",
+		"readonly property int barPosition: shell.barPosition\n"+
+			"  readonly property int nobodyReadsThis: 3", 1)
+
+	findings := Check(tree(t, files))
+	found := false
+	for _, f := range findings {
+		if f.Rule == "unused setting" && strings.Contains(f.Detail, "nobodyReadsThis") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a wrapper property nothing reads was not found: %v",
+			rules(findings))
+	}
+}
+
+// TestWrapperExemptionsStaySmall stops the exemption list becoming the loophole
+// the unused check was added to prevent.
+func TestWrapperExemptionsStaySmall(t *testing.T) {
+	for name := range wrapperExempt {
+		if !wrapperPropertiesAreStructural(name) {
+			t.Errorf("%s is exempt from the unused check; every exemption has "+
+				"to be a Settings object, a derived value, or a path, not a "+
+				"setting", name)
+		}
+	}
+}
+
+// wrapperPropertiesAreStructural is the rule for what may be exempt: a property
+// that exists to be used as part of the wrapper's own machinery, rather than as
+// a bridge to something the Hub writes.
+func wrapperPropertiesAreStructural(name string) bool {
+	switch name {
+	case "shell", "desktop", "locker":
+		return true
+	case "colorScheme":
+		// A value computed here rather than read from a surface.
+		return true
+	default:
+		return false
 	}
 }

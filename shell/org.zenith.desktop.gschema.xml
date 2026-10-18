@@ -65,15 +65,6 @@
       </description>
     </key>
 
-    <key name="lock-on-suspend" type="b">
-      <default>true</default>
-      <summary>Whether suspending locks the session</summary>
-      <description>
-        Locking on suspend means closing the lid locks the machine. A machine
-        that unlocks itself on wake has not been locked, it has only been
-        closed.
-      </description>
-    </key>
 
   </schema>
 

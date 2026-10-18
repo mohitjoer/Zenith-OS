@@ -235,9 +235,18 @@ four real faults while it was being written.*
   lock screen that accepts any password. `hyprlock` is in the archive
   (resolute-universe, depends on `libpam0g`), so rule 2 settles it; every
   competing locker is now excluded, so the image has exactly one
-- [ ] The idle screen. The timers exist and the locker is wired, but nothing is
-  drawn while idle — hyprlock covers the screen, and the question of whether
-  Zenith wants its own surface there is still open
+- [x] The idle screen, as a scrim. It answers the question rather than deferring
+  it: the gap between idle and lock is exactly the window where someone walks
+  past, so the shell dims what is on screen. It does not blank the display and
+  does not claim to — power saving is the compositor's job, and a shell drawing
+  opaque black would make the screen look off while the panel drew at full power
+- [x] The wallpaper. It existed because adoption imports into
+  `org.zenith.shell/wallpaper-path` and no GNOME shell exists to draw it; a
+  setting an import writes and nothing draws is an import that succeeds and does
+  nothing
+- [x] The launcher, which until now had a `refresh()` that set its model to an
+  empty list and showed nothing. Empty `launcher-apps` means every launchable
+  application, which is the correct default rather than a fallback
 
 ## M7 — Zenith Hub
 
