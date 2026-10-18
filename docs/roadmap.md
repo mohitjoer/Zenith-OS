@@ -220,11 +220,16 @@ four real faults while it was being written.*
   uninstalled: a greeter that cannot authenticate is worse than no greeter,
   because it is a machine that takes a password and does nothing with it. What is
   left is the sddm-greeter authentication protocol
-- [ ] The surfaces a stock desktop used to own: notification server, lock, idle
-  screen. The notification server is not optional — no notification daemon is in
-  the manifest, so nothing else on the machine holds
-  `org.freedesktop.Notifications`. The lock screen is not optional either, and
-  like the greeter it ships only once it actually locks
+- [x] The notification server. `org.freedesktop.Notifications` is a
+  session-scoped bus name and no daemon in the image holds it, so with the
+  shell not running it every application that sends a notification gets an error
+  back. Actions are advertised because the popup renders them; body markup is
+  not, and the body is `Text.PlainText` to match; persistence is not advertised,
+  because there is no notification centre yet and a client that believes it need
+  not show its own reminder is a client with no reminder and no history
+- [ ] The lock screen and the idle screen. Both are security properties, not
+  surfaces: a lock screen that does not lock is worse than none, for the same
+  reason the greeter's login surface is held
 
 ## M7 — Zenith Hub
 

@@ -38,17 +38,21 @@ ShellRoot {
 
     function togglePopover(name) {
         currentPopover = currentPopover === name ? "" : name
+        launcherPopover.opened = currentPopover === "launcher"
+        quickSettingsPopover.opened = currentPopover === "quick"
     }
 
     Popover {
         id: launcherPopover
-        visible: root.currentPopover === "launcher"
+        width: 640
+        height: 480
         Launcher {}
     }
 
     Popover {
         id: quickSettingsPopover
-        visible: root.currentPopover === "quick"
+        width: 360
+        height: 320
         QuickSettings {}
     }
 
@@ -57,4 +61,10 @@ ShellRoot {
     // the bar with it.
     Bar {}
     Dock {}
+
+    // The notification popup. It is a child of the root and not of the popovers,
+    // for the reason the popovers are: a notification that arrives while the
+    // quick settings are open must not be dismissed by them closing, and a
+    // popup that owns its own lifetime cannot be taken down by someone else's.
+    Notifications {}
 }

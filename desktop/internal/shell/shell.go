@@ -516,15 +516,16 @@ func wrapperProperties(env Env, files []string) map[string]bool {
 // module the machine happens to have installed, and a shell whose behaviour
 // depends on what a user installed is not a shell this project controls.
 var allowedImports = map[string]bool{
-	"Quickshell":          true,
-	"Quickshell.Io":       true,
-	"Quickshell.Widgets":  true,
-	"Quickshell.Hyprland": true,
-	"Quickshell.Services": true,
-	"QtQuick":             true,
-	"QtQuick.Controls":    true,
-	"QtQuick.Layouts":     true,
-	"QtQuick.Window":      true,
+	"Quickshell":                        true,
+	"Quickshell.Io":                     true,
+	"Quickshell.Widgets":                true,
+	"Quickshell.Hyprland":               true,
+	"Quickshell.Services":               true,
+	"Quickshell.Services.Notifications": true,
+	"QtQuick":                           true,
+	"QtQuick.Controls":                  true,
+	"QtQuick.Layouts":                   true,
+	"QtQuick.Window":                    true,
 }
 
 var importLine = regexp.MustCompile(`^\s*import\s+([A-Za-z0-9_.]+)\s*(?:[0-9.]+\s*)?$`)

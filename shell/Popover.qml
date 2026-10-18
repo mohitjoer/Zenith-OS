@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 
-// A surface that appears anchored to an edge and closes itself.
+// A surface that appears anchored to an edge and can be closed from inside.
 //
-// One implementation rather than a base class plus a subclass per surface,
-// because every property of a popover — which edge, how wide, whether it is
-// open — is used by all of them, and a base class here would be a file whose
-// body is a list of `property` declarations and nothing else.
+// Nothing here redirects children. PopupWindow already puts them in its
+// contentItem, and an earlier version of this file added a `default property
+// alias` onto an Item it never sized or anchored — so every child of every
+// popover landed at 0,0 in a zero-sized parent, and the popover rendered empty
+// on a machine that had working QML. Adding an indirection that does nothing is
+// worse than adding nothing.
 
 import Quickshell
 import Quickshell.Widgets
@@ -14,17 +16,29 @@ import QtQuick
 PopupWindow {
     id: popover
 
-    // The surface's own content. Assigned by whoever opens it, so adding a
-    // surface does not mean adding a file that exists only to hold a child.
-    default property alias content: surface.data
+    // Escape closes from the inside as well as by the caller from the outside,
+    // because a surface that can only be closed by the thing that opened it is
+    // a surface a keyboard cannot get rid of.
+    Keys.onEscapePressed: close()
 
-    // Closed on Escape from the inside as well as by the caller from the
-    // outside, because a surface that can only be closed by the thing that
-    // opened it is a surface a keyboard cannot get rid of.
-    onVisibleChanged: if (!visible) surface.opened = false
-
-    Item {
-        id: surface
-        property bool opened: false
+    function close() {
+        if (popover.opened) {
+            popover.opened = false
+        }
     }
+
+    // The single source of truth for "is this open", so the shell tracks one
+    // property rather than each popover holding a boolean nobody else can set.
+    //
+    // Written as an explicit property with a change handler rather than
+    // `readonly property bool opened: visible`: the root decides what is open,
+    // and a popover that derived it from its own visibility would make the
+    // decision local to each one.
+    property bool opened: false
+
+    onOpenedChanged: visible = opened
+
+    // Closing the surface closes the decision that made it open, rather than
+    // leaving the root thinking a popover is still up.
+    onVisibleChanged: if (!visible) opened = false
 }
