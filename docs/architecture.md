@@ -17,11 +17,11 @@ closed question or assumes an open one is closed.
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter | Compositor-agnostic, proven, and the design language already lives in QML/CSS. |
 | Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
-| Terminal | Ghostty — built and pinned upstream by Zenith to bypass frozen base-layer packages | GPU-accelerated, feature-rich, and built from source to ensure we track the latest upstream. |
+| Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version | GPU-accelerated and client-side rendered; Ghostty's own GTK/Adwaita floor policy is adopted verbatim, so base and terminal move together on purpose. |
 | User shell | zsh + starship | fish and blesh ship alongside as alternatives. |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
 | Boot chain | Limine + Unified Kernel Images (UKI) | Limine is small, modern, and proven; UKIs reduce boot complexity and improve security. |
-| Login manager | `greetd` — rendered natively by Quickshell on Hyprland | Avoids GTK/QT dependencies and renders the greeter natively on the compositor. |
+| Login manager | `sddm` in Wayland greeter mode, with the login surface drawn by Zenith | The base layer's login manager, run as shipped, with a greeter Zenith owns. See [what draws the login screen](#what-draws-the-login-screen). |
 | Desktop services | pipewire + wireplumber, tuned-ppd, iwd + NetworkManager, fprintd | Integrated audio/video, platform daemons, wireless/ wired networking, and fingerprint support. |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, with `gnome-keyring` for secrets | Hyprland-native portal backend with GTK fallback; secrets handled via gnome-keyring. |
 | Package manager | APT, backed by Zenith's signed first-party repository | Familiar, robust, and cryptographically signed for trustworthy updates. |
@@ -80,6 +80,36 @@ Zenith's packages follow from that rule:
 The payoff is that rebasing Zenith onto a new Ubuntu becomes a package-set change rather than a
 merge. That is the difference between a distribution that can track its base and one that
 slowly becomes an unmaintainable fork of it.
+
+### The sanctioned list outside the boundary
+
+Two rules cannot both be absolute. A handful of files have to sit outside `/usr/share/zenith/`
+and `/etc/zenith/`, because the binaries that read them look nowhere else — a systemd unit
+directory, a GLib schema directory, the login manager's fixed config directory. Those files are
+**registrations**: pointers a third-party binary must be able to find.
+
+So the boundary rule is enforced as a closed list rather than an absolute. Every path outside
+the two directories must appear here, and a path that is not on this list is a boundary
+violation until it is added:
+
+| Path | What it is | Why it cannot live under `/usr/share/zenith/` |
+|---|---|---|
+| `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
+| `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
+| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf` | Drop-in | systemd reads drop-ins from a fixed directory beside the unit |
+| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
+| `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
+| `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory |
+| `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+
+Content stays inside the two directories: the login surface's own files belong at
+`/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. A
+registration is a pointer, never a place to put content — a file that grows past a few lines of
+pointer belongs under `/usr/share/zenith/` with a registration pointing at it.
+
+`zenith doctor` reports drift between the registrations and the content they point at, the same
+way it reports drift everywhere else.
 
 ---
 
@@ -214,48 +244,64 @@ and `zenith doctor` reports it.
 
 ## Runtime stack
 
-### Terminal: kitty
+### Terminal: Ghostty
 
-GPU-accelerated and scriptable, with its own OpenGL renderer rather than a VTE text grid, so
-it costs far less than a GTK terminal. It is the most capable terminal in the stack and it
-is the one thing here Zenith is willing to accept a packaging burden for, because the terminal
-is the surface every developer looks at all day.
+Client-side rendered on the GPU, with its own renderer rather than a VTE text grid, so it costs
+far less than a GTK terminal. It is the most capable terminal in the stack and it is the one
+thing here Zenith is willing to accept a packaging burden for, because the terminal is the
+surface every developer looks at all day.
 
 Four places declare it the default, and all four must be set or the desktop is inconsistent:
 
 1. **Zenith's shell** — the terminal-launcher setting the bar button calls
-2. **`gsettings set org.gnome.desktop.default-applications.terminal exec kitty`** — so the
+2. **`gsettings set org.gnome.desktop.default-applications.terminal exec ghostty`** — so the
    file manager's "Open in Terminal" and GTK dialogs use it
 3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator` with an explicit `--slave` and
-   alternatives name — for applications that hardcode the VTE path
-4. **kitty's zsh shell integration**, sourced from `~/.zshrc` — prompt marking, and what makes
-   `kitty @` and the pager integration work
+   alternatives name — for applications that hardcode the VTE path. Ghostty's own packages do
+   not register this alternative, so `zenith-terminal` owns doing it.
+4. **Ghostty's zsh shell integration**, sourced from `~/.zshrc` — prompt marking via OSC 133,
+   which is what the pager integration and starship's own status reporting depend on
 
-**Packaging consequence, stated plainly:** kitty is not carried by the base layer's archive,
-so `zenith-terminal` builds it from source and Zenith owns that build for the life of the project.
-That is a deliberate trade: the base layer maintains one binary for us, and we maintain a
-better one ourselves. See [the rejected options](#rejected-and-why).
+**Packaging consequence, stated plainly:** Ghostty is carried by the base layer's archive, but
+at a version behind upstream, and it is in `universe` — the component the base layer does not
+treat as part of a release. So Zenith builds and pins Ghostty itself in `zenith-terminal` and
+owns that build for the life of the project. That is a deliberate trade: the archive would
+maintain one binary for us, and we maintain a current one ourselves. See
+[the rejected options](#rejected-and-why).
 
-What kitty brings that a stock terminal does not, and why it is worth the build:
+**That choice is what sets the base version, and the coupling is deliberate.** Ghostty's own
+version policy is *"minimum GTK/Adwaita in the most recent LTS at the time of a minor release."*
+Zenith adopts that policy verbatim, which means the base version and the terminal version are
+coupled on purpose rather than by accident. Ghostty 1.2.x needs GTK 4.14 and Adwaita 1.5;
+1.1.x needs GTK 4.8 and Adwaita 1.2. A Zenith release that moves its base moves Ghostty's
+floor in the same release.
+
+Build dependencies `zenith-terminal` carries beyond the base layer, which are **required, not
+optional**: `gtk4-layer-shell` — absent from a stock Ubuntu image — plus `libglslang`, `libhwy`,
+`libsimdutf` and `oniguruma`, and the split `ghostty-shell-integration` and `ghostty-terminfo`
+packages. Also `gtk4`, `libadwaita`, `freetype`, `fontconfig`, `harfbuzz`, `pixman`, `libpng`,
+`zlib`, `wayland` and `libx11` from the archive.
+
+What Ghostty brings that a stock terminal does not, and why it is worth the build:
 
 | | |
 |---|---|
-| Terminal graphics protocol | Inline images and animations. kitty originated it; `icat` displays remote images in a pane |
-| `kitty @` remote control | The shell and the bar can open tabs, set colours, and query panes over a socket |
-| Kittens | Python extensions for `diff`, `ssh`, `choose_files`, `hints`, `notify` |
-| Shell integration | Prompt marking, hyperlink handling, clickable paths |
-| Layouts | Tabs, splits, grid, stack — configurable per session |
+| GPU rendering | The whole grid is drawn client-side, so scrollback and redraw stay cheap on a Wayland session |
+| Shell integration | OSC 133 prompt marking, hyperlink handling, clickable paths |
+| Tab and split configuration | Tabs and splits configured declaratively, per config rather than per menu |
+| `ghostty +…` CLI | `ghostty +show-config`, `ghostty +list-fonts`, `ghostty +version` — the config is inspectable and scriptable rather than a GUI-only surface |
+| Single config file | `~/.config/ghostty/config`, which sits under Zenith's overlay like everything else, so `zenith update` cannot clobber it |
 
 Default font: **JetBrainsMono Nerd Font** — for devicon and powerline glyphs, not because
 ligatures require it.
 
 ### User shell: zsh
 
-zsh is the shell, starship is the prompt, and kitty is where they meet.
+zsh is the shell, starship is the prompt, and Ghostty is where they meet.
 
-- zsh is the login shell; kitty's `shell` setting points at it explicitly so the session does
-  not depend on what `$SHELL` happens to say
-- kitty's zsh integration is sourced from `~/.zshrc`, guarded so a non-kitty terminal does
+- zsh is the login shell; Ghostty's `command` setting points at it explicitly so the session
+  does not depend on what `$SHELL` happens to say
+- Ghostty's zsh integration is sourced from `~/.zshrc`, guarded so a non-Ghostty terminal does
   not error on the missing file
 - `starship` renders the prompt; its configuration lives under Zenith's overlay like everything
   else, so `zenith update` cannot clobber it
@@ -449,11 +495,49 @@ regressions are visible rather than anecdotal.
 
 ---
 
+## What draws the login screen
+
+The greeter runs before any user session exists, so neither Hyprland nor XWayland is available
+to it. That was the open question that blocked the image from logging in at all, and it is now
+settled: **SDDM in Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith.**
+
+The chain, in the order it happens at login:
+
+| Stage | Who | What |
+|---|---|---|
+| Login surface appears | SDDM | `DisplayServer=wayland`, launching `CompositorCommand` rather than starting an X server |
+| Something holds the DRM card | Zenith's greeter wrapper | `weston --shell=kiosk`, run at each output's top mode so the login screen matches a high-refresh session instead of the EDID-preferred 60Hz |
+| Login form is drawn | Zenith | Zenith's own login surface, on the compositor above |
+| Authentication | the base layer | PAM, in `sddm-session`. Zenith does not touch `/etc/pam.d/` |
+| Session starts | `zenith-session` | `exec Hyprland`, then the shell's unit after the compositor |
+
+**Why SDDM and not `greetd`.** The greeter needs a Wayland compositor of its own, because
+there is no session to borrow one from. SDDM provides that seam — a `CompositorCommand` hook —
+and the base layer already ships and maintains it. `greetd` draws directly onto the TTY, which
+means either X11 or writing a KMS/DRM renderer into the login path; both are new code on the
+critical path for no user-visible gain. Choosing `greetd` would have meant owning a display
+manager to get a login screen the base layer already provides.
+
+**Why Weston and not the Xorg server.** The obvious alternative was keeping `xorg-server` in the
+image purely so the greeter could draw on it. That keeps a display server Zenith otherwise has
+no use for, adds an X11 login path whose failure modes nobody would be watching, and means the
+login screen renders through XWayland-era code. A kiosk Weston costs one process at login and
+nothing afterwards. `modetest` reads each connector's modes without holding DRM master, so it
+runs before Weston takes the card; any uncertainty — no `modetest`, nothing connected, an empty
+parse — falls back to plain Weston, so **the greeter always comes up.**
+
+This is a working answer, not a theory: Ryoku ships exactly this chain and it is the reason
+this question is closed rather than open. Zenith's copy must be its own — a `zenith-greeter`
+wrapper and a Zenith-drawn login surface, under a drop-in in `/etc/sddm.conf.d/` — because a
+shipped file is never edited in place.
+
+---
+
 ## Open questions
 
 | Question | Why it matters |
 |---|---|
-| **What draws the login screen** | The greeter runs before any user session exists, so neither Hyprland nor XWayland is available to it. Excluding the Xorg server is right for the *session* — XWayland covers X11 clients there — but something has to draw the greeter. Either SDDM's Wayland greeter is made to work on Qt 6, or the Xorg server stays in the image purely for the login screen. **Until this is decided the image cannot log in.** |
+| ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the portal seam](#the-portal-seam). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |

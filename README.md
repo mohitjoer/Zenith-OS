@@ -37,11 +37,11 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets |
 | Control tools | Go — `zenith`, `zenith-shell`, `zenith-hub` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
-| Terminal | kitty — built from source by Zenith, because the base layer does not package it |
+| Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version |
 | User shell | zsh + starship |
 | Editor | Neovim |
 | Boot chain | Limine |
-| Login manager | SDDM |
+| Login manager | SDDM, in Wayland greeter mode |
 | Desktop services | pipewire + wireplumber, power-profiles-daemon, iwd, NetworkManager, fprintd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, with `gnome-keyring` for secrets |
 | Package manager | APT, with a signed first-party repository |
@@ -59,10 +59,12 @@ reach.
 the hardware reach the whole distribution exists for.
 
 The terminal is the deliberate exception, and the cost is stated rather than hidden. The base
-layer maintains a terminal for us; it does not package kitty, so Zenith builds kitty from source
-and owns that build for the life of the project. That is a real ongoing cost and Zenith pays it on
-purpose: kitty is the most capable terminal in the stack, and the terminal is the surface a
-developer looks at all day.
+layer carries Ghostty, but in `universe` and a version behind upstream, so Zenith builds and
+pins it from source and owns that build for the life of the project. That is a real ongoing cost
+and Zenith pays it on purpose: Ghostty is the most capable terminal in the stack, and the
+terminal is the surface a developer looks at all day. It is also what fixes the base version —
+Ghostty's own policy is "minimum GTK/Adwaita in the most recent LTS at the time of a minor
+release", and Zenith adopts that verbatim, so base and terminal move together deliberately.
 
 ### No GNOME
 

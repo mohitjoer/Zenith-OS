@@ -23,7 +23,7 @@ What they get is the Zenith shell:
 - Zenith's Quickshell-drawn shell — bar, dock, launcher, popouts, widgets
 - `zenith`, `zenith-shell` and `zenith-hub` as the control tools and the only writers of `org.zenith.*`
 - Zenith's portal stack — `xdg-desktop-portal-hyprland` and `xdg-desktop-portal-gtk`
-- kitty, zsh, Neovim, and the rest of Zenith's runtime stack
+- Ghostty, zsh, Neovim, and the rest of Zenith's runtime stack
 
 The distribution is still Ubuntu's. Zenith's packages are installed on top of it, exactly as they
 are on a Zenith OS install, and they obey the same rule they obey everywhere else:
@@ -256,7 +256,7 @@ touched.
 | 7 | Import selected GNOME settings into `org.zenith.*`. | dconf | no |
 | 8 | Enable `power-profiles-daemon` and the non-GNOME desktop services. | systemd state | yes |
 | 9 | Seed `~/.config/zenith/`, `user_edits/`, and `~/.local/share/zenith/plugins/`. | user | no |
-| 10 | Apply the four kitty defaults. | dconf, `/usr/bin/x-terminal-emulator`, `~/.zshrc` | mixed |
+| 10 | Apply the four Ghostty defaults. | dconf, `/usr/bin/x-terminal-emulator`, `~/.zshrc` | mixed |
 | 11 | Write the state file and the generated undo script. | `/etc/zenith/adopt/` | yes |
 | — | Print the next action: log out, pick Zenith. | — | — |
 
@@ -314,7 +314,7 @@ every failure path in this document read it.
   "user_writes": [
     { "path": "~/.config/xdg-desktop-portal/portals.conf",
       "archived_to": "~/.local/state/zenith/adopt/portals.conf.gnome" },
-    { "path": "~/.zshrc", "action": "appended_kitty_integration_block" },
+    { "path": "~/.zshrc", "action": "appended_ghostty_integration_block" },
     { "dconf": "org.gnome.desktop.default-applications.terminal exec",
       "value_before": "gnome-terminal" },
     { "alternatives": "x-terminal-emulator",
@@ -427,20 +427,25 @@ first. **No root dconf**: `gsettings` run as root writes root's database and sil
 which is worse than failing — the value would look restored and would not be. So the script
 prints the exact user-scoped commands instead of pretending.
 
-### The kitty defaults
+### The Ghostty defaults
 
-[`architecture.md`](architecture.md#terminal-kitty) is explicit that kitty is only the
+[`architecture.md`](architecture.md#terminal-ghostty) is explicit that Ghostty is only the
 default when all four places are set, or the desktop is inconsistent. Adoption applies all four
 rather than leaving a machine that is half-converted.
 
 ```bash
-gsettings set org.gnome.desktop.default-applications.terminal exec kitty
-update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/kitty 30
+gsettings set org.gnome.desktop.default-applications.terminal exec ghostty
+update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/ghostty 30
 # ~/.zshrc — appended as a delimited block, never edited in place
-#   if [ -f /usr/lib/kitty/shell-integration/zsh/kitty-integration.zsh ]; then
-#       . /usr/lib/kitty/shell-integration/zsh/kitty-integration.zsh
+#   if [ -f /usr/share/ghostty/shell-integration/zsh/ghostty-integration ]; then
+#       . /usr/share/ghostty/shell-integration/zsh/ghostty-integration
 #   fi
 ```
+
+The shell integration ships in the split `ghostty-shell-integration` package, which is why it
+is a separate install rather than a file the terminal binary carries. The `update-alternatives`
+call needs no `--slave`: Ghostty's packages register no alternatives of their own, so Zenith
+registers the only one and nothing shadows it later.
 
 The `org.gnome.desktop.default-applications.terminal` write takes effect at the next GNOME
 login too, so `zenith` records the previous value and `--undo` restores it. The

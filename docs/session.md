@@ -33,8 +33,8 @@ a boundary that is not written down gets crossed by accident.
 | `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf` | Drop-in | systemd reads drop-ins from a fixed directory beside the unit |
 | `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
-| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. Pending: this one is not on the sanctioned list yet and should be added to [`architecture.md`](architecture.md#the-base-layer-boundary) |
-| `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory. Same pending note |
+| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
+| `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory. Same list |
 | `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
 
 These are registrations — pointers a third-party binary must find — not Zenith-owned content.
@@ -345,12 +345,16 @@ The login manager is the base layer's, and Zenith uses it as shipped.
 2. Authenticates the user through PAM, in the `sddm-session` service.
 3. Starts the session file the user selected, as that user, with the session's environment.
 
-The greeter is an **X11 client**. The base layer's login manager has no Wayland greeter, so
-the login screen needs an X server of its own while the user session is pure Wayland.
-XWayland is a separate thing: it is how the compositor serves X11 applications, and it is
-not a second session type. The package manifest currently excludes the Xorg metapackage and
-ships XWayland, so the login screen's display server is an open item — see
-[open questions](#open-questions).
+The greeter is a **Wayland** surface. The base layer's login manager has no Wayland greeter of
+its own, so Zenith supplies one: `DisplayServer=wayland` in a drop-in under `/etc/sddm.conf.d/`,
+with `CompositorCommand` pointing at `zenith-greeter`, which runs `weston --shell=kiosk` to hold
+the DRM card and hosts Zenith's own login surface on it. The package manifest therefore excludes
+the Xorg metapackage and ships XWayland, and nothing is needed for the login screen at all —
+which is the point. XWayland remains the compositor serving X11 applications inside the session;
+it is not a second session type, and it is not what draws the login screen.
+
+This is settled, and the reasoning is written up in
+[`architecture.md`](architecture.md#what-draws-the-login-screen).
 
 ### The session file
 
@@ -937,7 +941,7 @@ the error is, which is why the failure mode has to name the command.
 
 | Question | Why it matters |
 |---|---|
-| The login screen's display server | The base layer's display manager has no Wayland greeter, so the login screen needs an X server, and the package manifest currently excludes the Xorg metapackage. Either the exclusion is narrowed, or Zenith writes its own greeter. The session path is the half of the product a user sees before any of it works. |
+| ~~The login screen's display server~~ | **Settled** — SDDM in Wayland greeter mode with a Weston kiosk compositor hosted by Zenith. The package manifest keeps the Xorg metapackage excluded. See [architecture.md](architecture.md#what-draws-the-login-screen). |
 | The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the secret gap](#the-secret-gap). |
 | The shell as a portal backend | The shell owns `org.freedesktop.Notifications`, so every ordinary application is served. The portal's own Notification interface still resolves to the GTK backend, because the shell is not a registered portal backend. Whether it becomes one decides whether a portal client sees the shell's surface or a GTK window. |
 | The `zenith-session` script's scope | It is the session entry point today. Whether it also owns the pre-flight checks — the portal preference file, the PAM stack, the keyring — is not decided. The failure modes above are all "something was wrong and nobody was told", and that is the argument for it. |
