@@ -162,21 +162,79 @@ if command -v systemd-analyze >/dev/null 2>&1; then
         fi
     done
 
-    # The start order is the part of the session that is easiest to get wrong
-    # and quietest when it is wrong, so it is asserted rather than eyeballed.
-    rc=0; grep -q '^After=zenith-portal.service$'         "$REPO_ROOT/session/units/zenith-shell.service" || rc=$?
+    # The start order is the part of the session that is easiest to get wrong and
+    # quietest when it is wrong, so it is asserted rather than eyeballed.
+    #
+    # Each dependency is checked as a member of an After= list rather than as a
+    # line of its own: the spec puts all three on one line, and a check that
+    # only ever matched a lone line would pass against the wrong unit.
+    # An After=/Requires= value can be one unit or several. The first one shares
+    # a field with the key ("After=hyprland-session.target"), the rest are separate
+    # fields, so both have to be scanned or a single-dependency unit silently
+    # matches nothing.
+    has_dep() {
+        awk -v key="$2" -v want="$3" '
+            index($0, key "=") == 1 {
+                split($1, head, "=")
+                for (i = 2; i <= length(head); i++)
+                    if (head[i] == want) found = 1
+                for (i = 2; i <= NF; i++)
+                    if ($i == want) found = 1
+            }
+            END { exit !found }' "$1"
+    }
+    after() { has_dep "$1" After "$2"; }
+    requires() { has_dep "$1" Requires "$2"; }
+
+    SHELL_UNIT="$REPO_ROOT/session/units/zenith-shell.service"
+    PORTAL_UNIT="$REPO_ROOT/session/units/zenith-portal.service"
+
+    # The shell waits for the dispatcher: the dispatcher resolves its backends
+    # once at startup and never re-reads them, so a shell that starts first asks
+    # the bus for a portal that has not been decided on yet.
+    rc=0; after "$SHELL_UNIT" zenith-portal.service || rc=$?
     check "the shell is ordered after the portal dispatcher" $rc
 
-    rc=0; grep -q '^Requires=zenith-portal.service$'         "$REPO_ROOT/session/units/zenith-shell.service" || rc=$?
-    check "the shell requires the portal dispatcher" $rc
+    rc=0; after "$SHELL_UNIT" hyprland-session.target || rc=$?
+    check "the shell is ordered after the compositor" $rc
 
-    rc=0; grep -q '^After=hyprland-session.target$'         "$REPO_ROOT/session/units/zenith-portal.service" || rc=$?
+    # Audio: the shell's volume widget has nothing to talk to without it.
+    rc=0; after "$SHELL_UNIT" wireplumber.service || rc=$?
+    check "the shell is ordered after the audio policy" $rc
+
+    # Requires, not just After. Ordered-only leaves the shell running against a
+    # display that is no longer there.
+    rc=0; requires "$SHELL_UNIT" hyprland-session.target || rc=$?
+    check "the shell requires the compositor's session target" $rc
+
+    rc=0; after "$PORTAL_UNIT" hyprland-session.target || rc=$?
     check "the portal dispatcher is ordered after the compositor" $rc
 
+    # Type=dbus is what makes "started" mean the bus name is held, which is the
+    # only moment the portal is genuinely usable. Type=exec would leave the shell
+    # ordered against a process that has not yet chosen its backends.
+    rc=0; grep -q '^Type=dbus$' "$PORTAL_UNIT" || rc=$?
+    check "the portal dispatcher is typed dbus, not exec" $rc
+
+    rc=0; grep -q '^BusName=org.freedesktop.portal.Desktop$' "$PORTAL_UNIT" || rc=$?
+    check "the portal dispatcher claims the portal bus name" $rc
+
     for unit in zenith-shell zenith-portal; do
-        rc=0; grep -q '^PartOf=graphical-session.target$'             "$REPO_ROOT/session/units/$unit.service" || rc=$?
+        rc=0; grep -q '^PartOf=graphical-session.target$' \
+            "$REPO_ROOT/session/units/$unit.service" || rc=$?
         check "$unit is part of the graphical session" $rc
+
+        # WantedBy the compositor's target, not graphical-session.target: the
+        # upstream target is what actually pulls the session up.
+        rc=0; grep -q '^WantedBy=hyprland-session.target$' \
+            "$REPO_ROOT/session/units/$unit.service" || rc=$?
+        check "$unit is wanted by the compositor's session target" $rc
     done
+
+    # The drop-in is what pulls either unit up at all.
+    rc=0; grep -q 'zenith-shell.service' \
+        "$REPO_ROOT/session/units/hyprland-session.target.d-10-zenith.conf" || rc=$?
+    check "the session drop-in wants the shell" $rc
 else
     echo "skip  — systemd-analyze is not installed"
 fi

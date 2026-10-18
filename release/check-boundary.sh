@@ -23,7 +23,8 @@ PKG=${2:-zenith}
 # in a fixed directory that a third-party binary scans and nowhere else.
 ALLOWED="usr/share/zenith/
 etc/zenith/
-etc/sddm.conf.d/10-zenith.conf
+# /etc/sddm.conf.d/10-zenith.conf is sanctioned but not installed yet; it lands
+# with zenith-greeter, which does not exist yet.
 usr/share/doc/$PKG/
 usr/share/wayland-sessions/zenith.desktop
 usr/share/xdg-desktop-portal/zenith-portals.conf

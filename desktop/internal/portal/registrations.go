@@ -71,9 +71,15 @@ var registrations = []Registration{
 		Sanctioned: true,
 	},
 	{
-		Name:       "login manager preferences",
-		Path:       "/etc/sddm.conf.d/10-zenith.conf",
-		Target:     "/usr/share/zenith/units/10-zenith.conf",
+		Name: "login manager preferences",
+		Path: "/etc/sddm.conf.d/10-zenith.conf",
+		// No target yet, because there is no greeter. The drop-in's whole
+		// purpose is DisplayServer=wayland with CompositorCommand=zenith-greeter,
+		// and shipping it before the greeter exists would take the login screen
+		// down rather than leave it alone: SDDM has no way to start a Wayland
+		// greeter that is not there. It is registered here so the gap is visible
+		// rather than forgotten, and it ships with the greeter.
+		Target:     "",
 		Sanctioned: true,
 	},
 }
@@ -130,6 +136,12 @@ func CheckRegistrations(env RegistrationEnv) []RegistrationFinding {
 				Path:   registration.Path,
 				Reason: "not installed; the package that should write it did not",
 			})
+			continue
+		}
+
+		// A registration whose content is not written yet is checked for presence
+		// alone. There is nothing to point at.
+		if registration.Target == "" {
 			continue
 		}
 
@@ -217,7 +229,39 @@ func CheckUnits(env RegistrationEnv) []RegistrationFinding {
 		}
 	}
 
+	// The shell's own content. `quickshell -p /usr/share/zenith/shell` exits
+	// cleanly and immediately when that directory is empty or missing, so a
+	// missing config directory produces no error from the unit, no entry in the
+	// journal beyond a line nobody reads, and a login with no shell on it. It is
+	// checked here for the same reason the ExecStart targets are: a missing input
+	// is only visible before the login, not during it.
+	findings = append(findings, checkDirectory(env, "shell configuration",
+		"/usr/share/zenith/shell")...)
+
 	return findings
+}
+
+// checkDirectory asserts that a required directory exists and is a directory.
+//
+// Stat alone is not enough: a regular file where a directory belongs makes the
+// reader fail later, with the same silence.
+func checkDirectory(env RegistrationEnv, name, absolute string) []RegistrationFinding {
+	info, err := os.Stat(env.path(absolute))
+	if err != nil {
+		return []RegistrationFinding{{
+			Name:   name,
+			Path:   absolute,
+			Reason: "does not exist",
+		}}
+	}
+	if !info.IsDir() {
+		return []RegistrationFinding{{
+			Name:   name,
+			Path:   absolute,
+			Reason: "exists but is not a directory",
+		}}
+	}
+	return nil
 }
 
 func (e RegistrationEnv) path(absolute string) string {

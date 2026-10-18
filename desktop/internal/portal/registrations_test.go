@@ -19,18 +19,21 @@ func installedTree(t *testing.T) RegistrationEnv {
 		mkdirAll(t, filepath.Dir(filepath.Join(root, registration.Path)))
 		writeFile(t, filepath.Join(root, registration.Path), "[Desktop Entry]\n")
 
+		if registration.Target == "" {
+			continue // nothing to point at yet
+		}
 		mkdirAll(t, filepath.Dir(filepath.Join(root, registration.Target)))
 		writeFile(t, filepath.Join(root, registration.Target), unitBody)
 	}
 
 	// Each unit points at its own binary, so the check has to read each rather
-	// than find the same target in both. The binaries themselves are absent: the
-	// shell and the portal wrapper do not exist yet in this milestone, and the
-	// check saying so is the point.
+	// than find the same target in both. The binaries are the base layer's, not
+	// Zenith's, and they are absent from this tree: the check saying so is the
+	// point.
 	writeFile(t, filepath.Join(root, "/usr/share/zenith/units/zenith-shell.service"),
-		"[Service]\nExecStart=/usr/share/zenith/shell/zenith-shell\n")
+		"[Service]\nExecStart=/usr/bin/quickshell -p /usr/share/zenith/shell\n")
 	writeFile(t, filepath.Join(root, "/usr/share/zenith/units/zenith-portal.service"),
-		"[Service]\nExecStart=/usr/share/zenith/portal/zenith-portal\n")
+		"[Service]\nExecStart=/usr/libexec/xdg-desktop-portal\n")
 	mkdirAll(t, filepath.Join(root, "/usr/share/zenith/shell"))
 	mkdirAll(t, filepath.Join(root, "/usr/share/zenith/portal"))
 
@@ -85,7 +88,11 @@ func TestEveryRegistrationIsSanctioned(t *testing.T) {
 			t.Errorf("%s is not on the sanctioned list in architecture.md",
 				registration.Path)
 		}
-		if !strings.HasPrefix(registration.Target, "/usr/share/zenith/") {
+		// An empty target is a registration whose content is not written yet.
+		// When there is one, it still has to live under /usr/share/zenith/ —
+		// a registration is a pointer and its content belongs there.
+		if registration.Target != "" &&
+			!strings.HasPrefix(registration.Target, "/usr/share/zenith/") {
 			t.Errorf("%s points at %s; a registration is a pointer and its content "+
 				"belongs under /usr/share/zenith/",
 				registration.Path, registration.Target)
@@ -197,8 +204,8 @@ func TestUnitPointingAtNothingIsFound(t *testing.T) {
 func TestUnitsPassWhenTheirBinariesExist(t *testing.T) {
 	env := installedTree(t)
 	for _, binary := range []string{
-		"/usr/share/zenith/shell/zenith-shell",
-		"/usr/share/zenith/portal/zenith-portal",
+		"/usr/bin/quickshell",
+		"/usr/libexec/xdg-desktop-portal",
 	} {
 		path := filepath.Join(env.Root, binary)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

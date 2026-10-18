@@ -1,42 +1,40 @@
-# Zenith's shell.
+# Zenith shell (Quickshell).
 #
-# PartOf=graphical-session.target rather than WantedBy= it. A shell started as a
-# WantedBy of the target is a separate lifetime: it survives the target going
-# away, and it is not torn down with it. PartOf ties the two directions, so
-# ending the session ends the shell and ending the shell ends the session.
+# After=zenith-portal.service is the line that is easiest in the session to get
+# wrong, because both sides of it work individually and the failure is quiet. The
+# Hyprland backend shells out to grim, slurp and hyprpicker, and does not create
+# the Screenshot portal at all when grim is missing — so a screenshot keybinding
+# produces nothing rather than an error. The dispatcher resolves its backends
+# once at startup and never re-reads them, so the shell has to wait for the
+# dispatcher to have made that decision.
 #
-# After=zenith-portal.service is the load-bearing line. The dispatcher resolves
-# its backends once, at startup, and never re-reads them: it reads
-# XDG_CURRENT_DESKTOP and the portals.conf chain, decides which backend implements
-# which interface, and only then takes its bus name. That decision holds for the
-# life of the process. The shell therefore has to wait for the dispatcher to have
-# made it, or the shell asks the bus for a portal the dispatcher has not decided
-# it implements.
+# Requires=hyprland-session.target, not just After=: without it the shell is
+# merely ordered, so pulling the compositor target down leaves the shell running
+# against a display that is no longer there.
 [Unit]
-Description=Zenith shell
+Description=Zenith shell (Quickshell)
 Documentation=https://github.com/mohitjoer/Zenith-OS
 PartOf=graphical-session.target
-After=graphical-session.target
-After=zenith-portal.service
-Requires=zenith-portal.service
-# Without a compositor there is no surface to draw on, and the shell would exit
-# immediately and take the session's appearance with it.
+After=hyprland-session.target zenith-portal.service wireplumber.service
+Requires=hyprland-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
-# A shell that has to be killed nine times in ten seconds is a shell that cannot
-# start; give up rather than spin.
+# A shell that has to be killed nine times in thirty seconds is a shell that
+# cannot start; give up rather than spin.
 #
-# The two StartLimit settings live in [Unit], not [Service]. systemd reads the
-# rate limiter from the unit, and systemd-analyze verify says so plainly —
-# "Unknown key 'StartLimitIntervalSec' in section [Service], ignoring" — which is
-# the difference between a limiter that works and one that was never applied.
+# These two live in [Unit], not [Service]. systemd reads the rate limiter from
+# the unit, and systemd-analyze verify says so plainly — "Unknown key
+# 'StartLimitIntervalSec' in section [Service], ignoring" — which is the
+# difference between a limiter that works and one that was never applied.
 StartLimitIntervalSec=30
 StartLimitBurst=5
 
 [Service]
 Type=exec
-ExecStart=/usr/share/zenith/shell/zenith-shell
+ExecStart=/usr/bin/quickshell -p /usr/share/zenith/shell
+ExecReload=/bin/kill -SIGUSR1 $MAINPID
 Restart=on-failure
 RestartSec=1
+Slice=app.slice
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=hyprland-session.target

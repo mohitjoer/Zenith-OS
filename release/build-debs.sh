@@ -72,8 +72,14 @@ cp "$STAGE/usr/share/zenith/units/"*.service "$STAGE/usr/lib/systemd/user/"
 cp "$STAGE/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf" \
    "$STAGE/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
 
-mkdir -p "$STAGE/etc/sddm.conf.d"
-cp "$STAGE/usr/share/zenith/units/10-zenith.conf" "$STAGE/etc/sddm.conf.d/"
+# The SDDM drop-in is deliberately NOT installed yet.
+#
+# Its entire content is DisplayServer=wayland with
+# CompositorCommand=zenith-greeter, and SDDM has no way to start a Wayland
+# greeter that does not exist: shipping the drop-in before zenith-greeter lands
+# does not degrade the login screen, it removes it. The registration stays on the
+# sanctioned list and stays reported by `zenith doctor` so the gap is visible.
+# It ships with the greeter.
 
 # --------------------------------------------------------------- hardware data
 mkdir -p "$STAGE/usr/share/zenith/hardware/profiles"

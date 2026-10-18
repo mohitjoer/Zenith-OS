@@ -132,9 +132,14 @@ Before any shell work, because it validates the base-layer bet.
   the second ordered after `hyprland-session.target` and the first after the
   second, which is the order that is easiest in the session to get wrong and
   fails quietly when it is
-- [x] The session-target drop-in and the SDDM drop-in, both additive: adoption
-  still leaves gdm3 in place, so a user who wants the old session has two to
-  choose from rather than a machine that no longer boots
+- [x] The session-target drop-in
+- [ ] The SDDM drop-in — held, not shipped. Its entire content is
+  `DisplayServer=wayland` with `CompositorCommand=zenith-greeter`, and SDDM has no
+  way to start a Wayland greeter that does not exist, so installing it before the
+  greeter lands does not degrade the login screen, it removes it. The
+  registration is on the sanctioned list and `zenith doctor` reports it, so the
+  gap is visible rather than forgotten. It ships with the greeter, which is now
+  an M6 item.
 - [x] All six registrations packaged, every one on the sanctioned list in
   [architecture.md](architecture.md), each a pointer to content under
   `/usr/share/zenith/`
@@ -147,10 +152,12 @@ Before any shell work, because it validates the base-layer bet.
 - [ ] Verified under screen sharing, screenshot, camera access, the GTK file
   chooser and a secret round-trip — none of which can be done without a display
 
-The units name a shell and a portal wrapper that do not exist yet. That is the
-honest state of the tree, and it is why `zenith doctor` reports them: the units
-are installed and correct, and they point at binaries this milestone has not
-shipped. M6 owns the shell and the wrapper.
+The units are installed and correct. What they run is not there yet:
+`/usr/bin/quickshell -p /usr/share/zenith/shell` has no configuration directory
+to read, and `/usr/libexec/xdg-desktop-portal` is the base layer's, which is
+correct — the dispatcher is a shadow of it, not a replacement. `zenith doctor`
+reports the missing shell configuration, which is the honest state of the tree.
+M6 owns the shell.
 
 **The portal assertion is the point of this milestone.** `xdg-desktop-portal`
 derives its per-desktop configuration file name from `XDG_CURRENT_DESKTOP`,
@@ -180,6 +187,10 @@ ignore its exit code.
 
 ## M6 — The shell
 
+- `zenith-greeter`, which runs `weston --shell=kiosk` and hosts Zenith's own login
+  surface. It had no owner until the SDDM drop-in made the dependency explicit:
+  the drop-in points at it, so the login screen cannot ship without it. M6 owns it
+  because it is a Quickshell surface like everything else on the desktop.
 - Quickshell bar and dock, layout driven by `org.zenith.shell` schemas
 - `zenith-shell` as the only writer of those schemas
 - Launcher, popouts, widget catalogue
