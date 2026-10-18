@@ -34,7 +34,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 |---|---|
 | Base layer | Ubuntu 26.04 LTS — the substrate only |
 | Compositor | Hyprland |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets, built by Zenith |
 | Control tools | Go — `zenith`, `zenith-shell`, `zenith-hub` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
 | Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version |

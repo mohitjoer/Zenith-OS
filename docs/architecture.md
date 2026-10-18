@@ -15,7 +15,7 @@ closed question or assumes an open one is closed.
 | Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
 | Filesystem & Rollback | Btrfs subvolumes with automated pre-APT snapshot hooks | Enables atomic updates and instant rollback without wasting space on full system copies. |
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter | Compositor-agnostic, proven, and the design language already lives in QML/CSS. |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter, built by Zenith because the base layer carries no such shell | Compositor-agnostic, proven, and the design language already lives in QML/CSS. See [the shell](#the-shell). |
 | Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
 | Terminal | Ghostty — built and pinned upstream by Zenith, which is what sets the base version | GPU-accelerated and client-side rendered; Ghostty's own GTK/Adwaita floor policy is adopted verbatim, so base and terminal move together on purpose. |
 | User shell | zsh + starship | fish and blesh ship alongside as alternatives. |
@@ -243,6 +243,38 @@ and `zenith doctor` reports it.
 ---
 
 ## Runtime stack
+
+### The shell
+
+Quickshell, and Zenith builds it. The base layer carries no compositor-agnostic
+shell toolkit at all — verified rather than assumed: `quickshell`, `ags`, `eww` and
+`ironbar` are in no component of 26.04. What the archive does carry is *panels* —
+`waybar`, `yambar`, `tint2`, `polybar`, `xfce4-panel` — and a panel is not a
+substitute. A panel draws a bar. Zenith's shell hosts the bar, dock, launcher,
+popouts, widget catalogue, notification server, lock, idle screen, quick settings
+and status icons, and the Hub window as well, in one compositor-agnostic toolkit,
+so that the desktop has one UI toolkit and one design system rather than two.
+
+That makes this the second recorded exception to the base-layer boundary, alongside
+the terminal. It is a comfortable one: Quickshell is MIT, and the build needs
+nothing the archive does not already carry — `qt6-declarative-dev`, `qt6-wayland`,
+`qml6-module-qtquick`, `qml6-module-qtquick-controls`, `qml6-module-qtquick-layouts`,
+`qt6-base-dev`, `meson`, `ninja-build`, `cmake` and `pkgconf` are all archive
+packages, so there is no vendored blob and no redistribution question. The rule the
+exception sits against is the one in the manifest's header: never repackage what the
+base layer carries. Quickshell is not in the base layer, so building it is not a fork.
+
+`zenith-shell` owns that build, and it is build-only — none of those names enter the
+runtime image, they are what the build needs to produce a package the image installs.
+The manifest's `zenith_built:` key exists so the departure from its own rule is
+visible in one place rather than implied by a comment, and
+`system/verify-packages.py` checks it in the inverse direction: a `zenith_built:`
+entry that turns up in the archive is a warning, because rebuilding a package the
+base layer now maintains is exactly the fork the rule prevents.
+
+The test matrix question stays open — see [open questions](#open-questions) — and it
+now has more weight than it did, because a shell Zenith builds is a shell Zenith has
+to rebuild when upstream moves.
 
 ### Terminal: Ghostty
 

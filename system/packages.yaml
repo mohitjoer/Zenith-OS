@@ -12,11 +12,19 @@
 #    package with the wrong configuration gets a Zenith config package or a
 #    drop-in shadowing it under a zenith- name, never an in-place edit. The list
 #    below is therefore also the list of things Zenith must never patch.
-# 2. Zenith references the base layer's components; it never repackages them.
-#    Every entry resolves to an archive component of the base layer. Rebuilding
-#    one as a Zenith deb would make Zenith the distributor of software and firmware
-#    blobs it has no licence to redistribute — which is why firmware is a named
-#    group of references rather than a vendored directory in this tree.
+# 2. Zenith references the base layer's components. Every entry under `packages:`
+#    resolves to an archive component of the base layer, and the rule is that
+#    Zenith never repackages what the base layer already carries — rebuilding a
+#    package that exists upstream would fork it, and for firmware it would make
+#    Zenith the distributor of blobs it has no licence to redistribute. That is
+#    why firmware is a named group of references rather than a vendored directory
+#    in this tree.
+#
+#    Where the base layer carries nothing at all, Zenith builds it and says so
+#    under `zenith_built:` — a different key, never mixed into `packages:`,
+#    because the whole point is that it does not resolve to the archive. There
+#    are two such entries, both written where they live: the terminal
+#    (see terminal-and-shell) and the shell (see desktop).
 # 3. A name this manifest gets wrong must fail at image build time, loudly.
 #    A package that fails to install is a bug report. A package that quietly
 #    vanished is a hardware report six months later. Where an exact 26.04 name
@@ -66,10 +74,11 @@ base:
     the icon and cursor themes — ship from Zenith's signed APT repository and are
     not a base-layer dependency of anything listed here. If a package below is
     not in the base archive, it is a bug in this file, not a reason to build it.
-    There is exactly one recorded exception, and it is stated where it lives:
-    the terminal is carried by this archive only in `universe` and behind
-    upstream, so Zenith builds and pins it — see terminal-and-shell. That entry is
-    also what fixes `release` above.
+    Nothing in this file comes from Zenith's own repository, with two stated
+    exceptions: the terminal is carried here only in `universe` and behind
+    upstream, so Zenith builds and pins it — see terminal-and-shell — and the
+    shell is not carried here at all, so Zenith builds it — see `zenith_built` in
+    the desktop group. The terminal entry is also what fixes `release` above.
 
 # ---------------------------------------------------------------------------
 # essential
@@ -216,12 +225,6 @@ desktop:
     # is chosen once here and the seam is where a second one would be added.
     - hyprland
 
-    # The shell. QML, compositor-agnostic. Name to verify on 26.04: it is young
-    # enough to the archive that the package spelling should be checked rather
-    # than assumed, and if it is absent from universe it ships from Zenith's
-    # repository instead — which is a repository fact, not a manifest change.
-    - quickshell
-
     # The portal stack: the dispatcher every application talks to, the Hyprland
     # backend for ScreenCast and Screenshot, the GTK backend for FileChooser,
     # OpenURI and Print, and the keyring behind Secret.
@@ -261,6 +264,43 @@ desktop:
     # shell and Hyprland's keybind scripts need a clipboard owner that speaks
     # Wayland rather than X11.
     - wl-clipboard
+
+  # Zenith builds this; the base layer carries no such package. See rule 2 in the
+  # header for why this is a separate key rather than another entry above.
+  #
+  # The shell. QML, compositor-agnostic, and the surface the entire desktop is
+  # drawn in: bar, dock, launcher, popouts, widget catalogue, notification
+  # server, lock, idle, quick settings, status icons, and the Hub window. This is
+  # not a bar and it is not a panel, which is why the panels the archive does
+  # carry — waybar, yambar, tint2, polybar — cannot stand in for it.
+  #
+  # Verified absent from every component of 26.04: not in main, universe or
+  # multiverse, and no `/usr/bin/quickshell` in the suite's Contents index. It is
+  # MIT, so building it raises no redistribution problem, and the build itself
+  # needs nothing the archive does not already carry — see the list below.
+  #
+  # Everything in the archive that can host a compositor-agnostic shell was
+  # checked first, so this is a considered absence rather than the first name
+  # tried: quickshell, ags, eww and ironbar are all absent too.
+  zenith_built:
+    - quickshell
+
+  # Build-only. None of this is in the runtime image; it is what `zenith-shell`'s
+  # build needs, and a name missing here breaks the shell build rather than a
+  # runtime feature.
+  #
+  # Name to verify on 26.04: read the recipe rather than trusting this list.
+  build_dependencies:
+    - qt6-declarative-dev
+    - qt6-wayland
+    - qml6-module-qtquick
+    - qml6-module-qtquick-controls
+    - qml6-module-qtquick-layouts
+    - qt6-base-dev
+    - meson
+    - ninja-build
+    - cmake
+    - pkgconf
 
   # GNOME, excluded deliberately and in full. Each of these is a real package in
   # the base archive, so each line below is a decision rather than an absence.
@@ -432,18 +472,22 @@ terminal-and-shell:
   # rather than a runtime feature.
   #
   # `gtk4-layer-shell` is the one that is not in a stock Ubuntu image at all, and
-  # it is required, not optional. `libglslang`, `libhwy`, `libsimdutf` and
-  # `oniguruma` are Ghostty's own dependencies and are likewise required; the rest
-  # come from the archive but are named so the recipe is complete rather than
-  # relying on a transitive resolve.
+  # it is required, not optional. The four below are Ghostty's own shader, SIMD
+  # and regex dependencies; note that every one of them is a *different name*
+  # from what Ghostty's upstream docs call them, which is exactly the class of
+  # mistake rule 3 exists to catch. Verified against the 26.04 indexes:
+  # `libglslang` does not exist here and the name is `glslang-dev`; `libhwy`,
+  # `libsimdutf` and `oniguruma` exist only as runtime packages and the build
+  # needs `libhwy-dev`, `libsimdutf-dev` and `libonig-dev`. The runtime halves
+  # arrive as dependencies of the terminal itself and are not listed here.
   #
   # Name to verify on 26.04: read the recipe rather than trusting this list.
   build_dependencies:
     - gtk4-layer-shell
-    - libglslang
-    - libhwy
-    - libsimdutf
-    - oniguruma
+    - glslang-dev
+    - libhwy-dev
+    - libsimdutf-dev
+    - libonig-dev
     - gtk4
     - libadwaita
     - freetype
@@ -453,7 +497,7 @@ terminal-and-shell:
     - libpng
     - zlib
     - wayland
-    - libx11
+    - libx11-dev
 
   exclude:
     kitty: >-
