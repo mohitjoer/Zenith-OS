@@ -125,7 +125,11 @@ Before any shell work, because it validates the base-layer bet.
 - [x] `zenith.desktop` — the session registration, with `DesktopNames=Zenith` so
   the portal dispatcher derives the right configuration file name
 - [x] `zenith-portals.conf` — the backend preference, with `GlobalShortcuts`
-  deliberately absent and `Secret` present but stated as not working
+  deliberately absent and `Secret` served by `xdg-desktop-portal-lxqt`
+- [x] The Secret portal, which was the worst gap in the project: every Flatpak
+  that stores a password had nowhere to store one. `zenith doctor` reads each
+  named backend's `.portal` file, so an interface pointed at a backend that
+  cannot serve it is reported rather than sitting there looking handled
 - [x] Portal resolution, and the `zenith doctor` assertion that the
   configuration is actually being read
 - [x] `zenith-shell.service` and `zenith-portal.service` — the two user units,

@@ -246,6 +246,31 @@ desktop:
     - xdg-desktop-portal-hyprland
     - xdg-desktop-portal-gtk
 
+    # The Secret backend, and the fix for the worst portal gap this project had.
+    #
+    # org.freedesktop.portal.Secret had no backend, so every Flatpak that stores
+    # a password — Firefox, Thunderbird, Evolution, VS Code — had nowhere to put
+    # one, and the dispatcher returned success while exporting nothing. The
+    # configuration had Secret pointed at gtk, which does not implement it, so
+    # the interface was configured to a backend that could not serve it.
+    #
+    # The architecture record offered three ways out and named
+    # xdg-desktop-portal-kde as one. The KDE backend is in the archive and was
+    # the obvious pick. It is the wrong pick: it pulls in kio-fuse, kio6 and a
+    # dozen KF6 libraries, and — the part that actually decides it — it depends
+    # on libkf6notifications6. Carrying a second notification daemon onto a
+    # desktop whose shell owns org.freedesktop.Notifications is a second daemon
+    # racing the shell for a bus name.
+    #
+    # xdg-desktop-portal-lxqt is the light one: xdg-desktop-portal, libfm-qt6,
+    # libkf6windowsystem6 and Qt6's core/dbus/gui/widgets. No notification
+    # daemon, no KDE framework stack, and it implements Secret. It keeps the
+    # no-GNOME rule the KDE option kept.
+    #
+    # portals.conf names it under the Secret interface only, so the dispatcher
+    # activates it for Secret and nothing else.
+    - xdg-desktop-portal-lxqt
+
     # The screenshot toolchain, and this is not a convenience group. The Hyprland
     # portal backend shells out to these rather than implementing them, and each
     # one is load-bearing in a way that fails silently:

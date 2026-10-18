@@ -26,7 +26,7 @@ use=gtk;
 use=gtk;
 
 [org.gnome.impl.portal.Secret]
-use=gtk;
+use=lxqt;
 `
 
 // machine is a synthetic machine with a portal configuration on disk.
@@ -52,6 +52,40 @@ func (m *machine) env() Env {
 		XDGConfigHome:  filepath.Join(m.home, ".config"),
 		Home:           m.home,
 		CurrentDesktop: m.desktop,
+		Root:           filepath.Join(m.home, "root"),
+	}
+}
+
+// writeBackend writes a .portal descriptor, which is what the dispatcher reads
+// to decide what a backend implements.
+//
+// The descriptor is written rather than a Go table of backends on purpose: the
+// dispatcher builds its whole view from these files, so a table here would be a
+// second thing to keep in step with what is installed.
+// writeShippedBackends writes the backends the packaged configuration names,
+// declaring the interfaces they really implement.
+func (m *machine) writeShippedBackends() {
+	m.t.Helper()
+	m.writeBackend("hyprland", "org.freedesktop.portal.impl.portal.Hyprland",
+		"org.freedesktop.impl.portal.ScreenCast;"+
+			"org.freedesktop.impl.portal.Screenshot;")
+	m.writeBackend("gtk", "org.freedesktop.portal.impl.portal.Gtk",
+		"org.freedesktop.impl.portal.FileChooser;"+
+			"org.freedesktop.impl.portal.OpenURI;"+
+			"org.freedesktop.impl.portal.Print;")
+	m.writeBackend("lxqt", "org.freedesktop.portal.impl.portal.LXQt",
+		"org.freedesktop.impl.portal.Secret;")
+}
+
+func (m *machine) writeBackend(name, busName, interfaces string) {
+	m.t.Helper()
+	dir := filepath.Join(m.home, "root", backendDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		m.t.Fatal(err)
+	}
+	body := "[portal]\nDBusName=" + busName + "\nInterfaces=" + interfaces + "\n"
+	if err := os.WriteFile(filepath.Join(dir, name+".portal"), []byte(body), 0o644); err != nil {
+		m.t.Fatal(err)
 	}
 }
 
@@ -102,6 +136,7 @@ func TestConfigFileDerivation(t *testing.T) {
 func TestCorrectSessionResolvesCleanly(t *testing.T) {
 	m := newMachine(t)
 	m.writeUser(goodConfig)
+	m.writeShippedBackends()
 
 	resolution := Resolve(m.env())
 	if resolution.Source != SourceUserConfig {
@@ -110,10 +145,8 @@ func TestCorrectSessionResolvesCleanly(t *testing.T) {
 	if len(resolution.Problems) != 0 {
 		t.Errorf("a correct machine reported problems: %v", resolution.Problems)
 	}
-	// The Secret limitation is a notice, not a problem: it is not something the
-	// user can fix by editing a configuration file.
-	if len(resolution.Notices) != 1 || !strings.Contains(resolution.Notices[0], "Secret") {
-		t.Errorf("the Secret limitation was not stated as a notice: %v", resolution.Notices)
+	if len(resolution.Notices) != 0 {
+		t.Errorf("a correct machine reported notices: %v", resolution.Notices)
 	}
 }
 
@@ -213,33 +246,115 @@ func TestMissingSectionsAreReported(t *testing.T) {
 	}
 }
 
-// TestSecretCaveatIsStatedOnceAndLast covers the reporting decision.
+// TestInterfaceNamedToABackendThatCannotServeIt is the fault this check exists
+// for, and it is the one this project had.
 //
-// The Secret interface does not work on this stack at all. Mentioning it
-// alongside six real problems buries the real ones, so it is stated once, and
-// only when everything else is right — otherwise a reader stops at the first
-// paragraph and never sees the one that needs a decision.
-func TestSecretCaveatIsStatedOnceAndLast(t *testing.T) {
+// Secret named gtk for months. gtk is installed, gtk's .portal file is present
+// and readable, and gtk does not implement Secret. Every other check passed. The
+// configuration was confident, the file read as though the interface were
+// handled, and every Flatpak that stores a password still had nowhere to put
+// one.
+func TestInterfaceNamedToABackendThatCannotServeIt(t *testing.T) {
+	m := newMachine(t)
+
+	// The configuration as it was: Secret named gtk. Every other interface
+	// names the backend that serves it, so this is a file that reads correctly.
+	m.writeUser(strings.Replace(goodConfig,
+		"[org.gnome.impl.portal.Secret]\nuse=lxqt;",
+		"[org.gnome.impl.portal.Secret]\nuse=gtk;", 1))
+
+	// gtk is installed, its descriptor is readable, and it does not implement
+	// Secret. That is the whole failure.
+	m.writeBackend("hyprland", "org.freedesktop.portal.impl.portal.Hyprland",
+		"org.freedesktop.impl.portal.ScreenCast;"+
+			"org.freedesktop.impl.portal.Screenshot;")
+	m.writeBackend("gtk", "org.freedesktop.portal.impl.portal.Gtk",
+		"org.freedesktop.impl.portal.FileChooser;"+
+			"org.freedesktop.impl.portal.OpenURI;"+
+			"org.freedesktop.impl.portal.Print;")
+
+	resolution := Resolve(m.env())
+
+	found := false
+	for _, problem := range resolution.Problems {
+		if strings.Contains(problem, "Secret") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Secret named a backend that cannot serve it, and nothing "+
+			"said so: %v", resolution.Problems)
+	}
+}
+
+// TestBackendNotInstalledIsReported covers the other half: the backend named by
+// a correct configuration is simply not there.
+func TestBackendNotInstalledIsReported(t *testing.T) {
 	m := newMachine(t)
 	m.writeUser(goodConfig)
 
 	resolution := Resolve(m.env())
-	if len(resolution.Notices) != 1 {
-		t.Errorf("the Secret limitation appears %d time(s), want once: %v",
-			len(resolution.Notices), resolution.Notices)
+	if len(resolution.Problems) == 0 {
+		t.Fatal("named backends that are not installed were not reported")
+	}
+	found := false
+	for _, problem := range resolution.Problems {
+		if strings.Contains(problem, "not installed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a missing backend was not named as missing: %v",
+			resolution.Problems)
+	}
+}
+
+// TestBackendImplementingEveryInterfaceIsClean is the other direction, so the
+// check is not simply always reporting.
+func TestBackendImplementingEveryInterfaceIsClean(t *testing.T) {
+	m := newMachine(t)
+	m.writeUser(goodConfig)
+	m.writeShippedBackends()
+
+	if findings := CheckInterfaces(m.env(), mustParse(t, goodConfig)); len(findings) != 0 {
+		t.Errorf("a correct configuration reported findings: %v", findings)
+	}
+}
+
+// TestInterfaceMatchingIsNotSubstring covers the direction a substring check
+// gets wrong.
+//
+// org.freedesktop.impl.portal.Notification is a prefix of
+// org.freedesktop.impl.portal.NotificationFilter. Treating one as the other means
+// a backend that only has the filtered one is credited with the plain one.
+func TestInterfaceMatchingIsNotSubstring(t *testing.T) {
+	portalFile := "[portal]\nInterfaces=org.freedesktop.impl.portal.NotificationFilter;\n"
+
+	rc := 0
+	if declaresInterface(portalFile, "org.freedesktop.impl.portal.Notification") {
+		rc = 1
+	}
+	if rc != 0 {
+		t.Error("a filtered interface was matched as the plain one")
 	}
 
-	// With a real problem present, it is not repeated. A known limitation
-	// alongside six real misconfigurations buries the six.
-	m = newMachine(t)
-	m.writeUser("[default]\nuse=gnome;\n")
-	resolution = Resolve(m.env())
-	if len(resolution.Notices) != 0 {
-		t.Errorf("the limitation crowded out a real problem: %v", resolution.Notices)
+	rc = 0
+	if !declaresInterface(portalFile, "org.freedesktop.impl.portal.NotificationFilter") {
+		rc = 1
 	}
-	if len(resolution.Problems) == 0 {
-		t.Error("the misconfiguration was not reported")
+	if rc != 0 {
+		t.Error("the interface it does declare was not matched")
 	}
+}
+
+// mustParse is a helper for the tests above.
+func mustParse(t *testing.T, body string) *Config {
+	t.Helper()
+	config, err := Parse(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return config
 }
 
 // TestNoConfigurationAtAll covers a machine with neither file.

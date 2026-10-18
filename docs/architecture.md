@@ -176,23 +176,33 @@ The consequence is concrete: every Flatpak that uses the Secret interface — Fi
 Thunderbird, Evolution, VS Code — has nowhere to store a password on Zenith. This is the single
 worst portal gap and it is not cosmetic.
 
-Three ways out, none chosen yet:
+**This is closed.** `xdg-desktop-portal-lxqt` is installed and named for Secret in
+`portals.conf`, and it implements the interface.
 
-1. Ship `xdg-desktop-portal-gnome` purely for Secret. Works, but reintroduces the GNOME
-   backend the project rejected.
-2. Adopt a Secret backend derived from the KDE portal implementation. Keeps the no-GNOME rule;
-   costs a package to track.
-3. Ship a small Zenith-owned Secret backend over `gnome-keyring`'s service interface. Most
-   control, most work, and it is genuinely Zenith's code.
+The obvious choice was the KDE backend. It is in the archive, it implements
+Secret, and keeping the no-GNOME rule was one of the three options. It is the
+wrong one: it depends on `libkf6notifications6`, so carrying it would put a
+second notification daemon on a desktop whose shell owns
+`org.freedesktop.Notifications` — a race for a bus name, decided by which
+process started second. It also pulls in `kio-fuse`, `kio6` and a dozen KF6
+libraries for one interface.
 
-Until this is resolved, the contract below is **not** true and must not be claimed.
+`xdg-desktop-portal-lxqt` implements Secret and depends on `libfm-qt6`,
+`libkf6windowsystem6` and Qt6's core, dbus, gui and widgets. Nothing it pulls in
+competes with the shell.
+
+**The configuration had been quietly wrong the whole time.** `portals.conf` named
+`gtk` for Secret. gtk is installed, gtk's `.portal` file is present and readable,
+and gtk does not implement Secret — so every other check passed, the file read as
+though the interface were handled, and the gap stayed open. `zenith doctor` now
+reads each named backend's own `.portal` file and reports an interface the
+backend cannot serve.
 
 ### The contract
 
-An application that works on a stock desktop must work on Zenith — with the Secret interface as
-the known exception until one of the three options above lands. A hardware report should ask
-contributors to confirm portal behaviour, and a portal regression is a distribution-wide bug,
-not a cosmetic one.
+An application that works on a stock desktop must work on Zenith. That now holds for every portal
+interface this desktop exposes, including Secret. A hardware report should ask contributors to
+confirm portal behaviour, and a portal regression is a distribution-wide bug, not a cosmetic one.
 
 `zenith doctor` must assert that the portal configuration file is actually being read: the
 per-desktop file name is derived from `XDG_CURRENT_DESKTOP`, and a session that does not
@@ -630,7 +640,7 @@ shipped file is never edited in place.
 | Question | Why it matters |
 |---|---|
 | ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
-| The Secret portal | No backend in the stack implements `org.freedesktop.portal.Secret`, and `gnome-keyring` does not substitute for one. Password storage is broken in Flatpaks until one of the three options is chosen. See [the portal seam](#the-portal-seam). |
+| ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
 | The Camera portal | No backend implements `org.freedesktop.portal.Camera`, and no milestone assigns one — unlike Notifications, which the shell takes in M6. A camera-permissioned Flatpak is refused rather than prompted. Ship a small Zenith Camera backend over Pipewire, or document the interface as unsupported rather than letting it fail silently. See [the portal seam](#the-portal-seam). |
 | The icon font | The shell's dock and status area want devicon and powerline glyphs. The base layer carries no Nerd Font in any component of 26.04, and `fonts-jetbrains-mono` is the unpatched upstream build, so there is no archive source for them. Either adopt an icon font the archive carries, or vendor a Nerd Font as a documented exception to the base-layer boundary and accept becoming its distributor — the same problem the firmware group exists to avoid. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |

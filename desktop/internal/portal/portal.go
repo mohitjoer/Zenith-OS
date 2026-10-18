@@ -113,6 +113,10 @@ type Env struct {
 	Home string
 	// CurrentDesktop is $XDG_CURRENT_DESKTOP as the running session sees it.
 	CurrentDesktop string
+	// Root prefixes every system path, so the checks that read installed files
+	// can be exercised against a fixture without a Zenith install and without
+	// root. Empty means the running machine.
+	Root string
 }
 
 // Resolve works out which configuration the dispatcher will read, and whether it
@@ -172,11 +176,12 @@ func Resolve(env Env) Resolution {
 	resolution.Problems = append(resolution.Problems,
 		checkBackends(*resolution.Config)...)
 
-	// The Secret caveat is stated only when everything else is right. Mentioning
-	// a known limitation alongside six real misconfigurations buries the six.
-	if _, present := resolution.Config.Backend("org.gnome.impl.portal.Secret"); present &&
-		len(resolution.Problems) == 0 {
-		resolution.Notices = append(resolution.Notices, secretCaveat)
+	// Whether each named backend implements the interface it was named for.
+	// Checked against the installed .portal files rather than a table here,
+	// because the dispatcher builds its view from those files and a second table
+	// would be a second thing to keep in step with what is installed.
+	for _, finding := range CheckInterfaces(env, resolution.Config) {
+		resolution.Problems = append(resolution.Problems, finding.Reason)
 	}
 
 	return resolution
@@ -199,18 +204,24 @@ var required = []struct {
 	{"org.gnome.impl.portal.FileChooser", "gtk"},
 	{"org.gnome.impl.portal.OpenURI", "gtk"},
 	{"org.gnome.impl.portal.Print", "gtk"},
+	// Secret names lxqt, not gtk. It used to name gtk, which does not implement
+	// it — a confident answer in a configuration file is worse than no answer,
+	// because a reader checking the file sees the interface handled.
+	{"org.gnome.impl.portal.Secret", "lxqt"},
 }
 
-// secretCaveat is the one known limitation this configuration cannot fix.
+// The Secret gap is closed.
 //
-// It is stated rather than omitted because a silently-absent interface is worse
-// than a stated one, and kept out of Problems because no edit to any file on a
-// user's machine changes it.
-const secretCaveat = "the Secret interface does not work on this stack: no " +
-	"backend implements org.freedesktop.portal.Secret and gnome-keyring does " +
-	"not substitute for one, so every Flatpak that stores a password is " +
-	"affected. The configuration line is present because the architecture record " +
-	"specifies it, not because it works. Choosing a backend is an open question."
+// Secret used to be stated here as the one limitation this configuration could
+// not fix: no backend implemented org.freedesktop.portal.Secret, so every Flatpak
+// that stores a password had nowhere to store one. It named gtk, which does not
+// implement Secret, which made it worse than naming nothing — a reader checking
+// the configuration file saw the interface handled.
+//
+// xdg-desktop-portal-lxqt implements it, and portals.conf names it for Secret
+// only. The KDE backend also implements it and was the obvious pick, but it
+// depends on libkf6notifications6, and a second notification daemon on a desktop
+// whose shell owns that bus name is a race.
 
 // checkBackends compares the configuration against what the session needs.
 //
