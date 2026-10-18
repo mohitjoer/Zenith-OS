@@ -416,14 +416,10 @@ terminal-and-shell:
     # to /etc/skel rather than to this manifest.
     - zsh
     - fish
-    # Verified absent: `blesh` is in no component of 26.04 — checked against
-    # main, universe and multiverse on 2026-10-18. Per the tie-break written
-    # here, it now has two possible homes and no third: it either ships from
-    # Zenith's own repository as `zenith-blesh`, or it is dropped. Unresolved,
-    # and deliberately left unresolved rather than quietly decided by whoever
-    # runs the build first. Until it is resolved this entry will fail the build
-    # loudly, which is rule 3 working as intended.
-    - blesh
+    # `blesh` is not installed by the image either. It is absent from every
+    # component of 26.04, and it belongs with mise, fnm and uv in the setup
+    # step's offer rather than in the manifest: an alternative shell for people
+    # who want one, offered at setup, not carried by every install.
 
     # The prompt. One prompt implementation, on every shell, so a user's prompt
     # does not change with their login shell.
@@ -522,21 +518,21 @@ languages:
     - python3-venv
     - python3-dev
 
-    # The one cross-language tool Zenith keeps, and only for the languages that
-    # have no official manager of their own. It does not manage Rust and it does
-    # not manage Node.
-    - mise
-
-    # Node's version manager. Name to verify: fnm is young, and if 26.04 does
-    # not carry it then it comes from Zenith's repository. It is still the packaged
-    # choice either way — see the nvm exclusion below for why the obvious
-    # alternative is not.
-    - fnm
-
-    # Python's package and environment manager, and the reason pip is not on
-    # the system path. It installs into environments, which is the only place
-    # anything on a PEP 668 system may install.
-    - uv
+    # mise, fnm and uv are deliberately NOT here, and that is a decision rather
+    # than a gap. All three are absent from every component of 26.04 — verified,
+    # not assumed — and none of them is something a base layer should carry.
+    #
+    # Each is a version or package manager that installs its own toolchain on
+    # demand, so shipping it in the image buys a user nothing they cannot get in
+    # seconds, while costing a package to rebase on every cycle. What the setup
+    # step offers instead: it asks, and installs what the user says yes to, with
+    # an installer script that runs at setup time rather than a package baked
+    # into the ISO.
+    #
+    # The languages themselves stay above — nodejs, npm, python3, python3-venv and
+    # python3-dev are all archive packages and are all still installed, because
+    # a working system Python and a working Node are OS dependencies and the
+    # user should not have to install a language to have it.
 
   # Installed with `cargo install --locked` against the shared toolchain, not
   # from the archive. A binary taken from the archive would be built against
