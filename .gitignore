@@ -22,3 +22,16 @@ quickshell/quickshell
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Agent entry pointers, local only.
+#
+# CLAUDE.md and GEMINI.md are symlinks to AGENTS.md, so each name needs its own
+# entry — a symlink is matched by its own path, not by what it points at.
+#
+# The contract these point to, agents/agents.md, stays tracked. It is the master
+# agent contract and the design system, CONTRIBUTING and the pull request
+# template both bind contributors to it, and the CI workflows cite it as the
+# source of the commands they run. Only the pointers are machine-local.
+AGENTS.md
+CLAUDE.md
+GEMINI.md
