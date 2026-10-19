@@ -3,6 +3,7 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -14,6 +15,16 @@ func treeEnv(t *testing.T, files map[string]string) Env {
 	env.EntryPoint = "shell.qml"
 	env.OwnsSettings = true
 	return env
+}
+
+// keys is the file list Check would pass, in the fixture's own layout.
+func keys(files map[string]string) []string {
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // tree writes a set of files under a temporary root and returns an Env for it.
@@ -768,5 +779,128 @@ func TestSchemaDirectoryMissingIsReported(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("a tree with no schema directory passed the schema check: %v", findings)
+	}
+}
+
+// TestPropertyAssignmentCheck is the rule that exists because Palette.apply
+// threw on its first line and nothing said so.
+//
+// Every colour the generator wrote was assigned onto a property declared
+// readonly, so the assignment threw, the function stopped, and `generated` — the
+// flag saying a palette was loaded — never became true. A generator, a file, a
+// loader and a comment saying the shell reads it, and a running shell that never
+// did. The second half is naming a property that does not exist: `text_dim`
+// against `textDim` fails the same quiet way, in a runtime nobody watches.
+func TestPropertyAssignmentCheck(t *testing.T) {
+	tests := []struct {
+		name  string
+		files map[string]string
+		want  int
+		rule  string
+	}{
+		{
+			name: "assigning to a readonly property",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"readonly property string background: \"#15171a\"\n" +
+					"function apply(doc) { palette.background = doc.background }\n" +
+					"}\n",
+			},
+			want: 1, rule: "readonly assignment",
+		},
+		{
+			name: "assigning to a readonly property without the object",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"readonly property bool generated: false\n" +
+					"function apply(doc) { generated = true }\n" +
+					"}\n",
+			},
+			want: 1, rule: "readonly assignment",
+		},
+		{
+			name: "assigning to a property that does not exist",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"property string textDim: \"#9aa0a6\"\n" +
+					"function apply(doc) { palette.text_dim = doc.text_dim }\n" +
+					"}\n",
+			},
+			want: 1, rule: "property assignment",
+		},
+		{
+			name: "assigning to a property another file declares",
+			files: map[string]string{
+				"Popover.qml": "import QtQuick\nRectangle {\n" +
+					"property bool opened: false\n}\n",
+				"shell.qml": "import Quickshell\nShellRoot {\n" +
+					"Popover { id: popover }\n" +
+					"function toggle() { popover.opened = true }\n}\n",
+			},
+			want: 0,
+		},
+		{
+			name: "assigning to a writable property of this file",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"property string background: \"#15171a\"\n" +
+					"function apply(doc) { palette.background = doc.background }\n" +
+					"}\n",
+			},
+			want: 0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			env := treeEnv(t, tc.files)
+			// treeEnv points at shell/ and the fixtures write their own files
+			// beside it, which is what Check hands this rule.
+			findings := checkPropertyAssignments(env, keys(tc.files))
+			if len(findings) != tc.want {
+				for _, finding := range findings {
+					t.Logf("  %s %s: %s", finding.Rule, finding.Path, finding.Detail)
+				}
+				t.Fatalf("%d finding(s), want %d", len(findings), tc.want)
+			}
+			if tc.want > 0 && findings[0].Rule != tc.rule {
+				t.Errorf("rule = %q, want %q", findings[0].Rule, tc.rule)
+			}
+		})
+	}
+}
+
+// TestShellTreeHasNoPropertyAssignments is the rule against the real shell: the
+// palette loader included. A check that only ever runs on fixtures finds the
+// mistake in the example and not in the file the desktop draws from.
+func TestShellTreeHasNoPropertyAssignments(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.ReadDir(filepath.Join(root, "shell"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var files []string
+	for _, entry := range dir {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".qml") {
+			files = append(files, entry.Name())
+		}
+	}
+	if len(files) == 0 {
+		t.Fatal("no QML files beside the shell")
+	}
+
+	env := Env{Root: root, Dir: "shell", EntryPoint: "shell.qml", OwnsSettings: true}
+	if _, err := source(env, "Palette.qml"); err != nil {
+		t.Fatalf("the check would silently read nothing: %v", err)
+	}
+	for _, finding := range checkPropertyAssignments(env, files) {
+		t.Errorf("%s %s: %s", finding.Rule, finding.Path, finding.Detail)
 	}
 }

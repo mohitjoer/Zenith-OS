@@ -272,6 +272,7 @@ func Check(env Env) []Finding {
 		findings = append(findings, checkSettingsReads(env, files, schemas)...)
 		findings = append(findings, checkUnusedWrapperProperties(env, files)...)
 		findings = append(findings, checkGlyphs(env, files)...)
+		findings = append(findings, checkPropertyAssignments(env, files)...)
 	}
 
 	findings = append(findings, checkCommands(env, files)...)
@@ -755,6 +756,25 @@ var commandKey = regexp.MustCompile(`"([a-z][a-z-]*)"\s*:`)
 // shell uses, and both are matched.
 var zenithCall = regexp.MustCompile(`"zenith"\s*,\s*"([a-z][a-z-]*)"`)
 
+// objectId matches `id: name`, which is what makes a file's own properties
+// addressable. Property names are collected separately because an assignment
+// names the object first and the property second.
+var objectId = regexp.MustCompile(`\bid:\s*([A-Za-z_][A-Za-z0-9_]*)`)
+
+// objectDecl matches `Type { id: name`, which is how an id's own type is
+// known. Both parts are needed: whether a property exists depends on where the
+// object's type is declared, not on which file happens to assign to it.
+var objectDecl = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_]*)\s*\{[^{}]*\bid:\s*([A-Za-z_][A-Za-z0-9_]*)`)
+
+// propertyDecl matches both `property string name:` and
+// `readonly property string name:`; readonlyProperty narrows it.
+var propertyDecl = regexp.MustCompile(`\bproperty\s+[A-Za-z_][A-Za-z0-9_]*\s+([A-Za-z_][A-Za-z0-9_]*)`)
+var readonlyProperty = regexp.MustCompile(`\breadonly\s+property\s+[A-Za-z_][A-Za-z0-9_]*\s+([A-Za-z_][A-Za-z0-9_]*)`)
+
+// propertyAssign matches `object.property = value`, stopping before a second
+// '=' so that `==`, `===` and `>=` are not read as assignments.
+var propertyAssign = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*=[^=]`)
+
 // checkCommands reports a shell calling a subcommand the CLI does not have.
 //
 // Nothing else in this validator, and nothing in CI, would notice. A QML file
@@ -799,6 +819,157 @@ func checkCommands(env Env, files []string) []Finding {
 					"commands table in cmd/zenith/main.go; the call would fail "+
 					"at runtime and the surface would silently stay empty", name),
 			})
+		}
+	}
+	return findings
+}
+
+// braceEnd is the index of the brace closing the one at open, or -1 when the
+// file stops before that happens. A string containing a brace can end the scan
+// early, and the consequence is an id whose block is not matched and therefore
+// not reported on: the check passes over it rather than guessing at it.
+func braceEnd(body string, open int) int {
+	depth := 0
+	for i := open; i < len(body); i++ {
+		switch body[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// checkPropertyAssignments reports two mistakes that QML turns into a broken
+// surface rather than an error anybody reads.
+//
+// The first is writing to a readonly property: the assignment throws, the
+// function stops there, and everything after it in the same function never
+// runs. That is what Palette.apply did — every colour it was supposed to load
+// was declared readonly, so the first line threw, `generated` never became
+// true, and a generated palette was never applied to a running shell. The
+// feature had a generator, a file, a loader and a comment explaining that the
+// shell reads it, and it never did.
+//
+// The second is naming a property the object does not have. QML reports that
+// as a TypeError in a runtime nobody is watching, so `text_dim` against a
+// property spelled `textDim` fails the same quiet way.
+//
+// The second rule only runs where the answer is knowable: the id's own object
+// block must declare at least one property. `Singleton { id: palette;
+// readonly property string textDim }` declares the properties that exist on
+// `palette`, so `palette.text_dim` is provably wrong. `ListView { id: list;
+// visible: false }` declares none, and its real properties — `currentIndex`
+// and the rest — live in a type this repository has no source for, so the
+// absence of a declaration there means nothing. Reporting those is how a
+// validator gets a name for being wrong: hub.qml assigns `list.currentIndex`,
+// which is exactly right, and the check said it was not.
+func checkPropertyAssignments(env Env, files []string) []Finding {
+	var findings []Finding
+	for _, f := range files {
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+
+		owned := map[string]bool{}
+		for _, match := range objectId.FindAllStringSubmatch(body, -1) {
+			owned[string(match[1])] = true
+		}
+		if len(owned) == 0 {
+			continue
+		}
+
+		readonly := map[string]bool{}
+		for _, match := range readonlyProperty.FindAllStringSubmatch(body, -1) {
+			readonly[string(match[1])] = true
+		}
+
+		// For each id this file declares, the properties the object block that
+		// carries it declares. An id with no custom properties of its own has
+		// no known property set and is left alone.
+		type objectProperties struct {
+			readOnly map[string]bool
+			writable map[string]bool
+		}
+		blocks := map[string]objectProperties{}
+		for _, match := range objectDecl.FindAllStringSubmatchIndex(body, -1) {
+			// The regex keeps braces out of the span between the type and the
+			// id, so there is exactly one opening brace in it.
+			name := body[match[4]:match[5]]
+			open := strings.IndexByte(body[match[3]:match[4]], '{') + match[3]
+			end := braceEnd(body, open)
+			if end < 0 {
+				continue
+			}
+			block := objectProperties{
+				readOnly: map[string]bool{}, writable: map[string]bool{},
+			}
+			for _, prop := range propertyDecl.FindAllStringSubmatch(body[open:end], -1) {
+				block.writable[string(prop[1])] = true
+			}
+			for _, prop := range readonlyProperty.FindAllStringSubmatch(body[open:end], -1) {
+				block.readOnly[string(prop[1])] = true
+			}
+			if len(block.readOnly)+len(block.writable) == 0 {
+				// A framework type with nothing of its own declared: its
+				// properties are in a source file this repository does not
+				// have, so a name we do not recognise proves nothing.
+				continue
+			}
+			blocks[name] = block
+		}
+
+		report := func(rule, detail string) {
+			findings = append(findings, Finding{
+				Rule: rule, Path: env.path(f), Detail: detail,
+			})
+		}
+
+		for _, match := range propertyAssign.FindAllStringSubmatch(body, -1) {
+			object, property := string(match[1]), string(match[2])
+			if !owned[object] {
+				continue
+			}
+			block, known := blocks[object]
+			if !known {
+				continue
+			}
+			if block.readOnly[property] {
+				report("readonly assignment", fmt.Sprintf(
+					"assigns %s.%s, which this file declares readonly; the "+
+						"assignment throws, and everything after it in the "+
+						"same function is silently skipped", object, property))
+				continue
+			}
+			if block.writable[property] {
+				continue
+			}
+			report("property assignment", fmt.Sprintf(
+				"assigns %s.%s, which is not a property %s declares; the "+
+					"assignment fails at runtime and the surface keeps "+
+					"whatever it had", object, property, object))
+		}
+
+		// A bare `name = value` against a readonly property of this file throws
+		// for the same reason the dotted form does, and it is the form a
+		// function inside the object uses: `generated = true` at the end of
+		// Palette.apply, which is the line that was supposed to record that a
+		// palette was loaded.
+		for name := range readonly {
+			// Not preceded by a dot: `shell.dockAutohide = value` assigns to a
+			// property of `shell`, and Config.qml declaring a property of the
+			// same name does not make that line a write to it.
+			bare := regexp.MustCompile(`(^|[^.\w])` + regexp.QuoteMeta(name) + `\s*=[^=]`)
+			if bare.MatchString(body) {
+				report("readonly assignment", fmt.Sprintf(
+					"assigns %s, which this file declares readonly; the "+
+						"assignment throws", name))
+			}
 		}
 	}
 	return findings
