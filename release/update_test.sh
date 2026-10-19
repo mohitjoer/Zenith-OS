@@ -140,15 +140,29 @@ chmod 600 "$WORK/archive-secret.gpg" 2>/dev/null || :
 echo "adding the repository to the machine"
 cp "$WORK/repo/zenith.sources" "$SOURCES"
 
+# The update log is printed unconditionally. On the failure this debugs, apt
+# exits zero while quietly not delivering the index, and a log shown only on
+# failure cannot show the difference between "read and empty" and "never
+# fetched at all" — which is the whole question.
 rc=0; apt-get update >"$WORK/apt-update.log" 2>&1 || rc=$?
-if [ "$rc" -ne 0 ]; then
-    echo "--- apt-get update ---"
-    cat "$WORK/apt-update.log"
-fi
+cat "$WORK/apt-update.log"
 check "apt accepts the signed repository" $rc
 
-rc=0; apt-cache policy zenith 2>/dev/null \
-    | grep -q 'Candidate: 0.1+m2test1' || rc=$?
+# Stronger than exit zero: the source has to appear in apt's own output. apt
+# can exit 0 having fetched nothing from a source it never managed to read,
+# and then "zenith: unable to locate" is the first symptom three steps later.
+rc=0; grep -q "file://$WORK/repo" "$WORK/apt-update.log" || rc=$?
+check "apt fetched from the zenith repository" $rc
+
+rc=0; policy=$(apt-cache policy zenith 2>&1) || rc=$?
+if [ "$rc" -ne 0 ] || ! printf '%s\n' "$policy" | grep -q 'Candidate: 0.1+m2test1'; then
+    printf '%s\n' "$policy"
+    echo "--- the index apt would have read ---"
+    ls -la "$WORK/repo/dists/stable/main/binary-amd64/" 2>/dev/null || :
+    zcat "$WORK/repo/dists/stable/main/binary-amd64/Packages.gz" 2>/dev/null \
+        | head -n 20 || :
+    rc=1
+fi
 check "the repository offers revision 1 as the candidate" $rc
 
 # The first acquisition is plain apt, because that is what happens on a real
