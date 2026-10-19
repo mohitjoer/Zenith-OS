@@ -458,11 +458,14 @@ desktop:
       A first-boot wizard that writes settings. Zenith Hub is the first-boot
       surface, and a wizard that writes before the user has chosen anything is
       drift by construction.
-    "gnome-* (application suite)": >-
+    "gnome-*": >-
       The bundled applications — text editor, calculator, image viewer, clocks.
       A Zenith image ships an editor and a terminal and nothing else; applications
       are per-user installs.
-    "*-desktop, *-desktop-minimal": >-
+    "*-desktop-minimal": >-
+      The smaller form of the same metapackage, which pulls the same GNOME
+      session. Excluding one without the other leaves a path in.
+    "*-desktop": >-
       Any other desktop environment's metapackage. One compositor, one shell,
       one session. A second one is not a feature, it is a second answer.
 

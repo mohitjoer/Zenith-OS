@@ -349,10 +349,12 @@ before they commit to installing it. That is worth more than a landing page.
   because the moment it is needed there may be no working desktop to run one from
 - [ ] `zenith adopt` — execute the plan. The plan, the state and the undo exist; running
   them as root does not
-- [x] A GNOME audit in the manifest verifier. GNOME desktop components must be neither
-  installed nor left un-excluded, so nothing can pull one in later. `gnome-keyring` is
-  allowed and named with its reason; its transitive closure was verified by hand — 199
-  packages, no desktop component among them
+- [x] A GNOME audit in the manifest verifier, in three parts: nothing GNOME in the
+  `packages:` list, the metapackages that would pull a desktop in *transitively* excluded,
+  and no GNOME tool invoked anywhere in the tree. `gnome-keyring` is allowed and named
+  with its reason; its transitive closure was verified by hand — 199 packages, no desktop
+  component among them. `gsettings` is deliberately not treated as a GNOME tool: it is
+  GLib's, it reads the same dconf the shell reads, and it is the interface GLib documents
 - [ ] `zenith adopt --verify`, `--prune`, `--undo`
 
 Two decisions in the preflight are worth recording because they are counterintuitive.
@@ -375,6 +377,39 @@ The resident OS agent: a local knowledge vault, an index over the machine, and a
 Distro-independent by construction.
 
 ---
+
+## M11 — Theming, sidebar, switching, plugins, rollback, agent, installer
+
+*Recorded 2026-10-19, from a comparison against Ryoku. This is a scope decision,
+not a feature list discovered by reading someone else's codebase.*
+
+**What is deliberately not being copied.** Ryoku is an Arch distribution whose
+desktop runs on Hyprland or niri, and whose base is rolling. Zenith keeps its
+Ubuntu 26.04 base layer and its single Hyprland compositor, and the reasons are
+already recorded: the base layer is what gives the project its hardware reach,
+and a second compositor is a second session to keep tested rather than a
+feature. Those two are settled and are not revisited here.
+
+**What is being taken**, in the order it is worth doing:
+
+- [ ] **Theming.** A wallpaper that recolours the desktop: terminal, compositor
+  and shell take their colours from one generated palette, so picking a wallpaper
+  repaints the system. Ryoku's `matugen` idea. It ships against machinery Zenith
+  already has — `grim` and `hyprpicker` — and it is the single largest thing
+  separating "a desktop with a logo" from "a desktop that feels finished"
+- [ ] **The sidebar.** A slide-in panel for audio, network, bluetooth, display,
+  notifications and media. Quick settings are a popover; this is the surface that
+  belongs to the edge rather than to a keybinding
+- [ ] **Window switching.** A most-recently-used switcher over Hyprland
+- [ ] **Plugins.** A mechanism for shell plugins. An open question in
+  `architecture.md`, and the thing that makes desktop widgets addable by anyone
+- [ ] **Rollback.** Btrfs snapshots around every update. Zenith's overlay
+  rollback is configuration only — it restores files this project wrote and
+  cannot restore a package database
+- [ ] **The agent.** M10: a local knowledge vault, an index over the machine, and
+  a dashboard
+- [ ] **The installer.** Blocked on M4 and on root. Recorded here so the scope is
+  visible, not because it is reachable
 
 ## Later, unsequenced
 

@@ -43,6 +43,7 @@ import argparse
 import fnmatch
 import gzip
 import sys
+from pathlib import Path
 import urllib.error
 import urllib.request
 
@@ -296,8 +297,7 @@ GNOME_DESKTOP = {
 }
 
 # Packages whose presence is fine, and why. Naming them is what makes the check
-# honest: an allowlist nobody reads is indistinguishable from no allowlist, and
-# the next person to add "gnome-keyring" learns nothing from it.
+# honest: an allowlist nobody reads is indistinguishable from no allowlist.
 GNOME_ALLOWED = {
     "gnome-keyring": "a standalone daemon, and the only backing store the "
                      "Secret portal has. Its transitive closure was checked and "
@@ -308,15 +308,51 @@ GNOME_ALLOWED = {
                             "second password.",
 }
 
+# The metapackages that would drag a whole GNOME desktop in *transitively*.
+#
+# These are the ones that matter, and the distinction is the whole reason this
+# check is not simply "is any GNOME package installed". The `packages:` list is
+# closed — Zenith installs exactly the names written there — so a GNOME package
+# that nobody wrote down is not installed and needs no exclusion. What can still
+# happen is that something on the list depends on one, and the only way that
+# happens is a metapackage.
+#
+# Requiring an exclusion for all twenty-odd GNOME applications would be
+# demanding twenty-odd lines that protect nothing, and every one of them would
+# have to be kept in step with a list that changes on an Ubuntu sync. The first
+# version of this check made exactly that demand and CI caught it.
+GNOME_PULLERS = (
+    ("ubuntu-desktop",
+     "pulls the GNOME session, its daemons and its bundled applications"),
+    ("gnome-*",
+     "the GNOME application suite"),
+    ("*-desktop",
+     "any other desktop environment's metapackage"),
+)
+
 
 def audit_gnome(manifest: dict) -> list[str]:
-    """Report any GNOME desktop component the manifest installs.
+    """Report any way a GNOME desktop can arrive on a Zenith machine.
 
-    A manifest entry only. This does not walk the dependency closure, because
-    the closure of an allowed package is a fact about the archive that changes
-    without the manifest changing, and a check that starts failing on an Ubuntu
-    sync is a check people learn to ignore. The closure of gnome-keyring was
-    verified by hand: 199 packages, no desktop component among them.
+    Three checks, and only three, because they are the three that can actually
+    happen.
+
+    The first is the manifest's own list: nothing in `packages:` may be a GNOME
+    desktop component. Direct and cheap.
+
+    The second is transitive: the metapackages that would pull one in must be
+    excluded. Deliberately not a dependency walk — the closure of an allowed
+    package is a fact about the archive that changes without the manifest
+    changing, and a check that starts failing on an Ubuntu sync is a check people
+    learn to ignore. The closure of gnome-keyring was verified by hand: 199
+    packages, no desktop component among them.
+
+    The third is that nothing shells out to a GNOME tool. This is a repository
+    check rather than a manifest one because the rule is about what the code
+    depends on, not what the image installs. `gsettings` is deliberately not on
+    the list: it is GLib's tool, it reads the same dconf the shell reads, and it
+    is the interface GLib documents. A tool is a GNOME tool when it is part of
+    GNOME rather than when its name says so.
     """
     problems: list[str] = []
 
@@ -331,18 +367,66 @@ def audit_gnome(manifest: dict) -> list[str]:
                 f"screen that races the shell for org.freedesktop.Notifications."
             )
 
-    # The exclusions are checked too, because an exclusion that names a package
-    # the archive does not carry is an exclusion that is protecting nothing.
-    excluded: set[str] = set()
-    for _, pattern in iter_exclusions(manifest):
-        excluded.add(pattern)
+    excluded = [key for _, key in iter_exclusions(manifest)]
 
-    missing = sorted(GNOME_DESKTOP - excluded)
-    if missing:
+    for token, reason in GNOME_PULLERS:
+        # Substring, because an exclusion key may be a glob and the manifest is
+        # entitled to write it as one.
+        if any(token in key for key in excluded):
+            continue
         problems.append(
-            "these GNOME components are neither installed nor excluded, so "
-            "nothing stops one being pulled in later: " + ", ".join(missing)
+            f"nothing excludes {token}, which {reason}. Without that exclusion "
+            f"a GNOME desktop can arrive transitively, through a package that "
+            f"depends on it rather than through one that names it."
         )
+
+    problems.extend(audit_gnome_tools(Path(__file__).resolve().parent.parent))
+
+    return problems
+
+
+# Executables that are part of GNOME rather than merely named after it.
+#
+# `gsettings` is absent on purpose and so is `gdbus`: both are GLib, both read
+# the same dconf the shell reads, and both are the interfaces GLib documents.
+# A dependency is a GNOME dependency when it is GNOME's, not when its name
+# starts with "g".
+GNOME_TOOLS = {
+    "gnome-extensions": "the GNOME Shell extensions tool",
+    "gnome-session": "the GNOME session manager",
+    "gsettings": None,  # GLib, not GNOME. Listed to be explicit about the line.
+}
+
+# Files whose contents are scanned. Documentation is included on purpose: a
+# command in a document is a command someone will paste.
+SCANNED_SUFFIXES = (".go", ".sh", ".qml", ".md", ".yaml")
+
+
+def audit_gnome_tools(root) -> list[str]:
+    """Report any invocation of a GNOME-only executable in the tree."""
+    import re
+
+    problems: list[str] = []
+    call = re.compile(r"(?:exec\.Command|command)\(\s*[\"'`](" +
+                      "|".join(sorted(GNOME_TOOLS)) + r")[\"'`]")
+
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.suffix not in SCANNED_SUFFIXES:
+            continue
+        if ".git" in path.parts:
+            continue
+        try:
+            body = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for match in call.finditer(body):
+            if GNOME_TOOLS[match.group(1)] is None:
+                continue
+            problems.append(
+                f"{path.relative_to(root)}: invokes {match.group(1)}, which is "
+                f"{GNOME_TOOLS[match.group(1)]}. A Zenith machine must be able to "
+                f"do everything the shell does without GNOME installed."
+            )
 
     return problems
 
