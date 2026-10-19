@@ -29,13 +29,25 @@
     <key name="wallpaper-path" type="s">
       <default>''</default>
       <summary>Light-mode wallpaper</summary>
-      <description>A URI. Empty means the shell draws its own background.</description>
+      <description>
+        A URI. Empty means the shell draws its own background, which is the
+        default on purpose: every wallpaper in the shipped set is dark artwork,
+        and putting one behind a light shell makes the bar and dock text
+        unreadable. Somebody who wants artwork in light mode sets one.
+      </description>
     </key>
 
     <key name="wallpaper-path-dark" type="s">
-      <default>''</default>
+      <default>'file:///usr/share/zenith/backgrounds/rain-radio.png'</default>
       <summary>Dark-mode wallpaper</summary>
-      <description>A URI, used when the colour scheme is prefer-dark.</description>
+      <description>
+        A URI, used when the colour scheme is prefer-dark. The default is the
+        one measured to work: mean luminance 76 of 255, dark at the edges and
+        lightest in the middle, so white bar text sits on the darker band and the
+        window buttons have somewhere to go. galaxy.png and code-art.png are
+        quieter but are almost entirely black, which leaves the bar floating on
+        nothing. All seven ship in /usr/share/zenith/backgrounds.
+      </description>
     </key>
 
     <!-- =============================================================== the bar

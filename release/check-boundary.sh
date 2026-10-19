@@ -29,6 +29,7 @@ usr/share/doc/$PKG/
 usr/share/wayland-sessions/zenith.desktop
 usr/share/xdg-desktop-portal/zenith-portals.conf
 usr/bin/$PKG
+usr/bin/$PKG-hub
 usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml
 usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml
 usr/lib/systemd/user/$PKG-shell.service

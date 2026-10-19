@@ -1,0 +1,367 @@
+# Operating-system CI.
+#
+# Everything gated here is an artefact of the distribution: two Go modules, three
+# shell suites, the .deb and its repository, the base-layer manifest, and the
+# checked-in branding assets. Documentation is not tested. It is reviewed, and a
+# gate that lints prose is a gate whose failures people learn to ignore.
+#
+# Two jobs, split by what they cost. `unit` is offline and finishes in seconds.
+# `package` builds the distribution, signs a repository and resolves the base
+# layer against the real Ubuntu archive; it needs `unit` first, so a gofmt slip
+# never costs an 80 MB package-index download.
+
+name: ci
+
+on:
+  push:
+    branches: [main, dev-unstable]
+  pull_request:
+    branches: [main, dev-unstable]
+  workflow_dispatch:
+
+# Read-only. This workflow compiles, packages and verifies. It never publishes,
+# never pushes, and needs no secret: the repository signing key is generated per
+# run by mkrepo.sh rather than read from the environment, so there is nothing
+# here worth stealing and nothing that could leak a key.
+permissions:
+  contents: read
+
+# Superseded runs are cancelled rather than left to finish. That matters more
+# than usual here: the package job's dominant cost is network, and five queued
+# runs each pulling the universe index is waste nobody asked for.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Everything that needs nothing but a Go toolchain and a POSIX shell.
+  # --------------------------------------------------------------------------
+  unit:
+    name: fmt, vet, test, shell, assets
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Go version comes from a go.mod rather than from a literal here, so
+      # the toolchain and the modules cannot drift apart. There is no go.mod at
+      # the repository root — this is two modules — so go-version-file names one
+      # of them and the step after this asserts the other agrees.
+      #
+      # setup-go's cache is keyed on both go.mod files rather than on a go.sum.
+      # Neither module has an external dependency, so a go.sum would never exist
+      # to hash, and pointing the cache at one is a cache that never restores.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: system/hardware/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+
+      - name: The two modules declare the same Go version
+        run: |
+          # setup-go can only be pointed at one of the two. A repository whose
+          # modules disagree about the language version builds on whichever
+          # runner happens to be newest, and the disagreement itself is invisible
+          # until one module grows a feature the other's toolchain rejects.
+          declared() {
+            sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$1"
+          }
+          hw="$(declared system/hardware/go.mod)"
+          dt="$(declared desktop/go.mod)"
+          if [ -z "$hw" ] || [ "$hw" != "$dt" ]; then
+            echo "::error::The two modules disagree about the Go version:" \
+                 "system/hardware/go.mod declares '${hw:-none}'," \
+                 "desktop/go.mod declares '${dt:-none}'."
+            exit 1
+          fi
+          echo "both modules declare go ${hw}; toolchain is $(go env GOVERSION)"
+
+      # --------------------------------------------------------------------
+      # system/hardware — module zenith/hardware. Self-contained, and with no
+      # external dependency at all, so this module is the one that would still
+      # build with the network unplugged.
+      # --------------------------------------------------------------------
+      - name: gofmt, vet and test — system/hardware
+        working-directory: system/hardware
+        run: |
+          # gofmt -l lists every file it would reformat and exits 0 either way,
+          # so its exit status carries no information and the output is the
+          # signal. A bare `gofmt -l .` in CI is a step that cannot fail.
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-clean. Run 'gofmt -w' on them:"
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+          echo "gofmt clean."
+
+          go vet ./...
+          go test ./...
+
+      # --------------------------------------------------------------------
+      # desktop — module zenith/desktop. Separate working directory on purpose:
+      # `replace zenith/hardware => ../system/hardware` resolves against the
+      # checkout, and running this from the repository root fails with
+      # "directory prefix . does not contain main module" rather than with
+      # anything that names the real problem.
+      # --------------------------------------------------------------------
+      - name: gofmt, vet and test — desktop
+        working-directory: desktop
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-clean. Run 'gofmt -w' on them:"
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+          echo "gofmt clean."
+
+          go vet ./...
+          go test ./...
+
+      # --------------------------------------------------------------------
+      # The session entry point and the greeter. Both are run rather than
+      # unit-tested because what is under test is how /bin/sh behaves under
+      # `set -e` — the AND-list trap, the fallback-on-failure path — and the only
+      # way to know that is to run it. Each script stubs what it needs
+      # (systemctl, dbus-update-activation-environment, weston, modetest), so
+      # nothing graphical, nothing Wayland and no compositor is required.
+      #
+      # Invoked through `sh` rather than by path so the check does not depend on
+      # the checkout preserving the executable bit.
+      # --------------------------------------------------------------------
+      - name: session/session_test.sh
+        run: sh session/session_test.sh
+
+      - name: session/greeter_test.sh
+        run: sh session/greeter_test.sh
+
+      # --------------------------------------------------------------------
+      # The branding assets. These are checked-in files, not build outputs, and
+      # the property that matters is that the light and dark logos are the same
+      # drawing: if they drift apart, the dark one stops being the logo and
+      # becomes a different shape nobody reviewed.
+      #
+      # Python's own XML parser rather than xmllint, because the same parse has
+      # to hand back the path data, and because python3 is on the runner image
+      # while libxml2-utils is a package this workflow would otherwise have to
+      # install for one step.
+      # --------------------------------------------------------------------
+      - name: Branding assets
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          SVG = "{http://www.w3.org/2000/svg}"
+          LIGHT = Path("public/zenith-logo.svg")
+          DARK = Path("public/zenith-logo-on-dark.svg")
+
+          problems = []
+
+          def parse(path):
+              # Well-formedness. A truncated or hand-edited logo is not a logo
+              # that renders, and a browser fails it silently.
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError as exc:
+                  problems.append(f"{path}: not well-formed XML: {exc}")
+                  return None
+              if root.tag != SVG + "svg":
+                  problems.append(f"{path}: root is <{root.tag}>, expected <svg>")
+                  return None
+              for attr in ("viewBox", "width", "height"):
+                  if attr not in root.attrib:
+                      problems.append(f"{path}: <svg> has no {attr}")
+              return root
+
+          light = parse(LIGHT)
+          dark = parse(DARK)
+
+          # A generator that emitted NaN or inf leaves the path unparseable by
+          # whatever rasterises it. Word-bounded so "infinity" in a comment or a
+          # fill name is not mistaken for a non-finite coordinate.
+          nonfinite = re.compile(r"\b(?:nan|NaN|NAN|inf|Inf|INF|-inf|-Inf)\b")
+          for path in (LIGHT, DARK):
+              hits = nonfinite.findall(path.read_text(encoding="utf-8"))
+              if hits:
+                  problems.append(f"{path}: non-finite number(s) {sorted(set(hits))}")
+
+          if light is not None and dark is not None:
+              lp = light.findall(f".//{SVG}path")
+              dp = dark.findall(f".//{SVG}path")
+              if not lp:
+                  problems.append(f"{LIGHT}: no <path> elements")
+              elif len(lp) != len(dp):
+                  problems.append(f"path count differs: {len(lp)} vs {len(dp)}")
+              else:
+                  for i, (a, b) in enumerate(zip(lp, dp)):
+                      if a.attrib.get("d") != b.attrib.get("d"):
+                          problems.append(f"path[{i}]: geometry differs between the two logos")
+                      for key in ("fill-rule", "clip-rule", "transform", "id"):
+                          if a.attrib.get(key) != b.attrib.get(key):
+                              problems.append(f"path[{i}]: {key} differs")
+                  # Differ *only* in fill: strip every fill and compare the two
+                  # trees element by element. A check that only compares `d`
+                  # would pass a light logo that had quietly gained a transform.
+                  def without_fill(root):
+                      out = []
+                      for node in root.iter():
+                          attrs = dict(node.attrib)
+                          attrs.pop("fill", None)
+                          out.append((node.tag, tuple(sorted(attrs.items()))))
+                      return out
+                  if without_fill(light) != without_fill(dark):
+                      problems.append("the two logos differ by more than fill colour")
+                  lf = {p.attrib.get("fill") for p in lp}
+                  df = {p.attrib.get("fill") for p in dp}
+                  if lf == df:
+                      problems.append(f"both logos fill {sorted(x for x in lf if x)}; the dark variant must differ")
+                  print(f"light fill {sorted(x for x in lf if x)}, dark fill {sorted(x for x in df if x)}")
+
+          if problems:
+              print(f"{len(problems)} problem(s) with the branding SVGs:", file=sys.stderr)
+              for p in problems:
+                  print(f"  {p}", file=sys.stderr)
+              sys.exit(1)
+          print("branding SVGs OK: well-formed, identical geometry, colour-only difference")
+          PY
+
+  # --------------------------------------------------------------------------
+  # Everything that produces or resolves an artefact.
+  # --------------------------------------------------------------------------
+  package:
+    name: deb, boundary, repository, manifest
+    # Not decoration. `unit` is seconds and `package` is tens of seconds of
+    # network, and this is the only ordering in the workflow that stops the
+    # expensive half of a run that is already known to fail.
+    needs: unit
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Needed here, not just in `unit`: build-debs.sh runs `go build` against
+      # desktop/cmd/zenith to produce the binary the package ships. A packaging
+      # job without a toolchain cannot build a package containing a Go binary.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: system/hardware/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+
+      - name: PyYAML for the manifest verifier
+        run: |
+          # The runner image has PyYAML, but not as a guarantee. `pip install`
+          # is not the fallback: the system Python is PEP 668 externally
+          # managed and refuses, so the distro package is the route that works.
+          if ! python3 -c 'import yaml' 2>/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends python3-yaml
+          fi
+          python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
+
+      # --------------------------------------------------------------------
+      # Build the package and assert the boundary directly, rather than leaving
+      # it to the release suite. build-debs.sh already calls check-boundary.sh on
+      # its staging tree, and this step runs it a second time against the tree
+      # dpkg-deb actually produced, which is the tree that gets installed and
+      # therefore the one the rule is about.
+      #
+      # Requires dpkg (dpkg-dev for dpkg-deb, preinstalled on the runner image).
+      # --------------------------------------------------------------------
+      - name: Build the .deb
+        run: sh release/build-debs.sh "$RUNNER_TEMP/debs"
+
+      - name: Every installed path is inside the boundary
+        run: |
+          stage="$RUNNER_TEMP/stage"
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          # The glob is expanded by the shell over the .deb build-debs.sh just
+          # wrote. Quoting it here would hand dpkg-deb a literal asterisk.
+          dpkg-deb -x $RUNNER_TEMP/debs/*.deb "$stage"
+          sh release/check-boundary.sh "$stage" zenith
+
+      # --------------------------------------------------------------------
+      # The release suite proper: two byte-identical builds, the boundary again,
+      # installed modes, a signed repository and the key-stability regression.
+      # Needs gnupg (gpg/gpgv) and dpkg-dev (dpkg-scanpackages), both on the
+      # runner image. apt-ftparchive is absent there and mkrepo.sh assembles the
+      # Release file by hand instead, which the suite accepts as equivalent.
+      # --------------------------------------------------------------------
+      - name: release/release_test.sh
+        run: sh release/release_test.sh
+
+      # --------------------------------------------------------------------
+      # Cache the base-layer indexes.
+      #
+      # Keyed on the ISO week as well as the manifest, and deliberately without
+      # restore-keys. The universe index is ~20 MB compressed and ~77 MB
+      # decompressed and changes on every Ubuntu sync, so a cache restored on a
+      # prefix match would pin this check to whatever archive was current when
+      # it was first written — a check that keeps passing against a frozen
+      # snapshot is the quiet failure this whole step exists to prevent. A week
+      # is a long way to keep a package name frozen and a short one to pay for.
+      # --------------------------------------------------------------------
+      - name: Date the index cache
+        id: week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the base-layer package indexes
+        id: pkg-index
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/zenith-pkg-index
+          # On one line deliberately. A folded block scalar keeps the newline of
+          # a more-indented line, which would put a real newline inside the
+          # expression and produce a key nothing will ever hit again.
+          key: pkg-index-${{ runner.os }}-${{ runner.arch }}-${{ steps.week.outputs.week }}-${{ hashFiles('system/packages.yaml') }}
+
+      # --------------------------------------------------------------------
+      # Resolve every name in system/packages.yaml against the real archive.
+      #
+      # verify-packages.py fetches the indexes itself over plain HTTP; --cache-dir
+      # is an optimisation, not a prerequisite, so a cold cache is a slower run
+      # and never a skipped check. The step has no continue-on-error and no
+      # `|| true`: read_url turns a 404 or an unreachable mirror into
+      # `sys.exit("cannot fetch ...")` and exit status 1, and an install entry
+      # that is in no component exits 1. There is no code path in this script
+      # that reports success without having read a real index.
+      #
+      # Run from the repository root: --manifest defaults to the relative path
+      # system/packages.yaml, and from anywhere else the script dies on a
+      # FileNotFoundError rather than on anything that names the mistake.
+      #
+      # amd64 only, and deliberately: verify-packages.py hardcodes
+      # binary-amd64 in its index URL, so the ports mirror answers 404 for it.
+      # That fails loudly rather than silently, which is the correct behaviour
+      # for a check that cannot run — but widening this to arm64 means making
+      # that URL arch-aware first, and that is a change to the verifier, not to
+      # this workflow.
+      # --------------------------------------------------------------------
+      - name: Verify system/packages.yaml against the real archive
+        env:
+          INDEX_CACHE: ${{ runner.temp }}/zenith-pkg-index
+        run: |
+          case "$(uname -m)" in
+            x86_64)  mirror=http://archive.ubuntu.com/ubuntu ;;
+            *)
+              echo "::error::verify-packages.py hardcodes binary-amd64, and no" \\
+                   "arm mirror serves that path. Making the verifier" \\
+                   "arch-aware is a change to the verifier, not to this" \\
+                   "workflow; refusing to skip the manifest check." >&2
+              exit 1
+              ;;
+          esac
+          echo "verifying system/packages.yaml against ${mirror}"
+          mkdir -p "$INDEX_CACHE"
+          python3 system/verify-packages.py \
+            --manifest system/packages.yaml \
+            --mirror "$mirror" \
+            --cache-dir "$INDEX_CACHE"

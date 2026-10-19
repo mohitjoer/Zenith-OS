@@ -1,0 +1,32 @@
+#!/bin/sh
+# The settings application.
+#
+# A wrapper rather than a binary because there is nothing to wrap that is not
+# Quickshell: `quickshell -p` on the Hub's directory is the whole program, and a
+# Go binary that did one exec and exited would be a second name to keep in step
+# with a directory path.
+#
+# It is not a systemd unit. The Hub is a window the user opens; making it a unit
+# would mean it starts at login whether or not anyone is going to look at it.
+set -eu
+
+PREFIX=/usr/share/zenith
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+HUB_DIR="$PREFIX/hub"
+
+# The same wrapper pattern as the greeter: a missing quickshell is the package
+# build's problem and is stated, rather than being a shell error about an
+# undefined variable.
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-hub: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-hub: the Hub is drawn by Quickshell, which Zenith builds; see" >&2
+    echo "zenith-hub: the shell group in system/packages.yaml." >&2
+    exit 1
+fi
+
+# The registry the window reads. It is exported here rather than by the window so
+# that a Hub started before an upgrade, or with a stale schema directory, gets
+# today's data — and so that the schemas named are the ones the window will draw.
+export ZENITH_SCHEMA_DIR="${ZENITH_SCHEMA_DIR:-$PREFIX/schemas}"
+
+exec "$QUICKSHELL_BIN" -p "$HUB_DIR"

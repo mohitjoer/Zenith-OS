@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -53,6 +54,7 @@ Usage:
   zenith config set SCHEMA KEY VALUE
   zenith config reset SCHEMA KEY
   zenith config pages
+  zenith config export    the page registry as JSON, for the Hub window
 
 Every setting has a Hub page and every page has a command; "zenith config
 pages" prints the mapping.
@@ -77,6 +79,8 @@ pages" prints the mapping.
 		return configReset(catalogue, args[1:])
 	case "pages":
 		return configPages()
+	case "export":
+		return configExport(catalogue)
 	default:
 		fmt.Fprintf(os.Stderr, "zenith config: unknown subcommand %q\n", args[0])
 		return exitUsage
@@ -216,6 +220,27 @@ func configReset(catalogue *settings.Catalogue, args []string) int {
 		return exitFail
 	}
 	fmt.Printf("%s reset to its default.\n", ref)
+	return exitOK
+}
+
+// configExport writes the page registry as JSON.
+//
+// It exists so the Hub window reads the registry rather than repeating it. A
+// registry written twice agrees until somebody edits one of them, and the result
+// is a page showing settings it does not own — which is the exact fault
+// `zenith doctor` reports.
+//
+// The value of every setting is included, so the window never reads dconf
+// itself. `zenith config` is then the only writer, which is what the architecture
+// record requires.
+func configExport(catalogue *settings.Catalogue) int {
+	document := hub.Export(catalogue)
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(document); err != nil {
+		fmt.Fprintln(os.Stderr, "zenith config export:", err)
+		return exitFail
+	}
 	return exitOK
 }
 

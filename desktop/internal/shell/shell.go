@@ -53,6 +53,21 @@ type Env struct {
 	// way — against the directory named by `-p`, not against the process's
 	// working directory.
 	Dir string
+	// EntryPoint is the file `quickshell -p` is expected to find. It differs per
+	// window: the desktop shell's is shell.qml, the Hub's is hub.qml. There is no
+	// default, because a default would mean one window silently passes another's
+	// check.
+	EntryPoint string
+	// OwnsSettings says this tree is the one that reads GSettings. The desktop
+	// shell is; the Hub window is not — it renders what `zenith config export`
+	// hands it and never touches a schema.
+	//
+	// It matters because Quickshell's `-p` sets the import path for one window
+	// only. The Hub has its own copy of the settings wrapper installed beside it,
+	// so running the shell's settings checks over the Hub's tree would report
+	// every property that only the shell uses as an unused setting — a true
+	// statement about the wrong tree, which is the most expensive kind.
+	OwnsSettings bool
 }
 
 func (e Env) path(relative string) string {
@@ -214,22 +229,25 @@ func Check(env Env) []Finding {
 	if len(files) == 0 {
 		return []Finding{{
 			Rule:   "entry point",
-			Path:   filepath.Join(env.Dir, "shell.qml"),
-			Detail: "no QML files found; the shell would start and immediately exit",
+			Path:   filepath.Join(env.Dir, env.EntryPoint),
+			Detail: "no QML files found; the window would start and immediately exit",
 		}}
 	}
 
-	schema, schemaFindings := loadSchema(env)
-	findings = append(findings, schemaFindings...)
-
-	findings = append(findings, checkSchemaIds(env, files)...)
 	findings = append(findings, checkEntryPoint(env, files)...)
-	findings = append(findings, checkCatalogue(env, files)...)
-	if schema != nil {
-		findings = append(findings, checkSettingsReads(env, files, *schema)...)
+
+	if env.OwnsSettings {
+		schema, schemaFindings := loadSchema(env)
+		findings = append(findings, schemaFindings...)
+		findings = append(findings, checkSchemaIds(env, files)...)
+		findings = append(findings, checkCatalogue(env, files)...)
+		if schema != nil {
+			findings = append(findings, checkSettingsReads(env, files, *schema)...)
+		}
+		findings = append(findings, checkUnusedWrapperProperties(env, files)...)
+		findings = append(findings, checkGlyphs(env, files)...)
 	}
-	findings = append(findings, checkUnusedWrapperProperties(env, files)...)
-	findings = append(findings, checkGlyphs(env, files)...)
+
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
 
@@ -365,12 +383,12 @@ func checkSchemaIds(env Env, files []string) []Finding {
 // pointed at the directory and not at a file.
 func checkEntryPoint(env Env, files []string) []Finding {
 	for _, f := range files {
-		if f == "shell.qml" {
+		if f == env.EntryPoint {
 			return nil
 		}
 	}
 	return []Finding{{
-		Rule: "entry point", Path: filepath.Join(env.Dir, "shell.qml"),
+		Rule: "entry point", Path: filepath.Join(env.Dir, env.EntryPoint),
 		Detail: "missing; `quickshell -p` names the directory, and nothing " +
 			"names the file inside it",
 	}}

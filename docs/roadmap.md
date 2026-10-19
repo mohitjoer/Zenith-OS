@@ -277,9 +277,18 @@ is not written.*
   has a command**, in both directions. A key with no page is a setting only a
   command line can change; a page with no command is a control the user can see
   and use that either does nothing or writes dconf behind the tool's back
-- [ ] `zenith-hub`, the window drawn in Quickshell (QML) — one UI toolkit and
-  one design system on the desktop, not two
-- [ ] The Hub window reading the page registry rather than repeating it
+- [x] The Hub window, drawn in Quickshell (QML) — one UI toolkit and one design
+  system on the desktop, not two. It draws pages it did not write: `zenith config
+  export` hands it the navigation, the keys, their types, their permitted values,
+  their ranges and their current values
+- [x] Every control writes through `zenith config set`, never through GSettings,
+  so every write to dconf on this desktop passes the same validation the tool
+  does. A control writing dconf itself could put 999999 in a bar height that
+  declares a maximum of 96
+- [x] A third invariant: every setting type has a control, and every control is
+  used by some setting. A type with no control is a page that renders the row and
+  leaves it unchangeable — which reads as a broken Hub rather than a missing
+  widget
 
 ## M8 — Repository and release
 

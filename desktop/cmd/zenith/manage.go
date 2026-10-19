@@ -297,14 +297,29 @@ func reportShell() int {
 	fmt.Println()
 	fmt.Println("Shell")
 
-	findings := shell.Check(shell.Env{Dir: "/usr/share/zenith/shell"})
-	if len(findings) == 0 {
-		fmt.Println("  source checks pass")
+	// Two windows, two trees, and they are checked differently on purpose.
+	//
+	// The desktop shell owns the schemas and is checked against them. The Hub
+	// does not: it renders what `zenith config export` hands it and never reads a
+	// schema, so running the shell's settings checks over it would report every
+	// property only the shell uses as an unused setting — true of the wrong tree.
+	trees := []shell.Env{
+		{Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml", OwnsSettings: true},
+		{Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
+	}
+
+	problems := 0
+	for _, env := range trees {
+		for _, finding := range shell.Check(env) {
+			fmt.Printf("  %-22s %s: %s\n", finding.Rule, finding.Path, finding.Detail)
+			problems++
+		}
+	}
+	if problems == 0 {
+		fmt.Printf("  source checks pass for %d window(s)", len(trees))
+		fmt.Println()
 		fmt.Println("  note    behaviour is unverified: no quickshell on this machine")
 		return exitOK
-	}
-	for _, finding := range findings {
-		fmt.Printf("  %-22s %s\n", finding.Rule, finding.Detail)
 	}
 	return exitFail
 }

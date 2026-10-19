@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="public/zenith-logo.svg" alt="Zenith OS" width="180">
+</p>
+
 # 天 Zenith OS
+
+<p align="center">
+  <img src="public/zenith-logo-on-dark.svg" alt="" width="96">
+</p>
 
 **untouchable · dominating**
 

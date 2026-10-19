@@ -196,3 +196,84 @@ func write(t *testing.T, dir, name, body string) {
 		t.Fatal(err)
 	}
 }
+
+// TestEverySettingTypeHasAControl covers the third invariant, and it is the one
+// a user meets first.
+//
+// A type with no control is a page that renders the row and leaves the value
+// unchangeable. It looks like a broken Hub rather than a missing widget, so
+// nothing reports it — the row is there, which is exactly the problem.
+func TestEverySettingTypeHasAControl(t *testing.T) {
+	findings := CheckControls(realCatalogue(t))
+	for _, f := range findings {
+		t.Errorf("%s", f)
+	}
+}
+
+// TestTypeWithNoControlIsFound covers the same direction from the other side: a
+// new schema key of a type nothing maps.
+func TestTypeWithNoControlIsFound(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "org.zenith.test.gschema.xml", `<?xml version="1.0"?>
+<schemalist>
+  <schema id="org.zenith.test" path="/org/zenith/test/">
+    <key name="opacity" type="d"><default>1.0</default></key>
+  </schema>
+</schemalist>`)
+
+	catalogue, err := settings.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	findings := CheckControls(catalogue)
+	found := false
+	for _, f := range findings {
+		if strings.Contains(f.Reason, "no control is mapped") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a setting type with no control was not found: %v", findings)
+	}
+}
+
+// TestControlNoSettingUsesIsFound covers the other direction.
+//
+// A control no setting uses is a widget written, styled and shipped for nothing,
+// which is how a UI ends up with settings nobody uses and controls nobody can
+// reach.
+func TestControlNoSettingUsesIsFound(t *testing.T) {
+	saved := controls
+	defer func() { controls = saved }()
+
+	controls["choice"] = "carousel"
+
+	findings := CheckControls(realCatalogue(t))
+	found := false
+	for _, f := range findings {
+		if strings.Contains(f.Reason, "no setting uses") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a control no setting uses was not found: %v", findings)
+	}
+}
+
+// TestEnumIsAControlChoiceNotANumber covers why "enum" is its own kind.
+//
+// An enum key is an integer with named values, and the control it wants is a list
+// of those names. Treating it as a number gives the user a spin box that counts
+// through colours they cannot see.
+func TestEnumIsAControlChoiceNotANumber(t *testing.T) {
+	control, ok := ControlFor("i", "org.zenith.shell.Edge")
+	if !ok || control != "choice" {
+		t.Errorf("an enum-typed key maps to %q, %v; want a choice", control, ok)
+	}
+
+	control, ok = ControlFor("i", "")
+	if !ok || control != "spin" {
+		t.Errorf("a plain integer maps to %q, %v; want a spin", control, ok)
+	}
+}

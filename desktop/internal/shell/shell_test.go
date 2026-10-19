@@ -7,6 +7,15 @@ import (
 	"testing"
 )
 
+// treeEnv is tree with the shell's own settings, so a fixture is checked the way
+// the desktop shell is rather than the way the Hub window is.
+func treeEnv(t *testing.T, files map[string]string) Env {
+	env := tree(t, files)
+	env.EntryPoint = "shell.qml"
+	env.OwnsSettings = true
+	return env
+}
+
 // tree writes a set of files under a temporary root and returns an Env for it.
 func tree(t *testing.T, files map[string]string) Env {
 	t.Helper()
@@ -76,7 +85,7 @@ func hasRule(findings []Finding, rule string) bool {
 // A validator that has never been run against the thing it validates is a
 // validator nobody knows the sensitivity of.
 func TestTheShellsOwnTreePasses(t *testing.T) {
-	findings := Check(Env{Root: "../../..", Dir: "shell"})
+	findings := Check(Env{Root: "../../..", Dir: "shell", EntryPoint: "shell.qml", OwnsSettings: true})
 	if len(findings) != 0 {
 		for _, f := range findings {
 			t.Errorf("%s", f)
@@ -85,7 +94,7 @@ func TestTheShellsOwnTreePasses(t *testing.T) {
 }
 
 func TestGoodFixturePasses(t *testing.T) {
-	if findings := Check(tree(t, goodShell())); len(findings) != 0 {
+	if findings := Check(treeEnv(t, goodShell())); len(findings) != 0 {
 		t.Errorf("a well-formed shell reported findings: %v", rules(findings))
 	}
 }
@@ -97,7 +106,7 @@ func TestMissingEntryPointIsFound(t *testing.T) {
 	files := goodShell()
 	delete(files, "shell.qml")
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "entry point") {
 		t.Errorf("a missing entry point was not found: %v", rules(findings))
 	}
@@ -105,7 +114,7 @@ func TestMissingEntryPointIsFound(t *testing.T) {
 
 // TestEmptyTreeIsReported covers a tree that exists but has nothing in it.
 func TestEmptyTreeIsReported(t *testing.T) {
-	findings := Check(tree(t, map[string]string{}))
+	findings := Check(treeEnv(t, map[string]string{}))
 	if !hasRule(findings, "entry point") {
 		t.Errorf("an empty tree was not reported: %v", rules(findings))
 	}
@@ -120,7 +129,7 @@ func TestCatalogueEntryWithNoFileIsFound(t *testing.T) {
 	files["Bar.qml"] = strings.Replace(
 		files["Bar.qml"], `({ "clock": "Clock" })`, `({ "clock": "Clock", "wifi": "Wifi" })`, 1)
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "widget catalogue") {
 		t.Fatalf("a catalogue entry with no file was not found: %v", rules(findings))
 	}
@@ -142,7 +151,7 @@ func TestUnknownSettingsKeyIsFound(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\nItem { color: config.barrHieght }\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "settings read") {
 		t.Fatalf("a settings read of a key the schema does not declare was "+
 			"not found: %v", rules(findings))
@@ -171,7 +180,7 @@ func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
 			"  readonly property int edgeLeft: 2", 1)
 	files["Widgets/Clock.qml"] = "import Quickshell\nItem { w: config.edgeLeft }\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
 		t.Errorf("a wrapper property was reported as a schema key: %v",
 			rules(findings))
@@ -190,7 +199,7 @@ func TestCommentsAreNotSource(t *testing.T) {
 		"// Do not read config.nonsense, it does not exist.\n" +
 		"/* config.alsoNonsense */\nItem {}\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
 		t.Errorf("a comment was read as a settings read: %v", rules(findings))
 	}
@@ -217,7 +226,7 @@ func TestPathOutsideTheBoundaryIsFound(t *testing.T) {
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
 		"Item { source: \"/etc/sddm.conf.d/10-zenith.conf\" }\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "boundary") {
 		t.Errorf("a path outside the boundary was not found: %v", rules(findings))
 	}
@@ -228,7 +237,7 @@ func TestPathsInsideTheBoundaryAreAllowed(t *testing.T) {
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
 		"Item { source: \"/usr/share/zenith/shell/shell.qml\" }\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "boundary") {
 		t.Errorf("a path inside the boundary was reported: %v", rules(findings))
 	}
@@ -243,7 +252,7 @@ func TestUnknownImportIsFound(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\nimport SomeUserModule\nItem {}\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "import") {
 		t.Errorf("an import outside the closed list was not found: %v", rules(findings))
 	}
@@ -257,7 +266,7 @@ func TestMalformedSchemaIsReported(t *testing.T) {
 	files := goodShell()
 	files["org.zenith.shell.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "schema") {
 		t.Errorf("a malformed schema was not reported: %v", rules(findings))
 	}
@@ -271,7 +280,7 @@ func TestDuplicateSchemaKeyIsFound(t *testing.T) {
 		`</schema>`,
 		`  <key name="bar-height" type="i"><default>8</default></key>`+"\n  </schema>", 1)
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "schema") {
 		t.Errorf("a duplicate key was not reported: %v", rules(findings))
 	}
@@ -312,7 +321,7 @@ func TestSchemaIdWithNoSchemaFileIsFound(t *testing.T) {
 	files["Bar.qml"] = strings.Replace(files["Bar.qml"],
 		"import Quickshell", "import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.zenith.desktop\" }", 1)
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "schema id") {
 		t.Fatalf("a schemaId with no schema file was not found: %v", rules(findings))
 	}
@@ -336,7 +345,7 @@ func TestSchemaKeyNoSurfaceCanReachIsFound(t *testing.T) {
 	files["org.zenith.shell.gschema.xml"] = strings.Replace(goodSchema,
 		"</key>", "</key>\n    <key name=\"unread-key\" type=\"s\"><default>''</default></key>", 1)
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "settings unreachable") {
 		t.Errorf("a schema key no surface can reach was not found: %v",
 			rules(findings))
@@ -402,7 +411,7 @@ func TestSchemaIdCheckNamesTheMalformedSchema(t *testing.T) {
 		"import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.zenith.desktop\" }", 1)
 	files["org.zenith.desktop.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	found := false
 	for _, f := range findings {
 		if f.Rule == "schema" && strings.Contains(f.Detail, "well-formed") {
@@ -428,7 +437,7 @@ func TestUnusedWrapperPropertyIsFound(t *testing.T) {
 		"readonly property int barPosition: shell.barPosition\n"+
 			"  readonly property int nobodyReadsThis: 3", 1)
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	found := false
 	for _, f := range findings {
 		if f.Rule == "unused setting" && strings.Contains(f.Detail, "nobodyReadsThis") {
@@ -482,7 +491,7 @@ func TestGlyphOutsideItsFontsRangeIsFound(t *testing.T) {
 		"    \"bluetooth\": \"\\uf8ff\",\n" +
 		"  })\n}\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "glyph range") {
 		t.Fatalf("a codepoint outside the font's range was not found: %v",
 			rules(findings))
@@ -513,7 +522,7 @@ func TestGlyphWrittenAsARawCharacterIsFound(t *testing.T) {
 		"    \"lock\": \"\",\n" +
 		"  })\n}\n"
 
-	findings := Check(tree(t, files))
+	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "glyph escape") {
 		t.Errorf("a glyph written as a raw character was not found: %v",
 			rules(findings))
@@ -536,5 +545,47 @@ func TestEscapeCodepointsAreInRange(t *testing.T) {
 				t.Errorf("%s range rejects its own edge U+%04X", family, probe)
 			}
 		}
+	}
+}
+
+// TestTheHubsOwnTreePasses runs the same checks over the Hub's window.
+//
+// It is a separate test rather than an extra case in the shell's, because the
+// two windows are checked differently on purpose. The desktop shell owns the
+// schemas and is checked against them; the Hub renders what `zenith config
+// export` hands it and reads no schema, so the shell's settings checks over it
+// would report every property only the shell uses as an unused setting — a true
+// statement about the wrong tree, which is the most expensive kind of finding.
+func TestTheHubsOwnTreePasses(t *testing.T) {
+	env := Env{Root: "../../..", Dir: "shell/hub", EntryPoint: "hub.qml"}
+
+	findings := Check(env)
+	if len(findings) != 0 {
+		for _, f := range findings {
+			t.Errorf("%s", f)
+		}
+	}
+}
+
+// TestTheEntryPointIsNotDefaulted covers the reason EntryPoint is not optional.
+//
+// A default would let one window silently pass another's check: with "shell.qml"
+// as a default, the Hub tree would be checked for a file it does not have and
+// every run would report the same missing entry point.
+func TestTheEntryPointIsNotDefaulted(t *testing.T) {
+	files := goodShell()
+	delete(files, "shell.qml")
+
+	// With the shell's own entry point named, it is a finding.
+	env := treeEnv(t, files)
+	if !hasRule(Check(env), "entry point") {
+		t.Error("a missing entry point was not reported")
+	}
+
+	// With none named, the same tree has no entry point to look for — which is
+	// why nothing defaults it.
+	env = tree(t, files)
+	if hasRule(Check(env), "entry point") && env.EntryPoint != "" {
+		t.Error("an unset EntryPoint was silently filled in")
 	}
 }

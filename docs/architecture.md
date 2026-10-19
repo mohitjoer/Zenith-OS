@@ -679,6 +679,37 @@ shipped file is never edited in place.
 
 ---
 
+## The mark
+
+<p align="center">
+  <img src="../public/zenith-logo.svg" alt="Zenith OS" width="150">
+</p>
+
+天 — read *ten* — is heaven: the highest point of the sky. A zenith is that same point. The
+mark and the name say one thing, and they say it about the architecture as much as about the
+project: this is the top of the stack, and it sits above everything it is built on.
+
+| File | Use |
+|---|---|
+| `public/zenith-logo.svg` | Black, for light backgrounds |
+| `public/zenith-logo-on-dark.svg` | White, for dark backgrounds |
+
+Both are the same drawing. That is enforced, not assumed: `ci.yml` fails if the two files'
+path geometry differs by a single character or if they differ by anything other than fill
+colour. A logo that has a light variant and a dark variant of two different shapes is two
+logos, and only one of them was reviewed.
+
+The paths were traced from the original 500x500 raster at the 50% alpha line, with the
+crossings located to sub-pixel precision by bilinear interpolation, simplified with
+Douglas-Peucker and fitted with adaptive cubic Beziers. The result agrees with the source
+within 27 pixels of 250,000 — 0.011% of the canvas, 0.06% of the inked area — and that is
+checked by re-rasterising the SVG and comparing it to the original rather than by asserting
+it. A codepoint or a contour invented from memory is a logo nobody looked at, and every other
+number in this document was earned by measuring something; this one is no different.
+
+The mark is drawn nowhere it is installed as a raster. Anything that needs it at runtime reads
+the SVG.
+
 ## Open questions
 
 | Question | Why it matters |

@@ -88,6 +88,37 @@ mkdir -p "$STAGE/usr/share/zenith/shell/Widgets"
 cp "$REPO_ROOT/shell/"*.qml "$STAGE/usr/share/zenith/shell/"
 cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
 
+# The Hub's window.
+#
+# Config.qml is copied in beside it as well. Quickshell's -p sets the import path
+# for one window and nothing else, so the Hub cannot see the singleton the shell
+# uses from its own directory — and it uses `config.dark` like every other
+# surface. One source file, two installed copies, rather than a second file that
+# could drift from the first.
+mkdir -p "$STAGE/usr/share/zenith/hub/Controls"
+cp "$REPO_ROOT/shell/hub/"*.qml "$STAGE/usr/share/zenith/hub/"
+cp "$REPO_ROOT/shell/hub/Controls/"*.qml "$STAGE/usr/share/zenith/hub/Controls/"
+cp "$REPO_ROOT/shell/Config.qml" "$STAGE/usr/share/zenith/hub/"
+cp "$REPO_ROOT/session/zenith-hub" "$STAGE/usr/bin/zenith-hub"
+chmod 0755 "$STAGE/usr/bin/zenith-hub"
+
+# The mark. SVG, because it is the only form that stays sharp from a 16-pixel
+# status icon to a 4K greeter, and because a raster of it would be a second
+# source of truth for a shape that has exactly one.
+mkdir -p "$STAGE/usr/share/zenith/branding"
+cp "$REPO_ROOT/public/zenith-logo.svg" "$STAGE/usr/share/zenith/branding/"
+cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" "$STAGE/usr/share/zenith/branding/"
+
+# The wallpapers. All seven ship, because a desktop that offers one wallpaper is
+# a desktop that has made the user's taste the project's taste. They are content
+# under /usr/share/zenith/, so no registration is involved.
+#
+# 14 MB, and that is the honest cost of shipping someone's artwork: the package
+# grows and there is no image tool on the base layer to re-encode them without
+# making the images somebody else's. They are copied byte for byte.
+mkdir -p "$STAGE/usr/share/zenith/backgrounds"
+cp "$REPO_ROOT/public/wallpapers/"* "$STAGE/usr/share/zenith/backgrounds/"
+
 # The schema is a registration: GLib compiles from this fixed directory and
 # nowhere else. The postinst runs glib-compile-schemas over it, because the XML
 # on its own is not readable by GSettings.
