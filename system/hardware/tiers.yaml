@@ -86,6 +86,19 @@ tiers:
 # and it is the same value as that file's `default_for_unknown`. Tier 3 never
 # takes `oem`: that key exists for a profile that names a specific vendor
 # kernel, and a machine with no profile has no vendor kernel to name.
+#
+# `firmware_bundle:` is a bundle level for the same reason, and the file said
+# nothing about it, so `full` read as a package name and resolved to nothing —
+# there is no package called full. `full` is `linux-firmware`, the whole
+# metapackage, which the manifest's firmware group installs on every machine
+# anyway; `minimal` is `linux-firmware-minimal`, which the archive also carries,
+# for a machine that needs only the firmware it boots with. Neither is the
+# nonexistent `linux-firmware-full`.
+#
+# Nothing reads this block yet. The consumer is the installer, milestone M4,
+# which cannot be built or run here — so the block records the policy and the
+# comment records that it is unapplied, rather than a key that looks like it
+# does something.
 fallback:
   kernel: generic
   firmware_bundle: full

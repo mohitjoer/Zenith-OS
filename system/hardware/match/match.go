@@ -280,9 +280,15 @@ func Resolve(machine Machine, db []Profile) Resolution {
 	return resolution
 }
 
-// fallbackResolution is the tier-3 answer from the fallback: block in
-// tiers.yaml: the generic kernel, the full firmware bundle, an automatic GPU
-// driver, the rescue bundle enabled, and a warning.
+// fallbackResolution is the tier-3 answer, and the half of the fallback: block
+// in tiers.yaml that this package can act on.
+//
+// Of the five keys that block names, only `kernel` is one matching produces:
+// matching decides what the machine is, not what the installer should do with
+// it. The firmware bundle, the GPU driver, the rescue bundle and the tier
+// warning are installer policy, recorded in tiers.yaml and applied by milestone
+// M4 — which is why the comment that used to sit here claimed all five while
+// returning one. A resolution carries what a resolution knows.
 //
 // It is a function rather than a constant slice because the caller may attach a
 // reason to it, and because it is the single place the conservative defaults are
