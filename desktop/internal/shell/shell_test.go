@@ -703,3 +703,70 @@ func TestTheScrimIsAllowedToBeBlack(t *testing.T) {
 			len(colourExemptions))
 	}
 }
+
+// TestSchemaDirectoryIsNotTheShellDirectory is the installed layout, which is
+// the only layout doctor runs against.
+//
+// GLib installs schemas under /usr/share/glib-2.0/schemas and nothing under
+// /usr/share/zenith/shell. The schema check used to read env.Dir, so an
+// installed tree reported "declares no schema id" for every schemaId the QML
+// names and then "no surface can reach it" for every key — a clean machine
+// described as broken. The two paths are separate because they are separate on
+// disk, not because the tool feels like splitting them.
+func TestSchemaDirectoryIsNotTheShellDirectory(t *testing.T) {
+	good := goodShell()
+	schema, ok := good["org.zenith.shell.gschema.xml"]
+	if !ok {
+		t.Fatal("fixture lost its schema")
+	}
+	delete(good, "org.zenith.shell.gschema.xml")
+
+	root := t.TempDir()
+	shellDir := filepath.Join(root, "usr", "share", "zenith", "shell")
+	schemaDir := filepath.Join(root, "usr", "share", "glib-2.0", "schemas")
+	for name, body := range good {
+		path := filepath.Join(shellDir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(schemaDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(schemaDir, "org.zenith.shell.gschema.xml"),
+		[]byte(schema), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	env := Env{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
+		OwnsSettings: true, SchemaDir: "/usr/share/glib-2.0/schemas"}
+
+	findings := Check(env)
+	if len(findings) != 0 {
+		for _, finding := range findings {
+			t.Errorf("  %s %s: %s", finding.Rule, finding.Path, finding.Detail)
+		}
+		t.Fatal("the installed layout reports faults that do not exist in it")
+	}
+}
+
+// TestSchemaDirectoryMissingIsReported covers the other half: a tree whose
+// schema directory is absent must not read as a tree with no problems.
+func TestSchemaDirectoryMissingIsReported(t *testing.T) {
+	env := treeEnv(t, goodShell())
+	env.SchemaDir = "/usr/share/glib-2.0/schemas"
+
+	findings := Check(env)
+	found := false
+	for _, finding := range findings {
+		if finding.Rule == "schema" && strings.Contains(finding.Path, "glib-2.0") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("a tree with no schema directory passed the schema check: %v", findings)
+	}
+}

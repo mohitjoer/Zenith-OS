@@ -68,10 +68,34 @@ type Env struct {
 	// every property that only the shell uses as an unused setting — a true
 	// statement about the wrong tree, which is the most expensive kind.
 	OwnsSettings bool
+	// SchemaDir is where the tree's .gschema.xml files live, without Root. It
+	// is empty in the checkout — schemas sit beside the QML that reads them —
+	// and is set only for an installed tree, where GLib installs schemas
+	// nowhere near the shell: /usr/share/glib-2.0/schemas, not
+	// /usr/share/zenith/shell.
+	//
+	// Without it doctor checks an installed shell against a directory that
+	// holds no schemas, reports the schema missing, and then reports every
+	// settings property unreachable — two faults that do not exist, on the one
+	// machine the project is actually running on.
+	SchemaDir string
 }
 
 func (e Env) path(relative string) string {
 	return filepath.Join(e.Root, e.Dir, relative)
+}
+
+// schemaDir is where schema files are searched for: the schema directory when
+// one is given, and the tree itself otherwise.
+func (e Env) schemaDir() string {
+	if e.SchemaDir == "" {
+		return e.Dir
+	}
+	return e.SchemaDir
+}
+
+func (e Env) schemaPath(relative string) string {
+	return filepath.Join(e.Root, e.schemaDir(), relative)
 }
 
 // Schema is the parsed form of a gschema file.
@@ -229,7 +253,7 @@ func Check(env Env) []Finding {
 	if len(files) == 0 {
 		return []Finding{{
 			Rule:   "entry point",
-			Path:   filepath.Join(env.Dir, env.EntryPoint),
+			Path:   env.path(env.EntryPoint),
 			Detail: "no QML files found; the window would start and immediately exit",
 		}}
 	}
@@ -237,13 +261,15 @@ func Check(env Env) []Finding {
 	findings = append(findings, checkEntryPoint(env, files)...)
 
 	if env.OwnsSettings {
-		schema, schemaFindings := loadSchema(env)
-		findings = append(findings, schemaFindings...)
-		findings = append(findings, checkSchemaIds(env, files)...)
-		findings = append(findings, checkCatalogue(env, files)...)
-		if schema != nil {
-			findings = append(findings, checkSettingsReads(env, files, *schema)...)
+		schemas, schemaFindings := loadSchemas(env)
+		declared := map[string]bool{}
+		for id := range schemas {
+			declared[id] = true
 		}
+		findings = append(findings, schemaFindings...)
+		findings = append(findings, checkSchemaIds(env, files, declared)...)
+		findings = append(findings, checkCatalogue(env, files)...)
+		findings = append(findings, checkSettingsReads(env, files, schemas)...)
 		findings = append(findings, checkUnusedWrapperProperties(env, files)...)
 		findings = append(findings, checkGlyphs(env, files)...)
 	}
@@ -280,32 +306,79 @@ func qmlFiles(env Env) ([]string, error) {
 	return files, err
 }
 
-func loadSchema(env Env) (*Schema, []Finding) {
-	schema, err := ParseSchema(env.path("org.zenith.shell.gschema.xml"))
-	path := filepath.Join(env.Dir, "org.zenith.shell.gschema.xml")
+// loadSchemas parses every schema the tree ships, keyed by the id it declares.
+//
+// More than one, because the desktop schema is a real dependency: Config.qml
+// binds `org.zenith.desktop` alongside the shell's, and it was never parsed at
+// all. A key declared there was not checked for reachability, so a setting the
+// shell ships and no surface can read went unreported — the exact fault the
+// reachability rule exists for, in the half of the database nobody looked at.
+//
+// A missing schema directory yields one finding rather than none. "No schemas"
+// is indistinguishable from "no problems", which is the same failure mode as
+// the profile linter's empty database.
+func loadSchemas(env Env) (map[string]Schema, []Finding) {
+	dir := env.schemaDir()
+	entries, err := os.ReadDir(filepath.Join(env.Root, env.schemaDir()))
 	if err != nil {
+		// Name the path the reader would look in rather than the error OS gave.
 		return nil, []Finding{{
-			Rule: "schema", Path: path, Detail: err.Error(),
-		}}
-	}
-	if schema.ID == "" {
-		return nil, []Finding{{
-			Rule: "schema", Path: path, Detail: "declares no schema id",
+			Rule: "schema", Path: filepath.Join(env.Root, dir),
+			Detail: "no such directory; schema keys cannot be checked",
 		}}
 	}
 
+	schemas := map[string]Schema{}
 	var findings []Finding
-	seen := map[string]bool{}
-	for _, key := range schema.Keys {
-		if seen[key] {
+	var found int
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".gschema.xml") {
+			continue
+		}
+		path := env.schemaPath(entry.Name())
+		schema, err := ParseSchema(path)
+		if err != nil {
+			// Reported as itself rather than as a missing id. A schema that will
+			// not parse is the problem; "no schema declares it" sends the reader
+			// looking for a schema that is sitting right there, malformed.
+			findings = append(findings, Finding{Rule: "schema", Path: path, Detail: err.Error()})
+			continue
+		}
+		if schema.ID == "" {
+			findings = append(findings, Finding{Rule: "schema", Path: path, Detail: "declares no schema id"})
+			continue
+		}
+		if previous, ok := schemas[schema.ID]; ok {
 			findings = append(findings, Finding{
 				Rule: "schema", Path: path,
-				Detail: fmt.Sprintf("key %q is declared twice", key),
+				Detail: fmt.Sprintf("redeclares id %q, which declares %d key(s); "+
+					"a schema id may only be defined once", schema.ID, len(previous.Keys)),
 			})
+			continue
 		}
-		seen[key] = true
+
+		found++
+		schemas[schema.ID] = schema
+		seen := map[string]bool{}
+		for _, key := range schema.Keys {
+			if seen[key] {
+				findings = append(findings, Finding{
+					Rule: "schema", Path: path,
+					Detail: fmt.Sprintf("key %q is declared twice", key),
+				})
+			}
+			seen[key] = true
+		}
 	}
-	return &schema, findings
+
+	if found == 0 {
+		findings = append(findings, Finding{
+			Rule: "schema", Path: filepath.Join(env.Root, dir),
+			Detail: "contains no .gschema.xml, so no key can be checked",
+		})
+	}
+	return schemas, findings
 }
 
 // schemaID is a `schemaId: "org.zenith.something"` in a Settings object.
@@ -324,43 +397,12 @@ var schemaID = regexp.MustCompile(`schemaId\s*:\s*"([A-Za-z0-9_.-]+)"`)
 // Reading every schema a machine happens to have installed would not fix it
 // either — the shell has to work on the machine it ships to, and on that
 // machine this project's schemas are the only ones it may depend on.
-func checkSchemaIds(env Env, files []string) []Finding {
+func checkSchemaIds(env Env, files []string, declared map[string]bool) []Finding {
 	var findings []Finding
 
-	// Every schema file in the tree, keyed by the id it declares. A schema the
-	// tree does not ship is exactly the fault, so an allowlist of known-good ids
-	// would be worse than useless: it would let the shell depend on a schema
-	// this project does not own.
-	declared := map[string]bool{}
-	entries, err := os.ReadDir(env.path("."))
-	if err != nil {
-		return nil
-	}
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".gschema.xml") {
-			continue
-		}
-		schema, err := ParseSchema(env.path(entry.Name()))
-		if err != nil {
-			// Reported as itself rather than as a missing id. A schema that will
-			// not parse is the problem; "no schema declares it" sends the reader
-			// looking for a schema that is sitting right there, malformed.
-			findings = append(findings, Finding{
-				Rule: "schema", Path: filepath.Join(env.Dir, entry.Name()),
-				Detail: err.Error(),
-			})
-			continue
-		}
-		if schema.ID == "" {
-			findings = append(findings, Finding{
-				Rule: "schema", Path: filepath.Join(env.Dir, entry.Name()),
-				Detail: "declares no schema id",
-			})
-			continue
-		}
-		declared[schema.ID] = true
-	}
-
+	// Every schema id the tree declares. An allowlist of known-good ids would
+	// be worse than useless: it would let the shell depend on a schema this
+	// project does not own.
 	for _, f := range files {
 		body, err := source(env, f)
 		if err != nil {
@@ -371,7 +413,7 @@ func checkSchemaIds(env Env, files []string) []Finding {
 				continue
 			}
 			findings = append(findings, Finding{
-				Rule: "schema id", Path: filepath.Join(env.Dir, f),
+				Rule: "schema id", Path: env.path(f),
 				Detail: fmt.Sprintf("binds schemaId %q, and no .gschema.xml in "+
 					"the tree declares it; every read off that Settings object "+
 					"will be undefined", match[1]),
@@ -390,7 +432,7 @@ func checkEntryPoint(env Env, files []string) []Finding {
 		}
 	}
 	return []Finding{{
-		Rule: "entry point", Path: filepath.Join(env.Dir, env.EntryPoint),
+		Rule: "entry point", Path: env.path(env.EntryPoint),
 		Detail: "missing; `quickshell -p` names the directory, and nothing " +
 			"names the file inside it",
 	}}
@@ -423,7 +465,7 @@ func checkCatalogue(env Env, files []string) []Finding {
 			target := "Widgets/" + widget + ".qml"
 			if !present[target] {
 				findings = append(findings, Finding{
-					Rule: "widget catalogue", Path: filepath.Join(env.Dir, f),
+					Rule: "widget catalogue", Path: env.path(f),
 					Detail: fmt.Sprintf("catalogue entry %q maps to %s, "+
 						"which does not exist", name, target),
 				})
@@ -459,13 +501,9 @@ func normalise(name string) string {
 // property Config.qml declares. Anything else is a read of a property that does
 // not exist, and in QML that is undefined rather than an error — so a colour
 // binding silently evaluates to nothing and the widget is transparent.
-func checkSettingsReads(env Env, files []string, schema Schema) []Finding {
+func checkSettingsReads(env Env, files []string, schemas map[string]Schema) []Finding {
 	wrapper := wrapperProperties(env, files)
 
-	// Every schema key must be reachable from the wrapper. `shell.<name>` rather
-	// than any object, because Config.qml binds one Settings object per schema
-	// and a key read off a different object is a key the wrapper is not the
-	// owner of.
 	reachable := ""
 	for _, f := range files {
 		if filepath.Base(f) == "Config.qml" {
@@ -475,18 +513,33 @@ func checkSettingsReads(env Env, files []string, schema Schema) []Finding {
 			}
 		}
 	}
+	lowered := strings.ToLower(reachable)
+
+	ids := make([]string, 0, len(schemas))
+	for id := range schemas {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
 
 	var findings []Finding
-	declared := map[string]bool{}
-	for _, key := range schema.Keys {
-		declared[normalise(key)] = true
-		if !strings.Contains(strings.ToLower(reachable),
-			"shell."+normalise(key)) {
-			findings = append(findings, Finding{
-				Rule: "settings unreachable", Path: filepath.Join(env.Dir, "Config.qml"),
-				Detail: fmt.Sprintf("%s declares %q, and Config.qml never reads "+
-					"it, so no surface can reach it", schema.ID, key),
-			})
+	for _, id := range ids {
+		schema := schemas[id]
+		// The object Config.qml reads this schema off. The shell's is `shell`
+		// and the desktop's is `desktop`, and the id's last label is that name
+		// in both — so one rule covers both schemas instead of one schema being
+		// checked and the other being ignored.
+		object := wrapperObject(id)
+
+		// Every schema key must be reachable from the wrapper, because the
+		// object is the only thing a surface can read through.
+		for _, key := range schema.Keys {
+			if !strings.Contains(lowered, object+"."+normalise(key)) {
+				findings = append(findings, Finding{
+					Rule: "settings unreachable", Path: env.path("Config.qml"),
+					Detail: fmt.Sprintf("%s declares %q, and Config.qml never reads "+
+						"it, so no surface can reach it", id, key),
+				})
+			}
 		}
 	}
 
@@ -509,13 +562,20 @@ func checkSettingsReads(env Env, files []string, schema Schema) []Finding {
 				continue
 			}
 			findings = append(findings, Finding{
-				Rule: "settings read", Path: filepath.Join(env.Dir, f),
+				Rule: "settings read", Path: env.path(f),
 				Detail: fmt.Sprintf("reads config.%s, which Config.qml does not "+
 					"declare; in QML that is undefined rather than an error", key),
 			})
 		}
 	}
 	return findings
+}
+
+// wrapperObject is the property name Config.qml reads a schema off: the last
+// label of the schema id.
+func wrapperObject(schemaID string) string {
+	parts := strings.Split(schemaID, ".")
+	return parts[len(parts)-1]
 }
 
 // wrapperProperties collects the property names Config.qml declares. These are
@@ -609,7 +669,7 @@ func checkUnusedWrapperProperties(env Env, files []string) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Rule: "unused setting", Path: filepath.Join(env.Dir, "Config.qml"),
+			Rule: "unused setting", Path: env.path("Config.qml"),
 			Detail: fmt.Sprintf("config.%s is declared and read by nothing "+
 				"outside Config.qml; a setting nothing reads is a setting "+
 				"that does nothing", name),
@@ -734,7 +794,7 @@ func checkCommands(env Env, files []string) []Finding {
 			}
 			findings = append(findings, Finding{
 				Rule: "unknown command",
-				Path: filepath.Join(env.Dir, f),
+				Path: env.path(f),
 				Detail: fmt.Sprintf("runs `zenith %s`, which is not in the "+
 					"commands table in cmd/zenith/main.go; the call would fail "+
 					"at runtime and the surface would silently stay empty", name),
@@ -758,7 +818,7 @@ func checkHardcodedColours(env Env, files []string) []Finding {
 		for _, line := range strings.Split(body, "\n") {
 			for _, hex := range hexColour.FindAllString(line, -1) {
 				findings = append(findings, Finding{
-					Rule: "hard-coded colour", Path: filepath.Join(env.Dir, f),
+					Rule: "hard-coded colour", Path: env.path(f),
 					Detail: fmt.Sprintf("names %s; every colour the shell draws "+
 						"comes from Palette, and a literal here survives a "+
 						"theme change without being noticed", hex),
@@ -816,7 +876,7 @@ func checkGlyphs(env Env, files []string) []Finding {
 					continue
 				}
 				findings = append(findings, Finding{
-					Rule: "glyph", Path: filepath.Join(env.Dir, f),
+					Rule: "glyph", Path: env.path(f),
 					Detail: fmt.Sprintf("uses %q, which %s does not declare; "+
 						"a glyph the font does not have renders as a box, with "+
 						"no error and nothing in the log", glyph, glyphMapFile),
@@ -927,7 +987,7 @@ func checkImports(env Env, files []string) []Finding {
 			}
 			if !allowedImports[match[1]] {
 				findings = append(findings, Finding{
-					Rule: "import", Path: filepath.Join(env.Dir, f),
+					Rule: "import", Path: env.path(f),
 					Detail: fmt.Sprintf("imports %s, which is not on the "+
 						"shell's closed module list", match[1]),
 				})
@@ -974,7 +1034,7 @@ func checkBoundaries(env Env, files []string) []Finding {
 				continue
 			}
 			findings = append(findings, Finding{
-				Rule: "boundary", Path: filepath.Join(env.Dir, f),
+				Rule: "boundary", Path: env.path(f),
 				Detail: fmt.Sprintf("names %s, outside /usr/share/zenith/ "+
 					"and not on the sanctioned list", path),
 			})

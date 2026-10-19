@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"zenith/desktop/internal/hub"
@@ -25,8 +26,9 @@ const settingsDir = "/usr/share/glib-2.0/schemas"
 // works after installation is a command nobody runs before installing — and the
 // alternative, hard-coding a path relative to the working directory, breaks the
 // moment anyone runs the binary from anywhere else.
-func settingsCatalogue() (*settings.Catalogue, error) {
-	if catalogue, err := settings.Load(settingsDir); err == nil {
+func settingsCatalogue(root string) (*settings.Catalogue, error) {
+	dir := filepath.Join(root, settingsDir)
+	if catalogue, err := settings.Load(dir); err == nil {
 		return catalogue, nil
 	}
 
@@ -35,7 +37,7 @@ func settingsCatalogue() (*settings.Catalogue, error) {
 		return nil, fmt.Errorf(
 			"Zenith's schemas are not installed in %s; install the zenith "+
 				"package, or set ZENITH_SCHEMA_DIR to a directory of "+
-				"org.zenith.*.gschema.xml", settingsDir)
+				"org.zenith.*.gschema.xml", dir)
 	}
 	catalogue, err := settings.Load(override)
 	if err != nil {
@@ -62,7 +64,7 @@ pages" prints the mapping.
 		return exitUsage
 	}
 
-	catalogue, err := settingsCatalogue()
+	catalogue, err := settingsCatalogue("")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "zenith config:", err)
 		return exitFail

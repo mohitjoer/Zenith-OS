@@ -191,7 +191,7 @@ func zenithDoctor(args []string) int {
 	// configuration would go unnoticed.
 	if len(findings) == 0 {
 		fmt.Println("no drift: the config tree matches the base")
-		return reportSessionChecks()
+		return reportSessionChecks(*root)
 	}
 
 	counts := map[string]int{}
@@ -224,7 +224,7 @@ func zenithDoctor(args []string) int {
 	// is a dispatcher trying to activate a backend that is not installed. Nothing
 	// is printed and nothing fails, and the symptom is a file chooser that is
 	// wrong.
-	return reportSessionChecks()
+	return reportSessionChecks(*root)
 }
 
 // reportSessionChecks runs the checks that are not about drift between the base
@@ -237,15 +237,15 @@ func zenithDoctor(args []string) int {
 // where nothing else has gone wrong, which is the machine where a silently
 // misread portal configuration or a registration pointing at nothing would go
 // unnoticed.
-func reportSessionChecks() int {
-	code := reportPortals()
-	if registrationCode := reportRegistrations(); registrationCode != exitOK {
+func reportSessionChecks(root string) int {
+	code := reportPortals(root)
+	if registrationCode := reportRegistrations(root); registrationCode != exitOK {
 		code = registrationCode
 	}
-	if shellCode := reportShell(); shellCode != exitOK {
+	if shellCode := reportShell(root); shellCode != exitOK {
 		code = shellCode
 	}
-	if hubCode := reportHub(); hubCode != exitOK {
+	if hubCode := reportHub(root); hubCode != exitOK {
 		code = hubCode
 	}
 	return code
@@ -260,11 +260,11 @@ func reportSessionChecks() int {
 // only a command line can change, and a page with no command is a control the
 // user can see and use that either does nothing or writes dconf behind the
 // tool's back.
-func reportHub() int {
+func reportHub(root string) int {
 	fmt.Println()
 	fmt.Println("Settings and Hub pages")
 
-	catalogue, err := settingsCatalogue()
+	catalogue, err := settingsCatalogue(root)
 	if err != nil {
 		fmt.Printf("  problem           %v\n", err)
 		return exitFail
@@ -293,7 +293,7 @@ func reportHub() int {
 // wrong, with nothing in the journal saying why.
 //
 // What it cannot do is check behaviour, and this does not pretend otherwise.
-func reportShell() int {
+func reportShell(root string) int {
 	fmt.Println()
 	fmt.Println("Shell")
 
@@ -303,9 +303,15 @@ func reportShell() int {
 	// does not: it renders what `zenith config export` hands it and never reads a
 	// schema, so running the shell's settings checks over it would report every
 	// property only the shell uses as an unused setting — true of the wrong tree.
+	// SchemaDir is set on the shell's tree only, and it is not the shell's own
+	// directory: GLib installs schemas under /usr/share/glib-2.0/schemas. Checking
+	// for them beside the QML reported "declares no schema id" and then "no
+	// surface can reach it" for every key — two failures that do not exist on
+	// the installed machine, which is the only machine doctor is run on.
 	trees := []shell.Env{
-		{Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml", OwnsSettings: true},
-		{Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
+		{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
+			OwnsSettings: true, SchemaDir: settingsDir},
+		{Root: root, Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
 	}
 
 	problems := 0
@@ -331,11 +337,16 @@ func reportShell() int {
 // failures are silent in the same way: a registration that is missing means the
 // desktop does not appear, and a registration pointing at nothing means a unit
 // fails 203/EXEC once per login. Neither warns at build time.
-func reportRegistrations() int {
+func reportRegistrations(root string) int {
 	fmt.Println()
 	fmt.Println("Registrations")
 
-	env := portal.RegistrationEnv{}
+	// Root is a field the package has always had and doctor has never set, so
+	// every path in the report was the live machine's even when --root named
+	// another tree. A check that reads the wrong tree is worse than one that
+	// reads none: it reports "not installed" about files that are installed,
+	// and the reader concludes the package is broken.
+	env := portal.RegistrationEnv{Root: root}
 	findings := append(portal.CheckRegistrations(env), portal.CheckUnits(env)...)
 
 	if len(findings) == 0 {
@@ -350,13 +361,21 @@ func reportRegistrations() int {
 }
 
 // reportPortals asserts that the portal configuration is actually being read.
-func reportPortals() int {
+func reportPortals(root string) int {
 	fmt.Println()
 	fmt.Println("Portals")
 
+	// The session identity is the running session, not a file, so it is read
+	// from the environment either way. Everything else the resolver looks for is
+	// a path, and under --root those paths live in the tree.
+	xdgConfigHome, home := os.Getenv("XDG_CONFIG_HOME"), homeDir()
+	if root != "" {
+		xdgConfigHome = filepath.Join(root, xdgConfigHome)
+		home = filepath.Join(root, home)
+	}
 	resolution := portal.Resolve(portal.Env{
-		XDGConfigHome:  os.Getenv("XDG_CONFIG_HOME"),
-		Home:           homeDir(),
+		XDGConfigHome:  xdgConfigHome,
+		Home:           home,
 		CurrentDesktop: os.Getenv("XDG_CURRENT_DESKTOP"),
 	})
 
