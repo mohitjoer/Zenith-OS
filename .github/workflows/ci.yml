@@ -422,3 +422,57 @@ jobs:
             --manifest system/packages.yaml \
             --mirror "$mirror" \
             --cache-dir "$INDEX_CACHE"
+
+  # --------------------------------------------------------------------------
+  # The M2 exit criterion, against what it actually names: a stock image of the
+  # base layer and a real, signed APT repository.
+  #
+  # Every other check here runs the overlay model against a temporary tree with
+  # the fetch step stubbed out. That tests the code and cannot vouch for apt —
+  # the one step where the failures are a repository apt refuses to trust, a
+  # signature it will not verify, or a dependency that resolves differently
+  # against a real archive. ubuntu:26.04 is the base layer itself rather than
+  # the runner's own Ubuntu, so "stock image" is literal and not approximately
+  # true.
+  #
+  # Ordered last on purpose: it is the most expensive job in the workflow and
+  # the one whose premise — a buildable package and a publishable repository —
+  # the `package` job has already had to establish.
+  # --------------------------------------------------------------------------
+  m2:
+    name: update, user edit, rollback — stock base layer
+    needs: package
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:26.04
+    steps:
+      # Checkout first, with no tools assumed: without git the action falls
+      # back to downloading the archive over the API, so the order does not
+      # depend on what the stock image happens to carry.
+      - uses: actions/checkout@v7
+
+      # What the stock image does not carry. gnupg is for mkrepo.sh to sign
+      # with; dpkg-dev for dpkg-scanpackages; ca-certificates and tar are for
+      # setup-go's download and extraction. git arrives later as a Depends of
+      # the package under test, which is itself worth asserting.
+      - name: The tools the stock image does not carry
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends ca-certificates dpkg-dev gnupg tar
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: system/hardware/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+
+      # The guard is set explicitly rather than inferred from CI's environment:
+      # anyone copying this step into a local run gets the refusal unless they
+      # too say what it is about to do to the machine.
+      - name: zenith update, a user edit, and a rollback — for real
+        run: sh release/update_test.sh
+        env:
+          ZENITH_M2_ALLOW_INSTALL: "1"
