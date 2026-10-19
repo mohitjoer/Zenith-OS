@@ -63,8 +63,12 @@ if [ -z "${CI:-}" ] && [ -z "${ZENITH_M2_ALLOW_INSTALL:-}" ]; then
            "ZENITH_M2_ALLOW_INSTALL=1 to say that is what you meant"
 fi
 
+# git is deliberately absent: nothing here runs it. The snapshot phase needs
+# it, and by then the package is installed and git has arrived as its Depends —
+# which is also what makes the snapshot assertion below a fact about the
+# installed system rather than about this preflight.
 missing=""
-for tool in apt-get apt-cache dpkg dpkg-deb dpkg-scanpackages gpg git go sed awk; do
+for tool in apt-get apt-cache dpkg dpkg-deb dpkg-scanpackages gpg go sed awk; do
     command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
 done
 [ -z "$missing" ] || refuse "missing tools:$missing"
