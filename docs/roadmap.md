@@ -400,9 +400,26 @@ feature. Those two are settled and are not revisited here.
   *checked*, not just emitted: every foreground/background pair is walked until
   it passes WCAG AA, and a palette that cannot is refused rather than written.
   All seven shipped wallpapers pass, and that is a test
-- [ ] **The sidebar.** A slide-in panel for audio, network, bluetooth, display,
-  notifications and media. Quick settings are a popover; this is the surface that
-  belongs to the edge rather than to a keybinding
+- [x] **The sidebar.** A slide-in panel for audio, network, bluetooth, display
+  and media, on the right edge. Quick settings are a popover; this is the surface
+  that belongs to the edge rather than to a keybinding. `zenith state` probes all
+  five tools in Go and emits JSON, and `Sidebar.qml` is a renderer that never
+  interprets a tool's output itself — the same contract the Hub has. That split is
+  the whole design: wpctl reporting `Volume: 1.53`, nmcli escaping the colons in a
+  MAC address, and bluetoothctl exiting 0 while printing an error are five parsers
+  that would have had no tests in QML, so they are in Go with fixtures taken from
+  real captured output. Nothing fails on absent hardware; a section with no
+  adapter is hidden rather than shown as an error. Probing polls every two seconds
+  *while the panel is open* and stops when it closes, because there is no D-Bus
+  signal here to subscribe to. It opens through `togglePopover("sidebar")` in
+  `shell.qml`, alongside the launcher and quick settings — and, like those two,
+  nothing calls that function yet. No keybinding layer exists in this shell at
+  all, so the sidebar is reachable only from QML today
+- [ ] **Notifications in the sidebar.** The roadmap originally folded this into the
+  sidebar and it is not there. The server keeps a 32-entry history, but reaching it
+  means reading an `id` across a file boundary in QML, and Quickshell is not
+  installed on any machine this project can test on. Guessing at an API that cannot
+  be checked is the one thing here that is worse than shipping late
 - [ ] **Window switching.** A most-recently-used switcher over Hyprland
 - [ ] **Plugins.** A mechanism for shell plugins. An open question in
   `architecture.md`, and the thing that makes desktop widgets addable by anyone

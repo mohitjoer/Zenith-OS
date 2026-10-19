@@ -736,6 +736,44 @@ project is built on. It is recorded rather than done.
 Until then the sidebar's display section shows the current brightness and does not
 offer a slider. A control that fails on every laptop is worse than no control.
 
+## Why the sidebar polls instead of subscribing
+
+`zenith state` probes five command-line tools and the sidebar redraws from its JSON.
+Every other widget in the shell reads a Quickshell service singleton instead —
+`PulseAudio.sinks` in `Widgets/Volume.qml`, `NetworkManager.status` in
+`Widgets/Network.qml`, `Hyprland.workspaces` in `Widgets/Workspaces.qml`. Those are
+event-driven and they push changes; this pulls and re-runs five subprocesses every
+two seconds.
+
+That is a real cost and it is worth being honest about why it is the wrong shape.
+
+The shell already assumes Quickshell exposes event-driven services for exactly
+these subsystems, so `zenith state` is plausibly redundant work for audio and
+network. It is not redundant today for three reasons, and the first two may stop
+being true:
+
+1. **Nothing here can verify the alternative.** Quickshell is built by this project
+   and is installed on no machine available to it. Every QML file in the shell is
+   structurally checked and never executed, and choosing an API surface that
+   cannot be called once over one that has just been called successfully against
+   real hardware is the wrong way round.
+2. **The parsing is the part that is hard, and it is tested.** `wpctl` reports a
+   volume of `1.53` and does not clamp it. `nmcli -g` escapes a literal colon as
+   `\:` and a bluetooth device's MAC comes back as `CC\:42\:10\:65\:BE\:FB`.
+   `bluetoothctl` exits 0 while printing an error, and blocks forever when
+   `bluetoothd` is down. Those are fifteen tests over real captured output, and
+   they would have to be written again against an unverified API.
+3. **It is not only a shell feature.** `zenith state` is a command. It is useful at
+   a terminal, in a script, and to anything that is not Quickshell.
+
+If Quickshell turns out to expose audio, network, bluetooth, display and media as
+services, the honest end state is that the shell subscribes to them and
+`desktopstate` survives as the CLI and the tests. What should not happen is the
+other migration — hand-written QML parsing to avoid running a tested binary.
+
+The polling is bounded where it can be: the timer only runs while the panel is
+open, so a closed sidebar costs nothing.
+
 ## Open questions
 
 | Question | Why it matters |

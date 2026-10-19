@@ -67,6 +67,14 @@ ShellRoot {
     Bar {}
     Dock {}
 
+    // The sidebar is a sibling of the bar and the dock rather than a popover
+    // child, for the same reason: a panel that opens must not take the surfaces
+    // it was opened from down with it when it closes.
+    Sidebar {
+        id: sidebar
+        visible: root.currentPopover === "sidebar"
+    }
+
     // Idle owns the timers and the overlay draws what they mean. The overlay is
     // declared last so it is on top of everything, which is the whole point of
     // it.

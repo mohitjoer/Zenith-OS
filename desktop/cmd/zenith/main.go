@@ -45,6 +45,7 @@ var commands = map[string]func(args []string) int{
 	"theme":       zenithTheme,
 	"doctor":      zenithDoctor,
 	"status":      zenithStatus,
+	"state":       zenithState,
 	"version":     runVersion,
 }
 
@@ -97,6 +98,7 @@ Commands:
   theme         take the desktop's colours from one image
   doctor        report drift between base and overlay
   status        revision, paths, and how much drift
+  state         live desktop state as JSON, for the sidebar
   version       print the version
 
 Run "zenith <command>" with no arguments for that command's own usage.
