@@ -681,10 +681,13 @@ languages:
     - sccache
     - mold
     - cargo-nextest
-    # From the archive this binary is fd-find, which is not the name any
-    # documentation, alias or muscle memory expects. Building it here gives it
-    # the name it is supposed to have.
-    - fd
+    # From the archive this package is fd-find, which is not the name any
+    # documentation, alias or muscle memory expects. The crate is called
+    # fd-find too — `cargo install fd` resolves to an unrelated crate called
+    # "File descriptor utilities" and installs something that is not a file
+    # finder. The crate's name and the binary's name differ, and this line
+    # wants the crate.
+    - fd-find
 
   exclude:
     rustc: >-
@@ -949,6 +952,14 @@ dev-tools:
     # Go, because `zenith` is written in it and a user reporting a bug should be
     # able to rebuild the tool that has it.
     - golang-go
+
+    # The fast linker, from the archive. It used to sit under cargo_install,
+    # where `cargo install mold` installs a crates.io package of the same name
+    # that is an unrelated lazy-dependency-injection library — the linker is
+    # C++, is not a crate, and cannot be installed that way at all. A name that
+    # resolves somewhere is not the same as a name that resolves to what the
+    # line means.
+    - mold
 
     # The editor. It is the editor the image ships, which is also why no
     # terminal-based editor alternative appears below.
