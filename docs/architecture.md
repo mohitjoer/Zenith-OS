@@ -761,8 +761,8 @@ being true:
    volume of `1.53` and does not clamp it. `nmcli -g` escapes a literal colon as
    `\:` and a bluetooth device's MAC comes back as `CC\:42\:10\:65\:BE\:FB`.
    `bluetoothctl` exits 0 while printing an error, and blocks forever when
-   `bluetoothd` is down. Those are fifteen tests over real captured output, and
-   they would have to be written again against an unverified API.
+   `bluetoothd` is down. Those are tests over real captured output, and they
+   would have to be written again against an unverified API.
 3. **It is not only a shell feature.** `zenith state` is a command. It is useful at
    a terminal, in a script, and to anything that is not Quickshell.
 

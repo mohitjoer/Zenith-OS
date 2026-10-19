@@ -17,15 +17,9 @@ import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
 
-// The three text styles and the section frame, inline rather than in four files.
-//
-// A section header, a dimmed line and an icon are each four lines of QML and
-// each used exactly once. As separate files they are four more paths for the
-// packaging check to carry and four more names to collide with; as inline
-// components they are visible at the point of use and gone from the catalogue.
-// The check that this fails — a section header used in three panels becoming a
-// shared component — has not happened yet, and promoting one then is a small
-// change rather than a refactor.
+// Four small pieces, inline rather than in four files. Each is a few lines and
+// each is used by more than one section; promoting one to a file is a small
+// change later, not a refactor now.
 component SectionTitle: Text {
     color: Palette.textDim
     font.pixelSize: 11
@@ -46,43 +40,57 @@ component Glyph: Text {
     color: Palette.text
 }
 
+// A hidden section collapses rather than showing an empty header. A sidebar that
+// says "no audio" on a machine that has audio, because one probe timed out, is a
+// sidebar people stop trusting.
 component Section: Column {
     property string title: ""
+    property bool shown: true
+
     spacing: 6
     width: parent ? parent.width : 0
+    leftPadding: 16
+    rightPadding: 16
+    visible: shown
+    height: shown ? implicitHeight : 0
 
     SectionTitle { text: parent.title }
+}
+
+// An icon and a value, which is what two of the sections are made of.
+component Stat: Row {
+    property string icon: ""
+    property string value: ""
+
+    spacing: 8
+
+    Glyph { text: parent.icon }
+    Text {
+        anchors.verticalCenter: parent.verticalCenter
+        text: parent.value
+        color: Palette.text
+        font.pixelSize: 13
+    }
 }
 
 PanelWindow {
     id: sidebar
 
-    // The panel is always this wide and slides. A panel that resized to its
-    // contents would make the whole desktop reflow every time a bluetooth device
-    // appeared, which is a desktop that moves under the pointer while you are
-    // trying to click something.
+    // The panel is always this wide. One that resized to its contents would
+    // reflow the desktop every time a bluetooth device appeared, which is a
+    // desktop that moves under the pointer while you are clicking something.
     implicitWidth: 320
     implicitHeight: screen.height
 
-    anchors {
-        top: true
-        right: true
-    }
+    anchors { top: true; right: true }
 
     color: Palette.background
     exclusionMode: ExclusionMode.Ignore
 
-    // Read once per interval rather than watched.
-    //
-    // There is no watch here because there is nothing to watch. Every one of
-    // these five tools reports state through a daemon Zenith's shell does not
-    // own, so the only honest trigger is a poll. What makes that affordable is
-    // that it only runs while the panel is open: a sidebar spawning five
-    // subprocesses every two seconds while nobody is looking at it is five forks
-    // a minute for a number that does not change.
+    // Polled, not watched, because there is nothing to watch: none of these five
+    // report state through anything this shell owns. The timer runs only while
+    // the panel is open, so a sidebar nobody is looking at costs nothing.
     property var document: ({})
-    property bool loaded: false
-    property string refreshToken: ""
 
     readonly property var audio: document.audio ?? ({})
     readonly property var network: document.network ?? ({})
@@ -98,14 +106,11 @@ PanelWindow {
         stdout: StdioCollector {
             onStreamFinished: {
                 // A failed probe leaves the previous document in place rather
-                // than blanking the panel. Half a sidebar that briefly shows
-                // nothing is worse than a stale section that is right often
-                // enough — and `zenith state` does not fail on absent hardware
-                // anyway, it reports it as absent, which is the whole point.
+                // than blanking the panel. And it does not fail on absent
+                // hardware anyway — it reports it as absent, which is the point.
                 if (probe.exitedWithCode !== 0) return
                 try {
                     sidebar.document = JSON.parse(text)
-                    sidebar.loaded = true
                 } catch (error) {
                     // Left as-is. A shell that throws on a parse error is a
                     // shell with no desktop.
@@ -114,8 +119,10 @@ PanelWindow {
         }
     }
 
-    // The token is how a finished Process is restarted, and it is the idiom
-    // Palette.qml already uses for the same reason.
+    // The token restarts a finished Process, and is the idiom Palette.qml
+    // already uses for the same reason.
+    property string refreshToken: ""
+
     Timer {
         interval: 2000
         repeat: true
@@ -136,13 +143,7 @@ PanelWindow {
         }
 
         Flickable {
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-                margins: 1
-            }
+            anchors { left: parent.left; right: parent.right; top: parent.top; bottom: parent.bottom }
             contentHeight: column.implicitHeight + 32
             clip: true
 
@@ -152,56 +153,28 @@ PanelWindow {
                 topPadding: 16
                 bottomPadding: 16
 
-                // ---- audio -------------------------------------------------
-                //
-                // Hidden when the section is unavailable rather than shown as an
-                // error. A sidebar that reports "no audio" on a machine that
-                // has audio, because one probe timed out, is a sidebar people
-                // stop trusting.
                 Section {
                     title: "audio"
-                    visible: sidebar.audio.available === true
-                    height: visible ? implicitHeight : 0
-                    leftPadding: 16
-                    rightPadding: 16
+                    shown: sidebar.audio.available === true
 
-                    Row {
-                        spacing: 8
-                        Glyph {
-                            text: sidebar.audio.muted ? Icons.glyph("volume-mute")
-                                : sidebar.audio.volume > 0.5
-                                    ? Icons.glyph("volume-high")
-                                    : Icons.glyph("volume-low")
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: sidebar.audio.muted
-                                ? "muted"
-                                : (sidebar.audio.percent ?? 0) + "%"
-                            color: Palette.text
-                            font.pixelSize: 13
-                        }
+                    Stat {
+                        icon: sidebar.audio.muted ? Icons.glyph("volume-mute")
+                            : sidebar.audio.volume > 0.5
+                                ? Icons.glyph("volume-high")
+                                : Icons.glyph("volume-low")
+                        value: sidebar.audio.muted
+                            ? "muted" : (sidebar.audio.percent ?? 0) + "%"
                     }
-
                     Dim { text: sidebar.audio.sink ?? "" }
                 }
 
-                // ---- network -----------------------------------------------
                 Section {
                     title: "network"
-                    visible: sidebar.network.available === true
-                    height: visible ? implicitHeight : 0
-                    leftPadding: 16
-                    rightPadding: 16
+                    shown: sidebar.network.available === true
 
-                    Row {
-                        spacing: 8
-                        Glyph { text: Icons.glyph("wifi") }
-                        Text {
-                            text: sidebar.network.wifi_on === true ? "on" : "off"
-                            color: Palette.text
-                            font.pixelSize: 13
-                        }
+                    Stat {
+                        icon: Icons.glyph("wifi")
+                        value: sidebar.network.wifi_on === true ? "on" : "off"
                     }
 
                     Repeater {
@@ -236,75 +209,42 @@ PanelWindow {
                     }
                 }
 
-                // ---- bluetooth ---------------------------------------------
                 Section {
                     title: "bluetooth"
-                    visible: sidebar.bluetooth.present === true
-                    height: visible ? implicitHeight : 0
-                    leftPadding: 16
-                    rightPadding: 16
+                    shown: sidebar.bluetooth.present === true
 
-                    Text {
-                        text: sidebar.bluetooth.powered === true
+                    Stat {
+                        value: sidebar.bluetooth.powered === true
                             ? "on · " + (sidebar.bluetooth.devices ?? []).length + " device(s)"
                             : "off"
-                        color: Palette.text
-                        font.pixelSize: 13
                     }
-
                     Repeater {
                         model: sidebar.bluetooth.devices ?? []
                         Dim { text: modelData.name }
                     }
                 }
 
-                // ---- display -----------------------------------------------
                 Section {
                     title: "display"
-                    visible: sidebar.display.available === true
-                    height: visible ? implicitHeight : 0
-                    leftPadding: 16
-                    rightPadding: 16
+                    shown: sidebar.display.available === true
 
-                    Text {
-                        text: (sidebar.display.percent ?? 0) + "%"
-                        color: Palette.text
-                        font.pixelSize: 13
-                    }
+                    Stat { value: (sidebar.display.percent ?? 0) + "%" }
 
-                    // The brightness level is shown and cannot be changed.
-                    //
-                    // /sys/class/backlight/*/brightness is 0644 root:root on a
-                    // stock image, so a slider here would fail every time it was
-                    // dragged. A control that does not work is worse than no
-                    // control, so there is none until Zenith lays down a udev
-                    // rule — see docs/architecture.md.
-                    Dim {
-                        text: "read only"
-                        visible: sidebar.display.writable !== true
-                    }
+                    // Read only, and deliberately. The sysfs node is 0644
+                    // root:root, so a slider here would fail on every laptop. A
+                    // control that does not work is worse than no control; see
+                    // docs/architecture.md for the udev rule that would fix it.
+                    Dim { text: "read only"; visible: sidebar.display.writable !== true }
                 }
 
-                // ---- media -------------------------------------------------
                 Section {
                     title: "media"
-                    visible: sidebar.media.available === true
-                    height: visible ? implicitHeight : 0
-                    leftPadding: 16
-                    rightPadding: 16
+                    shown: sidebar.media.available === true
 
-                    Text {
-                        width: parent.width
-                        text: sidebar.media.title ?? sidebar.media.player ?? ""
-                        color: Palette.text
-                        font.pixelSize: 13
-                        elide: Text.ElideRight
-                    }
                     Dim {
-                        text: [sidebar.media.artist ?? "", sidebar.media.status ?? ""]
-                            .filter(function (part) { return part !== "" })
-                            .join(" · ")
-                        visible: (sidebar.media.title ?? "") !== ""
+                        text: sidebar.media.title !== undefined && sidebar.media.title !== ""
+                            ? sidebar.media.artist + " · " + sidebar.media.status
+                            : sidebar.media.player + " · " + sidebar.media.status
                     }
                 }
             }

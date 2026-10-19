@@ -31,7 +31,6 @@ package desktopstate
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -88,9 +87,6 @@ type Device struct {
 	State string `json:"state"`
 }
 
-// Connected reports whether this device carries a connection.
-func (d Device) Connected() bool { return strings.HasPrefix(d.State, "connected") }
-
 // Bluetooth is the adapter state.
 type Bluetooth struct {
 	// Present is false when the machine has no adapter at all.
@@ -118,8 +114,6 @@ type Display struct {
 	// Available is false when there is no backlight device, which is a desktop
 	// machine and not a fault.
 	Available bool `json:"available"`
-	// Device is the pinned backlight sysfs node.
-	Device string `json:"device"`
 	// Percent is 0..100.
 	Percent int `json:"percent"`
 	// Writable is false on a stock image, and the sidebar shows the level without
@@ -155,10 +149,15 @@ func Collect() State {
 
 // run executes a command with a deadline and returns its stdout.
 //
-// exit reports the process exit status, and ok reports whether stdout is
-// non-empty — which is not the same thing, and the difference is the entire
-// reason this function exists rather than exec.Command being called inline.
-func run(name string, args ...string) (out string, exit int, timedOut bool) {
+// exit is the process exit status, or -1 when the command was killed for
+// running too long or could not be started at all. Both of those are failures
+// and neither needs telling apart: a caller that wants to know why a tool
+// failed has to read stderr, and the sidebar shows the state, not the errors.
+//
+// -1 rather than 0 is the whole design of this function. Every caller asks
+// `exit != 0`, and a timed-out bluetoothctl that returned 0 with empty stdout
+// is the exact failure this deadline exists to stop.
+func run(name string, args ...string) (out string, exit int) {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
 	defer cancel()
 
@@ -174,21 +173,20 @@ func run(name string, args ...string) (out string, exit int, timedOut bool) {
 
 	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
-		return "", -1, true
+		return "", -1
 	}
 
-	exit = 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exit = exitErr.ExitCode()
-		} else {
-			// The binary is missing, which is the same as the feature being
-			// absent. Treating it as an error would make a machine without
-			// bluetoothctl permanently broken.
-			exit = 127
-		}
+	if err == nil {
+		return stdout.String(), 0
 	}
-	return stdout.String(), exit, false
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		// The binary is missing, which is the same as the feature being absent.
+		// Treating it as a distinct error would make a machine without
+		// bluetoothctl permanently broken.
+		return "", -1
+	}
+	return stdout.String(), exitErr.ExitCode()
 }
 
 // audio reads the volume and the default sink.
@@ -197,8 +195,8 @@ func run(name string, args ...string) (out string, exit int, timedOut bool) {
 // verified byte-identical under LC_ALL=C and under a deliberately absent
 // locale. The output is one of two lines and nothing else.
 func audio() Audio {
-	raw, exit, timedOut := run("wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@")
-	if timedOut || exit != 0 {
+	raw, exit := run("wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@")
+	if exit != 0 {
 		return Audio{}
 	}
 
@@ -215,7 +213,7 @@ func audio() Audio {
 
 	// The sink name is one line from status; failure here is not worth a second
 	// error path, because an unlabelled volume control is still correct.
-	if status, exit, timedOut := run("wpctl", "status"); !timedOut && exit == 0 {
+	if status, exit := run("wpctl", "status"); exit == 0 {
 		state.Sink = parseDefaultSink(status)
 	}
 	return state
@@ -275,8 +273,11 @@ func network() Network {
 
 	// Exit 8 is NetworkManager not running, in about 15ms. That is the whole
 	// availability test.
-	raw, exit, timedOut := run("nmcli", "-g", "DEVICE,TYPE,STATE", "device", "status")
-	if timedOut || exit == 8 {
+	raw, exit := run("nmcli", "-g", "DEVICE,TYPE,STATE", "device", "status")
+	// Any failure means NetworkManager is not usable, including exit 8 (not
+	// running) and exit 127 (no nmcli). Reporting "available" with no devices
+	// because a probe failed is how a sidebar starts lying.
+	if exit != 0 {
 		return state
 	}
 	state.Available = true
@@ -284,7 +285,7 @@ func network() Network {
 	state.Devices = parseDevices(raw)
 
 	// "enabled:enabled:missing:disabled" — WIFI-HW:WIFI:WWAN-HW:WWAN
-	if radio, exit, timedOut := run("nmcli", "-g", "WIFI-HW,WIFI", "radio", "all"); !timedOut && exit == 0 {
+	if radio, exit := run("nmcli", "-g", "WIFI-HW,WIFI", "radio", "all"); exit == 0 {
 		state.WifiOn = strings.HasPrefix(strings.TrimSpace(radio), "enabled:enabled")
 	}
 	return state
@@ -355,8 +356,8 @@ func splitUnescaped(line string, sep byte) []string {
 func bluetooth() Bluetooth {
 	// list: exit 0 and empty stdout means no adapter. Exit 0 and a MAC means an
 	// adapter exists.
-	listing, exit, timedOut := run("bluetoothctl", "list")
-	if timedOut || exit != 0 || strings.TrimSpace(listing) == "" {
+	listing, exit := run("bluetoothctl", "list")
+	if exit != 0 || strings.TrimSpace(listing) == "" {
 		return Bluetooth{}
 	}
 	state := Bluetooth{Present: true, Devices: []BluetoothDevice{}}
@@ -364,9 +365,8 @@ func bluetooth() Bluetooth {
 	// show: tab-indented "Key: value" lines. Only two lines matter and they use
 	// one vocabulary, "yes"/"no" — PowerState: on is a second, redundant field
 	// with a different one, so it is not read.
-	if show, exit, timedOut := run("bluetoothctl", "show"); !timedOut && exit == 0 {
-		powered, discovering := parseAdapterShow(show)
-		state.Powered, state.Discovering = powered, discovering
+	if show, exit := run("bluetoothctl", "show"); exit == 0 {
+		state.Powered = strings.Contains(show, "Powered: yes")
 	}
 
 	// devices: "Device <MAC> <alias>". A fixed four-token prefix makes this the
@@ -374,23 +374,6 @@ func bluetooth() Bluetooth {
 	// contain spaces, so only the first two fields are taken structurally.
 	state.Devices = parseBluetoothDevices(listing)
 	return state
-}
-
-// parseAdapterShow reads `bluetoothctl show`.
-//
-// Only two lines matter and both use one vocabulary, "yes"/"no". The adjacent
-// PowerState: on is a second, redundant field with a different vocabulary, and
-// reading both is how a sidebar ends up disagreeing with itself.
-func parseAdapterShow(show string) (powered, discovering bool) {
-	for _, line := range strings.Split(show, "\n") {
-		switch strings.TrimSpace(line) {
-		case "Powered: yes":
-			powered = true
-		case "Discovering: yes":
-			discovering = true
-		}
-	}
-	return powered, discovering
 }
 
 // parseBluetoothDevices reads `bluetoothctl list`.
@@ -426,34 +409,24 @@ func parseBluetoothDevices(listing string) []BluetoothDevice {
 // docs/architecture.md. It is reported rather than assumed so the sidebar can
 // show the level without offering a slider that fails.
 func display() Display {
-	raw, exit, timedOut := run("brightnessctl", "-m", "-c", "backlight")
-	if timedOut || exit != 0 {
+	raw, exit := run("brightnessctl", "-m", "-c", "backlight")
+	if exit != 0 {
 		return Display{}
 	}
 
-	// The enumeration form is "name,class,current,percent,max". The single
-	// device form is a bare integer with no commas at all, and both are handled
-	// because which one comes back depends on whether -d was given.
+	// "name,class,current,percent,max" — five fields, and the fourth is the
+	// percentage with its sign attached.
+	// "name,class,current,percent,max" — the fourth field is the percentage with
+	// its sign attached.
 	fields := strings.Split(strings.TrimSpace(raw), ",")
-	switch len(fields) {
-	case 1:
-		// The bare integer is the raw brightness, not a percentage, and the
-		// maximum is in a different command. Reporting 100 here would be a
-		// confident wrong number, so the raw value is carried and the sidebar
-		// shows it as unknown rather than as full.
-		if _, err := strconv.Atoi(fields[0]); err != nil {
-			return Display{}
-		}
-		return Display{Available: true}
-	case 5:
-		percent, err := strconv.Atoi(strings.TrimSuffix(fields[3], "%"))
-		if err != nil {
-			return Display{}
-		}
-		return Display{Available: true, Device: fields[0], Percent: percent}
-	default:
+	if len(fields) != 5 {
 		return Display{}
 	}
+	percent, err := strconv.Atoi(strings.TrimSuffix(fields[3], "%"))
+	if err != nil {
+		return Display{}
+	}
+	return Display{Available: true, Percent: percent}
 }
 
 // media reads the MPRIS player.
@@ -467,8 +440,8 @@ func display() Display {
 // dozen other tools; the correct forms are -a and -p NAME. -l is used to find a
 // player at all, and an empty list is exit 0.
 func media() Media {
-	listing, exit, timedOut := run("playerctl", "-l")
-	if timedOut || exit != 0 {
+	listing, exit := run("playerctl", "-l")
+	if exit != 0 {
 		return Media{}
 	}
 
@@ -477,35 +450,26 @@ func media() Media {
 		return Media{}
 	}
 
-	state := Media{Available: true, Player: player}
-
 	// metadata fails against a stopped player with the same exit code as "no
 	// player", so it is not allowed to decide availability — that was decided
-	// above, from -l.
-	format := "{{status}}|{{volume:.3f}}|{{title}}|{{artist}}"
-	raw, exit, timedOut := run("playerctl", "-p", player, "-f", format, "metadata")
-	if timedOut || exit != 0 {
-		// A player exists but is stopped and exposes no metadata. Status is still
-		// worth having, and it comes from a command that works in that state.
-		if status, exit, timedOut := run("playerctl", "-p", player, "status"); !timedOut && exit == 0 {
-			state.Status = strings.TrimSpace(status)
-		}
-		return state
+	// above, from -l. A player that answers with nothing still reports
+	// available, which is the truth: the player exists.
+	format := "{{status}}|{{title}}|{{artist}}"
+	raw, exit := run("playerctl", "-p", player, "-f", format, "metadata")
+	if exit != 0 {
+		return Media{Available: true, Player: player}
 	}
 
-	parts := strings.SplitN(strings.TrimSpace(raw), "|", 4)
-	state.Status = parts[0]
+	parts := strings.SplitN(strings.TrimSpace(raw), "|", 3)
+	state := Media{Available: true, Player: player}
+	if len(parts) > 0 {
+		state.Status = parts[0]
+	}
 	if len(parts) > 1 {
-		state.Volume, _ = strconv.ParseFloat(parts[1], 64)
+		state.Title = parts[1]
 	}
 	if len(parts) > 2 {
-		state.Title = parts[2]
-	}
-	if len(parts) > 3 {
-		state.Artist = parts[3]
+		state.Artist = parts[2]
 	}
 	return state
 }
-
-// JSON renders the state for the shell.
-func (s State) JSON() ([]byte, error) { return json.Marshal(s) }
