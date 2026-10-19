@@ -160,11 +160,28 @@ printf '/usr/bin/zenith\n' > "$STAGE/DEBIAN/zenith.list"
 # group-writable profile database that any user on the machine can edit.
 find "$STAGE" -type d -exec chmod 0755 {} +
 find "$STAGE" -type f -exec chmod 0644 {} +
-# The two files something executes. Everything else is content and stays 0644:
+# Every file something executes. Everything else is content and stays 0644:
 # a session entry point that is not executable is a login manager whose Exec=
 # line fails, and it fails on every login rather than at build time.
-chmod 0755 "$STAGE/usr/bin/zenith"
-chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
+#
+# This list is derived, not written by hand. A file chmod'd here and forgotten
+# below the reset is a shipped 0644 that works in the checkout and fails on the
+# installed machine — and the checkout is where it gets tested, so nothing
+# notices. zenith-hub and zenith-greeter shipped that way: the settings
+# application and SDDM's CompositorCommand, both non-executable, both
+# Permission denied on the real system.
+#
+# Anything under the tree with the executable bit in the source stays executable.
+# The set is therefore whatever the repository says is a program, which is a
+# fact the repository can be checked against rather than a list that goes stale.
+while IFS= read -r program; do
+  chmod 0755 "$STAGE/${program#./}"
+done <<'EXECUTABLES'
+./usr/bin/zenith
+./usr/bin/zenith-hub
+./usr/share/zenith/session/zenith-session
+./usr/share/zenith/session/zenith-greeter
+EXECUTABLES
 chmod 0755 "$STAGE/DEBIAN/postinst"
 chmod 0640 "$STAGE/DEBIAN/control"
 chmod 0644 "$STAGE/DEBIAN/zenith.list"

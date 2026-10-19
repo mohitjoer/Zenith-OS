@@ -82,6 +82,32 @@ check "the session entry point is executable" $rc
 rc=0; echo "$MODES" | grep -q '^-rwxr-xr-x .*/zenith$' || rc=$?
 check "the control tool is executable" $rc
 
+# The two that shipped broken. The generic mode check above passes on 0644, and
+# a file that is non-executable in the .deb is executable in the checkout, so
+# nothing else in this suite notices.
+for program in zenith-hub zenith-greeter; do
+    rc=0; echo "$MODES" | grep -q "^-rwxr-xr-x .*/$program\$" || rc=$?
+    check "$program is executable" $rc
+done
+
+# Every path listed as executable in release/build-debs.sh, from the script
+# rather than from this list, so a program added to one and forgotten in the
+# other is a failure here instead of a 0644 on somebody's machine.
+rc=0
+while read -r program; do
+    case "$program" in
+        \#*|"") continue ;;
+    esac
+    echo "$MODES" | grep -q "^-rwxr-xr-x .*$program\$" || {
+        echo "    not executable: $program" >&2
+        rc=1
+    }
+done <<EOF
+$(awk "/<<'EXECUTABLES'/{inside=1;next} inside&&/^EXECUTABLES\$/{exit} inside" \
+    "$REPO_ROOT/release/build-debs.sh")
+EOF
+check "every path in the build's executable list ships executable" $rc
+
 # ---------------------------------------------------------------- repository
 echo "building the repository"
 # One secret keyring, reused for both builds, exactly as a release process

@@ -21,21 +21,51 @@ var profilesDirOverride string
 
 // resolveProfilesDir finds the profile database.
 //
-// The default looks alongside the installed binary first, so an installed
-// zenith finds the database it shipped with, and falls back to the repository
-// layout so the tool runs from a checkout with nothing installed.
+// The installed paths come first, so an installed zenith finds the database it
+// shipped with, and the repository layout is the last resort so the tool runs
+// from a checkout with nothing installed.
+//
+// Both installed candidates are checked, and the second one is not redundant.
+// The binary-relative one assumes the binary is under a prefix directory
+// alongside a sibling of share/; the absolute one covers a binary that was
+// moved. Neither alone is the whole answer, and this used to check a path one
+// level too high — Dir(Dir(/usr/bin/zenith)) is "/", not "/usr" — so an
+// installed zenith silently fell through to the relative path and reported an
+// empty database, which is the one result that looks like "nothing to do"
+// rather than "the tool is broken".
 func resolveProfilesDir() string {
 	if profilesDirOverride != "" {
 		return profilesDirOverride
 	}
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(filepath.Dir(executable)),
-			"share", "zenith", "hardware", "profiles")
+
+	candidates := profileCandidates()
+
+	for _, candidate := range candidates {
 		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
 			return candidate
 		}
 	}
-	return filepath.Join("system", "hardware", "profiles")
+	return candidates[len(candidates)-1]
+}
+
+// profileCandidates is where the database may be, most likely first.
+//
+// Split out because the first entry is the one that was wrong: joining
+// Dir(Dir("/usr/bin/zenith")) yields "/", not "/usr", so an installed zenith
+// looked in /share/zenith/hardware/profiles, found nothing, and fell through to
+// a path relative to the working directory — which reports an empty database
+// rather than a broken install. Separating the list from the search is what
+// makes that testable, since the search itself depends on os.Executable.
+func profileCandidates() []string {
+	candidates := make([]string, 0, 3)
+
+	if executable, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(executable), "..",
+			"share", "zenith", "hardware", "profiles"))
+	}
+	return append(candidates,
+		filepath.Join("/usr", "share", "zenith", "hardware", "profiles"),
+		filepath.Join("system", "hardware", "profiles"))
 }
 
 // saltPath is where the report token key lives: a Zenith-owned path under the
