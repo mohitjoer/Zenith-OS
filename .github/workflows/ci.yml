@@ -122,6 +122,49 @@ jobs:
           go test ./...
 
       # --------------------------------------------------------------------
+      # The CLI, run for real, on a machine that has none of the tools it probes.
+      #
+      # This is the one environment where "nothing fails on absent hardware" can
+      # be tested rather than asserted. The runner has no PipeWire, no
+      # NetworkManager, no bluetoothd, no backlight and no hyprctl, so every
+      # probe in `zenith state` and `zenith windows` takes its failure path at
+      # once — which is exactly the contract: an absent tool is an absent
+      # feature, reported as absent, and never as an error.
+      #
+      # The premise is checked first. A runner image that grew wpctl would make
+      # this step silently test less, and a test that tests less without saying
+      # so is worse than no test.
+      # --------------------------------------------------------------------
+      - name: The CLI on a machine with no desktop tools
+        working-directory: desktop
+        run: |
+          missing=0
+          for tool in wpctl nmcli bluetoothctl brightnessctl playerctl hyprctl; do
+            if command -v "$tool" > /dev/null 2>&1; then
+              echo "::warning::The runner has $tool, so the absent-tool path is" \
+                   "not fully exercised by this step."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || echo "continuing anyway; the JSON checks below still run"
+
+          go build -o "$RUNNER_TEMP/zenith" ./cmd/zenith
+          for command in state windows; do
+            if ! output="$("$RUNNER_TEMP/zenith" "$command")"; then
+              echo "::error::zenith $command exited non-zero on a machine with none" \
+                   "of the tools it probes. Absent hardware must be reported as" \
+                   "absent, not as a failure."
+              exit 1
+            fi
+            if ! printf '%s' "$output" | python3 -c 'import json,sys; json.load(sys.stdin)'; then
+              echo "::error::zenith $command did not emit valid JSON:"
+              printf '%s\n' "$output"
+              exit 1
+            fi
+            echo "zenith $command ok"
+          done
+
+      # --------------------------------------------------------------------
       # The session entry point and the greeter. Both are run rather than
       # unit-tested because what is under test is how /bin/sh behaves under
       # `set -e` — the AND-list trap, the fallback-on-failure path — and the only

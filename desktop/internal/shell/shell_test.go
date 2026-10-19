@@ -590,6 +590,82 @@ func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 	}
 }
 
+// checkCommands resolves cmd/zenith/main.go relative to Env.Root, so a fixture
+// tree has to carry one. The tests below write the table themselves rather than
+// reaching for the real file, because the test is about the rule matching and
+// not about which commands the CLI happens to have this week.
+
+// TestUnknownCommandIsFound covers the cheapest break in the shell to make and
+// the most expensive to notice.
+//
+// A QML file naming a subcommand the CLI does not have is a panel that is empty
+// forever: the Process runs, exits non-zero, the shell keeps its last document,
+// and no test anywhere fails and nothing in the journal says why.
+func TestUnknownCommandIsFound(t *testing.T) {
+	files := goodShell()
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"winodws\"] }\n"
+	env := treeEnv(t, files)
+	writeCommands(t, env.Root, "state", "windows")
+
+	findings := Check(env)
+	found := false
+	for _, f := range findings {
+		if f.Rule == "unknown command" && strings.Contains(f.Detail, "winodws") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a call to a command that does not exist was not found: %v", rules(findings))
+	}
+}
+
+// TestKnownCommandIsAccepted is the other half: the rule has to be silent on
+// every real call, or it is noise and gets ignored.
+func TestKnownCommandIsAccepted(t *testing.T) {
+	files := goodShell()
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"state\"] }\n"
+	files["Switcher.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"windows\"] }\n"
+	env := treeEnv(t, files)
+	writeCommands(t, env.Root, "state", "windows")
+
+	for _, f := range Check(env) {
+		if f.Rule == "unknown command" {
+			t.Errorf("a real command was reported missing: %s", f.Detail)
+		}
+	}
+}
+
+// TestCommandRuleIgnoresAMissingEntryPoint keeps the rule from being the thing
+// that breaks when the file moves. A fixture root with no cmd/zenith/main.go
+// simply has nothing to check against.
+func TestCommandRuleIgnoresAMissingEntryPoint(t *testing.T) {
+	files := goodShell()
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"anything\"] }\n"
+
+	for _, f := range Check(treeEnv(t, files)) {
+		if f.Rule == "unknown command" {
+			t.Error("reported a finding with no commands table to check against")
+		}
+	}
+}
+
+// writeCommands puts a commands table in the fixture root.
+func writeCommands(t *testing.T, root string, names ...string) {
+	t.Helper()
+	path := filepath.Join(root, "desktop", "cmd", "zenith", "main.go")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "package main\n\nvar commands = map[string]func(args []string) int{\n"
+	for _, name := range names {
+		body += "\t\"" + name + "\":       zenith" + name + ",\n"
+	}
+	body += "}\n"
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestHardcodedColourIsFound covers the check that makes a theme a theme.
 //
 // A hex value in a QML file is a colour that survives a palette change without

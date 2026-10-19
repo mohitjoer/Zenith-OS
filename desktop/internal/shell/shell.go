@@ -248,6 +248,7 @@ func Check(env Env) []Finding {
 		findings = append(findings, checkGlyphs(env, files)...)
 	}
 
+	findings = append(findings, checkCommands(env, files)...)
 	findings = append(findings, checkHardcodedColours(env, files)...)
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
@@ -677,6 +678,72 @@ var colourExemptions = map[string]string{
 //
 // The whole shell reads through Palette, so a literal here is always either a
 // mistake or a value that should have been derived.
+// commandMap is the `commands` table in cmd/zenith/main.go, matched by its
+// opening line and its closing brace rather than by any Go parser.
+//
+// The shell validator already reads files by regex — the schemas, the QML, the
+// glyph tables — and importing package main to ask it for its own key set is not
+// possible from here. The match is anchored to the exact declaration so a
+// `commands` mentioned in a comment or a string does not open the block early.
+var commandMap = regexp.MustCompile(`(?s)var commands = map\[string\]func\(args \[\]string\) int\{.*?\n\}`)
+
+// commandKey is one entry in that table.
+var commandKey = regexp.MustCompile(`"([a-z][a-z-]*)"\s*:`)
+
+// zenithCall is a shell invoking the CLI. `zenith` as the executable and
+// `zenith <cmd>` as the first two argv elements are the only two spellings the
+// shell uses, and both are matched.
+var zenithCall = regexp.MustCompile(`"zenith"\s*,\s*"([a-z][a-z-]*)"`)
+
+// checkCommands reports a shell calling a subcommand the CLI does not have.
+//
+// Nothing else in this validator, and nothing in CI, would notice. A QML file
+// naming `zenith winodws` is a panel that is empty forever — the Process runs,
+// exits non-zero, the shell leaves its last document in place — with no test
+// failing anywhere and nothing in the journal saying so. It is the cheapest
+// possible break to make by accident and the most expensive to notice.
+func checkCommands(env Env, files []string) []Finding {
+	entry, err := os.ReadFile(filepath.Join(env.Root, "desktop", "cmd", "zenith", "main.go"))
+	if err != nil {
+		return nil
+	}
+
+	block := commandMap.Find(entry)
+	if block == nil {
+		return nil
+	}
+
+	known := map[string]bool{}
+	for _, match := range commandKey.FindAllSubmatch(block, -1) {
+		known[string(match[1])] = true
+	}
+	if len(known) == 0 {
+		return nil
+	}
+
+	var findings []Finding
+	for _, f := range files {
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+		for _, call := range zenithCall.FindAllStringSubmatch(body, -1) {
+			name := string(call[1])
+			if known[name] {
+				continue
+			}
+			findings = append(findings, Finding{
+				Rule: "unknown command",
+				Path: filepath.Join(env.Dir, f),
+				Detail: fmt.Sprintf("runs `zenith %s`, which is not in the "+
+					"commands table in cmd/zenith/main.go; the call would fail "+
+					"at runtime and the surface would silently stay empty", name),
+			})
+		}
+	}
+	return findings
+}
+
 func checkHardcodedColours(env Env, files []string) []Finding {
 	var findings []Finding
 
