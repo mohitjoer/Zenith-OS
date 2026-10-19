@@ -46,6 +46,7 @@ var commands = map[string]func(args []string) int{
 	"doctor":      zenithDoctor,
 	"status":      zenithStatus,
 	"state":       zenithState,
+	"windows":     zenithWindows,
 	"version":     runVersion,
 }
 
@@ -99,6 +100,7 @@ Commands:
   doctor        report drift between base and overlay
   status        revision, paths, and how much drift
   state         live desktop state as JSON, for the sidebar
+  windows       switchable windows, most recently focused first
   version       print the version
 
 Run "zenith <command>" with no arguments for that command's own usage.

@@ -736,6 +736,40 @@ project is built on. It is recorded rather than done.
 Until then the sidebar's display section shows the current brightness and does not
 offer a slider. A control that fails on every laptop is worse than no control.
 
+## Window switching is the shell's job here, not Hyprland's
+
+`session.md` puts the window switcher with the compositor's own bindings. It is
+recorded there as an exception now, and this is why.
+
+Hyprland has nothing to bind to. Across `v0.53.3` (what 26.04 ships),
+`v0.54.3`, `v0.56.2` and `main`, there is no `tab` bind in any shipped default
+config and no compositor-internal Tab handling, and the official plugins
+repository ships four plugins, none of them a switcher. The built-in `cycleNext`
+walks `m_state.windows()` — layout order, active workspace only. That is neither
+most-recently-used nor cross-workspace.
+
+Hyprland *has* the capability: `CWindowQuery::cycleHistory` walks
+`windowTracker()->fullHistory()` with the floating and fullscreen filters, in
+both directions, and is correct. It has zero call sites in every version checked.
+So this is a capability upstream built and did not wire up, and the shell supplies
+the wiring rather than the algorithm.
+
+Two version facts, both load-bearing and both verified against the archive rather
+than assumed:
+
+| Fact | Consequence |
+|---|---|
+| 26.04 ships `hyprland 0.53.3` | Pre-Lua. hyprlang `bind =` syntax, and `hyprctl dispatch focuswindow address:0x…` is used bare. From 0.55 a Lua config wraps dispatch in `hl.dispatch({window=…})`, which is a different argument and a quoting rule |
+| `focusHistoryID` is a rank, not a timestamp | Snapshot the list once on open. Focusing a window mutates the id immediately, so re-querying per keypress makes this press change what the next press means |
+
+`focusHistoryID` is also inverted relative to intuition, and this is the single
+easiest thing to get wrong in the whole feature. Hyprland's history vector is
+ordered oldest to newest (`WindowHistoryTracker.hpp`: *old -> new, .front() is
+oldest*) and the id is computed as `size - index - 1`, so the window you were
+just in is `0` and **lower is more recent**. Sorting descending — the obvious
+thing — is least-recently-used, and looks correct until you press it twice. `-1`
+means never focused and is pushed to the end rather than the front.
+
 ## Why the sidebar polls instead of subscribing
 
 `zenith state` probes five command-line tools and the sidebar redraws from its JSON.

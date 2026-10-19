@@ -75,6 +75,14 @@ ShellRoot {
         visible: root.currentPopover === "sidebar"
     }
 
+    // The switcher is independent of the popovers. It is driven by a keybind
+    // rather than by togglePopover, and it closes itself, so keeping it out of
+    // currentPopover is what stops a Super+Tab from also closing an open
+    // launcher.
+    //
+    // Nothing calls advance() yet — see the keybind note in Switcher.qml.
+    Switcher {}
+
     // Idle owns the timers and the overlay draws what they mean. The overlay is
     // declared last so it is on top of everything, which is the whole point of
     // it.

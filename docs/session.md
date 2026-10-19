@@ -643,8 +643,16 @@ and their history, because those are surface decisions and the surface is the sh
 A global shortcut has to be caught by the compositor, in the input path, before anything
 else sees the key. The split is:
 
-- **Compositor-level keys** — the workspace switcher, the window switcher, the display
-  layout — are the compositor's own bindings, and they belong to it.
+- **Compositor-level keys** — the workspace switcher, the display layout — are the
+  compositor's own bindings, and they belong to it.
+
+  The **window switcher is the exception**, and it is not a preference. Hyprland has no
+  window switcher to bind to: there is no `tab` bind in any shipped default config across
+  the last three releases, no compositor-internal Tab handling, and no switcher in the
+  official plugins repository. Its built-in cycling walks *layout* order scoped to the
+  active workspace, which is neither most-recently-used nor cross-workspace. Correct MRU
+  cycling exists in Hyprland's source as `CWindowQuery::cycleHistory` and has zero call
+  sites. So this key belongs to the shell, with Hyprland only catching it.
 - **Everything else** — the launcher, the terminal, quick settings, the lock key — is the
   shell's, bound through the compositor's own configuration and verified with
   `hyprctl binds`.

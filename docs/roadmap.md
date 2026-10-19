@@ -420,7 +420,24 @@ feature. Those two are settled and are not revisited here.
   means reading an `id` across a file boundary in QML, and Quickshell is not
   installed on any machine this project can test on. Guessing at an API that cannot
   be checked is the one thing here that is worse than shipping late
-- [ ] **Window switching.** A most-recently-used switcher over Hyprland
+- [x] **Window switching.** A most-recently-used switcher over Hyprland, on
+  Super+Tab the way Ryoku binds it. `zenith windows` reads
+  `hyprctl -j clients`, drops unmapped and scratchpad windows, and sorts by
+  `focusHistoryID` — which is *inverted* from what it looks like: Hyprland's
+  history vector is oldest-first and the id is `size - index - 1`, so **lower is
+  more recent** and zero is the window you are already in. Sorting descending,
+  the obvious thing, is least-recently-used. That is the whole feature, so it is
+  sorted in Go with tests rather than in QML. Also gotcha-shaped and worth
+  writing down: scratchpad workspaces are `-99..-2`, so `id < 0` is *wrong* — it
+  also catches name-based normal workspaces, which start at -1337
+- [ ] **The Super+Tab bind itself.** The switcher is built and unreachable, for
+  the same reason the sidebar is: Zenith owns no Hyprland configuration. There
+  is no `hyprland.conf` in this repository, and `/etc/hypr` is not on the
+  sanctioned list. The line is
+  `bind = SUPER, Tab, exec, <ipc call to Switcher.advance>` on Hyprland 0.53.3,
+  which is what 26.04 ships — pre-Lua, so hyprlang syntax and a bare
+  `hyprctl dispatch focuswindow address:0x…`. Writing the compositor config is a
+  separate piece of work and it was not started here
 - [ ] **Plugins.** A mechanism for shell plugins. An open question in
   `architecture.md`, and the thing that makes desktop widgets addable by anyone
 - [ ] **Rollback.** Btrfs snapshots around every update. Zenith's overlay
