@@ -421,10 +421,11 @@ desktop:
       power-profiles-daemon is the power daemon on Zenith. Two of them both
       setting a governor means the machine's power state depends on which one
       won the race.
-    gnome-bluetooth: >-
-      bluez is the daemon, and it is installed. This is the GNOME agent and
-      settings half; the shell will own that surface, and a daemon with no UI is
-      not a reason to ship somebody else's.
+    # bluez is the daemon, and it is installed. The GNOME agent and settings
+    # half is not: the shell owns that surface, and a daemon with no UI is not
+    # a reason to ship somebody else's. Not named in `exclude` because the
+    # archive no longer carries a package of that name — an exclusion key that
+    # resolves to nothing protects nothing, and this file is checked for that.
     # Lockers. hyprlock is installed and these are not, so the image has exactly
     # one. Two lockers is not "the user picks one": both draw, both grab the
     # keyboard, and which one is in front depends on which started second.
@@ -704,14 +705,13 @@ languages:
       A shell-profile editor. Zenith does not let a package manager edit a shell
       init file, because that file's base is /etc/zenith and has exactly one
       writer. mise is the packaged equivalent.
-    nvm: >-
-      Not a package at all — a shell function, sourced from a profile, which
-      means it edits the same content Zenith owns. fnm is the packaged equivalent
-      and does the same job without a second writer.
-    conda: >-
-      A second Python runtime with its own layout under /opt, installed outside
-      the two directories Zenith owns. It would be the one thing on the machine
-      that nothing could roll back.
+    # nvm is not a package at all: a shell function, sourced from a profile,
+    # which means it edits the same content Zenith owns. fnm is the packaged
+    # equivalent and does the same job without a second writer. conda is a
+    # second Python runtime with its own layout under /opt, installed outside
+    # the two directories Zenith owns — the one thing on the machine that
+    # nothing could roll back. Neither name resolves in the archive, so neither
+    # can be excluded by name.
 
 # ---------------------------------------------------------------------------
 # graphics-and-media
@@ -900,9 +900,9 @@ power-and-hardware-services:
       A second power daemon. It sets the same governor and the same platform
       profile power-profiles-daemon is already setting, and the two disagree in
       ways nobody can diagnose from a screenshot.
-    auto-cpufreq: >-
-      The same objection as tlp. Three of these exist upstream; an image ships
-      one.
+    # The same objection as tlp: three of these exist upstream; an image ships
+    # one. Named only as a comment — the archive carries no package of this
+    # name on this base layer, so there is nothing for an exclusion to block.
     cpufrequtils: >-
       The same objection. The governor belongs to a single service, and that
       service is already in this list.
@@ -1135,12 +1135,13 @@ firmware:
       is installed, and on the wrong one they fail at boot module-load time and
       take the machine's network with them — on a machine that needed the module
       because it had no other network.
-    "pre-split firmware names": >-
-      Firmware packages on this base layer are named linux-firmware or
-      linux-firmware-<vendor>; a bare firmware-<vendor> spelling such as
-      firmware-mediatek resolves to nothing. A manifest that lists both
-      spellings teaches whoever reads it to guess; resolve the archive's name at
-      build time and fail loudly when it does not exist.
+    # Firmware packages on this base layer are named linux-firmware or
+    # linux-firmware-<vendor>; a bare firmware-<vendor> spelling such as
+    # firmware-mediatek resolves to nothing. A manifest that lists both
+    # spellings teaches whoever reads it to guess; resolve the archive's name
+    # at build time and fail loudly when it does not exist. Kept as prose
+    # because "pre-split firmware names" was never a package, and an exclusion
+    # key that is not a package is a key the verifier cannot check.
 
 # ---------------------------------------------------------------------------
 # optional

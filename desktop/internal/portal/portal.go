@@ -86,6 +86,11 @@ type Resolution struct {
 	// Config is the parsed configuration, nil when none was found.
 	Config *Config
 
+	// ConfigPath is the file Config was read from. Source alone cannot say which
+	// of two system locations supplied it, and the two are not interchangeable
+	// when the report is being read to work out why a machine behaves as it does.
+	ConfigPath string
+
 	// Problems are reasons this machine will not get the backends it should.
 	// Each is a fact the user can act on by editing a configuration.
 	Problems []string
@@ -149,21 +154,51 @@ func Resolve(env Env) Resolution {
 			env.CurrentDesktop, ExpectedDesktop, resolution.ConfigFile))
 	}
 
-	// 2. The per-desktop user file.
+	// 2. The configuration, in the dispatcher's own precedence order.
+	//
+	// Two names per directory, not one. The per-desktop file is what the package
+	// installs — /usr/share/xdg-desktop-portal/zenith-portals.conf, the same
+	// place gnome-portals.conf sits and the same name the man page prescribes —
+	// and the generic portals.conf is what `zenith adopt` writes. Checking only
+	// the per-desktop name in the user's directory meant that after adoption,
+	// which the adoption doc sends to portals.conf, doctor reported "no portal
+	// configuration was found at all" on a machine that had one.
+	//
+	// Three directories, in the order portals.conf(5) searches: config home,
+	// then the system configuration, then the system data directory. The last is
+	// the one that was missing entirely, so the file this project ships and
+	// registers was never one doctor considered to exist.
+	// Built as a whole rather than guarded inside the loop: with no home
+	// directory there is nothing to search, and joining anyway would look in
+	// the process's working directory — which is not where anybody keeps a
+	// portal configuration.
+	type candidate struct{ path, source string }
+	var candidates []candidate
 	if configHome != "" {
-		userPath := filepath.Join(configHome, "xdg-desktop-portal", resolution.ConfigFile)
-		if config, err := parseFile(userPath); err == nil && config != nil {
-			resolution.Source = SourceUserConfig
-			resolution.Config = config
-		}
+		candidates = append(candidates,
+			candidate{filepath.Join(configHome, "xdg-desktop-portal", resolution.ConfigFile), SourceUserConfig},
+			candidate{filepath.Join(configHome, "xdg-desktop-portal", "portals.conf"), SourceUserConfig},
+		)
+	}
+	for _, systemDir := range []string{
+		"/etc/xdg/xdg-desktop-portal",
+		"/usr/share/xdg-desktop-portal",
+	} {
+		candidates = append(candidates,
+			candidate{filepath.Join(env.Root, systemDir, resolution.ConfigFile), SourceSystem},
+			candidate{filepath.Join(env.Root, systemDir, "portals.conf"), SourceSystem},
+		)
 	}
 
-	// 3. The system default, which is the fallback the silent failure lands in.
-	if resolution.Config == nil {
-		if config, err := parseFile("/etc/xdg/xdg-desktop-portal/portals.conf"); err == nil && config != nil {
-			resolution.Source = SourceSystem
-			resolution.Config = config
+	for _, candidate := range candidates {
+		config, err := parseFile(candidate.path)
+		if err != nil || config == nil {
+			continue
 		}
+		resolution.Source = candidate.source
+		resolution.Config = config
+		resolution.ConfigPath = candidate.path
+		break
 	}
 
 	if resolution.Config == nil {

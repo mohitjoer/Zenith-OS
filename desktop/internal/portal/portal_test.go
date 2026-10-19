@@ -114,6 +114,19 @@ func (m *machine) writeUserNamed(name, body string) {
 	}
 }
 
+// writeAt writes a fixture file at a path relative to the fixture's root, which
+// is where every system path the dispatcher reads is redirected.
+func (m *machine) writeAt(relative, body string) {
+	m.t.Helper()
+	path := filepath.Join(m.home, relative)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		m.t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		m.t.Fatal(err)
+	}
+}
+
 // TestConfigFileDerivation pins the case-folding the dispatcher does.
 //
 // It lower-cases XDG_CURRENT_DESKTOP. That is why the session exports
@@ -404,5 +417,74 @@ func TestBackendTrimsTheListSemicolon(t *testing.T) {
 	}
 	if backend, _ := config.Backend("default"); backend != "hyprland" {
 		t.Errorf("backend = %q, want the semicolon trimmed", backend)
+	}
+}
+
+// TestConfigurationLocations is every place the dispatcher reads, pinned against
+// the two files this project actually ships.
+//
+// They are two different files with two different authors. The package installs
+// /usr/share/xdg-desktop-portal/zenith-portals.conf, which is the location and
+// name portals.conf(5) prescribes for a desktop's default — the same directory
+// gnome-portals.conf sits in. `zenith adopt` writes the user's generic
+// portals.conf, because it needs no root. Resolve only ever looked for the
+// per-desktop name in config home, so both a fresh install and a freshly adopted
+// machine reported "no portal configuration was found at all", and the file the
+// package registers was never a candidate.
+func TestConfigurationLocations(t *testing.T) {
+	tests := []struct {
+		name       string
+		write      func(m *machine)
+		wantSource string
+	}{
+		{
+			name: "the file the package ships",
+			write: func(m *machine) {
+				m.writeAt("root/usr/share/xdg-desktop-portal/zenith-portals.conf", goodConfig)
+			},
+			wantSource: SourceSystem,
+		},
+		{
+			name: "the file adoption writes",
+			write: func(m *machine) {
+				m.writeUserNamed("portals.conf", goodConfig)
+			},
+			wantSource: SourceUserConfig,
+		},
+		{
+			name: "the system configuration directory",
+			write: func(m *machine) {
+				m.writeAt("root/etc/xdg/xdg-desktop-portal/portals.conf", goodConfig)
+			},
+			wantSource: SourceSystem,
+		},
+		{
+			name:       "nothing at all",
+			write:      func(m *machine) {},
+			wantSource: SourceNone,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newMachine(t)
+			tc.write(m)
+
+			resolution := Resolve(m.env())
+			if resolution.Source != tc.wantSource {
+				t.Errorf("source = %q, want %q (path %q)", resolution.Source,
+					tc.wantSource, resolution.ConfigPath)
+			}
+			if tc.wantSource != SourceNone && resolution.Config == nil {
+				t.Error("a source was reported with no configuration behind it")
+			}
+			if tc.wantSource != SourceNone && resolution.ConfigPath == "" {
+				t.Error("a source was reported without naming the file it came from")
+			}
+			if resolution.ConfigPath != "" && !strings.HasPrefix(resolution.ConfigPath, m.home) {
+				t.Errorf("read %q, which is outside the fixture: Root is not "+
+					"applied to the system paths", resolution.ConfigPath)
+			}
+		})
 	}
 }

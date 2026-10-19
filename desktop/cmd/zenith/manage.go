@@ -270,7 +270,12 @@ func reportHub(root string) int {
 		return exitFail
 	}
 
-	findings := hub.Check(catalogue)
+	// Two claims, both of which only this compares. hub.Check covers pages
+	// against commands; CheckControls covers types against widgets. The second
+	// was written and tested and never called, so a setting type with no
+	// control passed doctor and then rendered as a row nobody can change —
+	// the failure the rule exists to name, found by a function nothing invoked.
+	findings := append(hub.Check(catalogue), hub.CheckControls(catalogue)...)
 	if len(findings) == 0 {
 		fmt.Printf("  all %d setting(s) have a page, and all %d page(s) have "+
 			"commands", len(catalogue.Refs()), len(hub.Pages))
@@ -385,7 +390,8 @@ func reportPortals(root string) int {
 	if resolution.Source == portal.SourceNone {
 		fmt.Println("  configuration     none found")
 	} else {
-		fmt.Printf("  configuration     %s\n", resolution.Source)
+		fmt.Printf("  configuration     %s (%s)\n", resolution.Source,
+			resolution.ConfigPath)
 	}
 
 	for _, notice := range resolution.Notices {
