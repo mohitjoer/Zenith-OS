@@ -15,6 +15,7 @@
 package theme
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -24,6 +25,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // Colour is a sRGB colour with components in 0..1.
@@ -33,6 +36,69 @@ import (
 // palettes come out muddy. It is converted to bytes only on the way out.
 type Colour struct {
 	R, G, B float64
+}
+
+// MarshalJSON writes the colour as the string "#rrggbb", which is what a
+// colour property in QML is.
+//
+// The struct's fields are three floats, so without this the file the shell reads
+// carries `{"R":0.08,"G":0.09,"B":0.12}` for every colour, and Palette.apply
+// assigns an object to a property declared as a string. QML reports that in a
+// runtime nobody watches, and the fallback palette stays — the same failure the
+// readonly assignments below were already causing, from the other end of the
+// same file. The contract is in the doc comment on Palette: this is what the
+// shell reads, so it is written the way the shell needs it.
+func (c Colour) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Hex())
+}
+
+// UnmarshalJSON reads "#rrggbb", and also the object form this file used to
+// carry — a palette generated before the writer changed is still a palette, and
+// telling somebody to regenerate theirs because of a serialisation detail is a
+// failure they cannot act on quickly.
+func (c *Colour) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) > 0 && trimmed[0] == '"' {
+		var hex string
+		if err := json.Unmarshal(trimmed, &hex); err != nil {
+			return err
+		}
+		parsed, err := parseHex(hex)
+		if err != nil {
+			return err
+		}
+		*c = parsed
+		return nil
+	}
+
+	var raw struct{ R, G, B float64 }
+	if err := json.Unmarshal(trimmed, &raw); err != nil {
+		return err
+	}
+	*c = Colour{R: raw.R, G: raw.G, B: raw.B}
+	return nil
+}
+
+// parseHex reads the "#rgb" and "#rrggbb" forms a colour property accepts.
+func parseHex(s string) (Colour, error) {
+	digits := strings.TrimPrefix(s, "#")
+	if len(digits) == 3 {
+		digits = string([]byte{
+			digits[0], digits[0], digits[1], digits[1], digits[2], digits[2],
+		})
+	}
+	if len(digits) != 6 {
+		return Colour{}, fmt.Errorf("colour %q is not #rgb or #rrggbb", s)
+	}
+	var channels [3]float64
+	for i := range channels {
+		value, err := strconv.ParseUint(digits[i*2:i*2+2], 16, 8)
+		if err != nil {
+			return Colour{}, fmt.Errorf("colour %q: %w", s, err)
+		}
+		channels[i] = float64(value) / 255
+	}
+	return Colour{R: channels[0], G: channels[1], B: channels[2]}, nil
 }
 
 // Hex is the colour as "#rrggbb".

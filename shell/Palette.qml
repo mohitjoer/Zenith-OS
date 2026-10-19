@@ -23,18 +23,24 @@ Singleton {
     // pair rather than a placeholder: a shell that falls back to black on black
     // is a shell with no desktop, and "I installed it and it is blank" is a much
     // worse report than "it is grey because you have not themed it".
-    readonly property string background: "#15171a"
-    readonly property string surface: "#1e2126"
-    readonly property string text: "#e8eaed"
-    readonly property string textDim: "#9aa0a6"
-    readonly property string border: "#3c4043"
-    readonly property string accent: "#4c8bf5"
-    readonly property string onAccent: "#ffffff"
+    //
+    // These are writable rather than readonly because apply() writes them, and
+    // they were readonly — which meant the first assignment threw, the function
+    // stopped there, and a generated palette was never applied to a running
+    // shell. `zenith theme generate` wrote a file nothing could use. apply() is
+    // the only writer; a surface binding to one of these still only reads it.
+    property string background: "#15171a"
+    property string surface: "#1e2126"
+    property string text: "#e8eaed"
+    property string textDim: "#9aa0a6"
+    property string border: "#3c4043"
+    property string accent: "#4c8bf5"
+    property string onAccent: "#ffffff"
 
     // Whether a generated palette was actually found. The shell shows this
     // nowhere on purpose: it is a diagnostic, and `zenith theme check` is where a
     // user asks about it.
-    readonly property bool generated: false
+    property bool generated: false
 
     readonly property string path: palette.cacheDir + "/zenith/colors.json"
 
@@ -78,10 +84,10 @@ Singleton {
         palette.background = document.background
         palette.surface = document.surface
         palette.text = document.text
-        palette.text_dim = document.text_dim
+        palette.textDim = document.text_dim
         palette.border = document.border
         palette.accent = document.accent
-        palette.on_accent = document.on_accent
+        palette.onAccent = document.on_accent
         generated = true
     }
 
