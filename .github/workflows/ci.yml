@@ -338,6 +338,20 @@ jobs:
       # runner image. apt-ftparchive is absent there and mkrepo.sh assembles the
       # Release file by hand instead, which the suite accepts as equivalent.
       # --------------------------------------------------------------------
+      # --------------------------------------------------------------------
+      # The installed package, checked by the tool inside it.
+      #
+      # Everything above runs against the repository's own layout. This runs
+      # doctor against the tree dpkg-deb produced, because the layout that
+      # installs is the one that matters and several faults — the schema
+      # directory, two programs installed non-executable, the profile database
+      # an installed binary could not find — are invisible until a package
+      # exists. It stages, materializes once, and asserts every section the
+      # package owns, with a named allowlist for what a runner cannot have.
+      # --------------------------------------------------------------------
+      - name: The installed package passes its own doctor
+        run: sh release/doctor_test.sh "$RUNNER_TEMP/debs"
+
       - name: release/release_test.sh
         run: sh release/release_test.sh
 

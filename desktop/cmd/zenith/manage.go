@@ -375,6 +375,13 @@ func reportPortals(root string) int {
 	// a path, and under --root those paths live in the tree.
 	xdgConfigHome, home := os.Getenv("XDG_CONFIG_HOME"), homeDir()
 	if root != "" {
+		// An unset XDG_CONFIG_HOME means ~/.config of the home directory, and
+		// joining that before the root would otherwise leave config home as the
+		// root itself — a directory nobody keeps portal configuration in, which
+		// is how an empty search and a broken one look the same.
+		if xdgConfigHome == "" {
+			xdgConfigHome = filepath.Join(home, ".config")
+		}
 		xdgConfigHome = filepath.Join(root, xdgConfigHome)
 		home = filepath.Join(root, home)
 	}
@@ -382,6 +389,7 @@ func reportPortals(root string) int {
 		XDGConfigHome:  xdgConfigHome,
 		Home:           home,
 		CurrentDesktop: os.Getenv("XDG_CURRENT_DESKTOP"),
+		Root:           root,
 	})
 
 	fmt.Printf("  session identity  %s (looks for %s)\n",
