@@ -31,7 +31,7 @@ Item {
                 // The active workspace is the compositor's answer, not a local
                 // flag. Two widgets tracking "which one is active" is one too
                 // many.
-                color: model.active ? "#4c8bf5" : "#707070"
+                color: model.active ? Palette.accent : Palette.textDim
             }
         }
     }

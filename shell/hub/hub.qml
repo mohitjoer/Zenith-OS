@@ -30,7 +30,7 @@ FloatingWindow {
     implicitHeight: 600
     visible: true
 
-    color: config.dark ? "#15171a" : "#ffffff"
+    color: Palette.background
 
     // The registry, as `zenith config export` writes it.
     //
@@ -77,7 +77,7 @@ FloatingWindow {
             anchors.centerIn: parent
             visible: !window.loaded
             text: "Loading settings…"
-            color: config.dark ? "#9aa0a6" : "#5f6368"
+            color: Palette.textDim
         }
 
         Column {
@@ -88,7 +88,7 @@ FloatingWindow {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Zenith's settings could not be read"
-                color: config.dark ? "#f28b82" : "#c5221f"
+                color: Palette.onAccent
                 font.pixelSize: 15
                 font.bold: true
             }
@@ -98,7 +98,7 @@ FloatingWindow {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: window.loadError
-                color: config.dark ? "#9aa0a6" : "#5f6368"
+                color: Palette.textDim
                 font.pixelSize: 12
             }
         }
@@ -108,7 +108,7 @@ FloatingWindow {
             visible: window.loaded && window.loadError === ""
                 && window.document.pages.length === 0
             text: "Zenith has no settings"
-            color: config.dark ? "#9aa0a6" : "#5f6368"
+            color: Palette.textDim
         }
 
         Row {
@@ -122,7 +122,7 @@ FloatingWindow {
             Rectangle {
                 width: 220
                 height: parent.height
-                color: config.dark ? "#1b1e22" : "#f1f3f4"
+                color: Palette.surface
 
                 // The mark, at the top of the navigation. Loaded from the
                 // packaged SVG rather than embedded here: a logo pasted into
@@ -162,7 +162,7 @@ FloatingWindow {
                         readonly property bool current: index === list.currentIndex
 
                         color: current
-                            ? (config.dark ? "#2a2e33" : "#e3e6e8")
+                            ? (Palette.border)
                             : "transparent"
 
                         Text {
@@ -170,7 +170,7 @@ FloatingWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.leftMargin: 12
                             text: parent.modelData.title
-                            color: config.dark ? "#e8eaed" : "#202124"
+                            color: Palette.text
                             font.pixelSize: 13
                         }
 

@@ -41,13 +41,13 @@ Item {
 
         Text {
             text: "load " + system.load
-            color: config.dark ? "#e6e6e6" : "#202020"
+            color: Palette.text
             font.pixelSize: 12
         }
 
         Text {
             text: "mem " + system.memoryPercent + "%"
-            color: config.dark ? "#e6e6e6" : "#202020"
+            color: Palette.text
             font.pixelSize: 12
         }
     }

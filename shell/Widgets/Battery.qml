@@ -28,7 +28,7 @@ Item {
         anchors.fill: parent
         text: battery.charging ? "+" : ""
             + Math.round(battery.charge * 100) + "%"
-        color: config.dark ? "#e6e6e6" : "#202020"
+        color: Palette.text
         font.pixelSize: 12
     }
 }

@@ -53,7 +53,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Zenith"
-                color: config.dark ? "#909090" : "#606060"
+                color: Palette.textDim
                 font.pixelSize: 12
             }
         }

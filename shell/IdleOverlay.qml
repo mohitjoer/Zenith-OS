@@ -32,6 +32,9 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+        // Black on purpose, and not Palette.background. A scrim darkens
+        // whatever is behind it, so it has to be independent of the palette's
+        // own background — a tinted scrim would tint the wallpaper too.
         color: "#000000"
         opacity: idleOverlay.opacityFor
         // Animated rather than snapped: a screen that blanks instantly is a

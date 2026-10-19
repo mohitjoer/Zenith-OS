@@ -39,7 +39,7 @@ Item {
 
         Text {
             text: view.page ? view.page.title : ""
-            color: config.dark ? "#e8eaed" : "#202124"
+            color: Palette.text
             font.pixelSize: 22
             font.bold: true
         }
@@ -47,7 +47,7 @@ Item {
         Text {
             width: parent.width
             text: view.page ? view.page.summary : ""
-            color: config.dark ? "#9aa0a6" : "#5f6368"
+            color: Palette.textDim
             font.pixelSize: 13
         }
 
@@ -63,7 +63,7 @@ Item {
                 width: ListView.view.width
                 height: Math.max(64, row.implicitHeight + 16)
                 radius: 8
-                color: config.dark ? "#1b1e22" : "#f8f9fa"
+                color: Palette.surface
 
                 Row {
                     id: row
@@ -80,7 +80,7 @@ Item {
                         Text {
                             width: parent.width
                             text: parent.parent.modelData.name
-                            color: config.dark ? "#e8eaed" : "#202124"
+                            color: Palette.text
                             font.pixelSize: 13
                         }
 
@@ -91,7 +91,7 @@ Item {
                             width: parent.width
                             visible: text !== ""
                             text: parent.parent.modelData.summary
-                            color: config.dark ? "#9aa0a6" : "#5f6368"
+                            color: Palette.textDim
                             font.pixelSize: 11
                             wrapMode: Text.WordWrap
                         }

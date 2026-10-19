@@ -37,6 +37,6 @@ Item {
         text: Icons.glyph(icon.glyph)
         font.family: Icons.iconFamily
         font.pixelSize: 14
-        color: config.dark ? "#e6e6e6" : "#202020"
+        color: Palette.text
     }
 }

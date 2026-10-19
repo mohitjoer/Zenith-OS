@@ -33,7 +33,7 @@ Item {
         id: label
         anchors.fill: parent
         text: clock.format
-        color: config.dark ? "#e6e6e6" : "#202020"
+        color: config.dark ? Palette.text : Palette.textDim
         font.pixelSize: 13
     }
 }

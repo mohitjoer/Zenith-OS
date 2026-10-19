@@ -32,7 +32,7 @@ Item {
     // so it follows it.
     Rectangle {
         anchors.fill: parent
-        color: config.dark ? "#111114" : "#fdfdfe"
+        color: Palette.background
         visible: config.wallpaper === ""
     }
 

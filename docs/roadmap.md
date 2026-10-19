@@ -392,11 +392,14 @@ feature. Those two are settled and are not revisited here.
 
 **What is being taken**, in the order it is worth doing:
 
-- [ ] **Theming.** A wallpaper that recolours the desktop: terminal, compositor
-  and shell take their colours from one generated palette, so picking a wallpaper
-  repaints the system. Ryoku's `matugen` idea. It ships against machinery Zenith
-  already has — `grim` and `hyprpicker` — and it is the single largest thing
-  separating "a desktop with a logo" from "a desktop that feels finished"
+- [x] **Theming.** A wallpaper that recolours the desktop. `zenith theme generate
+  IMAGE` writes `$XDG_CACHE_HOME/zenith/colors.json` and the shell reads it, so
+  picking a wallpaper repaints the system and nothing restarts. Every colour in
+  the shell now comes from `Palette.qml` and nothing else — a hex literal in a
+  QML file is a finding, with exactly two exemptions on file. The palette is
+  *checked*, not just emitted: every foreground/background pair is walked until
+  it passes WCAG AA, and a palette that cannot is refused rather than written.
+  All seven shipped wallpapers pass, and that is a test
 - [ ] **The sidebar.** A slide-in panel for audio, network, bluetooth, display,
   notifications and media. Quick settings are a popover; this is the surface that
   belongs to the edge rather than to a keybinding

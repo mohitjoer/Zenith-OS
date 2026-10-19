@@ -589,3 +589,41 @@ func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 		t.Error("an unset EntryPoint was silently filled in")
 	}
 }
+
+// TestHardcodedColourIsFound covers the check that makes a theme a theme.
+//
+// A hex value in a QML file is a colour that survives a palette change without
+// being noticed, and one such colour is enough to give a themed desktop the two
+// themes users complain about: the one they chose, and the one the code has.
+func TestHardcodedColourIsFound(t *testing.T) {
+	files := goodShell()
+	files["Bar.qml"] += "\n  color: \"#4c8bf5\"\n"
+
+	findings := Check(treeEnv(t, files))
+	found := false
+	for _, f := range findings {
+		if f.Rule == "hard-coded colour" && strings.Contains(f.Detail, "#4c8bf5") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a hard-coded colour was not found: %v", rules(findings))
+	}
+}
+
+// TestTheScrimIsAllowedToBeBlack covers the one exemption, and the reason it is
+// narrow.
+//
+// A scrim darkens whatever is behind it, so it has to be black regardless of
+// the palette. A scrim tinted by the palette would tint the wallpaper along
+// with the desktop.
+func TestTheScrimIsAllowedToBeBlack(t *testing.T) {
+	if colourExemptions["IdleOverlay.qml"] == "" {
+		t.Fatal("the scrim has no recorded reason for being exempt")
+	}
+	if len(colourExemptions) > 2 {
+		t.Errorf("%d files are exempt from the colour check; an exemption "+
+			"list that grows is the check being switched off one file at a time",
+			len(colourExemptions))
+	}
+}

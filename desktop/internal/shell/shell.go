@@ -248,6 +248,7 @@ func Check(env Env) []Finding {
 		findings = append(findings, checkGlyphs(env, files)...)
 	}
 
+	findings = append(findings, checkHardcodedColours(env, files)...)
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
 
@@ -652,6 +653,54 @@ var iconFamilyRanges = map[string]struct{ low, high rune }{
 
 // glyphMapFiles is the one place a glyph may be declared.
 const glyphMapFile = "Icons.qml"
+
+// hexColour matches a hard-coded sRGB colour in a string literal.
+var hexColour = regexp.MustCompile(`"#[0-9a-fA-F]{6}"`)
+
+// colourExemptions are the files allowed to name a colour, and why.
+//
+// Palette.qml is where colours come from, so naming one there is the definition
+// rather than a departure from it. IdleOverlay.qml is a scrim: it darkens
+// whatever is behind it, so it has to be black regardless of the palette, and a
+// scrim tinted by the palette would tint the wallpaper along with the desktop.
+var colourExemptions = map[string]string{
+	"Palette.qml":     "the palette itself",
+	"IdleOverlay.qml": "a scrim, which has to be black whatever the theme is",
+}
+
+// checkHardcodedColours asserts that no surface names a colour of its own.
+//
+// This is the check that makes a theme a theme rather than a suggestion. A
+// hex value in a QML file is a colour that survives a palette change without
+// being noticed, and one such colour is enough to give a themed desktop the two
+// themes users complain about: the one they chose, and the one the code has.
+//
+// The whole shell reads through Palette, so a literal here is always either a
+// mistake or a value that should have been derived.
+func checkHardcodedColours(env Env, files []string) []Finding {
+	var findings []Finding
+
+	for _, f := range files {
+		if _, exempt := colourExemptions[filepath.Base(f)]; exempt {
+			continue
+		}
+		body, err := source(env, f)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(body, "\n") {
+			for _, hex := range hexColour.FindAllString(line, -1) {
+				findings = append(findings, Finding{
+					Rule: "hard-coded colour", Path: filepath.Join(env.Dir, f),
+					Detail: fmt.Sprintf("names %s; every colour the shell draws "+
+						"comes from Palette, and a literal here survives a "+
+						"theme change without being noticed", hex),
+				})
+			}
+		}
+	}
+	return findings
+}
 
 // checkGlyphs asserts that every private-use glyph in the tree is declared in the
 // icon map, and that nothing outside the map names one.

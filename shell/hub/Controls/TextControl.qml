@@ -18,9 +18,9 @@ Rectangle {
 
     implicitHeight: 36
     radius: 6
-    color: config.dark ? "#26292e" : "#ffffff"
+    color: Palette.surface
     border.width: 1
-    border.color: config.dark ? "#3c4043" : "#dadce0"
+    border.color: Palette.border
 
     readonly property string shown: key.value.replace(/^'(.*)'$/, "$1")
 
@@ -33,7 +33,7 @@ Rectangle {
         anchors.margins: 8
         verticalAlignment: TextInput.AlignVCenter
         text: control.shown
-        color: config.dark ? "#e8eaed" : "#202124"
+        color: Palette.text
         font.pixelSize: 13
         selectByMouse: true
 

@@ -22,7 +22,7 @@ Item {
         id: label
         anchors.fill: parent
         text: network.connected ? "on" : "off"
-        color: config.dark ? "#e6e6e6" : "#202020"
+        color: Palette.text
         font.pixelSize: 12
     }
 }

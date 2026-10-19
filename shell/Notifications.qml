@@ -66,9 +66,9 @@ Popover {
         id: card
         anchors.fill: parent
         radius: 12
-        color: config.dark ? "#202124" : "#f5f5f7"
+        color: Palette.background
         border.width: 1
-        border.color: config.dark ? "#3c4043" : "#d8d8dc"
+        border.color: Palette.border
 
         Column {
             id: content
@@ -102,7 +102,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.summary
                             : ""
-                        color: config.dark ? "#e8eaed" : "#202124"
+                        color: Palette.text
                         font.pixelSize: 13
                         font.bold: true
                         elide: Text.ElideRight
@@ -113,7 +113,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.body
                             : ""
-                        color: config.dark ? "#bdc1c6" : "#5f6368"
+                        color: Palette.textDim
                         font.pixelSize: 12
                         wrapMode: Text.WordWrap
                         // Matches the server's bodyMarkupSupported: false. The

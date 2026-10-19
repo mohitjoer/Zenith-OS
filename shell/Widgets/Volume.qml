@@ -27,7 +27,7 @@ Item {
 
         Text {
             text: volume.muted ? "muted" : Math.round(volume.level * 100) + "%"
-            color: config.dark ? "#e6e6e6" : "#202020"
+            color: Palette.text
             font.pixelSize: 12
         }
     }
