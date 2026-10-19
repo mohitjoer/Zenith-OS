@@ -752,6 +752,12 @@ graphics-and-media:
     # beyond what mpv links; the transcoder CLI is in `optional`.
     - mpv
 
+    # The sidebar's audio control is `wpctl`, which ships in the wireplumber
+    # package above — verified against the Ubuntu package file list rather than
+    # assumed, because `pipewire-bin` ships `pw-cli` and not `wpctl`, and
+    # listing a binary as a package is a name that was never verified. The
+    # manifest lists packages; the tools are inside them.
+
   # Chosen by the hardware profile, never installed unconditionally. See
   # system/hardware/profiles/ for the schema and system/kernel/fleet.yaml for
   # why the kernel flavour is part of the driver decision.
@@ -836,7 +842,10 @@ power-and-hardware-services:
     # The wireless backend, and NetworkManager itself. iwd rather than
     # wpasupplicant — see the exclusion below.
     - iwd
+    # The sidebar's network control is `nmcli`, which ships inside this package.
+    # Same rule as wpctl: the manifest names packages, not the binaries in them.
     - network-manager
+
 
     # On this base layer NetworkManager's persistent configuration is read from
     # here, so the package is not optional even though Zenith never writes to
@@ -848,7 +857,33 @@ power-and-hardware-services:
     # difference between an external monitor that can be dimmed and one that
     # burns the user's eyes; there is no substitute for it in a desktop.
     - fprintd
+
+    # bluez carries bluetoothctl, which is the sidebar's bluetooth control.
+    #
+    # Verified against the Ubuntu package file list, because getting this wrong
+    # is not obvious: `bluez-tools` also exists, is a real package, and ships
+    # bt-adapter/bt-agent/bt-network — not bluetoothctl. An earlier draft of this
+    # manifest listed it as the bluetoothctl provider. That would have either
+    # failed the build or shipped a dependency that buys nothing.
     - bluez
+
+    # brightnessctl, the sidebar's display control. Backlight devices are
+    # optional in sysfs, so this is also the only way to find out whether a
+    # machine has one at all — the sidebar shows the control only if it does.
+    #
+    # Reading is unprivileged and works. WRITING IS NOT: /sys/class/backlight/*/
+    # brightness is mode 0644 root:root and the base image ships no udev rule
+    # that grants it, so `brightnessctl set` fails with "Permission denied" for
+    # every non-root user on every laptop with an internal panel. Measured, not
+    # assumed. The sidebar's brightness slider is therefore not shippable until
+    # Zenith lays down its own rule under /etc/zenith — which is a boundary
+    # decision and is recorded in docs/architecture.md rather than made here.
+    - brightnessctl
+
+    # playerctl, the sidebar's media control. MPRIS is the interface every
+    # desktop media widget on Linux already speaks, so the sidebar joins that
+    # rather than defining a second one.
+    - playerctl
     - ddcutil
 
     # Firmware updates over LVFS. The alternative is a vendor tool per machine,

@@ -710,6 +710,32 @@ number in this document was earned by measuring something; this one is no differ
 The mark is drawn nowhere it is installed as a raster. Anything that needs it at runtime reads
 the SVG.
 
+## Writing a backlight
+
+The sidebar needs to dim the screen, and on a stock Ubuntu image it cannot.
+
+`/sys/class/backlight/*/brightness` is mode `0644` owned by `root:root`, and the
+base layer ships no udev rule granting write access to any group. So
+`brightnessctl set` fails with `Can't modify brightness: Permission denied` for
+every non-root user on every laptop with an internal panel. Measured on real
+hardware, not inferred: reading works unprivileged, writing does not.
+
+This is not a Zenith bug and no CLI flag works around it. Both approaches other
+desktops take are available and both are decisions rather than code:
+
+| Approach | Cost |
+|---|---|
+| A udev rule under `/etc/zenith` making the `backlight` sysfs nodes group-writable for `plugdev` | One rule. It is a **registration** — `/etc/udev/rules.d` is a fixed directory a third-party binary scans — and it does not appear on the sanctioned list |
+| Elevation through `zenith-hub` and polkit, which the manifest already carries | No new registration. More machinery, and an authentication prompt on every brightness change, which is worse than a prompt never |
+
+The udev rule is the obvious answer and it is deliberately **not** taken here,
+because adding a path outside `/usr/share/zenith/` and `/etc/zenith/` is a change
+to the boundary rather than a change inside it, and the boundary is the thing this
+project is built on. It is recorded rather than done.
+
+Until then the sidebar's display section shows the current brightness and does not
+offer a slider. A control that fails on every laptop is worse than no control.
+
 ## Open questions
 
 | Question | Why it matters |
