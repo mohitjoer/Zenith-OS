@@ -147,11 +147,11 @@ var registrationSources = []Registration{
 	{Path: "/usr/share/wayland-sessions/zenith.desktop",
 		MaterializedFrom: "/usr/share/zenith/session/zenith.desktop"},
 	{Path: "/usr/lib/systemd/user/zenith-shell.service",
-		MaterializedFrom: "/usr/share/zenith/session/units/zenith-shell.service"},
+		MaterializedFrom: "/usr/share/zenith/units/zenith-shell.service"},
 	{Path: "/usr/lib/systemd/user/zenith-portal.service",
-		MaterializedFrom: "/usr/share/zenith/session/units/zenith-portal.service"},
+		MaterializedFrom: "/usr/share/zenith/units/zenith-portal.service"},
 	{Path: "/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf",
-		MaterializedFrom: "/usr/share/zenith/session/units/hyprland-session.target.d-10-zenith.conf"},
+		MaterializedFrom: "/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf"},
 }
 
 // sessionPackages is what adoption installs.

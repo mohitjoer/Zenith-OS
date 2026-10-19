@@ -27,6 +27,12 @@ fi
 # The registry the window reads. It is exported here rather than by the window so
 # that a Hub started before an upgrade, or with a stale schema directory, gets
 # today's data — and so that the schemas named are the ones the window will draw.
-export ZENITH_SCHEMA_DIR="${ZENITH_SCHEMA_DIR:-$PREFIX/schemas}"
+# GLib's directory, not a directory under $PREFIX: that is where the package
+# installs org.zenith.*.gschema.xml and where `zenith config` reads them from,
+# and the two are the same setting. The default here pointed at
+# $PREFIX/schemas, a directory nothing creates, so the override the wrapper
+# exists to set was an override onto a path that does not resolve.
+# Keep this equal to settingsDir in desktop/cmd/zenith/config.go.
+export ZENITH_SCHEMA_DIR="${ZENITH_SCHEMA_DIR:-/usr/share/glib-2.0/schemas}"
 
 exec "$QUICKSHELL_BIN" -p "$HUB_DIR"

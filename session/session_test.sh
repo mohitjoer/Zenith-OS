@@ -239,6 +239,27 @@ else
     echo "skip  — systemd-analyze is not installed"
 fi
 
+# ------------------------------------------------------------- the settings app
+#
+# zenith-hub lives in this directory and has no test of its own, and the one
+# thing it exists to do is export ZENITH_SCHEMA_DIR — which settingsCatalogue
+# reads. It pointed at $PREFIX/schemas, a directory the package never creates,
+# so the wrapper set an override onto a path that resolves nowhere, and the Hub
+# started against an empty settings catalogue.
+#
+# The two paths are written in two languages, which is exactly how they came
+# apart, so they are compared rather than trusted.
+hub_schema=$(grep -o 'ZENITH_SCHEMA_DIR:-[^}]*' "$REPO_ROOT/session/zenith-hub" |
+    sed 's/.*:-//')
+tool_schema=$(grep -o 'const settingsDir = "[^"]*"'     "$REPO_ROOT/desktop/cmd/zenith/config.go" | sed 's/.*"\(.*\)"/\1/')
+rc=0
+if [ -z "$hub_schema" ] || [ "$hub_schema" != "$tool_schema" ]; then
+    echo "  hub exports:   ${hub_schema:-<none>}"
+    echo "  zenith reads:  ${tool_schema:-<none>}"
+    rc=1
+fi
+check "the hub exports the schema directory zenith reads" $rc
+
 echo
 if [ "$fail" -eq 0 ]; then
     echo "all session checks passed"
