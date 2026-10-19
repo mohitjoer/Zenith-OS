@@ -161,6 +161,12 @@ if [ "$rc" -ne 0 ] || ! printf '%s\n' "$policy" | grep -q 'Candidate: 0.1+m2test
     ls -la "$WORK/repo/dists/stable/main/binary-amd64/" 2>/dev/null || :
     zcat "$WORK/repo/dists/stable/main/binary-amd64/Packages.gz" 2>/dev/null \
         | head -n 20 || :
+    echo "--- the URIs apt says it would fetch ---"
+    apt-get update --print-uris 2>&1 || :
+    echo "--- the committed apt lists ---"
+    ls -la /var/lib/apt/lists/ 2>/dev/null | head -n 20 || :
+    echo "--- what apt makes of the index targets ---"
+    apt-get indextargets 2>&1 | head -n 40 || :
     rc=1
 fi
 check "the repository offers revision 1 as the candidate" $rc
