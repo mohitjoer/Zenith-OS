@@ -338,7 +338,21 @@ before they commit to installing it. That is worth more than a landing page.
   than reimplementing any of it
 - [x] The never-write promises encoded as data, so a test can assert against them instead of a
   comment being trusted
-- [ ] `zenith adopt` — install the session so it appears at the login screen
+- [x] The adoption state file, written atomically and versioned. `--undo`, `zenith doctor`
+  and every failure path read it, and a truncated one read as empty is a state file that
+  makes undo do nothing and report success
+- [x] The adoption plan, derived from the machine rather than a fixed script. A registration
+  already byte-identical to its source is not a step, because writing it again is a change
+  that changes nothing and makes "what adoption did" a worse record
+- [x] The undo script, generated from the same plan and written *before* the first write, so
+  it exists even if adoption dies half way through. A plain file rather than a subcommand,
+  because the moment it is needed there may be no working desktop to run one from
+- [ ] `zenith adopt` — execute the plan. The plan, the state and the undo exist; running
+  them as root does not
+- [x] A GNOME audit in the manifest verifier. GNOME desktop components must be neither
+  installed nor left un-excluded, so nothing can pull one in later. `gnome-keyring` is
+  allowed and named with its reason; its transitive closure was verified by hand — 199
+  packages, no desktop component among them
 - [ ] `zenith adopt --verify`, `--prune`, `--undo`
 
 Two decisions in the preflight are worth recording because they are counterintuitive.

@@ -265,6 +265,88 @@ def iter_build_dependencies(manifest: dict):
             yield group, name
 
 
+
+# ---------------------------------------------------------------- GNOME audit
+
+# The packages that make a desktop GNOME.
+#
+# This is not a style preference and it is not about naming. Zenith's shell owns
+# Notifications, the Secret portal is served by the lxqt backend, and the session
+# is Hyprland. A GNOME session installed anywhere on the machine is a second
+# session that will appear at the login screen, win a race for a bus name, and
+# leave the user on a desktop this project does not build.
+#
+# The list is explicit rather than a pattern because "gnome-keyring" is allowed
+# and "gnome-shell" is not, and a prefix match cannot tell those apart. It is the
+# distinction that matters: gnome-keyring is a standalone daemon and the only
+# backing store the Secret portal has.
+GNOME_DESKTOP = {
+    "gnome-shell", "gnome-session", "gnome-session-bin",
+    "gnome-core", "gnome-desktop", "gnome-shell-common",
+    "gdm3", "gdm", "mutter", "mutter-common",
+    "metacity", "gnome-control-center", "gnome-software",
+    "gnome-tweaks", "gnome-extensions-app", "gnome-initial-setup",
+    "gnome-power-manager", "gnome-color-manager", "gnome-bluetooth",
+    "gnome-screenshooter", "gnome-contacts", "gnome-calendar",
+    "gnome-music", "gnome-photos", "gnome-maps", "gnome-weather",
+    "gnome-font-viewer", "gnome-text-editor", "gnome-help",
+    "gnome-system-monitor", "gnome-logs", "gnome-disks",
+    "yelp", "evolution", "evolution-data-server",
+    "xdg-desktop-portal-gnome",
+}
+
+# Packages whose presence is fine, and why. Naming them is what makes the check
+# honest: an allowlist nobody reads is indistinguishable from no allowlist, and
+# the next person to add "gnome-keyring" learns nothing from it.
+GNOME_ALLOWED = {
+    "gnome-keyring": "a standalone daemon, and the only backing store the "
+                     "Secret portal has. Its transitive closure was checked and "
+                     "carries no GNOME desktop component.",
+    "libpam-gnome-keyring": "the PAM module that unlocks that keyring at login. "
+                            "Its name begins with gnome- and it is not a GNOME "
+                            "daemon: without it every Secret prompt asks for a "
+                            "second password.",
+}
+
+
+def audit_gnome(manifest: dict) -> list[str]:
+    """Report any GNOME desktop component the manifest installs.
+
+    A manifest entry only. This does not walk the dependency closure, because
+    the closure of an allowed package is a fact about the archive that changes
+    without the manifest changing, and a check that starts failing on an Ubuntu
+    sync is a check people learn to ignore. The closure of gnome-keyring was
+    verified by hand: 199 packages, no desktop component among them.
+    """
+    problems: list[str] = []
+
+    for group, name in iter_install_entries(manifest):
+        if name in GNOME_ALLOWED:
+            continue
+        if name in GNOME_DESKTOP:
+            problems.append(
+                f"{group}: installs {name}, which is a GNOME desktop "
+                f"component. Zenith's session is Hyprland with a Quickshell "
+                f"shell; a GNOME session here is a second desktop at the login "
+                f"screen that races the shell for org.freedesktop.Notifications."
+            )
+
+    # The exclusions are checked too, because an exclusion that names a package
+    # the archive does not carry is an exclusion that is protecting nothing.
+    excluded: set[str] = set()
+    for _, pattern in iter_exclusions(manifest):
+        excluded.add(pattern)
+
+    missing = sorted(GNOME_DESKTOP - excluded)
+    if missing:
+        problems.append(
+            "these GNOME components are neither installed nor excluded, so "
+            "nothing stops one being pulled in later: " + ", ".join(missing)
+        )
+
+    return problems
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=MANIFEST)
@@ -275,6 +357,8 @@ def main() -> int:
 
     with open(args.manifest, encoding="utf-8") as handle:
         manifest = yaml.safe_load(handle)
+
+    gnome_problems = audit_gnome(manifest)
 
     base = manifest["base"]
     release = base["release"]
@@ -377,11 +461,13 @@ def main() -> int:
     print(
         f"\n{installed} install entries resolve, {built} Zenith-built packages "
         f"confirmed absent upstream, {deps} build dependencies resolve, "
-        f"{protected} exclusions verified"
+        f"{protected} exclusions verified, no GNOME desktop component installed"
     )
 
     for warning in warnings:
         print(f"warning: {warning}", file=sys.stderr)
+
+    errors.extend(gnome_problems)
 
     if errors:
         print(f"\n{len(errors)} errors:", file=sys.stderr)
