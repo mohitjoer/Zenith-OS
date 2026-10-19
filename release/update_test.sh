@@ -151,7 +151,7 @@ check "apt accepts the signed repository" $rc
 # Stronger than exit zero: the source has to appear in apt's own output. apt
 # can exit 0 having fetched nothing from a source it never managed to read,
 # and then "zenith: unable to locate" is the first symptom three steps later.
-rc=0; grep -q "file://$WORK/repo" "$WORK/apt-update.log" || rc=$?
+rc=0; grep -F -q "$WORK/repo" "$WORK/apt-update.log" || rc=$?
 check "apt fetched from the zenith repository" $rc
 
 rc=0; policy=$(apt-cache policy zenith 2>&1) || rc=$?

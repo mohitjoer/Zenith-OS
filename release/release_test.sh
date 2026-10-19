@@ -137,6 +137,20 @@ rc=0; ( cd "$WORK/repo/dists/stable" && \
   grep -A5 '^SHA256:' Release | grep 'Packages.gz' ) >/dev/null 2>&1 || rc=$?
 check "the Release file carries checksums for the index" $rc
 
+# Two properties apt requires and gpgv cannot see, because a signature over a
+# wrong Release verifies exactly like a signature over a right one. The
+# hand-written Release path above shipped without a Date field, and apt
+# treats a Release without a parsable Date as invalid: it warns, downloads
+# nothing the release describes, and exits zero — a repository that verifies
+# and delivers nothing. update_test.sh found that by running apt against it;
+# these two keep it found without needing apt in this suite.
+rc=0; grep -q '^Date: ' "$WORK/repo/dists/stable/Release" || rc=$?
+check "the Release file carries a Date apt will accept" $rc
+
+rc=0; grep -A5 '^SHA256:' "$WORK/repo/dists/stable/Release" \
+    | grep -q ' main/binary-' || rc=$?
+check "index entries name suite-relative paths, as apt looks them up" $rc
+
 # The signing key has to survive a rebuild, or every rebuild invalidates every
 # machine that already trusts it. This is a regression test for that: an earlier
 # mkrepo.sh kept the secret key in a temporary GNUPGHOME, deleted it at the end

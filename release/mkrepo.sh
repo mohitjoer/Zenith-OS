@@ -99,16 +99,34 @@ if command -v apt-ftparchive >/dev/null 2>&1; then
         release "$REPO/dists/$SUITE" > "$REPO/dists/$SUITE/Release"
 else
     # Without apt-ftparchive the Release file is assembled by hand from the same
-    # checksums apt would verify. It is less pretty and exactly as good.
+    # checksums apt would verify. It is less pretty, and it is only exactly as
+    # good if it carries what apt requires of a Release file:
+    #
+    #   Date is not decoration. apt treats a Release without a parsable Date as
+    #   an invalid release: it warns "Invalid 'Date' entry", downloads nothing
+    #   the release describes, and exits zero — a repository that gpgv
+    #   verifies perfectly and that delivers no packages at all. That failure
+    #   was invisible to every check here until update_test.sh ran apt against
+    #   a real repository, which is the only place it shows.
+    #
+    #   Checksum entries name paths relative to the suite directory with no
+    #   leading "./". That is what apt-ftparchive emits and what apt looks up
+    #   when it decides an index is covered by the hashes it just verified.
+    #
+    # Codename is not required of a hand-written file, and is carried because
+    # every apt-ftparchive Release has one and a reader comparing suites
+    # expects to find it.
     echo "apt-ftparchive is absent; writing the Release file by hand"
     ( cd "$REPO/dists/$SUITE" && \
       { echo "Origin: Zenith OS"; echo "Label: Zenith OS"; echo "Suite: $SUITE"; \
+        echo "Codename: $SUITE"; \
+        echo "Date: $(date -R -u)"; \
         echo "Components: $COMPONENT"; echo "Architectures: $ARCH"; \
         echo "Description: Zenith OS signed archive"; echo "MD5Sum:"; \
-        find . -name '*.gz' -printf './%P\n' | sort | while read -r f; do
+        find . -name '*.gz' -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; echo "SHA256:"; \
-        find . -name '*.gz' -printf './%P\n' | sort | while read -r f; do
+        find . -name '*.gz' -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(sha256sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; } > Release )
 fi
