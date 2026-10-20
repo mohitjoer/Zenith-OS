@@ -56,8 +56,19 @@ for arch in "$ARCH" all; do
     if [ "$arch" = "$ARCH" ]; then
         # Scanned from the repository root, so the index records the pool path
         # the package actually occupies.
-        ( cd "$REPO" && dpkg-scanpackages --multiversion --recursive . /dev/null \
-            2>/dev/null > "$dir/Packages" )
+        #
+        # dpkg-scanpackages' exit status is not allowed to end the run. The old
+        # version piped it into gzip, which took the pipeline's status and
+        # threw dpkg's away — an index that came out empty was published with
+        # no complaint. The index is checked instead, which is the thing that
+        # matters, and dpkg's own words stay on the terminal.
+        ( cd "$REPO" && dpkg-scanpackages --multiversion --recursive . /dev/null ) \
+            > "$dir/Packages" || true
+        if [ ! -s "$dir/Packages" ]; then
+            echo "mkrepo: the index came out empty; dpkg-scanpackages produced" \
+                 "nothing for $dir" >&2
+            exit 1
+        fi
     else
         : > "$dir/Packages"
     fi
