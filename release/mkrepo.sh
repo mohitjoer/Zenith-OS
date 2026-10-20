@@ -199,10 +199,10 @@ else
         echo "Date: $(date -R -u)"; \
         echo "Components: $COMPONENT"; echo "Architectures: $ARCH"; \
         echo "Description: Zenith OS signed archive"; echo "MD5Sum:"; \
-        find main -type f -printf '%P\n' | sort | while read -r f; do
+        find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; echo "SHA256:"; \
-        find main -type f -printf '%P\n' | sort | while read -r f; do
+        find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(sha256sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; } > "$RELEASE" )
 fi

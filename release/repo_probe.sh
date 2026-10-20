@@ -88,11 +88,11 @@ write_release() {
             echo "Codename: stable"; echo "Date: $(date -R -u)"; \
             echo "Components: main"; echo "Architectures: $ARCH"; \
             echo "Description: Zenith OS probe"; echo "MD5Sum:"; \
-            find main -type f -printf '%P\n' | sort | while read -r f; do
+            find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
                 printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" \
                     "$(stat -c%s "$f")" "$f"
             done; echo "SHA256:"; \
-            find main -type f -printf '%P\n' | sort | while read -r f; do
+            find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
                 printf ' %s %16d %s\n' "$(sha256sum <"$f" | cut -d' ' -f1)" \
                     "$(stat -c%s "$f")" "$f"
             done; } > "$suite/Release" )
@@ -110,11 +110,16 @@ write_release() {
 # signed:       yes | trusted
 probe() {
     name=$1; dir=$2; style=$3; trust=$4
-    src="$WORK/$name.src"
     lists="$WORK/$name.lists"
-    mkdir -p "$lists"
+    parts="$WORK/$name.parts"
+    mkdir -p "$lists" "$parts"
 
     if [ "$style" = deb822 ]; then
+        # A deb822 file is a .sources file, and apt reads those from
+        # sourceparts. Handing one to sourcelist — which is a one-line
+        # sources.list — makes apt reject it as an unknown type, and the
+        # variant looks like a repository apt cannot read when it never read
+        # it at all.
         {
             echo "Types: deb"
             echo "URIs: file://$dir"
@@ -126,26 +131,30 @@ probe() {
             else
                 echo "Trusted: yes"
             fi
-        } > "$src"
+        } > "$parts/$name.sources"
+        sourcelist=/dev/null
+        sourceparts="$parts"
     else
         if [ "$trust" = yes ]; then
-            echo "deb [signed-by=$WORK/keyring.gpg] file://$dir stable main" > "$src"
+            echo "deb [signed-by=$WORK/keyring.gpg] file://$dir stable main" > "$WORK/$name.list"
         else
-            echo "deb [trusted=yes] file://$dir stable main" > "$src"
+            echo "deb [trusted=yes] file://$dir stable main" > "$WORK/$name.list"
         fi
+        sourcelist="$WORK/$name.list"
+        sourceparts=/dev/null
     fi
 
     rc=0
     apt-get \
-        -o Dir::Etc::sourcelist="$src" \
-        -o Dir::Etc::sourceparts=/dev/null \
+        -o Dir::Etc::sourcelist="$sourcelist" \
+        -o Dir::Etc::sourceparts="$sourceparts" \
         -o Dir::State::lists="$lists" \
         -o APT::Get::List-Cleanup=0 \
         update > "$WORK/$name.update.log" 2>&1 || rc=$?
 
     candidate=$(apt-cache \
-        -o Dir::Etc::sourcelist="$src" \
-        -o Dir::Etc::sourceparts=/dev/null \
+        -o Dir::Etc::sourcelist="$sourcelist" \
+        -o Dir::Etc::sourceparts="$sourceparts" \
         -o Dir::State::lists="$lists" \
         policy zenith 2>/dev/null | sed -n 's/^ *Candidate: //p')
 
