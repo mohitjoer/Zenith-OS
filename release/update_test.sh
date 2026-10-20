@@ -41,6 +41,7 @@ set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SOURCES=/etc/apt/sources.list.d/zenith-m2test.sources
+SOURCES_HAND=/etc/apt/sources.list.d/zenith-m2test-hand.sources
 BASE=/usr/share/zenith
 
 # ---------------------------------------------------------------- refusal
@@ -79,6 +80,8 @@ if dpkg-query -W -f='${Status}' zenith 2>/dev/null \
            "that is in use"
 fi
 [ -e "$SOURCES" ] && refuse "$SOURCES already exists; refusing to overwrite it"
+[ -e "$SOURCES_HAND" ] && \
+    refuse "$SOURCES_HAND already exists; refusing to overwrite it"
 [ -e "$BASE" ] && \
     refuse "$BASE exists without a package owning it; this is a leftover, and" \
            "a leftover base would let the assertions below pass against it"
@@ -90,7 +93,7 @@ chmod 755 "$WORK" # apt's _apt user reads the file:// repository living here
 cleanup() {
     # Every step is best-effort on purpose: a failure while cleaning up must
     # not mask the exit status that says whether the checks passed.
-    rm -f "$SOURCES"
+    rm -f "$SOURCES" "$SOURCES.hand"
     dpkg --purge zenith >/dev/null 2>&1 || :
     rm -rf "$HOME/.config/zenith" "$HOME/.local/state/zenith" 2>/dev/null || :
     rm -rf "$WORK" 2>/dev/null || :
@@ -137,8 +140,30 @@ ZENITH_SECRET_KEYRING="$WORK/archive-secret.gpg" \
     sh "$REPO_ROOT/release/mkrepo.sh" "$WORK/debs1" "$WORK/repo" >/dev/null
 chmod 600 "$WORK/archive-secret.gpg" 2>/dev/null || :
 
-echo "adding the repository to the machine"
+# The same repository published a second time through mkrepo.sh's hand-written
+# Release path — the one taken on a machine without apt-ftparchive, which is
+# every CI runner and every machine that has not installed apt-utils.
+#
+# A non-executable file named apt-ftparchive, first in PATH, hides the real one
+# from `command -v` without removing it: the tool is still there for the
+# publication that uses it, and the publication that must not use it does not.
+mkdir -p "$WORK/shim"
+: > "$WORK/shim/apt-ftparchive"
+chmod 0644 "$WORK/shim/apt-ftparchive"
+echo "publishing the repository through the hand-written Release path"
+PATH="$WORK/shim:$PATH" ZENITH_SECRET_KEYRING="$WORK/archive-secret.gpg" \
+    sh "$REPO_ROOT/release/mkrepo.sh" "$WORK/debs1" "$WORK/repo-hand" >/dev/null
+
+# The two Release files side by side. Whatever apt objects to in one of them is
+# visible here rather than in a week of archaeology.
+echo "--- the Release apt-ftparchive wrote ---"
+sed -n '1,16p' "$WORK/repo/dists/stable/Release" 2>/dev/null || :
+echo "--- the Release written by hand ---"
+sed -n '1,16p' "$WORK/repo-hand/dists/stable/Release" 2>/dev/null || :
+
+echo "adding both repositories to the machine"
 cp "$WORK/repo/zenith.sources" "$SOURCES"
+cp "$WORK/repo-hand/zenith.sources" "$SOURCES_HAND"
 
 # The update log is printed unconditionally. On the failure this debugs, apt
 # exits zero while quietly not delivering the index, and a log shown only on
@@ -153,6 +178,16 @@ check "apt accepts the signed repository" $rc
 # and then "zenith: unable to locate" is the first symptom three steps later.
 rc=0; grep -F -q "$WORK/repo" "$WORK/apt-update.log" || rc=$?
 check "apt fetched from the zenith repository" $rc
+
+# The meta index is not the index. apt can commit InRelease, verify its
+# signature, and then never download the Packages it describes — and a check
+# that only looks for the repository's name in the log calls that a pass.
+rc=0; grep -E "$WORK/repo/.*Packages" "$WORK/apt-update.log" >/dev/null || rc=$?
+check "apt downloaded the Packages index of the apt-ftparchive repository" $rc
+
+rc=0; grep -E "$WORK/repo-hand/.*Packages" "$WORK/apt-update.log" >/dev/null \
+    || rc=$?
+check "apt downloaded the Packages index of the hand-written repository" $rc
 
 rc=0; policy=$(apt-cache policy zenith 2>&1) || rc=$?
 if [ "$rc" -ne 0 ] || ! printf '%s\n' "$policy" | grep -q 'Candidate: 0.1+m2test1'; then

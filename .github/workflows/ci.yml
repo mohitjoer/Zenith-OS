@@ -453,14 +453,17 @@ jobs:
       - uses: actions/checkout@v7
 
       # What the stock image does not carry. gnupg is for mkrepo.sh to sign
-      # with; dpkg-dev for dpkg-scanpackages; ca-certificates and tar are for
-      # setup-go's download and extraction. git arrives later as a Depends of
-      # the package under test, which is itself worth asserting.
+      # with; dpkg-dev for dpkg-scanpackages; apt-utils for apt-ftparchive,
+      # which mkrepo.sh uses when it is present and falls back to writing the
+      # Release file by hand when it is not — the test publishes the repository
+      # both ways and asks apt to read both, so the fallback cannot rot
+      # unnoticed; ca-certificates and tar are for setup-go's download and
+      # extraction. git arrives later as a Depends of the package under test.
       - name: The tools the stock image does not carry
         run: |
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            --no-install-recommends ca-certificates dpkg-dev gnupg tar
+            --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
 
       - uses: actions/setup-go@v7
         with:
