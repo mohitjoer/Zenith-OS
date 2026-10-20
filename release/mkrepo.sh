@@ -54,21 +54,25 @@ for arch in "$ARCH" all; do
     dir="$INDEX_ROOT/binary-$arch"
     mkdir -p "$dir"
     if [ "$arch" = "$ARCH" ]; then
-        # Scanned from the repository root, so the index records the pool path
-        # the package actually occupies.
+        # Scanned from the pool, and the Filename rewritten to the path the
+        # package occupies relative to the repository root — which is the root
+        # apt resolves it against. dpkg-scanpackages records the path it found
+        # the package at, relative to the directory it scanned, and it has no
+        # option to scan a tree.
         #
         # dpkg-scanpackages' exit status is not allowed to end the run. The old
         # version piped it into gzip, which took the pipeline's status and
         # threw dpkg's away — an index that came out empty was published with
         # no complaint. The index is checked instead, which is the thing that
         # matters, and dpkg's own words stay on the terminal.
-        ( cd "$REPO" && dpkg-scanpackages --multiversion --recursive . /dev/null ) \
+        ( cd "$POOL" && dpkg-scanpackages --multiversion . /dev/null ) \
             > "$dir/Packages" || true
         if [ ! -s "$dir/Packages" ]; then
             echo "mkrepo: the index came out empty; dpkg-scanpackages produced" \
                  "nothing for $dir" >&2
             exit 1
         fi
+        sed -i "s|^Filename: \./|Filename: pool/$COMPONENT/|" "$dir/Packages"
     else
         : > "$dir/Packages"
     fi

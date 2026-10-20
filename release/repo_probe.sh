@@ -43,15 +43,16 @@ build_repo() {
     if [ "$pool" = yes ]; then
         mkdir -p "$dir/pool/main"
         cp "$DEB" "$dir/pool/main/"
-        ( cd "$dir" && dpkg-scanpackages --multiversion --recursive . /dev/null ) \
+        ( cd "$dir/pool/main" && dpkg-scanpackages --multiversion . /dev/null ) \
             > "$index/Packages" || true
+        sed -i 's|^Filename: \./|Filename: pool/main/|' "$index/Packages"
     else
         cp "$DEB" "$dir/"
         ( cd "$dir" && dpkg-scanpackages --multiversion . /dev/null ) \
             > "$index/Packages" || true
     fi
     if [ ! -s "$index/Packages" ]; then
-        echo "probe: the index for $name came out empty" >&2
+        echo "probe: the index for $dir came out empty" >&2
         exit 1
     fi
     gzip -9n -c "$index/Packages" > "$index/Packages.gz"
