@@ -11,6 +11,7 @@ clear before you build on Zenith.
 |---|---|---|
 | Zenith's own code | GPL-3.0 | [`LICENSE`](LICENSE) |
 | The base layer and every Debian/Ubuntu package | whatever each package declares | `/usr/share/doc/<pkg>/copyright` on an installed system |
+| The shell's engine, built by Zenith | LGPL-3.0-only | the built package's own copyright file; see below |
 | Firmware blobs | mixed: most free, some proprietary, each separately licensed | per-package copyright files; see below |
 | Hardware profiles in `system/hardware/profiles/` | GPL-3.0 by convention, but data is data | the profile's own `license:` field |
 
@@ -44,6 +45,28 @@ file. Zenith neither relicenses nor overrides them, and by policy never modifies
 Redistributing Zenith means redistributing that base layer, so both the per-package licences and
 Ubuntu's own terms of service apply. This is not optional legal fine print; it is the most
 common way a distribution goes wrong.
+
+## The shell is LGPL, and the binary is shipped unmodified
+
+Zenith builds Quickshell, because no component of the base layer carries it. Quickshell is
+**LGPL-3.0-only** — it has been, in every release from the first, and this document
+previously said MIT, which was wrong.
+
+The obligation under LGPL-3 is short, and Zenith's build satisfies it:
+
+- The binary is shipped **unmodified**. Zenith does not patch Quickshell, does not link its
+  own code into it, and does not distribute it as source it has modified. The shell talks to
+  it over a socket and a command line, which is what a separate program does.
+- The package carries Quickshell's own copyright file and a copy of the LGPL-3 text, so
+  anyone receiving it can read the licence and the source-offer terms that come with it.
+  The LGPL text is in the base layer at `/usr/share/common-licenses/LGPL-3`.
+- Anyone who wants to modify Quickshell can, under the LGPL's own terms, and can have the
+  modifications removed by replacing the package. Nothing Zenith ships prevents that.
+
+The practical consequence for a rebase: a base layer that gains a `quickshell` package ends
+this exception, the way the base layer's own `quickshell` package already does in the
+releases after 26.04. The manifest's `zenith_built:` key is the thing that notices, and
+that is the point of it.
 
 ## Firmware is the exception
 

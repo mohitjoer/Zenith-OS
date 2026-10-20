@@ -303,13 +303,15 @@ That makes this the recorded exception to the base-layer boundary, and it used t
 companion: the terminal, which Zenith also used to build. The terminal is not built any more —
 see [terminal: Ghostty](#terminal-ghostty) — so this exception is now the only one, and the
 shell is the only thing in the stack Zenith compiles for itself. It is a comfortable one:
-Quickshell is MIT, and the build needs
-nothing the archive does not already carry — `qt6-declarative-dev`, `qt6-wayland`,
-`qml6-module-qtquick`, `qml6-module-qtquick-controls`, `qml6-module-qtquick-layouts`,
-`qt6-base-dev`, `meson`, `ninja-build`, `cmake` and `pkgconf` are all archive
-packages, so there is no vendored blob and no redistribution question. The rule the
-exception sits against is the one in the manifest's header: never repackage what the
-base layer carries. Quickshell is not in the base layer, so building it is not a fork.
+Quickshell is **LGPL-3.0-only**, and the build needs nothing the archive does not already
+carry — `qt6-declarative-dev`, `qt6-declarative-private-dev`, `qt6-base-private-dev`,
+`qt6-base-dev`, `qt6-wayland`, `ninja-build`, `cmake` and `pkgconf` are all archive
+packages, so there is no vendored blob. Redistribution under LGPL-3 is a matter of
+shipping the licence and the copyright with the binary, which the package does; there is
+no question of deriving from it, because Zenith ships the binary unmodified and links
+nothing of its own into it. The rule the exception sits against is the one in the
+manifest's header: never repackage what the base layer carries. Quickshell is not in the
+base layer, so building it is not a fork.
 
 `zenith-shell` owns that build, and it is build-only — none of those names enter the
 runtime image, they are what the build needs to produce a package the image installs.

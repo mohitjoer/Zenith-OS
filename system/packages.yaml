@@ -306,6 +306,15 @@ desktop:
     # `qtwayland6` is not published here.
     - qt6-wayland
 
+    # The QML runtime modules. These were listed as build-only, which is wrong:
+    # the shell's own QML does `import QtQuick`, and a QML engine with no
+    # QtQuick module installed cannot resolve it — the shell starts and every
+    # window in it fails to construct. The controls and layouts modules are what
+    # quickshell's own shipped module imports.
+    - qml6-module-qtquick
+    - qml6-module-qtquick-controls
+    - qml6-module-qtquick-layouts
+
     # The GTK 4 and libadwaita runtimes. Zenith's own UI is Quickshell, not GTK —
     # but third-party GTK 4 applications are on the desktop and will not start
     # without them, which is the whole reason they are here.
@@ -364,8 +373,10 @@ desktop:
   #
   # Verified absent from every component of 26.04: not in main, universe or
   # multiverse, and no `/usr/bin/quickshell` in the suite's Contents index. It is
-  # MIT, so building it raises no redistribution problem, and the build itself
-  # needs nothing the archive does not already carry — see the list below.
+  # LGPL-3.0-only, so building it raises no redistribution problem either: Zenith
+  # ships the binary unmodified, and the package carries the licence and the
+  # copyright. The build itself needs nothing the archive does not already carry —
+  # see the list below.
   #
   # Everything in the archive that can host a compositor-agnostic shell was
   # checked first, so this is a considered absence rather than the first name
@@ -373,21 +384,27 @@ desktop:
   zenith_built:
     - quickshell
 
-  # Build-only. None of this is in the runtime image; it is what `zenith-shell`'s
+  # Build-only. None of this is in the runtime image; it is what the shell's
   # build needs, and a name missing here breaks the shell build rather than a
-  # runtime feature. This is the terminal's old job, gone with the terminal
-  # build — the shell is the only thing Zenith compiles for itself. All ten
-  # resolve on 26.04 (suite `resolute`).
+  # runtime feature. All of these resolve on 26.04 (suite `resolute`).
+  #
+  # The two `*-private-dev` packages are not optional and were missing here:
+  # quickshell calls private Qt APIs, and on 26.04's Qt 6.10 it needs both
+  # QuickPrivate and WaylandClientPrivate headers, or the configure step fails
+  # with an imported target whose include path does not exist.
+  #
+  # There is no `meson` here, and there was never any need for one: quickshell
+  # is CMake, and there is no meson.build in any release of it.
   build_dependencies:
-    - qt6-declarative-dev
-    - qt6-wayland
-    - qml6-module-qtquick
-    - qml6-module-qtquick-controls
-    - qml6-module-qtquick-layouts
     - qt6-base-dev
-    - meson
-    - ninja-build
+    - qt6-base-private-dev
+    - qt6-declarative-dev
+    - qt6-declarative-private-dev
+    - qt6-shadertools-dev
+    - qt6-svg-dev
+    - qt6-wayland
     - cmake
+    - ninja-build
     - pkgconf
 
   # GNOME, excluded deliberately and in full. Each of these is a real package in
