@@ -90,6 +90,67 @@ func TestSweepRefusesASerial(t *testing.T) {
 	}
 }
 
+// TestSweepAllowsAValueAKeptFieldCarries is the other half of the rule.
+//
+// Chassis vendor and board vendor are the same manufacturer on most machines,
+// and chassis version and product version are often the same string. A field
+// the report does not carry, whose value the report carries anyway under
+// another name, is not a leak — and treating it as one stops the report dead
+// on a machine that has two DMI attributes saying the same thing.
+//
+// This is what a real machine does. The report was refused on an ASUS laptop
+// for exactly this reason: chassis_vendor held the same string as
+// board_vendor, and chassis_version held the same string as product_version.
+//
+// The identifier is still caught: a serial number is not a kept field, and if
+// its value reaches the report this rule fires on it. TestSweepRefusesASerial
+// above is that case.
+func TestSweepAllowsAValueAKeptFieldCarries(t *testing.T) {
+	const vendor = "ASUSTeK COMPUTER INC."
+	rendered := []byte("board_vendor: " + vendor + "\nproduct_version: 1.0\n")
+
+	findings := Verify(rendered, Context{
+		RawDMI: map[string]string{
+			// Kept, and therefore legitimately in the report.
+			"board_vendor":    vendor,
+			"product_version": "1.0",
+			// Not kept, and not read. Their values are the same strings.
+			"chassis_vendor":  vendor,
+			"chassis_version": "1.0",
+		},
+	})
+
+	for _, finding := range findings {
+		if finding.Rule == "unclassified-dmi-field" {
+			t.Errorf("findings = %v, want no unclassified-dmi-field finding: the "+
+				"value is carried by a kept field under another name", findings)
+		}
+	}
+}
+
+// TestSweepStillRefusesAnIdentifierBesideAKeptOne is the same machine, with a
+// serial in it.
+//
+// The exemption above is for a duplicate, not for an identifier: a serial
+// number that reaches the report stops it, even when a kept field happens to
+// carry the same string.
+func TestSweepStillRefusesAnIdentifierBesideAKeptOne(t *testing.T) {
+	const serial = "N0ABCDE12345"
+	rendered := []byte("board_name: FX507ZC4\nproduct_serial: " + serial + "\n")
+
+	findings := Verify(rendered, Context{
+		RawDMI: map[string]string{
+			"board_name":     "FX507ZC4",
+			"product_serial": serial,
+		},
+		RawSerials: []string{serial},
+	})
+
+	if len(findings) == 0 {
+		t.Fatal("a report carrying a raw serial was allowed through")
+	}
+}
+
 // TestSweepRefusesAssetTag checks the field that is dropped rather than hashed.
 // Asset tags are world-readable, stable, low-entropy and map to a purchasing
 // record, so they are the field most likely to be enumerable — which is exactly
@@ -397,6 +458,14 @@ func TestKeepSetMatchesTheReaderPolicy(t *testing.T) {
 				t.Errorf("%q is %q in the reader policy but present in the "+
 					"redactor's keep-set", name, class)
 			}
+		case probe.DMIClassDuplicate:
+			// A duplicate is not carried by the report under its own name, so
+			// it is not in the keep-set. The sweep exempts it on its own
+			// terms: a kept field carrying the same string.
+			if dmiKeptFields[name] {
+				t.Errorf("%q is %q in the reader policy but present in the "+
+					"redactor's keep-set", name, class)
+			}
 		default:
 			t.Errorf("%q has an unclassified policy value %q", name, class)
 		}
@@ -423,6 +492,24 @@ func TestReaderPolicyCoversTheClassifiedFields(t *testing.T) {
 		}
 		if class != probe.DMIClassNotRead {
 			t.Errorf("%q is %q, want %q", name, class, probe.DMIClassNotRead)
+		}
+	}
+
+	// The attributes a real machine's DMI directory carries that the report
+	// does not carry under their own name. A machine with two attributes
+	// saying the same thing is the ordinary case, and the policy has to say
+	// so: an unclassified attribute is one the sweep cannot reason about, and
+	// the sweep refuses the report rather than guess.
+	mustBeDuplicate := []string{"chassis_vendor", "chassis_version", "uevent"}
+	for _, name := range mustBeDuplicate {
+		class, listed := policy[name]
+		if !listed {
+			t.Errorf("%q is not in the reader policy at all; a machine that "+
+				"carries it has an attribute the sweep cannot reason about", name)
+			continue
+		}
+		if class != probe.DMIClassDuplicate {
+			t.Errorf("%q is %q, want %q", name, class, probe.DMIClassDuplicate)
 		}
 	}
 }

@@ -213,8 +213,32 @@ func Verify(rendered []byte, context Context) []Findings {
 	// Rule 1: a raw DMI value that is not on the keep-list, appearing verbatim.
 	// An empty value cannot be searched for, so it is skipped; absence is not a
 	// leak.
+	//
+	// A field of the duplicate class is skipped when a kept field carries the
+	// same string, and only then. It is the same string twice: once under a
+	// name the report carries, and once under a name it does not. Chassis
+	// vendor and board vendor are the same manufacturer on most machines;
+	// chassis version and product version are often the same string. The
+	// report contains the kept one legitimately, and the sweep cannot tell
+	// the two apart by looking at the text.
+	//
+	// The exemption is narrow on purpose. It applies to the duplicate class
+	// alone, and only when a kept field carries the value. A serial number is
+	// not in that class, and it is not exempted: if its value reaches the
+	// report, this rule fires on it, which is the case that matters.
+	policy := probe.DMIPolicy()
+	keptValues := map[string]bool{}
+	for field, value := range context.RawDMI {
+		if dmiKeptFields[field] && value != "" {
+			keptValues[value] = true
+		}
+	}
+
 	for field, value := range context.RawDMI {
 		if dmiKeptFields[field] || value == "" {
+			continue
+		}
+		if policy[field] == probe.DMIClassDuplicate && keptValues[value] {
 			continue
 		}
 		if strings.Contains(text, value) {

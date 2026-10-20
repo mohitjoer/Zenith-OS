@@ -35,6 +35,20 @@ const (
 	// DMIClassNotRead is a field that exists in sysfs and is never copied. The
 	// not-read fields are the serials and the asset tags.
 	DMIClassNotRead DMIClass = "not-read"
+
+	// DMIClassDuplicate is a field the report does not carry, whose value the
+	// report carries anyway under another name.
+	//
+	// Chassis vendor and board vendor are the same manufacturer on most
+	// machines. Chassis version and product version are often the same string.
+	// The report contains the kept one, because it is the kept one, and a
+	// sweep that cannot tell the two apart by looking at the text would
+	// refuse every report from a machine whose firmware repeats itself.
+	//
+	// It is not an exemption from the rule that a value must not reach the
+	// report. A field of this class whose value no kept field carries is
+	// still refused when it appears.
+	DMIClassDuplicate DMIClass = "duplicate"
 )
 
 // DMIPolicy returns the DMI allowlist: every sysfs attribute under
@@ -84,6 +98,15 @@ var dmiPolicy = map[string]DMIClass{
 	"chassis_asset_tag": DMIClassNotRead,
 	"board_asset_tag":   DMIClassNotRead,
 	"modalias":          DMIClassNotRead,
+
+	// Read by nobody, and carried by the report under another name. The
+	// kernel adds attributes between releases, and a machine with two
+	// attributes saying the same thing is the ordinary case, not the
+	// exception: an ASUS laptop's chassis_vendor is its board_vendor, and its
+	// chassis_version is its product_version.
+	"chassis_vendor":  DMIClassDuplicate,
+	"chassis_version": DMIClassDuplicate,
+	"uevent":          DMIClassDuplicate,
 }
 
 // Fields is what a DMI probe returns.

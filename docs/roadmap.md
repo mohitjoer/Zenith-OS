@@ -68,8 +68,14 @@ revision. **The last two hold and are tested; the first has not been run against
 ## M3 — Hardware detection
 
 *Status: the detection, matching, redaction, report and profile-lint libraries are written and
-tested, and `zenith hardware report|match|lint-profiles|capture` reaches all of them. This has
-been exercised only against captured fixture trees, never against a real laptop.*
+tested, and `zenith hardware report|match|lint-profiles|capture` reaches all of them. The
+report has run on a real laptop for the first time, and it refused to emit: two DMI
+attributes that real machines carry and the captured fixture trees do not were
+unclassified, so the sweep could not tell the report's own `board_vendor` from an
+unread `chassis_vendor` and refused the report as a leak. That is the class of fault a
+fixture tree cannot hold, and it is fixed. The machine's candidate profile now comes out
+of the report, with the two things detection cannot decide — the kernel flavour and the
+display mux — left for a human.*
 
 The subsystem that decides whether Zenith works on someone else's laptop.
 
