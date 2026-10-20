@@ -185,12 +185,13 @@ else
     # checksums apt would verify. It is less pretty, and it is only exactly as
     # good if it carries what apt requires of a Release file:
     #
-    #   Date is not decoration. apt treats a Release without a parsable Date as
-    #   an invalid release: it warns "Invalid 'Date' entry", downloads nothing
-    #   the release describes, and exits zero — a repository that gpgv
-    #   verifies perfectly and that delivers no packages at all. That failure
-    #   was invisible to every check here until update_test.sh ran apt against
-    #   a real repository, which is the only place it shows.
+    #   Date is not decoration, but it is hygiene rather than the cause of
+    #   anything. A Release without a parsable Date makes apt warn — "Invalid
+    #   'Date' entry in Release file" — and Debian's own policy is that a
+    #   Release carries one, because an archive whose metadata has no date
+    #   cannot say when it was true. apt proceeds all the same. The fault that
+    #   made this repository unreadable was a different one, and it is
+    #   described above, where the index is written.
     #
     #   Checksum entries name paths relative to the suite directory with no
     #   leading "./", and name the uncompressed index as well as the

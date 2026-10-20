@@ -149,13 +149,15 @@ rc=0; release_section "$WORK/repo/dists/stable/Release" | grep -q 'Packages.gz' 
     || rc=$?
 check "the Release file carries checksums for the index" $rc
 
-# Two properties apt requires and gpgv cannot see, because a signature over a
-# wrong Release verifies exactly like a signature over a right one. The
-# hand-written Release path above shipped without a Date field, and apt
-# treats a Release without a parsable Date as invalid: it warns, downloads
-# nothing the release describes, and exits zero — a repository that verifies
-# and delivers nothing. update_test.sh found that by running apt against it;
-# these two keep it found without needing apt in this suite.
+# Two properties of a Release file that a signature cannot vouch for, because a
+# signature over a wrong Release verifies exactly like a signature over a right
+# one. The index name is the one that matters: apt looks an index up by its
+# uncompressed name, and a Release that names only the compressed copy leaves
+# it with nothing to resolve against — a repository it reads, verifies, and
+# then quietly takes no packages from. The Date is policy rather than
+# mechanism: apt warns when it is missing, and Debian's own rules ask for one,
+# but a Release without a Date is not what broke this repository. Both are
+# checked here so neither can go missing unnoticed.
 rc=0; grep -q '^Date: ' "$WORK/repo/dists/stable/Release" || rc=$?
 check "the Release file carries a Date apt will accept" $rc
 

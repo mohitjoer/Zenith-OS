@@ -35,12 +35,13 @@ decision has somewhere to be written down.
 layer (`ubuntu:26.04`) and a real signed APT repository, by `release/update_test.sh`, which
 the `m2` job of the CI workflow runs.*
 
-The verification earned its place by finding two faults in the release tooling that every
-other check had passed. A hand-written `Release` file with no `Date` field is an invalid
-release to apt, which warns, downloads nothing it describes, and exits zero; and a
-repository that publishes only the compressed index gives apt nothing to resolve, because
-it looks an index up by its uncompressed name. Both produced a repository that verified
-perfectly and delivered no packages at all — which is what the milestone was for.
+The verification earned its place by finding a fault in the release tooling that every
+other check had passed: a repository that published only the compressed index, so apt —
+which looks an index up by its uncompressed name — fetched the meta index, verified the
+signature, committed it, and then took no packages from it. No warning, no error, exit
+zero. A signed repository that verifies perfectly and delivers nothing at all, which is
+the kind of fault no signature check can catch and no amount of reading the Release file
+would have shown.
 
 The first working code. Go, because the tools must be static binaries that start instantly.
 
