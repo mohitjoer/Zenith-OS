@@ -37,16 +37,22 @@ chmod 0644 "$POOL"/*.deb
 
 # ----------------------------------------------------------------- the index
 # Two files per architecture: the index itself, and the compressed copy apt
-# downloads. The uncompressed one is not decoration. apt looks the index up by
-# its uncompressed name — main/binary-amd64/Packages — and a Release file that
-# lists only the compressed copy leaves apt with a name it cannot resolve
-# against, and the result is a repository apt reads, verifies, and then quietly
-# takes no packages from. Every real archive lists both, and this one now does
-# too.
+# downloads. The uncompressed one is not decoration, and dropping it is the
+# quietest way to publish a repository that does not work.
 #
-# binary-all is published as well, and empty. apt asks for it by name. A
-# repository that does not have it leaves apt to decide something about it on
-# its own, and the decision it makes is to skip the indices.
+# apt looks an index up by its uncompressed name — main/binary-amd64/Packages
+# — and the hash table it builds from the Release is keyed by the names the
+# Release lists, with no aliasing from the compressed one to the uncompressed
+# one. A Release that lists only Packages.gz therefore gives apt a name it
+# cannot resolve, and apt responds by dropping the target with no warning and
+# no error: it fetches the meta index, verifies the signature, commits it,
+# and then takes no packages from it. That is the whole failure, and it cost
+# more to find than anything else in this repository.
+#
+# The reason apt wants the uncompressed name is that it verifies the bytes it
+# decompresses against the hash of the uncompressed file. A repository that
+# publishes only the compressed index has no hash to check those bytes
+# against, so apt has nothing to fetch.
 #
 # -n keeps mtimes out of the archive, so re-indexing an unchanged set of
 # packages produces an identical file. Without it the repository's own contents
@@ -56,33 +62,29 @@ INDEX_ROOT="$REPO/dists/$SUITE/$COMPONENT"
 
 echo "indexing $(ls -1 "$DEBS"/*.deb | wc -l) package(s)"
 
-for arch in "$ARCH" all; do
-    dir="$INDEX_ROOT/binary-$arch"
-    mkdir -p "$dir"
-    if [ "$arch" = "$ARCH" ]; then
-        # The scan is pointed at the pool from the repository root, so the
-        # index records the path the package occupies relative to that root —
-        # which is the root apt resolves it against. dpkg-scanpackages takes
-        # the path to scan as its argument and prefixes it to every Filename
-        # it writes, which is exactly what the man page says to do with it.
-        #
-        # dpkg-scanpackages' exit status is not allowed to end the run. The old
-        # version piped it into gzip, which took the pipeline's status and
-        # threw dpkg's away — an index that came out empty was published with
-        # no complaint. The index is checked instead, which is the thing that
-        # matters, and dpkg's own words stay on the terminal.
-        ( cd "$REPO" && dpkg-scanpackages --multiversion "pool/$COMPONENT" /dev/null ) \
-            > "$dir/Packages" || true
-        if [ ! -s "$dir/Packages" ]; then
-            echo "mkrepo: the index came out empty; dpkg-scanpackages produced" \
-                 "nothing for $dir" >&2
-            exit 1
-        fi
-    else
-        : > "$dir/Packages"
-    fi
-    gzip -9n -c "$dir/Packages" > "$dir/Packages.gz"
-done
+# One architecture, and only the one the machine publishes for. A binary-all
+# index is not published: apt only asks for one when the source entry asks
+# for the "all" architecture, and an index nothing asks for is a file in the
+# tree that means nothing to anyone.
+dir="$INDEX_ROOT/binary-$ARCH"
+mkdir -p "$dir"
+
+# Scanned from the repository root, so the index records the pool path the
+# package actually occupies — the root apt resolves it against.
+#
+# dpkg-scanpackages' exit status is not allowed to end the run. The old
+# version piped it into gzip, which took the pipeline's status and threw
+# dpkg's away — an index that came out empty was published with no complaint.
+# The index is checked instead, which is the thing that matters, and dpkg's
+# own words stay on the terminal.
+( cd "$REPO" && dpkg-scanpackages --multiversion "pool/$COMPONENT" /dev/null ) \
+    > "$dir/Packages" || true
+if [ ! -s "$dir/Packages" ]; then
+    echo "mkrepo: the index came out empty; dpkg-scanpackages produced" \
+         "nothing for $dir" >&2
+    exit 1
+fi
+gzip -9n -c "$dir/Packages" > "$dir/Packages.gz"
 
 # No Contents file. It maps installed file paths to packages, which apt does not
 # need for a repository, and a recompression of Packages labelled as Contents is
