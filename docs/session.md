@@ -446,8 +446,20 @@ dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DES
     DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
 
 echo "zenith-session: env ok, starting Hyprland"
-exec /usr/bin/Hyprland
+exec /usr/bin/Hyprland -c /usr/share/zenith/hyprland/hyprland.conf
 ```
+
+The compositor is started with Zenith's own configuration, because the keybinds live there
+and nowhere else. It is the only place the keyboard is described: a bind names the shell's
+IPC target and the shell decides what the key means, so the compositor never has to know
+what a launcher is. A compositor started without that file runs on Hyprland's own defaults,
+which is a desktop with no keybindings at all.
+
+The configuration sources the user's own file, which the session creates — empty, in the
+user's configuration directory — before the compositor reads it. Hyprland treats a source
+that resolves to nothing as a configuration error and refuses to start, so the file has to
+exist; the user's half is theirs, and it is sourced after the packaged one, so it can
+override anything and add anything.
 
 The `exec` at the end is what makes a failure safe: anything that goes wrong before it — a
 bad `/etc/zenith/session/zenith-session.env`, an unreadable schema, a disk-full — exits with

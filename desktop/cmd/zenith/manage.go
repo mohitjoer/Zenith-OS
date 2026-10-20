@@ -315,7 +315,8 @@ func reportShell(root string) int {
 	// the installed machine, which is the only machine doctor is run on.
 	trees := []shell.Env{
 		{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
-			OwnsSettings: true, SchemaDir: settingsDir},
+			OwnsSettings: true, SchemaDir: settingsDir,
+			HyprlandConfig: "usr/share/zenith/hyprland/hyprland.conf"},
 		{Root: root, Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
 	}
 

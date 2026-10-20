@@ -79,9 +79,9 @@ ShellRoot {
     // rather than by togglePopover, and it closes itself, so keeping it out of
     // currentPopover is what stops a Super+Tab from also closing an open
     // launcher.
-    //
-    // Nothing calls advance() yet — see the keybind note in Switcher.qml.
-    Switcher {}
+    Switcher {
+        id: switcher
+    }
 
     // Idle owns the timers and the overlay draws what they mean. The overlay is
     // declared last so it is on top of everything, which is the whole point of
@@ -94,4 +94,38 @@ ShellRoot {
     // quick settings are open must not be dismissed by them closing, and a
     // popup that owns its own lifetime cannot be taken down by someone else's.
     Notifications {}
+
+    // The shell's external surface: what the compositor's keybinds call.
+    //
+    // A keybind is a string in one file and the surface it names is a string
+    // in another, and nothing in either file checks the other. A rename on one
+    // side leaves a keybind that runs, succeeds, and does nothing — the
+    // quietest possible failure, and the one a user reports as "the shortcut
+    // stopped working" rather than as a bug.
+    //
+    // So the target name is written once, here, and `zenith doctor` checks the
+    // compositor's configuration against it.
+    //
+    // The functions are the shell's own, not wrappers around them: togglePopover
+    // is what the shell's own surfaces call, and a keybind that took a
+    // different path would be a second opinion about what Super+Space means.
+    IpcHandler {
+        id: ipc
+        target: "zenith"
+
+        // Open or close a surface by name: "launcher", "quick", "sidebar".
+        function togglePopover(name: string): void {
+            root.togglePopover(name)
+        }
+
+        // The window switcher. It has its own lifetime — it is not a popover —
+        // and it closes itself, so the two verbs are separate on purpose.
+        function advanceSwitcher(): void {
+            switcher.advance()
+        }
+
+        function closeSwitcher(): void {
+            switcher.close()
+        }
+    }
 }

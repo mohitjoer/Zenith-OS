@@ -57,6 +57,13 @@ cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"
 cp "$REPO_ROOT/session/zenith-portals.conf" "$STAGE/usr/share/zenith/session/"
 chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
 
+# The compositor's configuration. It is loaded by the session with
+# `Hyprland -c`, and it is the only place the keyboard is described — the
+# binds call the shell's IPC target, so the shell decides what a key means and
+# the compositor only says when.
+mkdir -p "$STAGE/usr/share/zenith/hyprland"
+cp "$REPO_ROOT/session/hyprland/"*.conf "$STAGE/usr/share/zenith/hyprland/"
+
 # The units and drop-ins ship as content under /usr/share/zenith/units/. The
 # registrations that point at them are written below and are the only paths this
 # package owns outside its own two directories.

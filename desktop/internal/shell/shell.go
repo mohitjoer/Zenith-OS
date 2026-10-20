@@ -79,6 +79,21 @@ type Env struct {
 	// settings property unreachable — two faults that do not exist, on the one
 	// machine the project is actually running on.
 	SchemaDir string
+
+	// HyprlandConfig is the compositor's configuration, relative to Root, when
+	// the tree has one. It is where the keybinds live, and every bind that
+	// drives the shell names a target the shell registers over IPC.
+	//
+	// The two are checked against each other because nothing in either file
+	// checks the other. A rename on one side leaves a keybind that runs,
+	// succeeds, and does nothing — the quietest failure in the desktop, and the
+	// one a user reports as "the shortcut stopped working" rather than as a
+	// bug.
+	//
+	// It is empty for the Hub, which is a window and not a session, and empty
+	// wherever the compositor's configuration is not part of the tree being
+	// checked.
+	HyprlandConfig string
 }
 
 func (e Env) path(relative string) string {
@@ -279,6 +294,7 @@ func Check(env Env) []Finding {
 	findings = append(findings, checkHardcodedColours(env, files)...)
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
+	findings = append(findings, checkIPCTargets(env, files)...)
 
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].Path != findings[j].Path {
@@ -286,6 +302,78 @@ func Check(env Env) []Finding {
 		}
 		return findings[i].Rule < findings[j].Rule
 	})
+	return findings
+}
+
+// ipcTargetPattern finds an IPC target the shell registers.
+var ipcTargetPattern = regexp.MustCompile(`target:\s*"([^"]+)"`)
+
+// ipcCallPattern finds a call the compositor makes into the shell.
+//
+// The command is spelled `quickshell ipc call <target> <function>`, and only
+// the target is checked: the function is the shell's own business, and a bind
+// that names a target the shell does not register is a bind that runs and
+// does nothing.
+var ipcCallPattern = regexp.MustCompile(`ipc\s+call\s+([A-Za-z0-9_.-]+)`)
+
+// checkIPCTargets checks the compositor's keybinds against the shell's IPC
+// surface.
+//
+// A keybind is a string in one file and the surface it names is a string in
+// another, and nothing in either file checks the other. The failure is the
+// quietest one in the desktop: the compositor runs the command, the command
+// succeeds, and no launcher opens. A user reports that as "the shortcut
+// stopped working", and nothing in the journal says why.
+//
+// So the two are checked against each other here.
+func checkIPCTargets(env Env, files []string) []Finding {
+	if env.HyprlandConfig == "" {
+		return nil
+	}
+
+	registered := map[string]bool{}
+	for _, file := range files {
+		data, err := os.ReadFile(env.path(file))
+		if err != nil {
+			continue
+		}
+		text := string(data)
+		// Only a file that declares a handler has targets. Quickshell's
+		// Hyprland module has a `target` property of its own, and reading
+		// that as an IPC target would invent one that does not exist.
+		if !strings.Contains(text, "IpcHandler") {
+			continue
+		}
+		for _, match := range ipcTargetPattern.FindAllStringSubmatch(text, -1) {
+			registered[match[1]] = true
+		}
+	}
+
+	configPath := filepath.Join(env.Root, env.HyprlandConfig)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// A tree with no compositor configuration is not a fault here. The
+		// check is about two files disagreeing, and a tree with one of them
+		// has nothing to disagree about.
+		return nil
+	}
+
+	var findings []Finding
+	seen := map[string]bool{}
+	for _, match := range ipcCallPattern.FindAllStringSubmatch(string(data), -1) {
+		target := match[1]
+		if registered[target] || seen[target] {
+			continue
+		}
+		seen[target] = true
+		findings = append(findings, Finding{
+			Rule: "ipc target",
+			Path: configPath,
+			Detail: "the compositor calls the IPC target \"" + target + "\", and " +
+				"the shell does not register it; the keybind would run and do " +
+				"nothing",
+		})
+	}
 	return findings
 }
 

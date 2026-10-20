@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,6 +42,67 @@ func tree(t *testing.T, files map[string]string) Env {
 		}
 	}
 	return Env{Root: root, Dir: "shell"}
+}
+
+// TestIPCTargetMustBeRegistered keeps a keybind and the surface it names from
+// drifting apart.
+//
+// A keybind is a string in the compositor's configuration and the surface it
+// names is a string in the shell's QML, and nothing in either file checks the
+// other. The failure is the quietest one in the desktop: the compositor runs
+// the command, the command succeeds, and no launcher opens.
+func TestIPCTargetMustBeRegistered(t *testing.T) {
+	const handler = `import Quickshell.Io
+IpcHandler {
+    target: "zenith"
+    function togglePopover(name: string): void { root.togglePopover(name) }
+}
+`
+	const config = `bind = SUPER, Space, exec, quickshell ipc call %s togglePopover launcher
+`
+
+	// The two agreeing: no finding.
+	env := tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "zenith"))
+	if findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: the compositor and the shell name "+
+			"the same target", findings)
+	}
+
+	// The compositor naming a target the shell does not register: a finding,
+	// because that keybind runs and does nothing.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "zenit"))
+	findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler}))
+	if len(findings) != 1 {
+		t.Fatalf("findings = %v, want exactly one", findings)
+	}
+	if findings[0].Rule != "ipc target" {
+		t.Errorf("rule = %q, want %q", findings[0].Rule, "ipc target")
+	}
+
+	// A tree with no compositor configuration is not a fault: there is
+	// nothing to disagree with.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	if findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: there is no compositor configuration "+
+			"to disagree with", findings)
+	}
+}
+
+// writeConfig writes the compositor's configuration into the tree.
+func writeConfig(t *testing.T, env Env, name, body string) {
+	t.Helper()
+	dir := filepath.Join(env.Root, filepath.Dir(env.HyprlandConfig))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(env.Root, env.HyprlandConfig)
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 const goodSchema = `<?xml version="1.0"?>

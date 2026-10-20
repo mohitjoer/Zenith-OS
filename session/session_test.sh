@@ -29,6 +29,7 @@ check() {
 cat > "$WORK/compositor" <<STUB
 #!/bin/sh
 env | sort > "$WORK/seen.env"
+printf '%s\n' "\$@" > "$WORK/seen.args"
 STUB
 chmod +x "$WORK/compositor"
 
@@ -66,6 +67,20 @@ run_session() {
 run_session
 [ -f "$WORK/seen.env" ]
 check "the script reaches the compositor" $?
+
+# The compositor is given Zenith's configuration, because a compositor started
+# without it runs on Hyprland's own defaults — a desktop with no keybindings
+# at all, where the launcher cannot be opened and the switcher cannot be driven.
+grep -qx -- '-c' "$WORK/seen.args"
+check "the compositor is started with a config" $?
+
+grep -qx -- '/usr/share/zenith/hyprland/hyprland.conf' "$WORK/seen.args"
+check "the compositor is started with Zenith's configuration" $?
+
+# The user's own configuration is created, because Hyprland treats a source
+# that resolves to nothing as a configuration error and refuses to start.
+[ -f "$WORK/.config/zenith/hyprland/zenith.conf" ]
+check "the user's compositor configuration is created" $?
 
 # The two desktop names are different strings on purpose: the dispatcher
 # lower-cases XDG_CURRENT_DESKTOP to derive its config file name, and the login

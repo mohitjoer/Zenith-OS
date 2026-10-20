@@ -67,8 +67,45 @@ systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
 dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
     DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
 
+# The user's own compositor configuration.
+#
+# The packaged configuration sources it, and Hyprland treats a source that
+# resolves to nothing as a configuration error — the compositor refuses to
+# start rather than starting without the user's half. So the file has to exist
+# before the compositor reads it, and it is created here, empty, in the
+# user's own configuration directory.
+#
+# It is theirs: it is sourced after the packaged file, so it can override
+# anything and add anything, and nothing in the packaged tree is edited to
+# make room for it.
+#
+# The path is under $HOME and not under XDG_CONFIG_HOME, because the packaged
+# configuration names it with `~` and Hyprland expands nothing else. The
+# session's own environment file is read from XDG_CONFIG_HOME, which is the
+# right place for it and the one place the two differ.
+USER_HYPRLAND_DIR="$HOME/.config/zenith/hyprland"
+USER_HYPRLAND_CONF="$USER_HYPRLAND_DIR/zenith.conf"
+if [ ! -e "$USER_HYPRLAND_CONF" ]; then
+    mkdir -p "$USER_HYPRLAND_DIR"
+    cat > "$USER_HYPRLAND_CONF" <<'USERCONF'
+# Zenith's compositor configuration — yours.
+#
+# This file is sourced after the packaged one, so anything here overrides it
+# and anything here is added to it. It was created empty when you first logged
+# in, because the compositor refuses to start when the file it is told to
+# source does not exist.
+USERCONF
+fi
+
 echo "zenith-session: env ok, starting Hyprland"
 
-# Overridable for testing: the session's one job is the environment, and testing
-# that needs a target that is not a compositor.
-exec "${ZENITH_COMPOSITOR:-/usr/bin/Hyprland}" "$@"
+# The compositor's configuration. Zenith ships one — the keybinds are the only
+# place the keyboard is described — and the session is what points Hyprland at
+# it. A compositor started without it runs on Hyprland's own defaults, which
+# is a desktop with no keybindings at all: a launcher nobody can open and a
+# switcher nobody can drive.
+#
+# Overridable for testing: the session's one job is the environment, and
+# testing that needs a target that is not a compositor.
+exec "${ZENITH_COMPOSITOR:-/usr/bin/Hyprland}" \
+    -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"

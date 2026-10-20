@@ -38,7 +38,7 @@
     </key>
 
     <key name="wallpaper-path-dark" type="s">
-      <default>'file:///usr/share/zenith/backgrounds/rain-radio.png'</default>
+      <default>'file:///usr/share/zenith/backgrounds/galaxy.png'</default>
       <summary>Dark-mode wallpaper</summary>
       <description>
         A URI, used when the colour scheme is prefer-dark. The default is the
