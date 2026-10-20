@@ -1,3 +1,4 @@
+pragma Singleton
 pragma ComponentBehavior: Bound
 
 // The one way this window changes a setting.

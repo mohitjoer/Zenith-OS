@@ -104,8 +104,17 @@ These are the traps. The linter will not catch them.
 # GSettings schemas — must compile clean before anything reads them
 glib-compile-schemas --strict --dry-run desktop/**/schemas/
 
-# QML — the shell is QML, so lint it
-qmllint desktop/shell/**/*.qml
+# The shell's configuration, loaded by the engine that will run it.
+# This is the check that catches what reading the QML cannot: a property that
+# does not exist, a type from a module that is not imported, a name another
+# library already has. It skips itself, and says so, on a machine with no
+# quickshell or no Wayland display.
+sh shell/shell_test.sh
+
+# The session, the greeter, the package and the repository
+sh session/session_test.sh
+sh session/greeter_test.sh
+sh release/release_test.sh
 
 # gofmt / vet — the control tools are Go
 gofmt -l desktop/
@@ -114,6 +123,13 @@ go vet ./...
 # Every licence file must match the root LICENSE
 for f in $(find . -name LICENSE -not -path './.git/*'); do cmp -s LICENSE "$f" || echo "MISMATCH: $f"; done
 ```
+
+`zenith doctor` is the check that runs on a machine rather than in a checkout: it
+reports what differs between the base and the user's tree, whether the session
+can actually reach the shell, and whether the portal configuration is being
+read. It is the first thing to run when a session comes up wrong, and it answers
+questions the other checks cannot — they read the repository, and the failure
+is always in what was installed.
 
 These paths are aspirational until `desktop/` exists. They document the shape the tree is
 meant to take, so a contributor adding the first file knows where it belongs. The source

@@ -34,7 +34,7 @@ usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml
 usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml
 usr/lib/systemd/user/$PKG-shell.service
 usr/lib/systemd/user/$PKG-portal.service
-usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
+usr/lib/systemd/user/$PKG-session.target"
 
 LIST=$(mktemp)
 VIOLATIONS=$(mktemp)

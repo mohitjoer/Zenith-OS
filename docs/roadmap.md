@@ -153,7 +153,7 @@ Before any shell work, because it validates the base-layer bet.
 - [x] Portal resolution, and the `zenith doctor` assertion that the
   configuration is actually being read
 - [x] `zenith-shell.service` and `zenith-portal.service` — the two user units,
-  the second ordered after `hyprland-session.target` and the first after the
+  the second ordered after `zenith-session.target` and the first after the
   second, which is the order that is easiest in the session to get wrong and
   fails quietly when it is
 - [x] The session-target drop-in

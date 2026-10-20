@@ -43,6 +43,20 @@ export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export XCURSOR_SIZE=24
 export XCURSOR_THEME=Adwaita
 
+# No hardware cursors.
+#
+# The proprietary NVIDIA driver draws the cursor itself on a wlroots
+# compositor, and the two disagree about where it is: the cursor lands a few
+# pixels from the pointer, or nowhere near it, and it is a crash on some
+# drivers. Software cursors are a little slower and are always in the right
+# place.
+#
+# Set unconditionally rather than only on a machine with an NVIDIA card,
+# because the condition is not the presence of the card but the presence of
+# the driver, and the driver is loaded by a service nobody checks before the
+# session starts.
+export WLR_NO_HARDWARE_CURSORS=1
+
 # Machine-level additions, then the user's overlay. Written as `if`, not as
 # `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
 # session before the compositor ever starts, which is a confusing way to fail.
@@ -105,7 +119,17 @@ echo "zenith-session: env ok, starting Hyprland"
 # is a desktop with no keybindings at all: a launcher nobody can open and a
 # switcher nobody can drive.
 #
+# Started through start-hyprland rather than through the compositor itself,
+# because start-hyprland is a watchdog: it restarts the compositor when the
+# compositor dies, and a compositor that dies takes the session with it. A
+# session that ends because a graphics driver threw an assertion is a session
+# that loses whatever the user was doing, and Hyprland says as much when it is
+# started without it.
+#
+# The arguments after `--` are the compositor's own, and the compositor's
+# configuration is one of them.
+#
 # Overridable for testing: the session's one job is the environment, and
 # testing that needs a target that is not a compositor.
-exec "${ZENITH_COMPOSITOR:-/usr/bin/Hyprland}" \
+exec "${ZENITH_COMPOSITOR:-/usr/bin/start-hyprland}" -- \
     -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"

@@ -30,7 +30,7 @@ FloatingWindow {
     implicitHeight: 600
     visible: true
 
-    color: Palette.background
+    color: Theme.background
 
     // The registry, as `zenith config export` writes it.
     //
@@ -77,7 +77,7 @@ FloatingWindow {
             anchors.centerIn: parent
             visible: !window.loaded
             text: "Loading settings…"
-            color: Palette.textDim
+            color: Theme.textDim
         }
 
         Column {
@@ -88,7 +88,7 @@ FloatingWindow {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Zenith's settings could not be read"
-                color: Palette.onAccent
+                color: Theme.accentForeground
                 font.pixelSize: 15
                 font.bold: true
             }
@@ -98,7 +98,7 @@ FloatingWindow {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: window.loadError
-                color: Palette.textDim
+                color: Theme.textDim
                 font.pixelSize: 12
             }
         }
@@ -108,7 +108,7 @@ FloatingWindow {
             visible: window.loaded && window.loadError === ""
                 && window.document.pages.length === 0
             text: "Zenith has no settings"
-            color: Palette.textDim
+            color: Theme.textDim
         }
 
         Row {
@@ -122,7 +122,7 @@ FloatingWindow {
             Rectangle {
                 width: 220
                 height: parent.height
-                color: Palette.surface
+                color: Theme.surface
 
                 // The mark, at the top of the navigation. Loaded from the
                 // packaged SVG rather than embedded here: a logo pasted into
@@ -141,7 +141,7 @@ FloatingWindow {
                     // depends on the shell's colour scheme. Binding the source
                     // rather than tinting is what keeps the black-on-white file
                     // from being drawn as a black blob on a dark panel.
-                    source: config.dark
+                    source: Config.dark
                         ? "/usr/share/zenith/branding/zenith-logo-on-dark.svg"
                         : "/usr/share/zenith/branding/zenith-logo.svg"
                 }
@@ -162,7 +162,7 @@ FloatingWindow {
                         readonly property bool current: index === list.currentIndex
 
                         color: current
-                            ? (Palette.border)
+                            ? (Theme.border)
                             : "transparent"
 
                         Text {
@@ -170,7 +170,7 @@ FloatingWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.leftMargin: 12
                             text: parent.modelData.title
-                            color: Palette.text
+                            color: Theme.text
                             font.pixelSize: 13
                         }
 

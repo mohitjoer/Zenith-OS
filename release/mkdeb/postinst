@@ -27,6 +27,24 @@ if command -v glib-compile-schemas >/dev/null 2>&1; then
     }
 fi
 
+# ------------------------------------------------------------------ units
+#
+# The user manager reads the unit files when it starts, and a package that
+# replaces a unit file does not tell it. A manager that still has the old
+# units keeps the old behaviour until something asks it to look again — and
+# "something" was, until now, a logout.
+#
+# The symptom is a unit that says one thing on disk and another in the
+# manager: a drop-in that is installed and ignored, a conflict that is
+# declared and not applied. The install is the moment to reload, because the
+# install is the moment the files changed.
+#
+# A manager that is not running is not an error: the units are read again
+# when it next starts, which is the behaviour we want anyway.
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+fi
+
 case "$1" in
     configure)
         echo "zenith $2 installed."

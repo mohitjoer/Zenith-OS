@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"zenith/desktop/internal/settings"
 )
 
 // treeEnv is tree with the shell's own settings, so a fixture is checked the way
@@ -105,6 +107,76 @@ func writeConfig(t *testing.T, env Env, name, body string) {
 	}
 }
 
+// TestTheIPCCallMustNameAFunctionTheShellHas covers the other half of a call.
+//
+// The target is who is being called and the function is what is being asked
+// for. A call to a target the shell does not register reaches nothing at all,
+// and a call to a function the shell does not define reaches the shell and
+// asks it for something it has not got — which is the quieter of the two
+// faults, because the command succeeds and nothing anywhere says why.
+func TestTheIPCCallMustNameAFunctionTheShellHas(t *testing.T) {
+	const handler = `import Quickshell.Io
+IpcHandler {
+    target: "zenith"
+    function togglePopover(name: string): void { root.togglePopover(name) }
+}
+`
+	// The command as the compositor writes it, with the path between "ipc"
+	// and "call" that the first version of this rule did not allow for.
+	const config = `bind = SUPER, Space, exec, quickshell ipc --path /usr/share/zenith/shell call zenith togglePopover launcher
+`
+
+	env := tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", config)
+	if findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: the compositor names a "+
+			"function the shell defines", findings)
+	}
+
+	// A function the shell does not have: a renamed function, which is how
+	// this is reached in practice.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", strings.Replace(config,
+		"togglePopover launcher", "toggleLauncher launcher", 1))
+
+	findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler}))
+	if len(findings) != 1 {
+		t.Fatalf("findings = %v, want exactly one", findings)
+	}
+	if findings[0].Rule != "ipc function" {
+		t.Errorf("rule = %q, want %q", findings[0].Rule, "ipc function")
+	}
+	if !strings.Contains(findings[0].Detail, "toggleLauncher") {
+		t.Errorf("the finding does not name the function: %s", findings[0].Detail)
+	}
+}
+
+// TestTheRepositorysKeybindsCallFunctionsTheShellHas runs the rule against the
+// repository's own files rather than a fixture.
+//
+// The compositor's configuration and the shell's QML are two files that name
+// each other, and the check that compares them is worth nothing if it is
+// never run against the two it is about.
+func TestTheRepositorysKeybindsCallFunctionsTheShellHas(t *testing.T) {
+	env := Env{
+		Root:           "../../..",
+		Dir:            "shell",
+		EntryPoint:     "shell.qml",
+		OwnsSettings:   true,
+		HyprlandConfig: "session/hyprland/hyprland.conf",
+	}
+
+	files, err := qmlFiles(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range checkIPCFunctions(env, files) {
+		t.Errorf("%s %s: %s", finding.Rule, finding.Path, finding.Detail)
+	}
+}
+
 const goodSchema = `<?xml version="1.0"?>
 <schemalist>
   <schema id="org.zenith.shell" path="/org/zenith/shell/">
@@ -127,8 +199,8 @@ func goodShell() map[string]string {
 			"  readonly property int barPosition: shell.barPosition\n" +
 			"}\n",
 		"Bar.qml": "import Quickshell\nPanelWindow {\n" +
-			"  readonly property int edge: config.barPosition\n" +
-			"  implicitHeight: config.barHeight\n" +
+			"  readonly property int edge: Config.barPosition\n" +
+			"  implicitHeight: Config.barHeight\n" +
 			"  readonly property var catalogue: ({ \"clock\": \"Clock\" })\n" +
 			"  source: \"Widgets/\" + catalogue[name] + \".qml\"\n}\n",
 		"Widgets/Clock.qml": "import Quickshell\nItem {}\n",
@@ -222,7 +294,7 @@ func TestCatalogueEntryWithNoFileIsFound(t *testing.T) {
 // the schema would have had — so the value is silently wrong.
 func TestUnknownSettingsKeyIsFound(t *testing.T) {
 	files := goodShell()
-	files["Widgets/Clock.qml"] = "import Quickshell\nItem { color: config.barrHieght }\n"
+	files["Widgets/Clock.qml"] = "import Quickshell\nItem { color: Config.barrHieght }\n"
 
 	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "settings read") {
@@ -242,7 +314,7 @@ func TestUnknownSettingsKeyIsFound(t *testing.T) {
 
 // TestWrapperPropertiesAreNotSchemaKeys is the false-positive guard.
 //
-// Every property on Config.qml is read as config.<name> from every surface. If
+// Every property on Config.qml is read as Config.<name> from every surface. If
 // those were treated as schema keys, every correctly-written widget would be
 // reported.
 func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
@@ -251,7 +323,7 @@ func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
 		"readonly property int barPosition: shell.barPosition",
 		"readonly property int barPosition: shell.barPosition\n"+
 			"  readonly property int edgeLeft: 2", 1)
-	files["Widgets/Clock.qml"] = "import Quickshell\nItem { w: config.edgeLeft }\n"
+	files["Widgets/Clock.qml"] = "import Quickshell\nItem { w: Config.edgeLeft }\n"
 
 	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
@@ -269,8 +341,8 @@ func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
 func TestCommentsAreNotSource(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
-		"// Do not read config.nonsense, it does not exist.\n" +
-		"/* config.alsoNonsense */\nItem {}\n"
+		"// Do not read Config.nonsense, it does not exist.\n" +
+		"/* Config.alsoNonsense */\nItem {}\n"
 
 	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
@@ -844,6 +916,115 @@ func TestSchemaDirectoryMissingIsReported(t *testing.T) {
 	}
 }
 
+// TestThirdPartySchemasAreNotReported is `zenith doctor` on a machine that has
+// a desktop on it, which is the machine the tool ships to.
+//
+// The schema directory is shared. /usr/share/glib-2.0/schemas holds every
+// schema the base layer has — GTK, dconf, gsettings-desktop-schemas, whatever
+// the user installed — and Zenith's two files are a rounding error in it. The
+// check used to read all of them, and on a live Ubuntu install doctor reported
+// thousands of findings: a "settings unreachable" line for every key of every
+// third-party schema, which is a true statement about files this project does
+// not own, and "declared twice" for base-layer files that repeat a key name
+// across two schema elements in one file, which GLib accepts and this parser
+// flattens into one id.
+//
+// The staged tree in CI holds only Zenith's schemas, which is why no test saw
+// it: the fault only exists on a machine with other people's schemas on it.
+func TestThirdPartySchemasAreNotReported(t *testing.T) {
+	good := goodShell()
+	schema, ok := good["org.zenith.shell.gschema.xml"]
+	if !ok {
+		t.Fatal("fixture lost its schema")
+	}
+	delete(good, "org.zenith.shell.gschema.xml")
+
+	root := t.TempDir()
+	shellDir := filepath.Join(root, "usr", "share", "zenith", "shell")
+	schemaDir := filepath.Join(root, "usr", "share", "glib-2.0", "schemas")
+	for name, body := range good {
+		path := filepath.Join(shellDir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, dir := range []string{shellDir, schemaDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(schemaDir, "org.zenith.shell.gschema.xml"),
+		[]byte(schema), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	thirdParty := map[string]string{
+		// The shape shotwell ships: one file, two schema elements declaring the
+		// same key name under different paths. Legal to GLib, and reported as a
+		// duplicate declaration by a parser that flattens the file.
+		"org.gnome.shotwell.gschema.xml": `<?xml version="1.0"?>
+<schemalist>
+  <schema id="org.gnome.shotwell" path="/org/gnome/shotwell/">
+    <key name="strip-metadata" type="b"><default>false</default></key>
+  </schema>
+  <schema id="org.gnome.shotwell.imports" path="/org/gnome/shotwell/imports/">
+    <key name="strip-metadata" type="b"><default>false</default></key>
+  </schema>
+</schemalist>
+`,
+		// Malformed, and somebody else's to repair. A parse error in a file
+		// Zenith does not ship is not a Zenith finding.
+		"org.example.broken.gschema.xml": `<?xml version="1.0"?><schemalist><schema`,
+		// Well-formed and declaring nothing at all.
+		"org.example.empty.gschema.xml": `<?xml version="1.0"?><schemalist/>`,
+		// An ordinary schema whose key no Zenith surface reads, which describes
+		// every schema the desktop has and is not a fault in any of them.
+		"org.gnome.desktop.interface.gschema.xml": `<?xml version="1.0"?>
+<schemalist>
+  <schema id="org.gnome.desktop.interface" path="/org/gnome/desktop/interface/">
+    <key name="color-scheme" type="s"><default>'prefer-light'</default></key>
+  </schema>
+</schemalist>
+`,
+	}
+	for name, body := range thirdParty {
+		if err := os.WriteFile(filepath.Join(schemaDir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	env := Env{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
+		OwnsSettings: true, SchemaDir: "/usr/share/glib-2.0/schemas"}
+
+	findings := Check(env)
+	if len(findings) != 0 {
+		for _, finding := range findings {
+			t.Errorf("%s %s: %s", finding.Rule, finding.Path, finding.Detail)
+		}
+		t.Fatal("the base layer's schemas were reported as Zenith's own findings")
+	}
+}
+
+// TestZenithSchemaPrefixAgreesWithSettings keeps the shell's source check and
+// the settings catalogue filtering on the same prefix.
+//
+// They are two readers of one shared directory with one owner: `zenith config`
+// and the Hub's pages come from the catalogue, and what doctor checks for
+// reachability comes from here. A prefix that changed in one place and not the
+// other splits them silently — settings the catalogue lists and the shell never
+// checks, or the reverse — and neither tool's output would show the split.
+func TestZenithSchemaPrefixAgreesWithSettings(t *testing.T) {
+	if zenithSchemaPrefix != settings.ZenithSchemaPrefix {
+		t.Errorf("the shell filter is %q and the settings catalogue is %q; "+
+			"the two readers of the schema directory must agree on which "+
+			"schemas are Zenith's", zenithSchemaPrefix,
+			settings.ZenithSchemaPrefix)
+	}
+}
+
 // TestPropertyAssignmentCheck is the rule that exists because Palette.apply
 // threw on its first line and nothing said so.
 //
@@ -959,7 +1140,7 @@ func TestShellTreeHasNoPropertyAssignments(t *testing.T) {
 	}
 
 	env := Env{Root: root, Dir: "shell", EntryPoint: "shell.qml", OwnsSettings: true}
-	if _, err := source(env, "Palette.qml"); err != nil {
+	if _, err := source(env, "Theme.qml"); err != nil {
 		t.Fatalf("the check would silently read nothing: %v", err)
 	}
 	for _, finding := range checkPropertyAssignments(env, files) {

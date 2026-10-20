@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"zenith/desktop/internal/hub"
 	"zenith/desktop/internal/overlay"
@@ -242,6 +243,9 @@ func reportSessionChecks(root string) int {
 	if registrationCode := reportRegistrations(root); registrationCode != exitOK {
 		code = registrationCode
 	}
+	if sessionCode := reportSession(root); sessionCode != exitOK {
+		code = sessionCode
+	}
 	if shellCode := reportShell(root); shellCode != exitOK {
 		code = shellCode
 	}
@@ -289,13 +293,13 @@ func reportHub(root string) int {
 
 // reportShell checks the shell's source.
 //
-// It cannot run the shell: Quickshell is built from source and is not in the
-// archive, so there is no quickshell here to run and no qmllint to check the
-// QML with. What it can do is check the things that are silent at run time — a
-// widget catalogue naming a file that is not there, a surface reading a
-// property the settings wrapper does not declare, a QML file naming a path
-// outside the boundary. Each of those produces a shell that comes up slightly
-// wrong, with nothing in the journal saying why.
+// It cannot run the shell. A behaviour check needs a compositor, a display and
+// a logged-in session, and doctor is none of those — so what it can do is check
+// the things that are silent at run time: a widget catalogue naming a file that
+// is not there, a surface reading a property the settings wrapper does not
+// declare, a QML file naming a path outside the boundary, a keybind calling a
+// function the shell does not have. Each of those produces a shell that comes
+// up slightly wrong, with nothing in the journal saying why.
 //
 // What it cannot do is check behaviour, and this does not pretend otherwise.
 func reportShell(root string) int {
@@ -313,10 +317,18 @@ func reportShell(root string) int {
 	// for them beside the QML reported "declares no schema id" and then "no
 	// surface can reach it" for every key — two failures that do not exist on
 	// the installed machine, which is the only machine doctor is run on.
+	// The paths are absolute, and they are still relative to the root: the
+	// root is the tree being checked and the path is where the file is in
+	// it, so a root of /usr and a path of /usr/share/zenith/shell are the
+	// same directory. Written without the leading slash they are relative to
+	// the working directory instead, and the checks read nothing at all on
+	// the one machine they are meant for: a doctor that silently checks
+	// nothing looks exactly like a doctor that found nothing.
 	trees := []shell.Env{
 		{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
 			OwnsSettings: true, SchemaDir: settingsDir,
-			HyprlandConfig: "usr/share/zenith/hyprland/hyprland.conf"},
+			HyprlandConfig: "/usr/share/zenith/hyprland/hyprland.conf",
+			BindsCatalogue: "/usr/share/zenith/session/binds.json"},
 		{Root: root, Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
 	}
 
@@ -330,7 +342,104 @@ func reportShell(root string) int {
 	if problems == 0 {
 		fmt.Printf("  source checks pass for %d window(s)", len(trees))
 		fmt.Println()
-		fmt.Println("  note    behaviour is unverified: no quickshell on this machine")
+		// Whether quickshell is installed is a fact about the machine doctor is
+		// run on, and the note used to assert one answer to it. Quickshell is
+		// built from this project rather than taken from the archive, so "no
+		// quickshell here" stopped being the default case; the line now says
+		// which case it is looking at. Neither case claims to have run the
+		// shell, because neither has.
+		if _, err := exec.LookPath("quickshell"); err != nil {
+			fmt.Println("  note    behaviour is unverified: no quickshell on this machine")
+		} else {
+			fmt.Println("  note    behaviour is unverified: quickshell is installed, and " +
+				"nothing here runs it")
+		}
+		return exitOK
+	}
+	return exitFail
+}
+
+// reportSession asserts that the session can actually reach the shell.
+//
+// Everything checked here is one link in a chain that ends with a grey screen
+// and a keyboard that does nothing: the compositor runs a script, the script
+// starts a target, the target starts the shell, and the keybinds call the
+// shell by the path it was installed at.
+//
+// Every one of those links has been wrong on this project, in a different way,
+// and none of them said anything in a log. A script that was not executable
+// runs nothing; a compositor configuration that does not mention it starts
+// nothing; a keybind that names the wrong path calls nothing. The session
+// looked identical in every case: a compositor, and no desktop.
+//
+// The checks are against the installed tree, because that is the tree the
+// login manager runs. A session that works in the checkout and not on the
+// machine is the failure this is for.
+func reportSession(root string) int {
+	fmt.Println()
+	fmt.Println("Session")
+
+	problems := 0
+
+	// The script the compositor's configuration runs. It has to be there and
+	// it has to be executable: a script that is not executable is a compositor
+	// that runs nothing, and the compositor says nothing about it.
+	const activate = "/usr/share/zenith/session/zenith-activate"
+	activatePath := filepath.Join(root, activate)
+	info, err := os.Stat(activatePath)
+	switch {
+	case err != nil:
+		fmt.Printf("  %-22s %s is not installed; the session cannot start "+
+			"the shell\n", "activation", activate)
+		problems++
+	case info.Mode().Perm()&0111 == 0:
+		fmt.Printf("  %-22s %s is not executable; the session cannot start "+
+			"the shell\n", "activation", activate)
+		problems++
+	default:
+		fmt.Printf("  %-22s %s\n", "activation", activate)
+	}
+
+	// The compositor's configuration has to run it. A configuration that does
+	// not mention the script is a session that starts a compositor and
+	// nothing else.
+	const compositorConfig = "/usr/share/zenith/hyprland/hyprland.conf"
+	config, err := os.ReadFile(filepath.Join(root, compositorConfig))
+	if err != nil {
+		fmt.Printf("  %-22s %s is not installed\n", "compositor", compositorConfig)
+		problems++
+	} else if !strings.Contains(string(config), "exec-once = "+activate) {
+		fmt.Printf("  %-22s %s does not start the session; the shell will "+
+			"not come up\n", "compositor", compositorConfig)
+		problems++
+	} else {
+		fmt.Printf("  %-22s %s starts the session\n", "compositor", compositorConfig)
+	}
+
+	// The keybinds call the shell by the path it was installed at, because the
+	// IPC call has to know which instance it is talking to. A keybind that
+	// names the wrong path is a keybind that finds no shell and says nothing.
+	const shellDir = "/usr/share/zenith/shell"
+	shellPath := filepath.Join(root, shellDir)
+	if _, err := os.Stat(filepath.Join(shellPath, "shell.qml")); err != nil {
+		fmt.Printf("  %-22s %s is not installed\n", "keybinds", shellDir)
+		problems++
+	} else {
+		ipc, err := os.ReadFile(filepath.Join(root, compositorConfig))
+		if err != nil {
+			fmt.Printf("  %-22s the compositor's configuration is not installed\n",
+				"keybinds")
+			problems++
+		} else if !strings.Contains(string(ipc), "--path "+shellDir) {
+			fmt.Printf("  %-22s the keybinds do not name %s; they will call "+
+				"no shell\n", "keybinds", shellDir)
+			problems++
+		} else {
+			fmt.Printf("  %-22s call %s\n", "keybinds", shellDir)
+		}
+	}
+
+	if problems == 0 {
 		return exitOK
 	}
 	return exitFail

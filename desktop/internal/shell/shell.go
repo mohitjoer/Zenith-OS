@@ -94,6 +94,23 @@ type Env struct {
 	// wherever the compositor's configuration is not part of the tree being
 	// checked.
 	HyprlandConfig string
+
+	// BindsCatalogue is the keybinding catalogue, relative to Root, when the
+	// tree has one. It is the list of what the keyboard does — every chord,
+	// with a label and a category — and the compositor's configuration is
+	// checked against it.
+	//
+	// The two are the same list written down twice, once for a person and
+	// once for the compositor, and a list written down twice is a list that
+	// drifts. The catalogue is where a person looks to find out what the
+	// keys are, so a chord that is bound but not listed is a key nobody can
+	// find, and a chord that is listed but not bound is a key that does
+	// nothing.
+	//
+	// It is empty for the Hub, and empty wherever the compositor's
+	// configuration is not part of the tree being checked: a catalogue with
+	// nothing to compare it against is not a fault, it is a window.
+	BindsCatalogue string
 }
 
 func (e Env) path(relative string) string {
@@ -295,6 +312,8 @@ func Check(env Env) []Finding {
 	findings = append(findings, checkImports(env, files)...)
 	findings = append(findings, checkBoundaries(env, files)...)
 	findings = append(findings, checkIPCTargets(env, files)...)
+	findings = append(findings, checkIPCFunctions(env, files)...)
+	findings = append(findings, checkBinds(env)...)
 
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].Path != findings[j].Path {
@@ -310,11 +329,19 @@ var ipcTargetPattern = regexp.MustCompile(`target:\s*"([^"]+)"`)
 
 // ipcCallPattern finds a call the compositor makes into the shell.
 //
-// The command is spelled `quickshell ipc call <target> <function>`, and only
-// the target is checked: the function is the shell's own business, and a bind
-// that names a target the shell does not register is a bind that runs and
-// does nothing.
-var ipcCallPattern = regexp.MustCompile(`ipc\s+call\s+([A-Za-z0-9_.-]+)`)
+// The command is spelled `quickshell ipc --path <dir> call <target>
+// <function>`, and the path between "ipc" and "call" is the reason the
+// pattern does not look for "ipc call": the original one did, and it never
+// matched the configuration the compositor actually reads, so the check it
+// belonged to had never once fired on a real machine.
+//
+// The three groups are the target, the function and the function's argument.
+// The target is who is being called and the function is what is being asked
+// for, and they are different faults: a call to a target the shell does not
+// register reaches nothing, and a call to a function the shell does not
+// define reaches the shell and asks it for something it has not got.
+var ipcCallPattern = regexp.MustCompile(
+	`\bipc\b.*?\bcall\s+([A-Za-z0-9_.-]+)\s+([A-Za-z0-9_]+)(?:\s+([A-Za-z0-9_.-]+))?`)
 
 // checkIPCTargets checks the compositor's keybinds against the shell's IPC
 // surface.
@@ -377,6 +404,101 @@ func checkIPCTargets(env Env, files []string) []Finding {
 	return findings
 }
 
+// ipcHandler matches the shell's IPC handler by its type.
+//
+// The type rather than a file name, because a file name is a convention and
+// the type is the thing that registers the target. A handler in a file
+// called something else is still a handler.
+var ipcHandler = regexp.MustCompile(`\bIpcHandler\s*\{`)
+
+// ipcFunction matches a function the handler defines.
+var ipcFunction = regexp.MustCompile(`\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`)
+
+// ipcFunctions returns the functions the shell's IPC handler defines.
+//
+// The handler's own block is read rather than the whole file, because a
+// function elsewhere in the file is not something the compositor can call.
+func ipcFunctions(env Env, files []string) map[string]bool {
+	functions := map[string]bool{}
+	for _, file := range files {
+		body, err := source(env, file)
+		if err != nil {
+			continue
+		}
+		for _, block := range ipcBlocks(body) {
+			for _, match := range ipcFunction.FindAllStringSubmatch(block, -1) {
+				functions[match[1]] = true
+			}
+		}
+	}
+	return functions
+}
+
+// ipcBlocks returns the bodies of the shell's IPC handlers.
+func ipcBlocks(body string) []string {
+	var blocks []string
+	for _, match := range ipcHandler.FindAllStringIndex(body, -1) {
+		open := match[1] - 1
+		end := braceEnd(body, open)
+		if end < 0 {
+			continue
+		}
+		blocks = append(blocks, body[open:end])
+	}
+	return blocks
+}
+
+// checkIPCFunctions checks the compositor's calls against the shell's own
+// surface.
+//
+// The target is one half of a call and the function is the other, and the
+// check above covers the target. The function is the quieter of the two
+// faults: the compositor runs the command, the command succeeds, the shell
+// receives it, and the surface the key was supposed to open does not open —
+// which a user reports as "the shortcut stopped working" and which nothing
+// in the journal explains.
+//
+// A renamed function is the usual way to get here. The compositor's
+// configuration and the shell's QML are two files, and a rename in one of
+// them leaves a keybind that is still perfectly valid syntax and does
+// nothing at all.
+func checkIPCFunctions(env Env, files []string) []Finding {
+	if env.HyprlandConfig == "" {
+		return nil
+	}
+
+	configPath := filepath.Join(env.Root, env.HyprlandConfig)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// As above: a tree with no compositor configuration has nothing to
+		// disagree with.
+		return nil
+	}
+
+	functions := ipcFunctions(env, files)
+	if len(functions) == 0 {
+		return nil
+	}
+
+	var findings []Finding
+	seen := map[string]bool{}
+	for _, match := range ipcCallPattern.FindAllStringSubmatch(string(data), -1) {
+		name := match[2]
+		if name == "" || functions[name] || seen[name] {
+			continue
+		}
+		seen[name] = true
+		findings = append(findings, Finding{
+			Rule: "ipc function",
+			Path: configPath,
+			Detail: fmt.Sprintf("the compositor calls the shell's %q, and "+
+				"the shell's IpcHandler does not define it; the keybind "+
+				"would run and do nothing", name),
+		})
+	}
+	return findings
+}
+
 func qmlFiles(env Env) ([]string, error) {
 	var files []string
 	err := filepath.Walk(env.path("."), func(path string, info os.FileInfo, err error) error {
@@ -395,7 +517,28 @@ func qmlFiles(env Env) ([]string, error) {
 	return files, err
 }
 
-// loadSchemas parses every schema the tree ships, keyed by the id it declares.
+// zenithSchemaPrefix is the id prefix Zenith owns, and the same value the
+// settings catalogue filters on — TestZenithSchemaPrefixAgreesWithSettings
+// asserts the two are equal so the checker and the catalogue cannot drift
+// apart.
+//
+// The filter is the point, not an optimisation. The schema directory on an
+// installed machine is /usr/share/glib-2.0/schemas, and it holds every schema
+// the desktop has: GTK, dconf, gsettings-desktop-schemas, shotwell, everything
+// the base layer ships. Reading all of it makes this check audit the base layer
+// — a "settings unreachable" finding for every key of every third-party schema,
+// which is a true statement about files this project does not own and has no
+// opinion about, and a run of doctor whose output nobody can read.
+//
+// It matches on the file name rather than on the parsed id because the name is
+// the shipping contract: docs/architecture.md records the schema path as
+// /usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml, and build-debs.sh
+// copies exactly that pattern. A file that is not named that is somebody else's,
+// including when it is malformed — its parse errors are not Zenith's findings.
+const zenithSchemaPrefix = "org.zenith."
+
+// loadSchemas parses the schema files the tree owns, keyed by the id they
+// declare.
 //
 // More than one, because the desktop schema is a real dependency: Config.qml
 // binds `org.zenith.desktop` alongside the shell's, and it was never parsed at
@@ -423,6 +566,9 @@ func loadSchemas(env Env) (map[string]Schema, []Finding) {
 
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".gschema.xml") {
+			continue
+		}
+		if !strings.HasPrefix(entry.Name(), zenithSchemaPrefix) {
 			continue
 		}
 		path := env.schemaPath(entry.Name())
@@ -464,7 +610,8 @@ func loadSchemas(env Env) (map[string]Schema, []Finding) {
 	if found == 0 {
 		findings = append(findings, Finding{
 			Rule: "schema", Path: filepath.Join(env.Root, dir),
-			Detail: "contains no .gschema.xml, so no key can be checked",
+			Detail: "contains no org.zenith.*.gschema.xml, so no Zenith key " +
+				"can be checked",
 		})
 	}
 	return schemas, findings
@@ -644,7 +791,12 @@ func checkSettingsReads(env Env, files []string, schemas map[string]Schema) []Fi
 		}
 		for _, match := range settingsRead.FindAllStringSubmatch(body, -1) {
 			object, key := match[1], match[2]
-			if object != "config" {
+			// The wrapper is the settings singleton, and a singleton is
+			// called by the name of the file that declares it — Config.qml,
+			// so `Config`. The comparison ignores the case because the id
+			// inside the file is still the lower-case one, and a check that
+			// only knew one spelling of it would miss a read.
+			if !strings.EqualFold(object, "config") {
 				continue
 			}
 			if wrapper[key] {
@@ -684,7 +836,13 @@ func wrapperProperties(env Env, files []string) map[string]bool {
 		// reads config.dockAutohide, and a check that only knew about
 		// properties would report every write as an undefined read.
 		for _, pattern := range []string{
-			`readonly\s+property\s+\w+\s+([A-Za-z_][A-Za-z0-9_]*)\s*:`,
+			// A property the wrapper writes as well as reads — the shell's
+			// root pushes the values it read into the wrapper — is as much a
+			// part of the wrapper's vocabulary as one that is readonly, and a
+			// check that only knew the readonly ones would report a write of
+			// the wrapper's own values as a read of a property that does not
+			// exist.
+			`(?:readonly\s+)?property\s+\w+\s+([A-Za-z_][A-Za-z0-9_]*)\s*:`,
 			`\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`,
 		} {
 			for _, match := range regexp.MustCompile(pattern).
@@ -745,8 +903,11 @@ func checkUnusedWrapperProperties(env Env, files []string) []Finding {
 		if err != nil {
 			continue
 		}
+		// The wrapper is read as `Config`, the name of the file that declares
+		// it: a QML singleton is called by the name of its file, and the file
+		// is Config.qml.
 		for _, match := range regexp.MustCompile(
-			`\bconfig\.([A-Za-z_][A-Za-z0-9_]*)`,
+			`\bConfig\.([A-Za-z_][A-Za-z0-9_]*)`,
 		).FindAllStringSubmatch(body, -1) {
 			used[match[1]] = true
 		}
@@ -809,12 +970,18 @@ var hexColour = regexp.MustCompile(`"#[0-9a-fA-F]{6}"`)
 
 // colourExemptions are the files allowed to name a colour, and why.
 //
-// Palette.qml is where colours come from, so naming one there is the definition
+// Theme.qml is where colours come from, so naming one there is the definition
 // rather than a departure from it. IdleOverlay.qml is a scrim: it darkens
 // whatever is behind it, so it has to be black regardless of the palette, and a
 // scrim tinted by the palette would tint the wallpaper along with the desktop.
+//
+// The file is not called Palette.qml because `Palette` is a name QML already
+// has: a file of that name in the shell's own directory is shadowed by it, and
+// every surface that read `Palette.text` read nothing at all. The name of a
+// file is the only name a QML type can have, so the file's name is a decision
+// about what the shell can call its own things.
 var colourExemptions = map[string]string{
-	"Palette.qml":     "the palette itself",
+	"Theme.qml":       "the theme itself",
 	"IdleOverlay.qml": "a scrim, which has to be black whatever the theme is",
 }
 
@@ -1224,10 +1391,16 @@ var allowedImports = map[string]bool{
 	"Quickshell.Hyprland":               true,
 	"Quickshell.Services":               true,
 	"Quickshell.Services.Notifications": true,
-	"QtQuick":                           true,
-	"QtQuick.Controls":                  true,
-	"QtQuick.Layouts":                   true,
-	"QtQuick.Window":                    true,
+	"Quickshell.Services.Pipewire":      true,
+	"Quickshell.Networking":             true,
+	// The shell's own module. A file in a subdirectory cannot see a type from
+	// the directory above it by proximity the way a file beside it can, and
+	// the settings and the theme are both in the directory above.
+	"qs":               true,
+	"QtQuick":          true,
+	"QtQuick.Controls": true,
+	"QtQuick.Layouts":  true,
+	"QtQuick.Window":   true,
 }
 
 var importLine = regexp.MustCompile(`^\s*import\s+([A-Za-z0-9_.]+)\s*(?:[0-9.]+\s*)?$`)

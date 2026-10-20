@@ -39,7 +39,7 @@ Item {
 
         Text {
             text: view.page ? view.page.title : ""
-            color: Palette.text
+            color: Theme.text
             font.pixelSize: 22
             font.bold: true
         }
@@ -47,7 +47,7 @@ Item {
         Text {
             width: parent.width
             text: view.page ? view.page.summary : ""
-            color: Palette.textDim
+            color: Theme.textDim
             font.pixelSize: 13
         }
 
@@ -63,7 +63,7 @@ Item {
                 width: ListView.view.width
                 height: Math.max(64, row.implicitHeight + 16)
                 radius: 8
-                color: Palette.surface
+                color: Theme.surface
 
                 Row {
                     id: row
@@ -80,7 +80,7 @@ Item {
                         Text {
                             width: parent.width
                             text: parent.parent.modelData.name
-                            color: Palette.text
+                            color: Theme.text
                             font.pixelSize: 13
                         }
 
@@ -91,7 +91,7 @@ Item {
                             width: parent.width
                             visible: text !== ""
                             text: parent.parent.modelData.summary
-                            color: Palette.textDim
+                            color: Theme.textDim
                             font.pixelSize: 11
                             wrapMode: Text.WordWrap
                         }

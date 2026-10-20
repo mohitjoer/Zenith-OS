@@ -55,7 +55,21 @@ mkdir -p "$STAGE/usr/share/zenith/session"
 cp "$REPO_ROOT/session/zenith-session" "$STAGE/usr/share/zenith/session/"
 cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"
 cp "$REPO_ROOT/session/zenith-portals.conf" "$STAGE/usr/share/zenith/session/"
-chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
+cp "$REPO_ROOT/session/zenith-activate" "$STAGE/usr/share/zenith/session/"
+chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session" \
+   "$STAGE/usr/share/zenith/session/zenith-activate"
+
+# The keybinding catalogue.
+#
+# It is the list of what the keyboard does — every chord, with a label and a
+# category — and it is installed beside the session's own files because it is
+# not the compositor's: the compositor's configuration is one of the two
+# things that have to agree with it, and the shell draws the other.
+#
+# `zenith binds` prints it for the shell's cheat sheet, and `zenith doctor`
+# checks the compositor's configuration against it, so it has to be where
+# both of them look.
+cp "$REPO_ROOT/session/binds.json" "$STAGE/usr/share/zenith/session/"
 
 # The compositor's configuration. It is loaded by the session with
 # `Hyprland -c`, and it is the only place the keyboard is described — the
@@ -64,11 +78,11 @@ chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session"
 mkdir -p "$STAGE/usr/share/zenith/hyprland"
 cp "$REPO_ROOT/session/hyprland/"*.conf "$STAGE/usr/share/zenith/hyprland/"
 
-# The units and drop-ins ship as content under /usr/share/zenith/units/. The
-# registrations that point at them are written below and are the only paths this
-# package owns outside its own two directories.
+# The units ship as content under /usr/share/zenith/units/. The registrations
+# that point at them are written below and are the only paths this package
+# owns outside its own two directories.
 mkdir -p "$STAGE/usr/share/zenith/units"
-cp "$REPO_ROOT/session/units/"*.service "$REPO_ROOT/session/units/"*.conf \
+cp "$REPO_ROOT/session/units/"*.service "$REPO_ROOT/session/units/"*.target \
    "$STAGE/usr/share/zenith/units/"
 
 # --------------------------------------------------------------- registrations
@@ -83,10 +97,9 @@ mkdir -p "$STAGE/usr/share/xdg-desktop-portal"
 cp "$STAGE/usr/share/zenith/session/zenith-portals.conf" \
    "$STAGE/usr/share/xdg-desktop-portal/zenith-portals.conf"
 
-mkdir -p "$STAGE/usr/lib/systemd/user/hyprland-session.target.d"
-cp "$STAGE/usr/share/zenith/units/"*.service "$STAGE/usr/lib/systemd/user/"
-cp "$STAGE/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf" \
-   "$STAGE/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf"
+mkdir -p "$STAGE/usr/lib/systemd/user"
+cp "$STAGE/usr/share/zenith/units/"*.service \
+   "$STAGE/usr/share/zenith/units/"*.target "$STAGE/usr/lib/systemd/user/"
 
 # ------------------------------------------------------------------- the shell
 # The Quickshell configuration. This is the directory `quickshell -p` is pointed
@@ -97,15 +110,16 @@ cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
 
 # The Hub's window.
 #
-# Config.qml is copied in beside it as well. Quickshell's -p sets the import path
-# for one window and nothing else, so the Hub cannot see the singleton the shell
-# uses from its own directory — and it uses `config.dark` like every other
-# surface. One source file, two installed copies, rather than a second file that
-# could drift from the first.
+# Config.qml and Theme.qml are copied in beside it as well. Quickshell's -p sets
+# the import path for one window and nothing else, so the Hub cannot see the
+# singletons the shell uses from its own directory — and it reads the same
+# settings and the same colours as every other surface. One source file, two
+# installed copies, rather than a second file that could drift from the first.
 mkdir -p "$STAGE/usr/share/zenith/hub/Controls"
 cp "$REPO_ROOT/shell/hub/"*.qml "$STAGE/usr/share/zenith/hub/"
 cp "$REPO_ROOT/shell/hub/Controls/"*.qml "$STAGE/usr/share/zenith/hub/Controls/"
 cp "$REPO_ROOT/shell/Config.qml" "$STAGE/usr/share/zenith/hub/"
+cp "$REPO_ROOT/shell/Theme.qml" "$STAGE/usr/share/zenith/hub/"
 cp "$REPO_ROOT/session/zenith-hub" "$STAGE/usr/bin/zenith-hub"
 chmod 0755 "$STAGE/usr/bin/zenith-hub"
 
@@ -188,6 +202,7 @@ done <<'EXECUTABLES'
 ./usr/bin/zenith-hub
 ./usr/share/zenith/session/zenith-session
 ./usr/share/zenith/session/zenith-greeter
+./usr/share/zenith/session/zenith-activate
 EXECUTABLES
 chmod 0755 "$STAGE/DEBIAN/postinst"
 chmod 0640 "$STAGE/DEBIAN/control"

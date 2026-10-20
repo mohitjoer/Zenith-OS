@@ -31,7 +31,7 @@ a boundary that is not written down gets crossed by accident.
 |---|---|---|
 | `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
 | `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf` | Drop-in | systemd reads drop-ins from a fixed directory beside the unit |
+| `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
 | `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
 | `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory. Same list |
@@ -246,17 +246,17 @@ user@1000.service                                  started by systemd-logind for
 └── systemd --user
     └── default.target
         ├── graphical-session-pre.target             environment setup, agents, autostart
-        └── hyprland-session.target                 activated by the compositor itself
-            │                                        Wants=wireplumber.service
+        └── zenith-session.target                   started by the session, once the
+            │                                        compositor is up
             │                                        BindsTo=graphical-session.target
             ├── wireplumber.service                 audio policy
             ├── zenith-portal.service                the portal dispatcher
-            │   │                                    After=hyprland-session.target
+            │   │                                    After=zenith-session.target
             │   │                                    ConditionEnvironment=WAYLAND_DISPLAY
             │   └── xdg-desktop-portal-hyprland      activated on demand by the dispatcher
             │       xdg-desktop-portal-gtk          activated on demand by the dispatcher
             └── zenith-shell.service                the shell
-                │                                    After=hyprland-session.target
+                │                                    After=zenith-session.target
                 │                                    After=zenith-portal.service
                 │                                    After=wireplumber.service
                 │                                    ConditionEnvironment=WAYLAND_DISPLAY
@@ -273,15 +273,38 @@ Two systemd mechanisms carry the weight here.
   logout and be adopted by the next session, which is how a second copy of the shell ends up
   running after a fast login cycle.
 
-The upstream compositor ships its own session target, and Zenith's units attach to it with
-a drop-in. That is the sanctioned way to affect systemd without owning systemd:
+**The session target is Zenith's own.** Upstream Hyprland ships a session target and
+Zenith's units used to attach to it with a drop-in. Ubuntu's build of Hyprland ships no
+systemd units at all — no unit, no target, nothing that starts them — and a unit that
+requires a target which does not exist is a unit that cannot start. A shell that cannot
+start is a session with no shell in it: a grey screen, and keybindings that call a shell
+nobody is running.
+
+So the session owns its anchor, and starts it once the compositor is up:
 
 ```ini
-# /usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf
+# /usr/lib/systemd/user/zenith-session.target
 [Unit]
+Description=Zenith session
+BindsTo=graphical-session.target
+After=graphical-session.target
 Wants=zenith-portal.service zenith-shell.service
-After=zenith-portal.service
 ```
+
+The target is started by the compositor's own configuration, at the one moment the
+display exists:
+
+```ini
+# /usr/share/zenith/hyprland/hyprland.conf
+exec-once = /usr/share/zenith/session/zenith-activate
+```
+
+`zenith-activate` puts the compositor's environment into the user manager before it starts
+the target. The units are started by the user manager, and a unit inherits the manager's
+environment rather than the shell's — the compositor knows which display it made, and the
+manager does not, unless it is told. A unit that starts without the display in its
+environment believes it is on a machine with no screen, and the shell's condition on the
+display says exactly that and refuses to start.
 
 ### The units Zenith ships
 
@@ -290,7 +313,7 @@ After=zenith-portal.service
 [Unit]
 Description=Zenith portal dispatcher
 PartOf=graphical-session.target
-After=hyprland-session.target
+After=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
@@ -301,15 +324,15 @@ Restart=on-failure
 RestartSec=1
 
 [Install]
-WantedBy=hyprland-session.target
+WantedBy=zenith-session.target
 
 # /usr/lib/systemd/user/zenith-shell.service
 [Unit]
 Description=Zenith shell (Quickshell)
 Documentation=man:zenith-shell(1)
 PartOf=graphical-session.target
-After=hyprland-session.target zenith-portal.service wireplumber.service
-Requires=hyprland-session.target
+After=zenith-session.target zenith-portal.service wireplumber.service
+Requires=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
@@ -321,7 +344,7 @@ RestartSec=1
 Slice=app.slice
 
 [Install]
-WantedBy=hyprland-session.target
+WantedBy=zenith-session.target
 ```
 
 `zenith-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
@@ -486,7 +509,7 @@ Two details in the script are load-bearing beyond the obvious:
 |---|---|---|
 | Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `zenith.desktop` |
 | `Exec=` | A session manager that owns a private list of what a session is | A shell script that sets the environment and hands over to the compositor |
-| Root of the session | The session manager's own idea of a session | `hyprland-session.target` and `graphical-session.target`; there is no second session manager |
+| Root of the session | The session manager's own idea of a session | `zenith-session.target` and `graphical-session.target`; there is no second session manager |
 | Services | Started by the session manager from a private list | systemd user units with `PartOf=graphical-session.target` |
 | Environment | The session manager's exports plus a desktop-specific `environment.d` | One environment, published to the user manager and to bus activation |
 | The display | The session manager talks to the compositor | The compositor is the session's anchor, and Zenith's units attach to its target |
@@ -499,7 +522,7 @@ Two details in the script are load-bearing beyond the obvious:
 | Order | Unit | Started by | What it is |
 |---|---|---|---|
 | 0 | `zenith-session` | The display manager | Environment, bus activation, `exec Hyprland` |
-| 1 | `hyprland-session.target` | The compositor | The anchor for everything that needs a live compositor |
+| 1 | `zenith-session.target` | The session | The anchor for everything that needs a live compositor |
 | 2 | `wireplumber.service` | The session target | Audio policy, so the shell's volume widget has something to talk to |
 | 3 | `zenith-portal.service` | The drop-in | The portal dispatcher, which activates the backends on demand |
 | 4 | `zenith-shell.service` | The drop-in, ordered after the portals | The shell |
@@ -675,6 +698,52 @@ routes it there. The shell's bindings are faster and more reliable than the port
 which is a request over D-Bus answered by a client that may not be running, and whose
 binding is not installed until somebody answers.
 
+### The keybinding catalogue
+
+The keybinds are written down twice: once in the compositor's configuration, where Hyprland
+reads them, and once in `session/binds.json`, where a person can read them. The second list is
+the catalogue, and it is the one the shell draws.
+
+Each entry says what the key is, what it is for, which chord presses it, and what kind of
+thing it does — a call into the shell's own IPC surface, a program, or one of the compositor's
+own actions:
+
+```json
+{
+  "id": "launcher",
+  "category": "desktop",
+  "label": "Open the launcher",
+  "chord": "SUPER + Space",
+  "kind": "shell",
+  "action": "togglePopover",
+  "argument": "launcher"
+}
+```
+
+The chord is spelled one way throughout: the modifiers in the order `SUPER`, `CTRL`, `ALT`,
+`SHIFT`, separated from the key by a plus, and the key in the spelling the keyboard itself
+uses — `Space`, `Return`, `Escape`, `comma`, `XF86AudioRaiseVolume`. A family of ten keys is
+written with a placeholder, `SUPER + {n}`, and the placeholder takes the number of the
+position rather than the key, so the 0 key is the tenth workspace and not a workspace called
+zero.
+
+The compositor's configuration is not generated from the catalogue. Hyprland reads a plain
+configuration file and understands no JSON, so the file has to stay a file, with its own
+comma-separated syntax. What the catalogue calls `SUPER + SHIFT + 1` the configuration writes
+as `SUPER SHIFT, 1`, and the difference is a separator and nothing else: the compositor's
+constraint rather than a style choice. The two are kept in step by a check rather than by a
+convention anybody has to remember.
+
+`zenith doctor` compares them in both directions. Every chord in the catalogue has to be bound,
+every bind has to be in the catalogue, and every `call zenith <function>` in the configuration
+has to name a function the shell's `IpcHandler` actually defines. A keybind that names a
+function the shell has not got runs, succeeds, and does nothing, and that is the quietest
+failure in the desktop.
+
+`zenith binds` prints the catalogue as JSON. It is what the shell's cheat sheet reads — Super+K
+draws every chord, grouped by category, with each key as a cap — and it is the same list the
+doctor checks the configuration against.
+
 ### The lock screen
 
 The shell hosts the lock surface and speaks PAM itself — `pam_start`, `pam_authenticate`,
@@ -722,7 +791,7 @@ asked to suspend with the screen already locked, not one that raced.
 ### Logout
 
 1. The user asks to log out. The shell asks the user manager to stop the session:
-   `systemctl --user stop hyprland-session.target`.
+   `systemctl --user stop zenith-session.target`.
 2. Stopping the session target stops `graphical-session.target`, because the session target
    is bound to it.
 3. Every session service stops, because each one carries `PartOf=graphical-session.target`.

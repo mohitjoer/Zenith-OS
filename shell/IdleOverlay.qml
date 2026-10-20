@@ -25,14 +25,17 @@ Item {
     anchors.fill: parent
     z: 1000
 
-    property bool dimmed: idle.dimmed
-    property bool blanked: idle.blanked
+    // The state is passed in rather than read from the idle object directly:
+    // the object that holds the timers is in another file, and a file cannot
+    // see another file's ids.
+    property bool dimmed: false
+    property bool blanked: false
 
     readonly property real opacityFor: blanked ? 1.0 : dimmed ? 0.6 : 0.0
 
     Rectangle {
         anchors.fill: parent
-        // Black on purpose, and not Palette.background. A scrim darkens
+        // Black on purpose, and not Theme.background. A scrim darkens
         // whatever is behind it, so it has to be independent of the palette's
         // own background — a tinted scrim would tint the wallpaper too.
         color: "#000000"

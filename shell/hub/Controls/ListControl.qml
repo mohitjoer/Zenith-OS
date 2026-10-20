@@ -22,9 +22,9 @@ Rectangle {
 
     implicitHeight: 36
     radius: 6
-    color: Palette.surface
+    color: Theme.surface
     border.width: 1
-    border.color: Palette.border
+    border.color: Theme.border
 
     readonly property string shown: key.value
         .replace(/^\[/, "")
@@ -37,7 +37,7 @@ Rectangle {
         anchors.margins: 8
         verticalAlignment: TextInput.AlignVCenter
         text: control.shown
-        color: Palette.text
+        color: Theme.text
         font.pixelSize: 13
         selectByMouse: true
 

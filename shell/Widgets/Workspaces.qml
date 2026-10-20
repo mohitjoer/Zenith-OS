@@ -9,6 +9,11 @@ import Quickshell
 import Quickshell.Hyprland
 import QtQuick
 
+// The shell's own module, for the singletons this file reads. A file in a
+// subdirectory cannot see a type from the directory above it by proximity the
+// way a file beside it can, so the module is imported by name.
+import qs
+
 Item {
     id: workspaces
 
@@ -31,7 +36,7 @@ Item {
                 // The active workspace is the compositor's answer, not a local
                 // flag. Two widgets tracking "which one is active" is one too
                 // many.
-                color: model.active ? Palette.accent : Palette.textDim
+                color: model.active ? Theme.accent : Theme.textDim
             }
         }
     }

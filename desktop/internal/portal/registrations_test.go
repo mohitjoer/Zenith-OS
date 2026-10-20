@@ -72,14 +72,14 @@ func mkdirAll(t *testing.T, path string) {
 // someone adding one line to a packaging script.
 func TestEveryRegistrationIsSanctioned(t *testing.T) {
 	allowed := map[string]bool{
-		"/usr/share/wayland-sessions/zenith.desktop":                     true,
-		"/usr/share/xdg-desktop-portal/zenith-portals.conf":              true,
-		"/usr/lib/systemd/user/zenith-shell.service":                     true,
-		"/usr/lib/systemd/user/zenith-portal.service":                    true,
-		"/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf": true,
-		"/etc/sddm.conf.d/10-zenith.conf":                                true,
-		"/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml":       true,
-		"/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml":     true,
+		"/usr/share/wayland-sessions/zenith.desktop":                 true,
+		"/usr/share/xdg-desktop-portal/zenith-portals.conf":          true,
+		"/usr/lib/systemd/user/zenith-shell.service":                 true,
+		"/usr/lib/systemd/user/zenith-portal.service":                true,
+		"/usr/lib/systemd/user/zenith-session.target":                true,
+		"/etc/sddm.conf.d/10-zenith.conf":                            true,
+		"/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml":   true,
+		"/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml": true,
 	}
 
 	for _, registration := range registrations {

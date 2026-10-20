@@ -150,8 +150,8 @@ var registrationSources = []Registration{
 		MaterializedFrom: "/usr/share/zenith/units/zenith-shell.service"},
 	{Path: "/usr/lib/systemd/user/zenith-portal.service",
 		MaterializedFrom: "/usr/share/zenith/units/zenith-portal.service"},
-	{Path: "/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf",
-		MaterializedFrom: "/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf"},
+	{Path: "/usr/lib/systemd/user/zenith-session.target",
+		MaterializedFrom: "/usr/share/zenith/units/zenith-session.target"},
 }
 
 // sessionPackages is what adoption installs.

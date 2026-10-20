@@ -1,3 +1,4 @@
+pragma Singleton
 pragma ComponentBehavior: Bound
 
 // Every glyph the shell draws, and the font it comes from.

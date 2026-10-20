@@ -65,9 +65,9 @@ var registrations = []Registration{
 		Sanctioned: true,
 	},
 	{
-		Name:       "session target drop-in",
-		Path:       "/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf",
-		Target:     "/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf",
+		Name:       "session target",
+		Path:       "/usr/lib/systemd/user/zenith-session.target",
+		Target:     "/usr/share/zenith/units/zenith-session.target",
 		Sanctioned: true,
 	},
 	{

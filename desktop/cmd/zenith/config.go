@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"zenith/desktop/internal/hub"
@@ -57,6 +59,10 @@ Usage:
   zenith config reset SCHEMA KEY
   zenith config pages
   zenith config export    the page registry as JSON, for the Hub window
+  zenith config values    every setting as JSON, for the shell
+
+zenith apps               the applications on this machine, as JSON, for the
+                          shell's launcher
 
 Every setting has a Hub page and every page has a command; "zenith config
 pages" prints the mapping.
@@ -83,6 +89,8 @@ pages" prints the mapping.
 		return configPages()
 	case "export":
 		return configExport(catalogue)
+	case "values":
+		return configValues(catalogue)
 	default:
 		fmt.Fprintf(os.Stderr, "zenith config: unknown subcommand %q\n", args[0])
 		return exitUsage
@@ -179,11 +187,31 @@ func configSet(catalogue *settings.Catalogue, args []string) int {
 	}
 	ref := settings.Ref{Schema: args[0], Key: args[1]}
 
+	value := args[2]
+
+	// An enum may be written by its number as well as by its nick.
+	//
+	// The number is the enum's value and the nick is its name, and the
+	// schema is what says which name belongs to which value. A caller that
+	// holds the number — the shell, which compares an edge against a number
+	// rather than repeating the schema's names — should not have to know the
+	// names to write one back.
+	if key, schema, err := catalogue.Lookup(ref); err == nil && key.Enum != "" {
+		if number, err := strconv.Atoi(value); err == nil {
+			for _, permitted := range schema.Enums[key.Enum] {
+				if permitted.Value == number {
+					value = permitted.Nick
+					break
+				}
+			}
+		}
+	}
+
 	// Validated before gsettings is reached, and validated here rather than
 	// there: a value that is well-formed GVariant and outside a declared range
 	// is accepted by GSettings, and then the shell reads it and does something
 	// nobody asked for.
-	if err := catalogue.ValidateValue(ref, args[2]); err != nil {
+	if err := catalogue.ValidateValue(ref, value); err != nil {
 		fmt.Fprintln(os.Stderr, "zenith config set:", err)
 		return exitFail
 	}
@@ -191,10 +219,16 @@ func configSet(catalogue *settings.Catalogue, args []string) int {
 		fmt.Fprintln(os.Stderr, "zenith config: gsettings is not installed")
 		return exitFail
 	}
-	if err := catalogue.Set(ref, args[2]); err != nil {
+	if err := catalogue.Set(ref, value); err != nil {
 		fmt.Fprintln(os.Stderr, "zenith config set:", err)
 		return exitFail
 	}
+
+	// The shell is told to read the settings again, so that a change made
+	// here shows up in the surfaces that read them. Best effort: the Hub
+	// writes settings on a machine where the shell is not running, and a
+	// missing shell is not a failed write.
+	notifyShell()
 
 	// The page is named on success because "I changed it" and "I changed it
 	// somewhere I can see it" are different sentences.
@@ -204,6 +238,36 @@ func configSet(catalogue *settings.Catalogue, args []string) int {
 		fmt.Printf("%s set.\n", ref)
 	}
 	return exitOK
+}
+
+// shellConfigPath is where the shell's configuration is installed.
+//
+// It is the same path the compositor's keybinds use, and the same path the
+// shell's own unit starts it with: a shell that is told to look in one place
+// and is asked to talk to another is a shell that never hears the answer.
+const shellConfigPath = "/usr/share/zenith/shell"
+
+// notifyShell asks a running shell to read its settings again.
+//
+// The shell holds the settings it read when it started, because a shell that
+// re-read them on a timer redraws on a clock rather than on a change. So a
+// write has to reach the shell, and the shell's own IPC target is the way in.
+//
+// Failures are ignored on purpose. The write already happened; the shell not
+// running, or not answering, does not make the setting any less set.
+func notifyShell() {
+	if _, err := exec.LookPath("quickshell"); err != nil {
+		return
+	}
+	// The path, because the IPC call has to know which instance it is talking
+	// to. Without it the call looks for the default configuration, finds
+	// none, and fails — which is a write that happened and a shell that never
+	// heard about it.
+	cmd := exec.Command("quickshell", "ipc", "--path", shellConfigPath,
+		"call", "zenith", "reloadSettings")
+	if err := cmd.Run(); err != nil {
+		return
+	}
 }
 
 func configReset(catalogue *settings.Catalogue, args []string) int {

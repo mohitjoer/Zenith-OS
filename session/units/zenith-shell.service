@@ -8,15 +8,15 @@
 # once at startup and never re-reads them, so the shell has to wait for the
 # dispatcher to have made that decision.
 #
-# Requires=hyprland-session.target, not just After=: without it the shell is
+# Requires=zenith-session.target, not just After=: without it the shell is
 # merely ordered, so pulling the compositor target down leaves the shell running
 # against a display that is no longer there.
 [Unit]
 Description=Zenith shell (Quickshell)
 Documentation=https://github.com/mohitjoer/Zenith-OS
 PartOf=graphical-session.target
-After=hyprland-session.target zenith-portal.service wireplumber.service
-Requires=hyprland-session.target
+After=zenith-session.target zenith-portal.service wireplumber.service
+Requires=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 # A shell that has to be killed nine times in thirty seconds is a shell that
 # cannot start; give up rather than spin.
@@ -37,4 +37,4 @@ RestartSec=1
 Slice=app.slice
 
 [Install]
-WantedBy=hyprland-session.target
+WantedBy=zenith-session.target

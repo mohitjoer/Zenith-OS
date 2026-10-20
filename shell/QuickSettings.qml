@@ -11,9 +11,21 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
+import QtQuick.Controls
 
 Item {
     id: quick
+
+    // The card. A popup with no background of its own is a white rectangle,
+    // and the quick settings are the surface a user reaches for when something
+    // is wrong, so it is the last surface that should look like a blank page.
+    Rectangle {
+        anchors.fill: parent
+        radius: Theme.radiusLarge
+        color: Theme.panelFill
+        border.width: Theme.hairlineWidth
+        border.color: Theme.hairline
+    }
 
     implicitWidth: 360
     implicitHeight: column.implicitHeight + 32
@@ -32,8 +44,8 @@ Item {
             // value to the same place.
             Switch {
                 text: "dock auto-hide"
-                checked: config.dockAutohide
-                onToggled: config.setDockAutohide(checked)
+                checked: Config.dockAutohide
+                onToggled: Config.setDockAutohide(checked)
             }
 
             Button {
@@ -46,14 +58,14 @@ Item {
             spacing: 12
 
             Button {
-                text: config.dark ? "light" : "dark"
-                onClicked: config.setColorScheme(config.dark ? 2 : 1)
+                text: Config.dark ? "light" : "dark"
+                onClicked: Config.setColorScheme(Config.dark ? 2 : 1)
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Zenith"
-                color: Palette.textDim
+                color: Theme.textDim
                 font.pixelSize: 12
             }
         }

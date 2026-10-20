@@ -14,6 +14,11 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 
+// The shell's own module, for the singletons this file reads. A file in a
+// subdirectory cannot see a type from the directory above it by proximity the
+// way a file beside it can, so the module is imported by name.
+import qs
+
 Item {
     id: icon
 
@@ -37,6 +42,6 @@ Item {
         text: Icons.glyph(icon.glyph)
         font.family: Icons.iconFamily
         font.pixelSize: 14
-        color: Palette.text
+        color: Theme.text
     }
 }

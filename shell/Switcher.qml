@@ -75,7 +75,7 @@ PanelWindow {
     // Focus is a one-line dispatch, not a CLI subcommand. Unlike the parsers
     // there is nothing to interpret, so nothing to test and nothing to wrap.
     // `address:` is hyprlang syntax and Zenith ships Hyprland 0.53.3; 0.55 and
-    // later wrap dispatch differently under a Lua config.
+    // later wrap dispatch differently under a Lua Config.
     Process {
         id: focus
         command: {
@@ -113,9 +113,9 @@ PanelWindow {
         width: Math.min(560, switcher.width - 80)
         height: Math.min(list.implicitHeight + 32, switcher.height - 80)
         radius: 12
-        color: Palette.surface
+        color: Theme.surface
         border.width: 1
-        border.color: Palette.border
+        border.color: Theme.border
 
         Column {
             id: list
@@ -133,7 +133,7 @@ PanelWindow {
                     width: list.width
                     height: 36
                     radius: 6
-                    color: index === switcher.selected ? Palette.accent : "transparent"
+                    color: index === switcher.selected ? Theme.accent : "transparent"
 
                     // `class` is a reserved word, so it is read by key and not by
                     // attribute. A window with no class is listed by its title,
@@ -148,7 +148,7 @@ PanelWindow {
                         anchors.leftMargin: 12
                         anchors.rightMargin: 12
                         text: parent.name
-                        color: parent.picked ? Palette.onAccent : Palette.text
+                        color: parent.picked ? Theme.accentForeground : Theme.text
                         font.pixelSize: 13
                         elide: Text.ElideRight
                     }
@@ -162,7 +162,7 @@ PanelWindow {
                         // switch legible: without it, focusing a window that is
                         // not on screen looks like nothing happened.
                         text: (modelData.workspace ?? {}).name ?? ""
-                        color: parent.picked ? Palette.onAccent : Palette.textDim
+                        color: parent.picked ? Theme.accentForeground : Theme.textDim
                         font.pixelSize: 11
                     }
                 }
@@ -173,7 +173,13 @@ PanelWindow {
     // Escape and click-away, because an overlay dismissed only by pressing the
     // same key again is one the user is stuck in when the list is not what they
     // expected.
-    Keys.onEscapePressed: switcher.close()
+    // A shortcut rather than the Keys attached property, because a panel is a
+    // window and not an item, and Keys needs an item. The shortcut lives in the
+    // window's content, which is where a key press lands anyway.
+    Shortcut {
+        sequence: "Escape"
+        onActivated: switcher.close()
+    }
 
     TapHandler {
         onTapped: switcher.close()

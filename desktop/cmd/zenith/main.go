@@ -42,6 +42,8 @@ var commands = map[string]func(args []string) int{
 	"materialize": zenithMaterialize,
 	"reset":       zenithReset,
 	"config":      zenithConfig,
+	"apps":        configApps,
+	"binds":       zenithBinds,
 	"theme":       zenithTheme,
 	"doctor":      zenithDoctor,
 	"status":      zenithStatus,
@@ -96,6 +98,8 @@ Commands:
   materialize   re-lay the base, clobbering shipped content
   reset PATH    drop one user edit back to the base
   config        read and write Zenith's settings
+  apps          the applications on this machine, as JSON, for the launcher
+  binds         the keybinding catalogue, as JSON, for the cheat sheet
   theme         take the desktop's colours from one image
   doctor        report drift between base and overlay
   status        revision, paths, and how much drift

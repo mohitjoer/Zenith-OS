@@ -182,6 +182,23 @@ jobs:
         run: sh session/greeter_test.sh
 
       # --------------------------------------------------------------------
+      # The shell's configuration, loaded by the engine that will run it.
+      #
+      # Every other check about the shell reads it. This one loads it, which
+      # is the only way to find the defects that reading cannot see: a
+      # property that does not exist, a type from a module that was never
+      # imported, a name another library already has. The shell had every one
+      # of them, because it had never been loaded by anything.
+      #
+      # It skips itself on a runner with no quickshell and no Wayland display,
+      # which is the case here — Quickshell is built from this project rather
+      # than taken from the archive, and the runner has no compositor. On a
+      # machine that has both, it is the check that matters.
+      # --------------------------------------------------------------------
+      - name: shell/shell_test.sh
+        run: sh shell/shell_test.sh
+
+      # --------------------------------------------------------------------
       # The branding assets. These are checked-in files, not build outputs, and
       # the property that matters is that the light and dark logos are the same
       # drawing: if they drift apart, the dark one stops being the logo and

@@ -9,27 +9,33 @@ pragma ComponentBehavior: Bound
 // with <b> in it on screen.
 
 import Quickshell
+import Quickshell.Services.Notifications
 import Quickshell.Widgets
 import QtQuick
+import QtQuick.Controls
 
 Popover {
     id: surface
 
+    // The server that holds the notifications. It is passed in rather than
+    // created here, because there is one server for the session and a second
+    // one would be a second bus name for the same interface — the second
+    // registration loses, and the notifications go to the wrong surface.
+    required property NotificationServer server
+
     // Anchored to the same edge the dock is on, so the popup never covers the
     // dock and the two cannot disagree about which side of the screen is taken.
-    readonly property int edge: config.dockPosition
+    readonly property int edge: Config.dockPosition
 
-    width: 380
-    height: card.implicitHeight + 24
+    implicitWidth: 380
+    implicitHeight: card.implicitHeight + 24
 
-    anchors {
-        top: edge === config.edgeTop
-        bottom: edge === config.edgeBottom
-        left: edge === config.edgeLeft
-        right: edge === config.edgeRight
-    }
+    edgeTop: edge === Config.edgeTop
+    edgeBottom: edge === Config.edgeBottom
+    edgeLeft: edge === Config.edgeLeft
+    edgeRight: edge === Config.edgeRight
 
-    margin: { top: 12; bottom: 12; left: 12; right: 12 }
+    margin: 12
 
     // Bound to opened, and opened follows visibility, so the popup is shown and
     // hidden through one property rather than two that can disagree.
@@ -66,9 +72,9 @@ Popover {
         id: card
         anchors.fill: parent
         radius: 12
-        color: Palette.background
+        color: Theme.panelFill
         border.width: 1
-        border.color: Palette.border
+        border.color: Theme.border
 
         Column {
             id: content
@@ -77,7 +83,6 @@ Popover {
             }
             anchors.margins: 12
             spacing: 8
-            implicitHeight: childrenRect.height
 
             Row {
                 spacing: 10
@@ -90,7 +95,6 @@ Popover {
                     source: surface.server.current
                         ? surface.server.current.appIcon
                         : ""
-                    colorize: true
                 }
 
                 Column {
@@ -102,7 +106,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.summary
                             : ""
-                        color: Palette.text
+                        color: Theme.text
                         font.pixelSize: 13
                         font.bold: true
                         elide: Text.ElideRight
@@ -113,7 +117,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.body
                             : ""
-                        color: Palette.textDim
+                        color: Theme.textDim
                         font.pixelSize: 12
                         wrapMode: Text.WordWrap
                         // Matches the server's bodyMarkupSupported: false. The

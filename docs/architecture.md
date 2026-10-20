@@ -104,7 +104,7 @@ violation until it is added:
 | `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
 | `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
 | `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf` | Drop-in | systemd reads drop-ins from a fixed directory beside the unit |
+| `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
 | `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
 | `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory |
@@ -269,6 +269,36 @@ introspection — which is exactly what a widget catalogue needs.
 
 The shell daemon and `zenith-hub` are the only writers. Hand-editing dconf directly causes drift
 and `zenith doctor` reports it.
+
+---
+
+## The keybinding catalogue
+
+The keybinds are a list of lines in the compositor's configuration, and they are also a
+catalogue: `session/binds.json`, installed at `/usr/share/zenith/session/binds.json`, with a
+label and a category for every chord. The claim is the one the check exists to keep true:
+
+> Every chord in the catalogue is bound in the compositor's configuration, every bind in the
+> configuration is in the catalogue, and every call the configuration makes into the shell names
+> a function the shell's `IpcHandler` defines.
+
+A claim about two lists is only true if somebody compares them, and the comparison is
+`zenith doctor`'s. It reports a catalogue chord with no bind, a bind with no catalogue entry,
+and a call to a function the shell does not have. All three are silent at run time: a keybind
+that names a function the shell has not got runs, the command succeeds, and no launcher opens,
+which is what a user reports as "the shortcut stopped working" and what nothing in the journal
+explains.
+
+The catalogue is read by the shell through `zenith binds` rather than off the file, for the same
+reason the settings catalogue is read through `zenith config export`: a file read twice is read
+by two pieces of code, and the two agree until the day one of them is changed. The Go side
+owns the format, and the shell asks it.
+
+The compositor's configuration is not generated from the catalogue. Hyprland reads a plain
+configuration file and understands no JSON, so that file has to stay a file, with its own
+comma-separated syntax. The catalogue's spelling is the XKB one — `SUPER + SHIFT + {n}` — and
+the two are folded together by the check rather than by anybody remembering to write them the
+same way. The separator is the compositor's constraint and not a style choice.
 
 ---
 

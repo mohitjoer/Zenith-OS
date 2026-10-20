@@ -1,0 +1,276 @@
+{
+  "categories": [
+    { "id": "desktop", "label": "Desktop" },
+    { "id": "windows", "label": "Windows" },
+    { "id": "workspaces", "label": "Workspaces" },
+    { "id": "media", "label": "Media" },
+    { "id": "display", "label": "Display" }
+  ],
+  "binds": [
+    {
+      "id": "launcher",
+      "category": "desktop",
+      "label": "Open the launcher",
+      "chord": "SUPER + Space",
+      "kind": "shell",
+      "action": "togglePopover",
+      "argument": "launcher"
+    },
+    {
+      "id": "quick-settings",
+      "category": "desktop",
+      "label": "Open the quick settings",
+      "chord": "SUPER + S",
+      "kind": "shell",
+      "action": "togglePopover",
+      "argument": "quick"
+    },
+    {
+      "id": "switcher",
+      "category": "desktop",
+      "label": "Switch to another window",
+      "chord": "SUPER + Tab",
+      "kind": "shell",
+      "action": "advanceSwitcher",
+      "releaseAction": "closeSwitcher"
+    },
+    {
+      "id": "cheatsheet",
+      "category": "desktop",
+      "label": "Show the keyboard shortcuts",
+      "chord": "SUPER + K",
+      "kind": "shell",
+      "action": "toggleCheatsheet"
+    },
+    {
+      "id": "terminal",
+      "category": "desktop",
+      "label": "Open a terminal",
+      "chord": "SUPER + T",
+      "kind": "app",
+      "action": "ghostty"
+    },
+    {
+      "id": "lock",
+      "category": "desktop",
+      "label": "Lock the screen",
+      "chord": "SUPER + L",
+      "kind": "app",
+      "action": "hyprlock"
+    },
+    {
+      "id": "close",
+      "category": "windows",
+      "label": "Close the window",
+      "chord": "SUPER + Q",
+      "kind": "wm",
+      "action": "killactive"
+    },
+    {
+      "id": "maximise",
+      "category": "windows",
+      "label": "Maximise the window",
+      "chord": "SUPER + D",
+      "kind": "wm",
+      "action": "fullscreen",
+      "argument": "1"
+    },
+    {
+      "id": "fullscreen",
+      "category": "windows",
+      "label": "Fullscreen the window",
+      "chord": "SUPER + F",
+      "kind": "wm",
+      "action": "fullscreen",
+      "argument": "0"
+    },
+    {
+      "id": "floating",
+      "category": "windows",
+      "label": "Float the window",
+      "chord": "SUPER + A",
+      "kind": "wm",
+      "action": "togglefloating"
+    },
+    {
+      "id": "focus-left",
+      "category": "windows",
+      "label": "Focus the window to the left",
+      "chord": "SUPER + Left",
+      "kind": "wm",
+      "action": "movefocus",
+      "argument": "l"
+    },
+    {
+      "id": "focus-right",
+      "category": "windows",
+      "label": "Focus the window to the right",
+      "chord": "SUPER + Right",
+      "kind": "wm",
+      "action": "movefocus",
+      "argument": "r"
+    },
+    {
+      "id": "focus-up",
+      "category": "windows",
+      "label": "Focus the window above",
+      "chord": "SUPER + Up",
+      "kind": "wm",
+      "action": "movefocus",
+      "argument": "u"
+    },
+    {
+      "id": "focus-down",
+      "category": "windows",
+      "label": "Focus the window below",
+      "chord": "SUPER + Down",
+      "kind": "wm",
+      "action": "movefocus",
+      "argument": "d"
+    },
+    {
+      "id": "move-left",
+      "category": "windows",
+      "label": "Move the window left",
+      "chord": "SUPER + SHIFT + Left",
+      "kind": "wm",
+      "action": "movewindow",
+      "argument": "l"
+    },
+    {
+      "id": "move-right",
+      "category": "windows",
+      "label": "Move the window right",
+      "chord": "SUPER + SHIFT + Right",
+      "kind": "wm",
+      "action": "movewindow",
+      "argument": "r"
+    },
+    {
+      "id": "move-up",
+      "category": "windows",
+      "label": "Move the window up",
+      "chord": "SUPER + SHIFT + Up",
+      "kind": "wm",
+      "action": "movewindow",
+      "argument": "u"
+    },
+    {
+      "id": "move-down",
+      "category": "windows",
+      "label": "Move the window down",
+      "chord": "SUPER + SHIFT + Down",
+      "kind": "wm",
+      "action": "movewindow",
+      "argument": "d"
+    },
+    {
+      "id": "workspace",
+      "category": "workspaces",
+      "label": "Switch to a workspace",
+      "chord": "SUPER + {n}",
+      "kind": "wm",
+      "action": "workspace",
+      "argument": "{n}"
+    },
+    {
+      "id": "workspace-move",
+      "category": "workspaces",
+      "label": "Move the window to a workspace",
+      "chord": "SUPER + SHIFT + {n}",
+      "kind": "wm",
+      "action": "movetoworkspace",
+      "argument": "{n}"
+    },
+    {
+      "id": "volume-up",
+      "category": "media",
+      "label": "Raise the volume",
+      "chord": "XF86AudioRaiseVolume",
+      "kind": "app",
+      "action": "wpctl",
+      "argument": "set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"
+    },
+    {
+      "id": "volume-down",
+      "category": "media",
+      "label": "Lower the volume",
+      "chord": "XF86AudioLowerVolume",
+      "kind": "app",
+      "action": "wpctl",
+      "argument": "set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+    },
+    {
+      "id": "volume-mute",
+      "category": "media",
+      "label": "Mute the sound",
+      "chord": "XF86AudioMute",
+      "kind": "app",
+      "action": "wpctl",
+      "argument": "set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    },
+    {
+      "id": "media-play",
+      "category": "media",
+      "label": "Play",
+      "chord": "XF86AudioPlay",
+      "kind": "app",
+      "action": "playerctl",
+      "argument": "play-pause"
+    },
+    {
+      "id": "media-pause",
+      "category": "media",
+      "label": "Pause",
+      "chord": "XF86AudioPause",
+      "kind": "app",
+      "action": "playerctl",
+      "argument": "play-pause"
+    },
+    {
+      "id": "media-next",
+      "category": "media",
+      "label": "Next track",
+      "chord": "XF86AudioNext",
+      "kind": "app",
+      "action": "playerctl",
+      "argument": "next"
+    },
+    {
+      "id": "media-previous",
+      "category": "media",
+      "label": "Previous track",
+      "chord": "XF86AudioPrev",
+      "kind": "app",
+      "action": "playerctl",
+      "argument": "previous"
+    },
+    {
+      "id": "brightness-up",
+      "category": "display",
+      "label": "Brighten the screen",
+      "chord": "XF86MonBrightnessUp",
+      "kind": "app",
+      "action": "brightnessctl",
+      "argument": "-e4 -n2 set 5%+"
+    },
+    {
+      "id": "brightness-down",
+      "category": "display",
+      "label": "Dim the screen",
+      "chord": "XF86MonBrightnessDown",
+      "kind": "app",
+      "action": "brightnessctl",
+      "argument": "-e4 -n2 set 5%-"
+    },
+    {
+      "id": "screenshot",
+      "category": "display",
+      "label": "Copy a screenshot of the screen",
+      "chord": "Print",
+      "kind": "app",
+      "action": "grim",
+      "argument": "- | wl-copy"
+    }
+  ]
+}

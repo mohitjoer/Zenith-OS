@@ -807,26 +807,46 @@ compositor never started, and the display manager puts the user back on the logi
 step above is also written so that it cannot exit for a trivial reason, which is why the
 overlay files are guarded with `if` rather than with `&&`.
 
-Hyprland is exec'd, and it activates `hyprland-session.target` itself. That target is the
-ordering anchor for everything that needs a live compositor. Zenith attaches its own units to it
-with a drop-in, which is the sanctioned way to affect systemd without owning systemd:
+Hyprland is exec'd, and the session's own target is started once the compositor is up. That
+target is the ordering anchor for everything that needs a live compositor:
 
 ```ini
-# /usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf
+# /usr/lib/systemd/user/zenith-session.target
 [Unit]
+Description=Zenith session
+BindsTo=graphical-session.target
+After=graphical-session.target
 Wants=zenith-portal.service zenith-shell.service
-After=zenith-portal.service
 ```
+
+The target is Zenith's own rather than the compositor's. Upstream Hyprland ships one and
+Zenith's units used to attach to it with a drop-in; Ubuntu's build of Hyprland ships no
+systemd units at all, so the drop-in had a target to attach to on some machines and not on
+others, and on the others the shell never started. A unit that requires a target which does
+not exist is a unit that cannot start.
+
+The compositor's configuration starts the target, because the compositor is what knows the
+display:
+
+```ini
+# /usr/share/zenith/hyprland/hyprland.conf
+exec-once = /usr/share/zenith/session/zenith-activate
+```
+
+`zenith-activate` imports the compositor's environment into the user manager and then starts
+the target. The units are started by the user manager, and a unit inherits the manager's
+environment rather than the shell's: without the import, the shell's condition on the display
+fails and the shell refuses to start.
 
 ### Start order
 
 | Order | Unit | Started by | What it is |
 |---|---|---|---|
 | 0 | `zenith-session` | the display manager | Environment, dbus activation, `exec Hyprland` |
-| 1 | `hyprland-session.target` | Hyprland | Compositor-dependent user units |
-| 2 | `wireplumber.service` | Hyprland's session target | Audio policy, so the shell's volume widget has something to talk to |
-| 3 | `zenith-portal.service` | the drop-in above | Starts `xdg-desktop-portal` and lets it D-Bus-activate the backends on demand |
-| 4 | `zenith-shell.service` | the drop-in above, ordered after portals | The Quickshell shell |
+| 1 | `zenith-session.target` | the compositor's configuration, through `zenith-activate` | Compositor-dependent user units |
+| 2 | `wireplumber.service` | the session | Audio policy, so the shell's volume widget has something to talk to |
+| 3 | `zenith-portal.service` | the session target above | Starts `xdg-desktop-portal` and lets it D-Bus-activate the backends on demand |
+| 4 | `zenith-shell.service` | the session target above, ordered after portals | The Quickshell shell |
 | 5 | `zenith-shell.service` children | Zenith | Lock screen, quick settings, notification server — inside the shell, not separate units |
 
 ```ini
@@ -835,8 +855,8 @@ After=zenith-portal.service
 Description=Zenith shell (Quickshell)
 Documentation=man:zenith-shell(1)
 PartOf=graphical-session.target
-After=hyprland-session.target zenith-portal.service wireplumber.service
-Requires=hyprland-session.target
+After=zenith-session.target zenith-portal.service wireplumber.service
+Requires=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
@@ -848,7 +868,7 @@ RestartSec=1
 Slice=app.slice
 
 [Install]
-WantedBy=hyprland-session.target
+WantedBy=zenith-session.target
 ```
 
 ```ini
@@ -856,7 +876,7 @@ WantedBy=hyprland-session.target
 [Unit]
 Description=Zenith portal dispatcher
 PartOf=graphical-session.target
-After=hyprland-session.target
+After=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
@@ -867,7 +887,7 @@ Restart=on-failure
 RestartSec=1
 
 [Install]
-WantedBy=hyprland-session.target
+WantedBy=zenith-session.target
 ```
 
 ### What the shell has to provide

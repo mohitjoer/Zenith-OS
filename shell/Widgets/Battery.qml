@@ -10,6 +10,11 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
+// The shell's own module, for the singletons this file reads. A file in a
+// subdirectory cannot see a type from the directory above it by proximity the
+// way a file beside it can, so the module is imported by name.
+import qs
+
 Item {
     id: battery
 
@@ -24,11 +29,18 @@ Item {
 
     visible: present
 
+    // The size, from the text it draws. A widget with no size of its own is a
+    // widget the bar cannot measure, and a chip around a widget with no size
+    // is a chip with nothing in it.
+    implicitWidth: label.implicitWidth
+    implicitHeight: label.implicitHeight
+
     Text {
+        id: label
         anchors.fill: parent
         text: battery.charging ? "+" : ""
             + Math.round(battery.charge * 100) + "%"
-        color: Palette.text
+        color: Theme.text
         font.pixelSize: 12
     }
 }

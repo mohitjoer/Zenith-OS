@@ -108,6 +108,40 @@ $(awk "/<<'EXECUTABLES'/{inside=1;next} inside&&/^EXECUTABLES\$/{exit} inside" \
 EOF
 check "every path in the build's executable list ships executable" $rc
 
+# The converse, and the one that actually caught a bug.
+#
+# The list above is written by hand in the build script, and a file that is
+# executable in the repository and missing from that list ships as 0644. The
+# checkout says one thing, the package says another, and only the machine
+# finds out — at login, in a session that shows a compositor and no desktop.
+#
+# So the set of executables is derived from the repository instead: every
+# file the build installs that is executable in the checkout has to be
+# executable in the package. A new program is executable in the checkout by
+# being executable in the checkout, and this asks the package to agree.
+#
+# Only the session tree, because only the session tree is installed under the
+# names it has in the repository. The build scripts are executable and are not
+# installed at all, and a check that asked the package about them would be
+# asking about files the package does not have. The test scripts are the same:
+# they run from a checkout and are not installed either, and they are named
+# for it.
+rc=0
+while read -r program; do
+    case "$program" in
+        \#*|"") continue ;;
+        *_test.sh) continue ;;
+    esac
+    echo "$MODES" | grep -q "^-rwxr-xr-x .*/$program\$" || {
+        echo "    not executable in the package: $program" >&2
+        rc=1
+    }
+done <<EOF
+$(find "$REPO_ROOT/session" -type f -perm -u+x 2>/dev/null \
+    | sed "s|^$REPO_ROOT/session/||" | sort)
+EOF
+check "every executable file in the repository ships executable" $rc
+
 # ---------------------------------------------------------------- repository
 echo "building the repository"
 # One secret keyring, reused for both builds, exactly as a release process
@@ -140,9 +174,19 @@ check "the sources line names a keyring rather than a keyserver" $rc
 # after the header: a -A5 that happens to cover today's four index files stops
 # covering them the day a fifth arrives, and a check that quietly stops
 # looking is a check that quietly passes.
+#
+# It ends at the next stanza header, and at end of file when there is none. A
+# SHA256 section that runs to EOF is what the hand-written Release carries —
+# nothing follows it — and a helper that unconditionally dropped its last line
+# dropped the only Packages.gz entry in it, so on a machine without
+# apt-ftparchive this check failed for a reason that had nothing to do with the
+# Release file. The end pattern is a header; a checksum entry starts with a
+# space and can never match it.
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
 release_section() {
-    sed -n '/^SHA256:/,/^[A-Za-z][A-Za-z0-9]*:/p' "$1" | sed '1d;$d'
+    awk '/^SHA256:/{in_section=1; next}
+         in_section && /^[A-Za-z][A-Za-z0-9]*:/{exit}
+         in_section{print}' "$1"
 }
 
 rc=0; release_section "$WORK/repo/dists/stable/Release" | grep -q 'Packages.gz' \

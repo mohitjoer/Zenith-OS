@@ -25,9 +25,9 @@ Item {
     property bool active: false
 
     // The three timeouts, in seconds, with 0 meaning never.
-    readonly property int dimAfter: config.idleDimSeconds
-    readonly property int blankAfter: config.idleBlankSeconds
-    readonly property int lockAfter: config.idleLockSeconds
+    readonly property int dimAfter: Config.idleDimSeconds
+    readonly property int blankAfter: Config.idleBlankSeconds
+    readonly property int lockAfter: Config.idleLockSeconds
 
     // Set while the session is locked, so a notification that arrives after
     // locking does not wake the screen back up.
@@ -74,7 +74,7 @@ Item {
         onTriggered: {
             if (idle.locked) return
             idle.locked = true
-            config.lock()
+            Config.lock()
         }
     }
 

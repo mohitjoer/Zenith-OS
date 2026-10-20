@@ -163,11 +163,16 @@ check "the session logs what it did" $?
 echo
 echo "checking the units"
 if command -v systemd-analyze >/dev/null 2>&1; then
-    for unit in "$REPO_ROOT"/session/units/*.service; do
+    for unit in "$REPO_ROOT"/session/units/*.service "$REPO_ROOT"/session/units/*.target; do
         # Errors that are about the tree rather than about this unit: hyprland
         # is not installed on a packaging machine, and the two binaries are M6's.
+        #
+        # The targets are missing too, because the unit path is the repository
+        # and systemd resolves references against the installed units. That is
+        # what the session's own target is for: it is installed, and the
+        # references resolve there.
         PROBLEMS=$(systemd-analyze verify "$unit" 2>&1 \
-            | grep -vE "hyprland-session.target not found|not executable" || true)
+            | grep -vE "(zenith-session|graphical-session)\.target not found|not executable" || true)
 
         rc=0; [ -z "$PROBLEMS" ] || rc=$?
         check "$(basename "$unit") has no unknown keys or bad directives" $rc
@@ -210,8 +215,8 @@ if command -v systemd-analyze >/dev/null 2>&1; then
     rc=0; after "$SHELL_UNIT" zenith-portal.service || rc=$?
     check "the shell is ordered after the portal dispatcher" $rc
 
-    rc=0; after "$SHELL_UNIT" hyprland-session.target || rc=$?
-    check "the shell is ordered after the compositor" $rc
+    rc=0; after "$SHELL_UNIT" zenith-session.target || rc=$?
+    check "the shell is ordered after the session" $rc
 
     # Audio: the shell's volume widget has nothing to talk to without it.
     rc=0; after "$SHELL_UNIT" wireplumber.service || rc=$?
@@ -219,11 +224,11 @@ if command -v systemd-analyze >/dev/null 2>&1; then
 
     # Requires, not just After. Ordered-only leaves the shell running against a
     # display that is no longer there.
-    rc=0; requires "$SHELL_UNIT" hyprland-session.target || rc=$?
-    check "the shell requires the compositor's session target" $rc
+    rc=0; requires "$SHELL_UNIT" zenith-session.target || rc=$?
+    check "the shell requires the session's target" $rc
 
-    rc=0; after "$PORTAL_UNIT" hyprland-session.target || rc=$?
-    check "the portal dispatcher is ordered after the compositor" $rc
+    rc=0; after "$PORTAL_UNIT" zenith-session.target || rc=$?
+    check "the portal dispatcher is ordered after the session" $rc
 
     # Type=dbus is what makes "started" mean the bus name is held, which is the
     # only moment the portal is genuinely usable. Type=exec would leave the shell
@@ -239,17 +244,46 @@ if command -v systemd-analyze >/dev/null 2>&1; then
             "$REPO_ROOT/session/units/$unit.service" || rc=$?
         check "$unit is part of the graphical session" $rc
 
-        # WantedBy the compositor's target, not graphical-session.target: the
-        # upstream target is what actually pulls the session up.
-        rc=0; grep -q '^WantedBy=hyprland-session.target$' \
+        # WantedBy the session's own target, not graphical-session.target: the
+        # session target is what the session actually pulls up.
+        rc=0; grep -q '^WantedBy=zenith-session.target$' \
             "$REPO_ROOT/session/units/$unit.service" || rc=$?
-        check "$unit is wanted by the compositor's session target" $rc
+        check "$unit is wanted by the session's target" $rc
     done
 
-    # The drop-in is what pulls either unit up at all.
+    # The session's target is what pulls either unit up at all, and it is
+    # Zenith's own because Ubuntu's Hyprland ships no systemd units: a unit
+    # that requires a target nobody has cannot start.
     rc=0; grep -q 'zenith-shell.service' \
-        "$REPO_ROOT/session/units/hyprland-session.target.d-10-zenith.conf" || rc=$?
-    check "the session drop-in wants the shell" $rc
+        "$REPO_ROOT/session/units/zenith-session.target" || rc=$?
+    check "the session target wants the shell" $rc
+
+    rc=0; grep -q 'zenith-portal.service' \
+        "$REPO_ROOT/session/units/zenith-session.target" || rc=$?
+    check "the session target wants the portal dispatcher" $rc
+
+    # And something has to start it, at a moment when the display exists.
+    rc=0; grep -q 'exec-once = /usr/share/zenith/session/zenith-activate' \
+        "$REPO_ROOT/session/hyprland/hyprland.conf" || rc=$?
+    check "the compositor's configuration starts the session" $rc
+
+    rc=0; [ -x "$REPO_ROOT/session/zenith-activate" ] || rc=$?
+    check "the activation script is executable" $rc
+
+    # The ordering cycle, checked in the user manager where the units live.
+    #
+    # `systemd-analyze verify` on a file resolves references against the
+    # installed units and says nothing about a cycle that only exists once
+    # they are all installed, and a cycle is resolved by systemd by dropping a
+    # job — which means the portal dispatcher silently does not start.
+    CYCLES=$(systemd-analyze --user verify \
+        "$REPO_ROOT"/session/units/*.service "$REPO_ROOT"/session/units/*.target 2>&1 \
+        | grep -E "ordering cycle" | grep -E "zenith" || true)
+    rc=0; [ -z "$CYCLES" ] || rc=$?
+    check "the units have no ordering cycle" $rc
+    if [ -n "$CYCLES" ]; then
+        echo "$CYCLES" | sed 's/^/      /'
+    fi
 else
     echo "skip  — systemd-analyze is not installed"
 fi

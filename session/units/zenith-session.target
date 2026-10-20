@@ -1,0 +1,52 @@
+# The Zenith session's anchor.
+#
+# Everything that needs a live compositor hangs off this target, and the
+# session starts it once the compositor is up.
+#
+# It is Zenith's own rather than the compositor's, and that is the point.
+# Upstream Hyprland ships a session target of its own; Ubuntu's build of
+# Hyprland ships no systemd units at all — no unit, no target, and nothing
+# that starts them. A unit that requires a target which does not exist is a
+# unit that cannot start, and a shell that cannot start is a session with no
+# shell in it: a grey screen, and keybindings that call a shell nobody is
+# running.
+#
+# So the session owns its anchor. It is started by the session, after the
+# compositor, by the script the compositor's configuration runs at start-up.
+#
+# The drop-in that used to order these units against the compositor's target
+# is gone for the same reason: it was a mechanism for a target this machine
+# does not have, and a mechanism that only works on some machines is a
+# mechanism that is silently broken on the others.
+[Unit]
+Description=Zenith session
+Documentation=https://github.com/mohitjoer/Zenith-OS
+BindsTo=graphical-session.target
+After=graphical-session.target
+
+# The portal dispatcher and the shell are wanted by the session rather than
+# started by it, so that stopping the session stops them: a shell left
+# running against a display that is no longer there is a shell that draws
+# into nothing.
+#
+# No ordering here. The dispatcher is wanted by the target and the shell is
+# ordered after the dispatcher, so ordering the target after the dispatcher
+# as well would be the target waiting for something it wants: a cycle, and
+# systemd resolves a cycle by dropping a job.
+Wants=zenith-portal.service zenith-shell.service
+
+# The base layer's wallpaper daemon, stopped.
+#
+# The shell draws the wallpaper: it is the shell's own surface, on the
+# compositor's bottom layer, using the setting the Hub writes. A second
+# wallpaper daemon is a second wallpaper, and hyprpaper is worse than useless
+# next to one: it aborts on an assertion when it cannot get a surface of its
+# own, and it takes the compositor's clients down with it when it does.
+# The base layer's own status bar, stopped.
+#
+# Ubuntu's Hyprland package ships a waybar and enables it for the user, so a
+# Zenith session starts with a second bar: a GNOME-shaped one, drawn by another
+# program, over the top of the shell's own. It also reserves the top of the
+# screen, which pushes the shell's bar down underneath it, so the desktop
+# shows one bar and the user sees the wrong one.
+Conflicts=hyprpaper.service waybar.service

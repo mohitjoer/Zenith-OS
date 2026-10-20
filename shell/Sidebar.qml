@@ -17,64 +17,68 @@ import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
 
-// Four small pieces, inline rather than in four files. Each is a few lines and
-// each is used by more than one section; promoting one to a file is a small
-// change later, not a refactor now.
-component SectionTitle: Text {
-    color: Palette.textDim
-    font.pixelSize: 11
-    font.capitalization: Font.AllUppercase
-    font.letterSpacing: 1.2
-}
-
-component Dim: Text {
-    color: Palette.textDim
-    font.pixelSize: 12
-    width: parent ? parent.width : 0
-    elide: Text.ElideRight
-}
-
-component Glyph: Text {
-    font.family: Icons.iconFamily
-    font.pixelSize: 13
-    color: Palette.text
-}
-
-// A hidden section collapses rather than showing an empty header. A sidebar that
-// says "no audio" on a machine that has audio, because one probe timed out, is a
-// sidebar people stop trusting.
-component Section: Column {
-    property string title: ""
-    property bool shown: true
-
-    spacing: 6
-    width: parent ? parent.width : 0
-    leftPadding: 16
-    rightPadding: 16
-    visible: shown
-    height: shown ? implicitHeight : 0
-
-    SectionTitle { text: parent.title }
-}
-
-// An icon and a value, which is what two of the sections are made of.
-component Stat: Row {
-    property string icon: ""
-    property string value: ""
-
-    spacing: 8
-
-    Glyph { text: parent.icon }
-    Text {
-        anchors.verticalCenter: parent.verticalCenter
-        text: parent.value
-        color: Palette.text
-        font.pixelSize: 13
-    }
-}
-
 PanelWindow {
     id: sidebar
+
+    // Four small pieces, inline rather than in four files. Each is a few lines
+    // and each is used by more than one section; promoting one to a file is a
+    // small change later, not a refactor now.
+    //
+    // They are members of this object because `component` is a member keyword:
+    // an inline component declared at file scope is a syntax error, which is
+    // what this was before the shell had ever been run by an engine.
+    component SectionTitle: Text {
+        color: Theme.textDim
+        font.pixelSize: 11
+        font.capitalization: Font.AllUppercase
+        font.letterSpacing: 1.2
+    }
+
+    component Dim: Text {
+        color: Theme.textDim
+        font.pixelSize: 12
+        width: parent ? parent.width : 0
+        elide: Text.ElideRight
+    }
+
+    component Glyph: Text {
+        font.family: Icons.iconFamily
+        font.pixelSize: 13
+        color: Theme.text
+    }
+
+    // A hidden section collapses rather than showing an empty header. A sidebar
+    // that says "no audio" on a machine that has audio, because one probe timed
+    // out, is a sidebar people stop trusting.
+    component Section: Column {
+        property string title: ""
+        property bool shown: true
+
+        spacing: 6
+        width: parent ? parent.width : 0
+        leftPadding: 16
+        rightPadding: 16
+        visible: shown
+        height: shown ? implicitHeight : 0
+
+        SectionTitle { text: parent.title }
+    }
+
+    // An icon and a value, which is what two of the sections are made of.
+    component Stat: Row {
+        property string icon: ""
+        property string value: ""
+
+        spacing: 8
+
+        Glyph { text: parent.icon }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: parent.value
+            color: Theme.text
+            font.pixelSize: 13
+        }
+    }
 
     // The panel is always this wide. One that resized to its contents would
     // reflow the desktop every time a bluetooth device appeared, which is a
@@ -84,7 +88,7 @@ PanelWindow {
 
     anchors { top: true; right: true }
 
-    color: Palette.background
+    color: Theme.background
     exclusionMode: ExclusionMode.Ignore
 
     // Polled, not watched, because there is nothing to watch: none of these five
@@ -119,7 +123,7 @@ PanelWindow {
         }
     }
 
-    // The token restarts a finished Process, and is the idiom Palette.qml
+    // The token restarts a finished Process, and is the idiom Theme.qml
     // already uses for the same reason.
     property string refreshToken: ""
 
@@ -134,12 +138,12 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: Palette.surface
+        color: Theme.surface
 
         Rectangle {
             anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
             width: 1
-            color: Palette.border
+            color: Theme.border
         }
 
         Flickable {
@@ -196,13 +200,13 @@ PanelWindow {
                             Text {
                                 width: 92
                                 text: modelData.name
-                                color: Palette.textDim
+                                color: Theme.textDim
                                 font.pixelSize: 12
                             }
                             Text {
                                 text: modelData.state
                                 color: modelData.state.indexOf("connected") === 0
-                                    ? Palette.text : Palette.textDim
+                                    ? Theme.text : Theme.textDim
                                 font.pixelSize: 12
                             }
                         }

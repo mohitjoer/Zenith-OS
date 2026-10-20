@@ -94,3 +94,12 @@ The current revision, the paths in use, and how much drift there is.
 
   --root DIR   operate on a tree under this directory
 `
+
+const bindsUsage = `Usage: zenith binds [flags]
+
+Prints the keybinding catalogue as JSON: every chord, with a label and a
+category. It is the same catalogue the compositor's configuration is checked
+against, and the shell draws it as its cheat sheet.
+
+  --root DIR   operate on a tree under this directory
+`

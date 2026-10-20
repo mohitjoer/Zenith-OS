@@ -1,0 +1,28 @@
+#!/bin/sh
+# Start the Zenith session, once the compositor is up.
+#
+# Two things happen here, in this order, and the order is the point.
+#
+# The environment goes first. The units the session starts are started by the
+# user manager, and a unit inherits the manager's environment rather than the
+# shell's. The compositor knows which display it made and what that display
+# is called; the manager does not, unless it is told. A unit that starts
+# without the display in its environment believes it is on a machine with no
+# screen, and the shell's condition on the display says exactly that and
+# refuses to start.
+#
+# The target goes second, and only once the environment is right: starting it
+# starts the portal dispatcher and the shell, and both of them check the
+# display before they do anything.
+#
+# The compositor's configuration runs this once at start-up, which is the
+# first moment the display exists. Nothing here waits for the display, because
+# the thing that knows the display is the thing that runs this.
+set -eu
+
+# A failure to import is not a failure of the session: the manager may simply
+# be running without the environment it would accept, and the units below
+# check the display themselves.
+systemctl --user import-environment || true
+
+systemctl --user start zenith-session.target

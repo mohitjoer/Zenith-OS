@@ -8,23 +8,43 @@ pragma ComponentBehavior: Bound
 // import that succeeds and does nothing, which is worse than not importing: the
 // adoption report says the wallpaper was carried over, and the machine is bare.
 //
-// It is the bottom of the stack, so it is a child of the root declared before
-// everything else. QML draws siblings in declaration order and nothing else,
-// so a wallpaper declared after the bar is a wallpaper behind it.
+// It is a window rather than an item, because an item has no size of its own:
+// the shell's root is not an item, so an item inside it is an item with no
+// width and no height, which is a wallpaper that is never seen. The bar and
+// the dock are windows for the same reason.
+//
+// It is below everything else, so it is on the compositor's bottom layer
+// rather than its top one. A wallpaper on the top layer would be a wallpaper
+// over every window on the desktop, and a wallpaper that is over the windows
+// is a wallpaper the user cannot click past.
 
 import Quickshell
 import Quickshell.Widgets
 import QtQuick
 
-Item {
+PanelWindow {
     id: wallpaper
 
-    // Anchors to the whole screen rather than sized to it, because the screen
-    // can change — a monitor plugged in, a lid opened — and a wallpaper sized for
-    // the screen that was there at login is a wallpaper with grey edges.
-    anchors.fill: parent
+    // The whole screen, on every edge. A wallpaper sized for the screen that
+    // was there at login is a wallpaper with grey edges when a monitor is
+    // plugged in.
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
-    // config.wallpaper is already resolved to the light or dark URI by the
+    // Below the windows, and taking no space of its own.
+    aboveWindows: false
+    exclusionMode: ExclusionMode.Ignore
+    exclusiveZone: 0
+
+    // Transparent, so the image below is the wallpaper and not a rectangle
+    // with a picture on it.
+    color: "transparent"
+
+    // Config.wallpaper is already resolved to the light or dark URI by the
     // wrapper, so nothing here knows that two settings exist.
     //
     // The empty case is a drawn background rather than nothing: an unset
@@ -32,14 +52,14 @@ Item {
     // so it follows it.
     Rectangle {
         anchors.fill: parent
-        color: Palette.background
-        visible: config.wallpaper === ""
+        color: Theme.background
+        visible: Config.wallpaper === ""
     }
 
     Image {
         anchors.fill: parent
-        visible: config.wallpaper !== ""
-        source: config.wallpaper
+        visible: Config.wallpaper !== ""
+        source: Config.wallpaper
         asynchronous: true
         cache: true
         // Scale rather than crop. Cropping silently cuts off the edges of
