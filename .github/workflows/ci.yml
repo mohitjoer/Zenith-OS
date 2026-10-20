@@ -424,44 +424,6 @@ jobs:
             --cache-dir "$INDEX_CACHE"
 
   # --------------------------------------------------------------------------
-  # A probe, not a check. It publishes several candidate repository shapes and
-  # asks apt, once per shape, which of them it can read. The bug it exists to
-  # investigate is a signed repository that apt fetches, verifies, commits and
-  # then silently takes no packages from; each variant changes one thing about
-  # the shape, so one run says which thing was the cause.
-  #
-  # It has no exit status of its own: the point is what it prints.
-  # --------------------------------------------------------------------------
-  probe:
-    name: which repository shape can apt read
-    needs: unit
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:26.04
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: The tools the stock image does not carry
-        run: |
-          apt-get update -qq
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: system/hardware/go.mod
-          cache-dependency-path: |
-            system/hardware/go.mod
-            desktop/go.mod
-
-      - name: Build a package to publish
-        run: sh release/build-debs.sh "$PWD/build/probe-debs"
-
-      - name: Probe
-        run: sh release/repo_probe.sh "$PWD"/build/probe-debs/zenith_*.deb
-
-  # --------------------------------------------------------------------------
   # The M2 exit criterion, against what it actually names: a stock image of the
   # base layer and a real, signed APT repository.
   #

@@ -93,7 +93,7 @@ chmod 755 "$WORK" # apt's _apt user reads the file:// repository living here
 cleanup() {
     # Every step is best-effort on purpose: a failure while cleaning up must
     # not mask the exit status that says whether the checks passed.
-    rm -f "$SOURCES" "$SOURCES.hand"
+    rm -f "$SOURCES" "$SOURCES_HAND"
     dpkg --purge zenith >/dev/null 2>&1 || :
     rm -rf "$HOME/.config/zenith" "$HOME/.local/state/zenith" 2>/dev/null || :
     rm -rf "$WORK" 2>/dev/null || :
@@ -173,7 +173,7 @@ check "apt accepts the signed repository" $rc
 # Stronger than exit zero: the source has to appear in apt's own output. apt
 # can exit 0 having fetched nothing from a source it never managed to read,
 # and then "zenith: unable to locate" is the first symptom three steps later.
-rc=0; grep -F -q "$WORK/repo" "$WORK/apt-update.log" || rc=$?
+rc=0; grep -F -q "$WORK/repo " "$WORK/apt-update.log" || rc=$?
 check "apt fetched from the zenith repository" $rc
 
 # The meta index is not the index. apt can commit InRelease, verify its

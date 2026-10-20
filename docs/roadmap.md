@@ -31,9 +31,16 @@ decision has somewhere to be written down.
 
 ## M2 — The `zenith` control tool
 
-*Status: the overlay model, the update sequence and all six commands are written and tested. The
-exit criterion is met against a temporary tree, not against a stock base-layer image, and
-`zenith update`'s fetch step has never run against a real APT repository.*
+*Status: complete. The exit criterion is met — verified against a stock image of the base
+layer (`ubuntu:26.04`) and a real signed APT repository, by `release/update_test.sh`, which
+the `m2` job of the CI workflow runs.*
+
+The verification earned its place by finding two faults in the release tooling that every
+other check had passed. A hand-written `Release` file with no `Date` field is an invalid
+release to apt, which warns, downloads nothing it describes, and exits zero; and a
+repository that publishes only the compressed index gives apt nothing to resolve, because
+it looks an index up by its uncompressed name. Both produced a repository that verified
+perfectly and delivered no packages at all — which is what the milestone was for.
 
 The first working code. Go, because the tools must be static binaries that start instantly.
 
@@ -43,7 +50,7 @@ The first working code. Go, because the tools must be static binaries that start
   this milestone; the command table in `docs/architecture.md` has no row for it yet
 - [x] The overlay model: base in `/usr/share/zenith/`, user overlay in `~/.config/zenith/user_edits/`
 - [x] A git snapshot of `~/.config` before every update
-- [ ] Verified against a stock base-layer image and a real APT repository, which is what the
+- [x] Verified against a stock base-layer image and a real APT repository, which is what the
   exit criterion actually asks for
 
 The invariant the whole model rests on is that a user's override wins at its mirrored path and

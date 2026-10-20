@@ -27,7 +27,13 @@ ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
 # what apt resolves against the repository's own root.
 POOL="$REPO/pool/$COMPONENT"
 mkdir -p "$POOL"
+rm -f "$POOL"/*.deb
 cp "$DEBS"/*.deb "$POOL/"
+# 0644, and deliberately so. A .deb comes out of build-debs.sh's mktemp at
+# 0600, and cp preserves that. A package apt's _apt user cannot read is a
+# package apt cannot install — a signed, verified, committed repository that
+# yields nothing when the user asks for it.
+chmod 0644 "$POOL"/*.deb
 
 # ----------------------------------------------------------------- the index
 # Two files per architecture: the index itself, and the compressed copy apt
@@ -54,25 +60,24 @@ for arch in "$ARCH" all; do
     dir="$INDEX_ROOT/binary-$arch"
     mkdir -p "$dir"
     if [ "$arch" = "$ARCH" ]; then
-        # Scanned from the pool, and the Filename rewritten to the path the
-        # package occupies relative to the repository root — which is the root
-        # apt resolves it against. dpkg-scanpackages records the path it found
-        # the package at, relative to the directory it scanned, and it has no
-        # option to scan a tree.
+        # The scan is pointed at the pool from the repository root, so the
+        # index records the path the package occupies relative to that root —
+        # which is the root apt resolves it against. dpkg-scanpackages takes
+        # the path to scan as its argument and prefixes it to every Filename
+        # it writes, which is exactly what the man page says to do with it.
         #
         # dpkg-scanpackages' exit status is not allowed to end the run. The old
         # version piped it into gzip, which took the pipeline's status and
         # threw dpkg's away — an index that came out empty was published with
         # no complaint. The index is checked instead, which is the thing that
         # matters, and dpkg's own words stay on the terminal.
-        ( cd "$POOL" && dpkg-scanpackages --multiversion . /dev/null ) \
+        ( cd "$REPO" && dpkg-scanpackages --multiversion "pool/$COMPONENT" /dev/null ) \
             > "$dir/Packages" || true
         if [ ! -s "$dir/Packages" ]; then
             echo "mkrepo: the index came out empty; dpkg-scanpackages produced" \
                  "nothing for $dir" >&2
             exit 1
         fi
-        sed -i "s|^Filename: \./|Filename: pool/$COMPONENT/|" "$dir/Packages"
     else
         : > "$dir/Packages"
     fi
@@ -144,7 +149,8 @@ apt-ftparchive 2>/dev/null >/dev/null || true
 # a tree that no longer exists.
 STALE="$REPO/dists/$SUITE/Release"
 rm -f "$STALE" "$REPO/dists/$SUITE/Release.gpg" "$REPO/dists/$SUITE/InRelease"
-RELEASE=$(mktemp)
+RELEASE=$(mktemp "${TMPDIR:-/tmp}/zenith-release.XXXXXX")
+trap 'rm -f "$RELEASE"' EXIT
 
 # Which writer produces the Release file. "auto" takes apt-ftparchive when it
 # is installed and the hand-written path when it is not.
@@ -199,25 +205,34 @@ else
         echo "Date: $(date -R -u)"; \
         echo "Components: $COMPONENT"; echo "Architectures: $ARCH"; \
         echo "Description: Zenith OS signed archive"; echo "MD5Sum:"; \
-        find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
+        find . -type f -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; echo "SHA256:"; \
-        find . -type f -path './main/*' -printf '%P\n' | sort | while read -r f; do
+        find . -type f -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(sha256sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; } > "$RELEASE" )
 fi
 
+# 0644: the file apt and a mirror have to read. mktemp creates it 0600, and
+# moving it into place would carry that mode with it.
+chmod 0644 "$RELEASE"
 mv "$RELEASE" "$STALE"
 
-# The signature is detached so apt can verify the Release file without having to
-# trust the transport.
+# The signatures are written under temporary names and moved into place
+# afterwards, so a failure while signing leaves a repository with a Release
+# and no signature — which apt refuses loudly — rather than a signature over
+# nothing.
 gpg --batch --yes --quiet --armor --detach-sign \
-    --output "$REPO/dists/$SUITE/Release.gpg" \
+    --output "$REPO/dists/$SUITE/Release.gpg.tmp" \
     "$REPO/dists/$SUITE/Release"
 
 gpg --batch --yes --quiet --clearsign \
-    --output "$REPO/dists/$SUITE/InRelease" \
+    --output "$REPO/dists/$SUITE/InRelease.tmp" \
     "$REPO/dists/$SUITE/Release"
+
+chmod 0644 "$REPO/dists/$SUITE/Release.gpg.tmp" "$REPO/dists/$SUITE/InRelease.tmp"
+mv "$REPO/dists/$SUITE/Release.gpg.tmp" "$REPO/dists/$SUITE/Release.gpg"
+mv "$REPO/dists/$SUITE/InRelease.tmp" "$REPO/dists/$SUITE/InRelease"
 
 cat > "$REPO/zenith.sources" <<SOURCES
 # Zenith OS signed repository.

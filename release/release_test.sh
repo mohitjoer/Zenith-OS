@@ -113,8 +113,10 @@ echo "building the repository"
 # One secret keyring, reused for both builds, exactly as a release process
 # would. It sits beside the served tree rather than inside it.
 SECRET="$WORK/.zenith-archive-secret.gpg"
+rc=0
 ZENITH_SECRET_KEYRING="$SECRET" \
-    "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1
+    "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1 || rc=$?
+check "the repository builds" $rc
 
 rc=0; [ -f "$WORK/repo/dists/stable/InRelease" ] || rc=$?
 check "the repository publishes an InRelease" $rc
@@ -133,8 +135,18 @@ check "the sources line names a keyring rather than a keyserver" $rc
 
 # A Release file whose checksums do not match its indexes is exactly the failure
 # the signature cannot catch, so it is checked here rather than assumed.
-rc=0; ( cd "$WORK/repo/dists/stable" && \
-  grep -A5 '^SHA256:' Release | grep 'Packages.gz' ) >/dev/null 2>&1 || rc=$?
+#
+# The section is read as a section rather than with a fixed number of lines
+# after the header: a -A5 that happens to cover today's four index files stops
+# covering them the day a fifth arrives, and a check that quietly stops
+# looking is a check that quietly passes.
+ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
+release_section() {
+    sed -n '/^SHA256:/,/^[A-Za-z][A-Za-z0-9]*:/p' "$1" | sed '1d;$d'
+}
+
+rc=0; release_section "$WORK/repo/dists/stable/Release" | grep -q 'Packages.gz' \
+    || rc=$?
 check "the Release file carries checksums for the index" $rc
 
 # Two properties apt requires and gpgv cannot see, because a signature over a
@@ -147,17 +159,30 @@ check "the Release file carries checksums for the index" $rc
 rc=0; grep -q '^Date: ' "$WORK/repo/dists/stable/Release" || rc=$?
 check "the Release file carries a Date apt will accept" $rc
 
-rc=0; grep -A5 '^SHA256:' "$WORK/repo/dists/stable/Release" \
+rc=0; release_section "$WORK/repo/dists/stable/Release" \
     | grep -q ' main/binary-' || rc=$?
 check "index entries name suite-relative paths, as apt looks them up" $rc
 
 # The uncompressed index has to be listed as well as the compressed one. apt
 # looks an index up by its uncompressed name, and a Release that lists only
 # the .gz leaves apt with a name it cannot resolve against — a repository it
-# reads, verifies, and then quietly takes no packages from.
-rc=0; grep -q ' main/binary-amd64/Packages$' \
-    "$WORK/repo/dists/stable/Release" || rc=$?
+# reads, verifies, and then quietly takes no packages from. This is the bug
+# that one cost the most to find, because nothing about it looks wrong until
+# apt is the one reading it.
+rc=0; release_section "$WORK/repo/dists/stable/Release" \
+    | grep -q " main/binary-$ARCH/Packages$" || rc=$?
 check "the Release lists the uncompressed index as well" $rc
+
+# And the file it names has to be there. A Release that lists an index the
+# repository does not publish is a repository apt rejects.
+rc=0; [ -s "$WORK/repo/dists/stable/main/binary-$ARCH/Packages" ] || rc=$?
+check "the uncompressed index the Release names is published" $rc
+
+# The packages have to be readable by the user apt fetches as, which is not
+# root. A .deb built through mktemp is 0600, and a pool full of packages apt
+# cannot open is a repository that verifies and then cannot install.
+rc=0; [ -z "$(find "$WORK/repo/pool" -name '*.deb' ! -readable 2>/dev/null)" ] || rc=$?
+check "the published packages are readable by every user" $rc
 
 # The signing key has to survive a rebuild, or every rebuild invalidates every
 # machine that already trusts it. This is a regression test for that: an earlier
