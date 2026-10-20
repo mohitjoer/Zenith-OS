@@ -151,6 +151,14 @@ rc=0; grep -A5 '^SHA256:' "$WORK/repo/dists/stable/Release" \
     | grep -q ' main/binary-' || rc=$?
 check "index entries name suite-relative paths, as apt looks them up" $rc
 
+# The uncompressed index has to be listed as well as the compressed one. apt
+# looks an index up by its uncompressed name, and a Release that lists only
+# the .gz leaves apt with a name it cannot resolve against — a repository it
+# reads, verifies, and then quietly takes no packages from.
+rc=0; grep -q ' main/binary-amd64/Packages$' \
+    "$WORK/repo/dists/stable/Release" || rc=$?
+check "the Release lists the uncompressed index as well" $rc
+
 # The signing key has to survive a rebuild, or every rebuild invalidates every
 # machine that already trusts it. This is a regression test for that: an earlier
 # mkrepo.sh kept the secret key in a temporary GNUPGHOME, deleted it at the end

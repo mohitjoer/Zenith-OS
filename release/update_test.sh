@@ -144,14 +144,11 @@ chmod 600 "$WORK/archive-secret.gpg" 2>/dev/null || :
 # Release path — the one taken on a machine without apt-ftparchive, which is
 # every CI runner and every machine that has not installed apt-utils.
 #
-# A non-executable file named apt-ftparchive, first in PATH, hides the real one
-# from `command -v` without removing it: the tool is still there for the
-# publication that uses it, and the publication that must not use it does not.
-mkdir -p "$WORK/shim"
-: > "$WORK/shim/apt-ftparchive"
-chmod 0644 "$WORK/shim/apt-ftparchive"
+# It is asked for by name rather than by hiding apt-ftparchive: a
+# non-executable file earlier in PATH does not shadow an executable one later
+# in PATH, because a shell that finds a file it cannot execute keeps looking.
 echo "publishing the repository through the hand-written Release path"
-PATH="$WORK/shim:$PATH" ZENITH_SECRET_KEYRING="$WORK/archive-secret.gpg" \
+ZENITH_RELEASE_FORMAT=hand ZENITH_SECRET_KEYRING="$WORK/archive-secret.gpg" \
     sh "$REPO_ROOT/release/mkrepo.sh" "$WORK/debs1" "$WORK/repo-hand" >/dev/null
 
 # The two Release files side by side. Whatever apt objects to in one of them is
@@ -182,10 +179,14 @@ check "apt fetched from the zenith repository" $rc
 # The meta index is not the index. apt can commit InRelease, verify its
 # signature, and then never download the Packages it describes — and a check
 # that only looks for the repository's name in the log calls that a pass.
-rc=0; grep -E "$WORK/repo/.*Packages" "$WORK/apt-update.log" >/dev/null || rc=$?
+#
+# The trailing space matters: apt prints the repository path and the index
+# description separated by a space, so the one-line form of the repository name
+# and the other are told apart by what follows it.
+rc=0; grep -F "$WORK/repo " "$WORK/apt-update.log" | grep -q 'Packages' || rc=$?
 check "apt downloaded the Packages index of the apt-ftparchive repository" $rc
 
-rc=0; grep -E "$WORK/repo-hand/.*Packages" "$WORK/apt-update.log" >/dev/null \
+rc=0; grep -F "$WORK/repo-hand " "$WORK/apt-update.log" | grep -q 'Packages' \
     || rc=$?
 check "apt downloaded the Packages index of the hand-written repository" $rc
 

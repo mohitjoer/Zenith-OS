@@ -20,22 +20,53 @@ COMPONENT=${4:-main}
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
 
-mkdir -p "$REPO/dists/$SUITE/$COMPONENT/binary-$ARCH"
+# ------------------------------------------------------------------ the pool
+# The packages live under pool/<component>/ and the index points at them by
+# that path. A repository whose index names a file at its own root works, but
+# it is not a repository a mirror can carry, and the name an index records is
+# what apt resolves against the repository's own root.
+POOL="$REPO/pool/$COMPONENT"
+mkdir -p "$POOL"
+cp "$DEBS"/*.deb "$POOL/"
+
+# ----------------------------------------------------------------- the index
+# Two files per architecture: the index itself, and the compressed copy apt
+# downloads. The uncompressed one is not decoration. apt looks the index up by
+# its uncompressed name — main/binary-amd64/Packages — and a Release file that
+# lists only the compressed copy leaves apt with a name it cannot resolve
+# against, and the result is a repository apt reads, verifies, and then quietly
+# takes no packages from. Every real archive lists both, and this one now does
+# too.
+#
+# binary-all is published as well, and empty. apt asks for it by name. A
+# repository that does not have it leaves apt to decide something about it on
+# its own, and the decision it makes is to skip the indices.
+#
+# -n keeps mtimes out of the archive, so re-indexing an unchanged set of
+# packages produces an identical file. Without it the repository's own contents
+# change every time it is rebuilt and a mirror cannot tell a real change from a
+# clock tick.
+INDEX_ROOT="$REPO/dists/$SUITE/$COMPONENT"
 
 echo "indexing $(ls -1 "$DEBS"/*.deb | wc -l) package(s)"
 
-# Packages first, then the Contents and the Release file that references them.
-( cd "$DEBS" && dpkg-scanpackages --multiversion . /dev/null \
-    2>/dev/null | gzip -9n > "$REPO/dists/$SUITE/$COMPONENT/binary-$ARCH/Packages.gz" )
+for arch in "$ARCH" all; do
+    dir="$INDEX_ROOT/binary-$arch"
+    mkdir -p "$dir"
+    if [ "$arch" = "$ARCH" ]; then
+        # Scanned from the repository root, so the index records the pool path
+        # the package actually occupies.
+        ( cd "$REPO" && dpkg-scanpackages --multiversion --recursive . /dev/null \
+            2>/dev/null > "$dir/Packages" )
+    else
+        : > "$dir/Packages"
+    fi
+    gzip -9n -c "$dir/Packages" > "$dir/Packages.gz"
+done
 
 # No Contents file. It maps installed file paths to packages, which apt does not
 # need for a repository, and a recompression of Packages labelled as Contents is
 # worse than none: it is wrong, and nothing reading it would notice.
-#
-# -n keeps mtimes out of the archive so re-indexing an unchanged set of packages
-# produces an identical file. Without it the repository's own contents change
-# every time it is rebuilt and a mirror cannot tell a real change from a clock
-# tick.
 
 # The key lives in two files, and the split between them is the whole design.
 #
@@ -89,14 +120,43 @@ gpg --batch --quiet --export "$KEYID" > "$KEYRING"
 # is generated with -o APT::FTPArchive::Release::Origin so apt knows what it is
 # looking at.
 apt-ftparchive 2>/dev/null >/dev/null || true
-if command -v apt-ftparchive >/dev/null 2>&1; then
+
+# The Release file is written outside the tree it describes and moved into
+# place afterwards. A Release file that lists itself is a Release file whose
+# checksum of itself is the checksum of a half-written file, and the entries
+# for Release, Release.gpg and InRelease from a previous build are worse:
+# they are hashes of files that are about to change, so the Release describes
+# a tree that no longer exists.
+STALE="$REPO/dists/$SUITE/Release"
+rm -f "$STALE" "$REPO/dists/$SUITE/Release.gpg" "$REPO/dists/$SUITE/InRelease"
+RELEASE=$(mktemp)
+
+# Which writer produces the Release file. "auto" takes apt-ftparchive when it
+# is installed and the hand-written path when it is not.
+#
+# The two are not interchangeable, so the choice is a value rather than an
+# accident of what happens to be installed: the hand-written path is what a
+# machine without apt-utils gets, and it has to be exercised on purpose, on a
+# machine that has apt-ftparchive, or it is only ever tested by the machines
+# that cannot run the test at all.
+FORMAT=${ZENITH_RELEASE_FORMAT:-auto}
+if [ "$FORMAT" = "auto" ]; then
+    if command -v apt-ftparchive >/dev/null 2>&1; then
+        FORMAT=tool
+    else
+        FORMAT=hand
+    fi
+fi
+
+if [ "$FORMAT" = "tool" ]; then
     apt-ftparchive \
         -o APT::FTPArchive::Release::Origin="Zenith OS" \
         -o APT::FTPArchive::Release::Label="Zenith OS" \
         -o APT::FTPArchive::Release::Suite="$SUITE" \
+        -o APT::FTPArchive::Release::Codename="$SUITE" \
         -o APT::FTPArchive::Release::Components="$COMPONENT" \
         -o APT::FTPArchive::Release::Architectures="$ARCH" \
-        release "$REPO/dists/$SUITE" > "$REPO/dists/$SUITE/Release"
+        release "$REPO/dists/$SUITE" > "$RELEASE"
 else
     # Without apt-ftparchive the Release file is assembled by hand from the same
     # checksums apt would verify. It is less pretty, and it is only exactly as
@@ -110,8 +170,9 @@ else
     #   a real repository, which is the only place it shows.
     #
     #   Checksum entries name paths relative to the suite directory with no
-    #   leading "./". That is what apt-ftparchive emits and what apt looks up
-    #   when it decides an index is covered by the hashes it just verified.
+    #   leading "./", and name the uncompressed index as well as the
+    #   compressed one. That is what apt-ftparchive emits and what apt looks
+    #   up when it decides an index is covered by the hashes it just verified.
     #
     # Codename is not required of a hand-written file, and is carried because
     # every apt-ftparchive Release has one and a reader comparing suites
@@ -123,13 +184,15 @@ else
         echo "Date: $(date -R -u)"; \
         echo "Components: $COMPONENT"; echo "Architectures: $ARCH"; \
         echo "Description: Zenith OS signed archive"; echo "MD5Sum:"; \
-        find . -name '*.gz' -printf '%P\n' | sort | while read -r f; do
+        find main -type f -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; echo "SHA256:"; \
-        find . -name '*.gz' -printf '%P\n' | sort | while read -r f; do
+        find main -type f -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(sha256sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
-        done; } > Release )
+        done; } > "$RELEASE" )
 fi
+
+mv "$RELEASE" "$STALE"
 
 # The signature is detached so apt can verify the Release file without having to
 # trust the transport.
