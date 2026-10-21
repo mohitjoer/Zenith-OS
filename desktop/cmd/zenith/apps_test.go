@@ -1,7 +1,8 @@
 package main
 
 import (
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -91,13 +92,44 @@ func TestSplitCommandRemovesFieldCodes(t *testing.T) {
 // file, and the shell needs the two in different forms: a name stays a name,
 // and a path becomes a URL. A path handed over as a path is a path that
 // nothing can open, and the icon is missing with nothing to say why.
+//
+// The icon directory below is one this test writes and points the lookup at
+// through XDG_DATA_HOME, rather than the machine's own. Whether the machine
+// running the test has an icon theme installed is not a fact about
+// iconReference: a test that asked the host passes on a desktop and fails on a
+// runner that carries no theme, and the failure is then about the runner. That
+// is what this test used to do, and a CI runner with an empty /usr/share/icons
+// is how it was found out.
+//
+// This is also the whole of what iconReference is tested for. A second test
+// once repeated the name, path and empty cases without the installed one, and
+// a second copy of the same three assertions is a second place for them to
+// drift.
 func TestIconReferenceKeepsNamesAndPathsApart(t *testing.T) {
+	icons := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", icons)
+	// A directory that does not exist, so that nothing the machine happens to
+	// have installed can answer for a name this test did not write.
+	t.Setenv("XDG_DATA_DIRS", filepath.Join(icons, "no-themes"))
+
+	// Laid out the way the icon specification lays a theme out — the theme,
+	// then the size, then the context — because that is the shape the lookup
+	// has to walk.
+	installed := filepath.Join(icons, "icons", "hicolor", "scalable", "status",
+		"multimedia-volume-control.svg")
+	if err := os.MkdirAll(filepath.Dir(installed), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(installed, []byte("<svg xmlns='http://www.w3.org/2000/svg'/>\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	// A name that is installed becomes the file it is, because the shell
 	// cannot ask the icon engine for it: the engine's theme is a setting of
 	// the session, and an icon that is not in that theme is a broken-image
 	// placeholder where the application's icon should be.
-	if got := iconReference("multimedia-volume-control"); !strings.HasPrefix(got, "file://") {
-		t.Errorf("a themed name became %q, want a file", got)
+	if got, want := iconReference("multimedia-volume-control"), "file://"+installed; got != want {
+		t.Errorf("a themed name became %q, want %q", got, want)
 	}
 	// A name that is not installed stays a name: there is nothing to point
 	// at, and a name is a better answer than a path to nothing.
@@ -106,26 +138,6 @@ func TestIconReferenceKeepsNamesAndPathsApart(t *testing.T) {
 	}
 	if got := iconReference("/opt/thing/icon.png"); got != "file:///opt/thing/icon.png" {
 		t.Errorf("a path became %q", got)
-	}
-	if got := iconReference(""); got != "" {
-		t.Errorf("no icon became %q", got)
-	}
-}
-
-// TestIconReferenceResolvesNamesToFiles pins the rule that an icon name is
-// looked up and a path is not.
-//
-// A name is a name in the session's icon theme, and the session's theme is a
-// setting rather than a fact about the machine. Handing the name to the shell
-// means handing it to whatever theme happens to be configured, and an icon that
-// is not in it is a broken-image placeholder where the application's icon
-// should be.
-func TestIconReferenceResolvesNamesToFiles(t *testing.T) {
-	if got := iconReference("/opt/thing/icon.png"); got != "file:///opt/thing/icon.png" {
-		t.Errorf("a path became %q", got)
-	}
-	if got := iconReference("definitely-not-an-icon-anywhere"); got != "definitely-not-an-icon-anywhere" {
-		t.Errorf("a name that is not installed became %q", got)
 	}
 	if got := iconReference(""); got != "" {
 		t.Errorf("no icon became %q", got)
