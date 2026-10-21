@@ -306,17 +306,26 @@ func reportShell(root string) int {
 	fmt.Println()
 	fmt.Println("Shell")
 
-	// Two windows, two trees, and they are checked differently on purpose.
+	// One tree and one pass. Both windows live in the shell's own directory: the
+	// Hub is drawn with the same component kit as the desktop, and the kit reaches
+	// itself through imports that only resolve when the configuration's root is
+	// that directory. Two entry files in it — `shell.qml` for the desktop and
+	// `hub.qml` for the Hub — are two configurations and one tree.
 	//
-	// The desktop shell owns the schemas and is checked against them. The Hub
-	// does not: it renders what `zenith config export` hands it and never reads a
+	// The desktop shell owns the schemas and is checked against them. The Hub does
+	// not: it renders what `zenith config export` hands it and never reads a
 	// schema, so running the shell's settings checks over it would report every
 	// property only the shell uses as an unused setting — true of the wrong tree.
-	// SchemaDir is set on the shell's tree only, and it is not the shell's own
-	// directory: GLib installs schemas under /usr/share/glib-2.0/schemas. Checking
-	// for them beside the QML reported "declares no schema id" and then "no
-	// surface can reach it" for every key — two failures that do not exist on
-	// the installed machine, which is the only machine doctor is run on.
+	// A tree cannot be split by directory when both windows are one directory, and
+	// a second pass over it would print every finding twice, so the Hub is checked
+	// here and its own entry file is checked by shell/shell_test.sh, which loads
+	// it — a stronger claim than the file being present.
+	//
+	// SchemaDir is not the shell's own directory: GLib installs schemas under
+	// /usr/share/glib-2.0/schemas. Checking for them beside the QML reported
+	// "declares no schema id" and then "no surface can reach it" for every key —
+	// two failures that do not exist on the installed machine, which is the only
+	// machine doctor is run on.
 	// The paths are absolute, and they are still relative to the root: the
 	// root is the tree being checked and the path is where the file is in
 	// it, so a root of /usr and a path of /usr/share/zenith/shell are the
@@ -329,7 +338,6 @@ func reportShell(root string) int {
 			OwnsSettings: true, SchemaDir: settingsDir,
 			HyprlandConfig: "/usr/share/zenith/hyprland/hyprland.conf",
 			BindsCatalogue: "/usr/share/zenith/session/binds.json"},
-		{Root: root, Dir: "/usr/share/zenith/hub", EntryPoint: "hub.qml"},
 	}
 
 	problems := 0
@@ -339,6 +347,52 @@ func reportShell(root string) int {
 			problems++
 		}
 	}
+
+	// The vendored tree, reported on its own.
+	//
+	// The rules above are about Zenith's own code. The vendored tree is
+	// upstream's: it is a shipped file that is never edited in place, so it
+	// is checked against the manifest instead — every file byte for byte
+	// against the commit it was pinned to — and its state is a line of its
+	// own rather than another rule.
+	//
+	// The modules it imports are reported rather than failed for the same
+	// reason. A vendored component that imports a module this image does
+	// not carry is a fact about the image's package list, and the fix is a
+	// package in the image rather than an edit to a file nobody may edit.
+	vendor := shell.CheckVendored(trees[0])
+	switch {
+	case !vendor.Manifested:
+		fmt.Printf("  %-22s not installed; there is no manifest at %s\n",
+			"vendored tree", filepath.Join(trees[0].Dir, "vendor", "manifest.yaml"))
+	case vendor.Drifted == 0:
+		fmt.Printf("  %-22s %d file(s) byte-identical to their pinned "+
+			"upstream commits, and %d declared override(s)\n",
+			"vendored tree", vendor.Files, vendor.Declared)
+	default:
+		fmt.Printf("  %-22s %d file(s) checked against the manifest, %d of "+
+			"them drifted, and %d declared override(s)\n",
+			"vendored tree", vendor.Files, vendor.Drifted, vendor.Declared)
+	}
+	if len(vendor.Modules) > 0 {
+		fmt.Printf("  %-22s %d QML module(s) the vendored tree needs: %s\n",
+			"vendored imports", len(vendor.Modules),
+			strings.Join(vendor.Modules, ", "))
+		switch missing := vendor.Missing(); {
+		case !vendor.Packages:
+			fmt.Printf("  %-22s the image's package manifest is not in this "+
+				"tree; this is what the tree needs, not a gap in the image\n",
+				"vendored packages")
+		case len(missing) == 0:
+			fmt.Printf("  %-22s every one of them is carried by a package in "+
+				"the image's manifest\n", "vendored packages")
+		default:
+			fmt.Printf("  %-22s %d of them are not in the image's package "+
+				"manifest: %s\n", "vendored packages", len(missing),
+				strings.Join(missing, ", "))
+		}
+	}
+
 	if problems == 0 {
 		fmt.Printf("  source checks pass for %d window(s)", len(trees))
 		fmt.Println()

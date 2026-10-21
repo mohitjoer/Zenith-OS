@@ -35,7 +35,7 @@ Item {
         id: label
         anchors.fill: parent
         text: network.captive ? "portal" : (network.connected ? "on" : "off")
-        color: Theme.text
+        color: Theme.inkPrimary
         font.pixelSize: 12
     }
 }

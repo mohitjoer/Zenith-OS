@@ -77,7 +77,17 @@ func TestParseStringListReadsGVariantLists(t *testing.T) {
 // the shape is a change to the shell: the values are camelCase, an enum is a
 // number rather than a nick, and every schema in the catalogue is in there.
 func TestConfigValuesIsJSONTheShellCanRead(t *testing.T) {
-	repo := filepath.Clean(filepath.Join("..", "..", ".."))
+	// The path is absolute, and it has to be: the command below is run as a
+	// process with its own working directory, and a relative path means
+	// something different there than it does here. The schema directory
+	// was "../../../shell" here and "../../../shell" in the child, which
+	// from the child's directory is a directory that does not exist — so
+	// the command failed on a path that was right and the test reported
+	// it as the command being broken.
+	repo, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
 	schemas := filepath.Join(repo, "shell")
 	if _, err := os.Stat(schemas); err != nil {
 		t.Skip("the schemas are not in the checkout:", err)

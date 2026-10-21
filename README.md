@@ -42,8 +42,8 @@ hardware profile for your specific machine, and an updater that can roll back.
 |---|---|
 | Base layer | Ubuntu 26.04 LTS — the substrate only |
 | Compositor | Hyprland |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets, built by Zenith |
-| Control tools | Go — `zenith`, `zenith-shell`, `zenith-hub` |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's design language |
+| Control tools | Go — `zenith`, `zenithd`, `zenith-hub` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
 | Terminal | Ghostty, from the base layer's archive — configured by Zenith, never rebuilt |
 | User shell | zsh + starship |
@@ -54,6 +54,8 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`. **The Secret interface is unsolved** — no backend in the stack implements it |
 | Package manager | APT, with a signed first-party repository |
 | Agent layer | resident OS agent with a local knowledge vault |
+
+The desktop shell is inspired by ryoku.
 
 ### Why Ubuntu is the base layer
 
@@ -254,6 +256,12 @@ Zenith is free software, but not under one licence, and not entirely free of pro
 disk. Both facts matter, so both are documented:
 
 - Zenith's own code and Zenith's own repository are **GPL-3.0** and entirely free.
+- The shell's **engine** is Quickshell, **LGPL-3.0-only**, shipped unmodified. The shell's
+  **surfaces** are a vendored open-source Quickshell configuration —
+  [`end-4/dots-hyprland`](https://github.com/end-4/dots-hyprland)'s "ii" config under
+  GPL-3.0 and [`end-4/rounded-polygon-qmljs`](https://github.com/end-4/rounded-polygon-qmljs)
+  under Apache-2.0 — kept byte-identical to their pinned commits and re-themed to Zenith's
+  design language. The composed shell is GPL-3.0.
 - Some laptop hardware needs proprietary firmware. Zenith references the base layer's
   `linux-firmware-*` packages rather than redistributing firmware itself, and declares per
   machine what is needed.

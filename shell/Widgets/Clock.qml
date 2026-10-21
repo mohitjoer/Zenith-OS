@@ -41,7 +41,7 @@ Item {
         id: label
         anchors.fill: parent
         text: clock.format
-        color: Config.dark ? Theme.text : Theme.textDim
+        color: Config.dark ? Theme.inkPrimary : Theme.inkSecondary
         font.pixelSize: 13
     }
 }

@@ -64,6 +64,233 @@ else
     check "a boundary violation is refused" 0
 fi
 
+# ----------------------------------------------------------- the vendored tree
+echo "checking the vendored tree"
+
+# The shell's configuration is a vendored upstream tree, and all of it has to
+# ship: the vendored components import each other through the shell root's own
+# modules/ and services/ directories, so a package that installed only the
+# files at the shell's root would install a shell whose every import fails to
+# resolve — a shell that comes up and then renders nothing.
+#
+# The check is against the repository, file by file, rather than against a
+# count. A count says the package shipped some of the tree; it does not say
+# which, and a tree that lost a directory still has files in it.
+rc=0
+while read -r file; do
+    [ -n "$file" ] || continue
+    if [ ! -f "$STAGE/usr/share/zenith/shell/$file" ]; then
+        echo "    missing from the package: $file" >&2
+        rc=1
+    fi
+done <<EOF
+$(cd "$REPO_ROOT/shell" && find modules services -type f | sort)
+EOF
+check "every file of the vendored tree is installed" $rc
+
+# And the bytes. A packaging step that rewrites a vendored file — a line
+# ending, a reindentation, a licence header — produces a file that is still a
+# file and no longer the thing upstream published. The manifest's hashes stop
+# matching, and the doctor reports a tree nobody edited.
+rc=0
+while read -r file; do
+    [ -n "$file" ] || continue
+    if [ ! -f "$STAGE/usr/share/zenith/shell/$file" ]; then
+        continue
+    fi
+    cmp -s "$REPO_ROOT/shell/$file" "$STAGE/usr/share/zenith/shell/$file" || {
+        echo "    differs from the repository: $file" >&2
+        rc=1
+    }
+done <<EOF
+$(cd "$REPO_ROOT/shell" && find modules services -type f | sort)
+EOF
+check "every vendored file is byte-identical to the repository" $rc
+
+# The manifest, which is what the doctor's byte-identity check reads. A
+# package that ships the tree without the manifest installs a check that reads
+# nothing, and a doctor that reads nothing looks exactly like a doctor that
+# found nothing.
+rc=0
+cmp -s "$REPO_ROOT/shell/vendor/manifest.yaml" \
+       "$STAGE/usr/share/zenith/shell/vendor/manifest.yaml" || rc=$?
+check "the vendored tree's manifest is installed" $rc
+
+# The attribution. It is installed at the path the manifest names and in the
+# documentation directory, and the two are the same file: a copy that can
+# differ from its original is a copy of something else. It is the repository's
+# own notices file and not one rendered from the manifest, because the
+# per-file credits inside the tree — the MIT and Apache-2.0 code that other
+# projects contributed to it — are facts the manifest does not carry.
+rc=0
+cmp -s "$STAGE/usr/share/zenith/shell/vendor/notices.md" \
+       "$STAGE/usr/share/doc/zenith/vendor-manifest.md" || rc=$?
+check "the attribution manifest is installed in both places" $rc
+
+# ------------------------------------------------------------------ licences
+echo "checking the licences"
+
+# The texts. GPL-3.0 section 4 asks for a copy of the licence with the work,
+# and the Apache licence asks for its own, and dpkg's own tools and
+# licensecheck look for them in the documentation directory.
+rc=0
+for text in GPL-3 Apache-2.0; do
+    if [ ! -s "$STAGE/usr/share/doc/zenith/$text" ]; then
+        echo "    missing: usr/share/doc/zenith/$text" >&2
+        rc=1
+    fi
+done
+check "the licence texts are installed" $rc
+
+# One GPL-3 text, not two. The vendored component's copy of the licence and
+# the repository's own are the same document, and a package that ships two
+# different GPL-3 texts is shipping a licence nobody has read.
+rc=0
+cmp -s "$REPO_ROOT/LICENSE" "$STAGE/usr/share/doc/zenith/GPL-3" || rc=$?
+check "the GPL-3 text the package ships is the repository's own" $rc
+
+# The copyright file, and what it claims.
+#
+# The format resolves a file to the last paragraph whose Files: patterns match
+# it, so a paragraph meant to override another one has to come after it. This
+# reads the file the way the format says to read it and asks it about every
+# file the package installs.
+#
+# The licence each file is claimed under comes from the manifest: a file the
+# manifest lists belongs to the component that lists it, and a file it does
+# not list is Zenith's own. The short names are the format's, and the mapping
+# from the manifest's SPDX identifiers to them is written out rather than
+# derived, because the format's names are the format's business — an
+# identifier this table does not know is a failure, not a guess.
+manifest_claims() {
+    awk '
+    function short_name(id) {
+        if (id == "GPL-3.0-only") return "GPL-3"
+        if (id == "GPL-3.0-or-later") return "GPL-3+"
+        if (id == "Apache-2.0") return "Apache-2.0"
+        return ""
+    }
+    /^  - name: / { spdx = ""; next }
+    /^    spdx: / { spdx = $0; sub(/^    spdx: /, "", spdx); next }
+    /^      - path: / {
+        path = $0
+        sub(/^      - path: /, "", path)
+        name = short_name(spdx)
+        if (name == "") {
+            printf "unknown licence identifier: %s\n", spdx > "/dev/stderr"
+            exit 1
+        }
+        printf "usr/share/zenith/shell/%s\t%s\n", path, name
+    }
+    ' "$REPO_ROOT/shell/vendor/manifest.yaml"
+}
+
+# What the copyright file says about each path it is asked about. One parse
+# of the file, then one answer per path, in the order the paths arrived.
+copyright_claims() {
+    awk -v copyright="$STAGE/usr/share/doc/zenith/copyright" '
+    function glob_to_regex(pattern,   out, i, c) {
+        out = "^"
+        for (i = 1; i <= length(pattern); i++) {
+            c = substr(pattern, i, 1)
+            if (c == "*") out = out ".*"
+            else if (c == "?") out = out "."
+            else if (c ~ /[A-Za-z0-9_\/-]/) out = out c
+            else out = out "\\" c
+        }
+        return out "$"
+    }
+    function add(stanza, text,   n, parts, i) {
+        n = split(text, parts, /[ \t]+/)
+        for (i = 1; i <= n; i++) {
+            if (parts[i] == "") continue
+            count[stanza]++
+            pattern[stanza SUBSEP count[stanza]] = parts[i]
+        }
+    }
+    BEGIN {
+        stanza = 0
+        while ((getline line < copyright) > 0) {
+            if (line ~ /^Files:/) {
+                stanza++
+                in_files = 1
+                text = line
+                sub(/^Files:[ \t]*/, "", text)
+                add(stanza, text)
+                continue
+            }
+            if (in_files == 1 && line ~ /^[ \t]/) {
+                add(stanza, line)
+                continue
+            }
+            in_files = 0
+            if (line ~ /^License:/) {
+                text = line
+                sub(/^License:[ \t]*/, "", text)
+                if (stanza > 0) licence[stanza] = text
+                continue
+            }
+        }
+        close(copyright)
+    }
+    {
+        answer = "none"
+        for (s = 1; s <= stanza; s++) {
+            for (i = 1; i <= count[s]; i++) {
+                if ($0 ~ glob_to_regex(pattern[s SUBSEP i])) {
+                    answer = licence[s]
+                    break
+                }
+            }
+        }
+        printf "%s\t%s\n", $0, answer
+    }
+    '
+}
+
+MANIFEST_PATHS="$WORK/manifest-paths"
+manifest_claims | cut -f1 | sort -u > "$MANIFEST_PATHS"
+
+EXPECTED="$WORK/expected-licences"
+{
+    manifest_claims
+    ( cd "$STAGE" && find usr/share/zenith/shell -type f ) |
+        grep -Fxv -f "$MANIFEST_PATHS" |
+        while IFS= read -r file; do
+            printf '%s\t%s\n' "$file" "GPL-3+"
+        done
+} > "$EXPECTED"
+
+rc=0
+cut -f1 "$EXPECTED" | copyright_claims > "$WORK/actual-licences" || rc=1
+if ! diff -u "$EXPECTED" "$WORK/actual-licences" > "$WORK/licences.diff" 2>&1; then
+    rc=1
+    cat "$WORK/licences.diff" >&2
+fi
+check "the copyright file claims every installed file under the right licence" $rc
+
+# Every licence group, and no others. The package is under three: Zenith's
+# own GPL-3.0-or-later, the vendored GPL-3.0-only component, and the vendored
+# Apache-2.0 component. A copyright file that names one licence for a package
+# under three tells a reader the package is under a licence it is not entirely
+# under.
+rc=0
+named=$(grep '^License: ' "$STAGE/usr/share/doc/zenith/copyright" |
+    sed 's/^License: //' | sort -u | tr '\n' ' ')
+if [ "$named" != "Apache-2.0 GPL-3 GPL-3+ " ]; then
+    echo "    the copyright file names: $named" >&2
+    echo "    it should name:        Apache-2.0 GPL-3 GPL-3+ " >&2
+    rc=1
+fi
+check "the copyright file names every licence group, and no others" $rc
+
+# The format itself, so a file that is not in it is not read by the tools
+# that read it.
+rc=0
+grep -q '^Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/$' \
+    "$STAGE/usr/share/doc/zenith/copyright" || rc=$?
+check "the copyright file declares the Debian copyright format" $rc
+
 # ------------------------------------------------------------- permissions
 echo "checking installed modes"
 WRONG=$(dpkg-deb -c "$WORK"/a/*.deb | awk '$1 !~ /^drwxr-xr-x/ && $1 !~ /^-rw-r--r--/ && $1 !~ /^-rwxr-xr-x/ {print $1, $NF}')
@@ -141,6 +368,25 @@ $(find "$REPO_ROOT/session" -type f -perm -u+x 2>/dev/null \
     | sed "s|^$REPO_ROOT/session/||" | sort)
 EOF
 check "every executable file in the repository ships executable" $rc
+
+# The shell's tree is installed under the names it has in the repository, so
+# the same rule applies to it. A vendored script upstream ships executable and
+# the package ships non-executable is a script that works in the checkout and
+# fails on the machine, and the checkout is where it gets tested.
+rc=0
+while read -r program; do
+    case "$program" in
+        \#*|"") continue ;;
+    esac
+    echo "$MODES" | grep -q "^-rwxr-xr-x .*/usr/share/zenith/shell/$program\$" || {
+        echo "    not executable in the package: $program" >&2
+        rc=1
+    }
+done <<EOF
+$(find "$REPO_ROOT/shell/modules" "$REPO_ROOT/shell/services" -type f -perm -u+x 2>/dev/null \
+    | sed "s|^$REPO_ROOT/shell/||" | sort)
+EOF
+check "every executable file in the shell's tree ships executable" $rc
 
 # ---------------------------------------------------------------- repository
 echo "building the repository"

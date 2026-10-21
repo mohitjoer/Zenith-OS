@@ -43,7 +43,7 @@ Item {
 
         Text {
             text: volume.muted ? "muted" : Math.round(volume.level * 100) + "%"
-            color: Theme.text
+            color: Theme.inkPrimary
             font.pixelSize: 12
         }
     }

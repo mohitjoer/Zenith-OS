@@ -42,6 +42,6 @@ Item {
         text: Icons.glyph(icon.glyph)
         font.family: Icons.iconFamily
         font.pixelSize: 14
-        color: Theme.text
+        color: Theme.inkPrimary
     }
 }

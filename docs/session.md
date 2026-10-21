@@ -30,7 +30,7 @@ a boundary that is not written down gets crossed by accident.
 | Path | What it is | Why it cannot live under `/usr/share/zenith/` |
 |---|---|---|
 | `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
-| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service`, `zenithd.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
 | `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
@@ -41,6 +41,13 @@ These are registrations — pointers a third-party binary must find — not Zeni
 The content stays at `/usr/share/zenith/session/`, `/usr/share/zenith/shell/`,
 `/usr/share/zenith/portal/` and `/usr/share/zenith/schemas/`, and `zenith doctor` reports
 drift between the two the same way it reports drift everywhere else.
+
+**Runtime state is not a registration.** The state daemon's socket is at
+`$XDG_STATE_HOME/zenith/shell.sock`, and it is not on the list because it is not a file a
+package installs. The daemon creates it at run time, under the user's own state directory —
+the one place a Zenith package must never write to — and it is removed when the session
+ends. A path that exists only while the session does cannot be a registration, and a
+registration is by definition a path that exists on every boot.
 
 And the list of things Zenith deliberately does **not** touch:
 
@@ -255,12 +262,15 @@ user@1000.service                                  started by systemd-logind for
             │   │                                    ConditionEnvironment=WAYLAND_DISPLAY
             │   └── xdg-desktop-portal-hyprland      activated on demand by the dispatcher
             │       xdg-desktop-portal-gtk          activated on demand by the dispatcher
+            ├── zenithd.service                     the state daemon
+            │                                        After=zenith-session.target
             └── zenith-shell.service                the shell
                 │                                    After=zenith-session.target
                 │                                    After=zenith-portal.service
+                │                                    After=zenithd.service
                 │                                    After=wireplumber.service
                 │                                    ConditionEnvironment=WAYLAND_DISPLAY
-                └── the shell's own children         lock screen, quick settings,
+                └── the shell's own children         quick settings,
                                                      notification server — inside the shell
 ```
 
@@ -288,7 +298,7 @@ So the session owns its anchor, and starts it once the compositor is up:
 Description=Zenith session
 BindsTo=graphical-session.target
 After=graphical-session.target
-Wants=zenith-portal.service zenith-shell.service
+Wants=zenith-portal.service zenithd.service zenith-shell.service
 ```
 
 The target is started by the compositor's own configuration, at the one moment the
@@ -326,12 +336,29 @@ RestartSec=1
 [Install]
 WantedBy=zenith-session.target
 
+# /usr/lib/systemd/user/zenithd.service
+[Unit]
+Description=Zenith state daemon
+Documentation=man:zenithd(1)
+PartOf=graphical-session.target
+After=zenith-session.target
+Requires=zenith-session.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/zenithd
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=zenith-session.target
+
 # /usr/lib/systemd/user/zenith-shell.service
 [Unit]
 Description=Zenith shell (Quickshell)
 Documentation=man:zenith-shell(1)
 PartOf=graphical-session.target
-After=zenith-session.target zenith-portal.service wireplumber.service
+After=zenith-session.target zenith-portal.service zenithd.service wireplumber.service
 Requires=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
@@ -346,6 +373,17 @@ Slice=app.slice
 [Install]
 WantedBy=zenith-session.target
 ```
+
+`zenithd.service` carries no `ConditionEnvironment=WAYLAND_DISPLAY`, and that is deliberate:
+the daemon probes audio, network, bluetooth, display and media, and none of those is a
+Wayland client. It can therefore be up before the compositor's display exists, and it is
+wanted by the session target rather than ordered after it.
+
+The daemon listens on a Unix socket at `$XDG_STATE_HOME/zenith/shell.sock` and speaks
+`zenith-shell/1` over it — newline-delimited JSON, one document per line. The socket lives
+under the user's own state directory rather than under `/usr/share/zenith/`, because it is
+created at run time by a process, and a path a process creates is not a file a package
+installs.
 
 `zenith-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
 a `zenith-` name, which is the pattern the base-layer boundary prescribes for a component
@@ -525,8 +563,15 @@ Two details in the script are load-bearing beyond the obvious:
 | 1 | `zenith-session.target` | The session | The anchor for everything that needs a live compositor |
 | 2 | `wireplumber.service` | The session target | Audio policy, so the shell's volume widget has something to talk to |
 | 3 | `zenith-portal.service` | The drop-in | The portal dispatcher, which activates the backends on demand |
-| 4 | `zenith-shell.service` | The drop-in, ordered after the portals | The shell |
-| 5 | The shell's children | The shell | Lock screen, quick settings, notification server — inside the shell, not separate units |
+| 4 | `zenithd.service` | The drop-in | The state daemon, which the shell subscribes to over its socket |
+| 5 | `zenith-shell.service` | The drop-in, ordered after the portals and the daemon | The shell |
+| 6 | The shell's children | The shell | Quick settings, notification server — inside the shell, not separate units |
+
+The daemon is ordered before the shell rather than beside it, and the reason is the same
+one that puts the portal dispatcher first: the shell subscribes to the daemon at start-up,
+and a shell that starts before the thing it subscribes to is a shell whose first state
+arrives late or not at all. The daemon does not need the shell, so the ordering is one-way
+and there is no cycle.
 
 ### Why the compositor comes before the portal dispatcher
 
@@ -638,10 +683,11 @@ cause.
 ## What the shell owns
 
 Everything a stock desktop shell used to provide is now the shell's job or the compositor's
-job. The notification server, the global shortcuts and the lock screen are the shell's
-outright, because no other component in the image provides them. Idle is the exception: it
-is split three ways, and confusing the split is how a laptop ends up suspending with the
-screen unlocked.
+job. The notification server and the global shortcuts are the shell's outright, because no
+other component in the image provides them. The lock screen is not one of them: `hyprlock`
+is in the base layer's archive and does the locking, and the shell owns only the decision
+to lock. Idle is the exception: it is split three ways, and confusing the split is how a
+laptop ends up suspending with the screen unlocked.
 
 ### The notification server
 
@@ -746,28 +792,43 @@ doctor checks the configuration against.
 
 ### The lock screen
 
-The shell hosts the lock surface and speaks PAM itself — `pam_start`, `pam_authenticate`,
-`pam_acquire_authtok` — so that unlocking is a real authentication rather than a prompt
-with a password field bolted on. The lock surface is drawn with the session-lock protocol
-the compositor implements, so the lock is enforced by the compositor rather than by a
-window that merely looks in front of the others. The verified path is:
+**The shell does not draw the lock screen, and it does not speak PAM.** This section used
+to say the opposite — that the shell hosts the lock surface and authenticates with
+`pam_start`, `pam_authenticate` and `pam_acquire_authtok` — and that was wrong. There is
+no QML PAM API, so a shell-drawn lock screen cannot authenticate against PAM at all, and
+the usual workaround, calling something over D-Bus, produces a lock screen that accepts any
+password. A lock screen that does not lock is worse than no lock screen, because it teaches
+the user the machine is locked.
+
+So the division is the one recorded in
+[`architecture.md`](architecture.md#the-shell): the shell owns **when** locking happens —
+`org.zenith.desktop`'s `idle-*` keys and `Idle.qml` — and `hyprlock` does the locking.
+`hyprlock` is in the base layer's archive, which under the base-layer rule settles it: the
+base layer carries it, so Zenith does not repackage it. Every competing locker is excluded,
+so the image has exactly one and which one is in front never depends on start order.
+
+The verified path is unchanged:
 
 ```bash
 systemctl --user lock-session
 ```
 
 That command reaches logind, and logind does not call a lock interface on the shell's
-behalf: it emits the `org.freedesktop.login1.Session.Lock` signal on the system bus, and the
-shell's lock surface answers it. The shell therefore also listens for that signal directly.
+behalf: it emits the `org.freedesktop.login1.Session.Lock` signal on the system bus, and
+the locker answers it. The shell watches the same signal, because the shell is the thing
+that decides when to lock in the first place, and a session that locks on a schedule the
+shell does not know about is a session whose idle policy is a decoration.
 
-The shell implements `org.freedesktop.ScreenSaver` on the session bus as well, with `Lock`,
-`Unlock`, `GetActive`, `ActiveChanged`, `Inhibit` and `UnInhibit`. The `Inhibit` and
-`UnInhibit` methods are what the base layer's portal Inhibit backend calls, so an
-application that asks the portal to hold the screensaver while a video plays holds Zenith's
-lock as well.
+The `org.freedesktop.ScreenSaver` interface on the session bus is no longer the shell's. Its
+`Inhibit` and `UnInhibit` methods are what the base layer's portal Inhibit backend calls,
+so an application that asks the portal to hold the screensaver while a video plays holds
+Zenith's lock as well — and the interface belongs to the locker, because the locker is the
+thing that can authenticate. What the design fixes is only that the shell is not the thing
+answering it.
 
-The shell reports its state back with `org.freedesktop.login1.Session.SetLockedHint`, so
-`loginctl show-session` tells the truth.
+The shell reports its own lock state back with `org.freedesktop.login1.Session.SetLockedHint`,
+so `loginctl show-session` tells the truth. It knows when it asked for a lock, and a
+session whose hint lies is a session that suspends unlocked.
 
 ### Idle
 
@@ -776,7 +837,7 @@ and confusing them is how a laptop ends up suspending with the screen unlocked.
 
 - **Detection is the compositor's.** The compositor knows when the user last did something;
   no Wayland client can find that out for itself.
-- **The shell draws the idle screen** and locks at `org.zenith.desktop lock-delay`.
+- **The shell draws the idle screen** and locks at `org.zenith.desktop idle-lock-seconds`.
 - **The actions go through logind**, so the standard inhibitors apply. Locking is
   `loginctl lock-session`; suspending is `systemctl suspend`.
 
@@ -808,10 +869,11 @@ manager's.
    shell's own idle policy reaches its threshold.
 2. The request goes to logind, which takes a delay inhibitor and emits
    `PrepareForSleep(true)`.
-3. The shell locks itself, answering the `true` half of the signal while it holds a delay
-   inhibitor, so the machine does not sleep with an unlocked screen.
+3. The shell asks for the lock, answering the `true` half of the signal while it holds a
+   delay inhibitor, so the machine does not sleep with an unlocked screen. The locker does
+   the locking; the shell decides that it should happen.
 4. logind releases the inhibitor, `systemd-suspend.service` runs, and the machine sleeps.
-5. On resume, `PrepareForSleep(false)` arrives and the shell unlocks.
+5. On resume, `PrepareForSleep(false)` arrives and the locker releases the session.
 
 ### Shutdown and reboot
 
@@ -828,11 +890,12 @@ owns.
 
 | Concern | Owner | Mechanism |
 |---|---|---|
-| Screen lock | The shell | `org.freedesktop.ScreenSaver`, the session lock protocol, PAM |
-| Lock on suspend | The shell | `PrepareForSleep` on the system bus |
+| Screen lock | `hyprlock`, from the base layer's archive | The locker authenticates against PAM. The shell decides *when* and does not draw the surface |
+| Lock on suspend | The shell | `PrepareForSleep` on the system bus, and the delay inhibitor it holds across the request |
 | Idle detection | The compositor | Its own idle notifications, surfaced to the shell |
-| Idle policy | The shell, reading `org.zenith.desktop` | The timeouts live in GSettings, and `zenith-shell` and `zenith-hub` are their only writers |
+| Idle policy | The shell, reading `org.zenith.desktop` | The timeouts live in GSettings, and `zenithd` and `zenith-hub` are their only writers |
 | Inhibitors | logind | Delay inhibitors are held by the shell and by logind itself |
+| Live desktop state | `zenithd` | The `zenith-shell/1` socket at `$XDG_STATE_HOME/zenith/shell.sock` |
 | Suspend, poweroff, reboot | logind | `systemctl`, the display manager's halt and reboot commands |
 | Session teardown | systemd | `graphical-session.target` and `PartOf=` |
 
@@ -844,8 +907,8 @@ owns.
 
 **What the user sees.** A black desktop with a working cursor and a working keyboard. No
 bar, no dock, no launcher, no popouts. The window switcher does nothing. Notifications are
-not answered, so they are lost rather than shown. The screen never locks, because the lock
-surface is the shell's.
+not answered, so they are lost rather than shown. The screen never locks on idle, because
+the idle timers are the shell's.
 
 **Why.** `zenith-shell.service` failed, or was never reached. In order of likelihood: the
 shell's QML failed to load and the process exited; a GSettings schema did not compile, so
@@ -878,6 +941,37 @@ systemctl --user restart zenith-shell.service
 ```
 
 `zenith doctor` reports drift between the base and the overlay.
+
+### The shell is up but the daemon is not
+
+**What the user sees.** The desktop is there — bar, dock, launcher, popouts — and the
+things that read live state are wrong. The status area shows the last volume it heard about.
+The sidebar's sections do not update, or they show the last thing they saw and never change.
+The volume slider moves the sink and the number does not follow.
+
+**Why.** `zenithd.service` failed, or was never reached. The shell starts regardless: it
+can draw a surface with nothing to subscribe to, and it does, because a shell that refuses
+to start because a state daemon is down is a session with no desktop in it at all. The
+daemon is the thing that fails quietly.
+
+**What to run.**
+
+```bash
+systemctl --user status zenithd.service
+journalctl --user -b -u zenithd.service
+ls -l "${XDG_STATE_HOME:-$HOME/.local/state}/zenith/shell.sock"
+```
+
+The socket is the daemon's address, and it is under the user's own state directory rather
+than under `/usr/share/zenith/` — it is created at run time and it is not a file a package
+installs. A missing socket with a healthy unit is a daemon that has not bound it yet; a
+missing socket with a failed unit is the failure itself.
+
+**Recovery.** `systemctl --user restart zenithd.service`. The shell reconnects on its own,
+because a subscription that dropped is a subscription the daemon re-establishes by pushing
+the state again, so the recovery is one command and not two. If the shell is showing
+nothing at all rather than something stale, the daemon is not the fault and the
+[shell failure mode](#the-compositor-starts-but-the-shell-does-not) is.
 
 ### Portals are missing, so file choosers fail
 

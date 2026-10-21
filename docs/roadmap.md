@@ -211,12 +211,16 @@ ignore its exit code.
 
 ## M6 — The shell
 
-*Status: the shell's source exists — the schema, the entry point, the bar, the
-dock, the launcher and the widget catalogue — and is packaged. It has never been
-run, because Quickshell is built from source and is not in the archive, so there
-is no quickshell here to run and no qmllint to check the QML with. What is
-checked instead is everything checkable without an engine, and that check found
-four real faults while it was being written.*
+*Status: the shell's source exists — the schema, the entry point, the widget
+catalogue, the notification server and the settings bridge — and it is packaged.
+The surfaces it draws are a vendored upstream Quickshell configuration, pinned to
+a commit and kept byte-identical to it, and re-themed to Zenith's design system
+rather than forked. It has still never been run, because Quickshell is built from
+source and is not in the archive, so there is no quickshell here to run and no
+qmllint to check the QML with. What is checked instead is everything checkable
+without an engine, and that check found four real faults while it was being
+written. The vendored tree is exempt from it by declaration, and that exemption
+has a price: the bridges into the tree are a contract that nothing checks.*
 
 - `zenith-greeter`, which runs `weston --shell=kiosk` and hosts Zenith's own login
   surface. It had no owner until the SDDM drop-in made the dependency explicit:
@@ -226,9 +230,18 @@ four real faults while it was being written.*
   The keys adoption imports into — `wallpaper-path`, `wallpaper-path-dark`,
   `favorites`, `dock-position` — keep the names and types
   [adopting-zenith.md](adopting-zenith.md) already uses
-- [x] The bar, the dock, the launcher and the widget catalogue, driven by
-  `org.zenith.shell`
-- [x] `zenith-shell` as the only writer of those schemas
+- [x] The bar, the dock, the launcher and the popover surfaces, taken from a
+  vendored upstream component at a pinned commit and re-themed, rather than
+  written from nothing
+- [x] The widget catalogue, Zenith's own, driven by `org.zenith.shell`
+- [x] The vendored tree itself, held byte-identical to its upstream commit.
+  `sh shell/vendor/vendor.sh verify` hashes every vendored file against the
+  manifest and fails on a file that was edited by hand, which is the only check
+  that can catch an edit nobody intended
+- [x] The monochrome re-theme, carried into the vendored components by three
+  overlay files at upstream's own paths — the palette bridge, the settings bridge
+  and the shell's own state — with no vendored file modified
+- [x] `zenithd` and `zenith-hub` as the only writers of those schemas
 - [x] `zenith doctor` checks the shell's source: the widget catalogue naming a
   file that is not there, a surface reading a property the settings wrapper does
   not declare, a `schemaId` with no schema file, a path outside the boundary, an
@@ -238,6 +251,11 @@ four real faults while it was being written.*
   no keybinding that closes them
 - [x] Quick settings and the status area
 - [x] The icon font, settled from the archive rather than vendored: `fonts-font-awesome` (4.7, no dependencies) for the status set and `fonts-powerline` for separators. Every glyph is declared in `Icons.qml` as a `\uXXXX` escape and checked to be inside its font's real range — which caught that the first draft used U+F8FF and U+F8C0, neither of which is a Font Awesome 4.7 glyph
+- [ ] The vendored components' own icon names. Upstream names its icons the
+  Material Symbols way and asks for a font the base layer does not carry, and
+  Font Awesome 4.7 is a codepoint font with no ligatures — so those names resolve
+  to nothing until they are mapped onto the codepoints the archive's font has.
+  The map is the missing piece, and it belongs in the bridge
 - [x] `zenith-greeter` — the kiosk Weston wrapper, which is the part that can be
   tested without a display, plus twelve checks that run it against stubbed weston
   and modetest
@@ -277,7 +295,8 @@ four real faults while it was being written.*
 
 *Status: the settings catalogue and the page registry exist, and the invariant
 between them is checked by `zenith doctor` rather than asserted. The Hub's window
-is not written.*
+is written, and it is drawn with the vendored component kit from the same tree the
+desktop shell is built from.*
 
 - `zenith config` — `list`, `get`, `set`, `reset`, `pages`. Values are validated
   against the key's type, range and enum *before* the write, because a value that
@@ -295,6 +314,12 @@ is not written.*
   system on the desktop, not two. It draws pages it did not write: `zenith config
   export` hands it the navigation, the keys, their types, their permitted values,
   their ranges and their current values
+- [x] The Hub's chrome built from the vendored kit — its navigation rail, its content
+  page, its grouped rows and its text — with the window's own code at the shell's
+  root rather than in a configuration root of its own, because the kit's files reach
+  each other through imports that only resolve from there. A change to the kit's look
+  reaches the settings window and the desktop shell together, which is what one design
+  system means in practice
 - [x] Every control writes through `zenith config set`, never through GSettings,
   so every write to dconf on this desktop passes the same validation the tool
   does. A control writing dconf itself could put 999999 in a bar height that
@@ -394,26 +419,76 @@ Distro-independent by construction.
 
 ## M11 — Theming, sidebar, switching, plugins, rollback, agent, installer
 
-*Recorded 2026-10-19, from a comparison against Ryoku. This is a scope decision,
-not a feature list discovered by reading someone else's codebase.*
+*Recorded 2026-10-19, from a comparison against the project the shell was inspired
+by. This is a scope decision, not a feature list discovered by reading someone
+else's codebase.*
 
-**What is deliberately not being copied.** Ryoku is an Arch distribution whose
-desktop runs on Hyprland or niri, and whose base is rolling. Zenith keeps its
-Ubuntu 26.04 base layer and its single Hyprland compositor, and the reasons are
-already recorded: the base layer is what gives the project its hardware reach,
-and a second compositor is a second session to keep tested rather than a
+**What is deliberately not being copied.** The project this shell was inspired by is an
+Arch distribution whose desktop runs on Hyprland or niri, and whose base is rolling.
+Zenith keeps its Ubuntu 26.04 base layer and its single Hyprland compositor, and the
+reasons are already recorded: the base layer is what gives the project its hardware
+reach, and a second compositor is a second session to keep tested rather than a
 feature. Those two are settled and are not revisited here.
+
+**What is not taken from the vendored upstream.** Vendoring a component is not taking
+all of it. The upstream is a complete desktop configuration, and most of that
+configuration is not Zenith's desktop: its Material theme loader and the palette
+derivation behind it, its AI assistant, its booru image service, its weather
+service, its Google Cloud translation and vision services, its JSON settings store,
+and its Hyprland Lua configuration are all either in the tree or upstream of it, and
+none of them is part of Zenith. The reason they are not removed is structural rather
+than diplomatic: dropping a file from a vendored tree is an edit to it, and an edit to
+it is the one thing a vendored tree does not allow. So the rule is that a component
+that is present and unused is inert, and a component that is absent is a diff against
+upstream that has to be re-applied at every re-vendor. Carrying it and not starting
+it is the answer.
 
 **What is being taken**, in the order it is worth doing:
 
+- [x] **Vendored upstream components.** The shell's surfaces are a vendored
+  open-source Quickshell configuration, held byte-identical to a pinned upstream
+  commit and re-themed rather than forked. The decision is a trade, and the trade is
+  recorded rather than implied: Zenith gives up writing a bar, a dock and a
+  launcher from nothing, and takes on a dependency it does not control, pinned to a
+  commit it has to re-vendor and re-check when upstream moves. What makes the trade
+  worth taking is the byte-identical rule. The tree is upstream's; every change is a
+  configuration value, an overlay or a patch; and the shell's design system reaches
+  the components through three overlay files at upstream's own paths, so the desktop
+  looks like Zenith's without a vendored file being edited. The cost is stated
+  rather than discovered: a re-vendor is a re-theme event, because the bridges are a
+  contract that no linter checks.
+- [x] **The monochrome re-theme.** Strict monochrome is now the whole desktop's rule
+  and not only the shell's own surfaces. The vendored components are monochrome by
+  configuration and not by exception: a token bridge answers upstream's Material
+  property names with Zenith's greys, and the handful of colours upstream hard-codes
+  in its own files are a patch to make rather than an exception to grant. The
+  wallpaper palette is namespaced and kept as the record of what the wallpaper would
+  have said rather than as something the desktop draws with. The decision recorded
+  here is the hard one: a component that cannot be made monochrome without being
+  patched is a finding against vendoring it, not a reason to grant it an exception.
+  An exception for one component is how a desktop ends up with two design systems,
+  one of which is a coincidence.
+- [x] **The shell daemon.** `zenithd` replaces the shell's two-second poll of
+  `zenith state` with a subscription to a streaming Go daemon speaking
+  `zenith-shell/1` over a Unix socket. The decision is where the parsing lives: it
+  stays in Go, where it is tested against real captured output of tools that do not
+  behave, and the shell reads a document rather than interpreting a tool's output
+  itself. `zenith state` survives as the CLI over the same collectors, so a
+  terminal, a script and anything that is not Quickshell keep a way in — and the two
+  paths cannot drift, because they are one implementation.
 - [x] **Theming.** A wallpaper that recolours the desktop. `zenith theme generate
   IMAGE` writes `$XDG_CACHE_HOME/zenith/colors.json` and the shell reads it, so
   picking a wallpaper repaints the system and nothing restarts. Every colour in
-  the shell now comes from `Palette.qml` and nothing else — a hex literal in a
-  QML file is a finding, with exactly two exemptions on file. The palette is
-  *checked*, not just emitted: every foreground/background pair is walked until
-  it passes WCAG AA, and a palette that cannot is refused rather than written.
-  All seven shipped wallpapers pass, and that is a test
+  the shell now comes from the design system's token set — `canvas`, `surface`,
+  `inkPrimary`, `inkSecondary`, `indicator`, `lineHairline`, `lineDivider`,
+  `focusRing`, `stateLayer` and the three permitted exceptions — and from nothing
+  else. The wallpaper palette is namespaced under `palette*` and kept, because the
+  generator produces it and `zenith theme check` reports on it, but the desktop
+  does not draw with it: the token set is canonical, and a colour that follows the
+  wallpaper is a colour nobody chose. The palette is *checked*, not just emitted:
+  every foreground/background pair is walked until it passes WCAG AA, and a palette
+  that cannot is refused rather than written. All seven shipped wallpapers pass, and
+  that is a test
 - [x] **The sidebar.** A slide-in panel for audio, network, bluetooth, display
   and media, on the right edge. Quick settings are a popover; this is the surface
   that belongs to the edge rather than to a keybinding. `zenith state` probes all
@@ -423,9 +498,10 @@ feature. Those two are settled and are not revisited here.
   MAC address, and bluetoothctl exiting 0 while printing an error are five parsers
   that would have had no tests in QML, so they are in Go with fixtures taken from
   real captured output. Nothing fails on absent hardware; a section with no
-  adapter is hidden rather than shown as an error. Probing polls every two seconds
-  *while the panel is open* and stops when it closes, because there is no D-Bus
-  signal here to subscribe to. It opens through `togglePopover("sidebar")` in
+  adapter is hidden rather than shown as an error. The state comes from `zenithd`
+  over its socket rather than from a two-second poll of the CLI, and a closed
+  panel costs nothing because the daemon decides when to push. It opens through
+  `togglePopover("sidebar")` in
   `shell.qml`, alongside the launcher and quick settings — and, like those two,
   nothing calls that function yet. No keybinding layer exists in this shell at
   all, so the sidebar is reachable only from QML today
@@ -435,7 +511,8 @@ feature. Those two are settled and are not revisited here.
   installed on any machine this project can test on. Guessing at an API that cannot
   be checked is the one thing here that is worse than shipping late
 - [x] **Window switching.** A most-recently-used switcher over Hyprland, on
-  Super+Tab the way Ryoku binds it. `zenith windows` reads
+  Super+Tab, the binding the project this shell was inspired by uses. `zenith windows`
+  reads
   `hyprctl -j clients`, drops unmapped and scratchpad windows, and sorts by
   `focusHistoryID` — which is *inverted* from what it looks like: Hyprland's
   history vector is oldest-first and the id is `size - index - 1`, so **lower is

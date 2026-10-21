@@ -52,7 +52,7 @@ PanelWindow {
     // so it follows it.
     Rectangle {
         anchors.fill: parent
-        color: Theme.background
+        color: Theme.canvas
         visible: Config.wallpaper === ""
     }
 

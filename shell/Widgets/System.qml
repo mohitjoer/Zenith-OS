@@ -91,13 +91,13 @@ Item {
 
         Text {
             text: "load " + system.load
-            color: Theme.text
+            color: Theme.inkPrimary
             font.pixelSize: 12
         }
 
         Text {
             text: "mem " + system.memoryPercent + "%"
-            color: Theme.text
+            color: Theme.inkPrimary
             font.pixelSize: 12
         }
     }

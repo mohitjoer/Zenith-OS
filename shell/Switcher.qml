@@ -2,8 +2,9 @@ pragma ComponentBehavior: Bound
 
 // The window switcher.
 //
-// Bound to Super+Tab, the way Ryoku and macOS bind it. Each press moves to the
-// next window in most-recently-used order and the overlay shows what happened.
+// Bound to Super+Tab, the way every desktop with a window switcher binds it.
+// Each press moves to the next window in most-recently-used order and the
+// overlay shows what happened.
 //
 // The MRU order comes from `zenith windows`, never from here. Hyprland already
 // tracks it in `focusHistoryID`, and the id is inverted from what it looks like
@@ -115,7 +116,7 @@ PanelWindow {
         radius: 12
         color: Theme.surface
         border.width: 1
-        border.color: Theme.border
+        border.color: Theme.lineDivider
 
         Column {
             id: list
@@ -133,7 +134,7 @@ PanelWindow {
                     width: list.width
                     height: 36
                     radius: 6
-                    color: index === switcher.selected ? Theme.accent : "transparent"
+                    color: index === switcher.selected ? Theme.indicator : "transparent"
 
                     // `class` is a reserved word, so it is read by key and not by
                     // attribute. A window with no class is listed by its title,
@@ -148,7 +149,7 @@ PanelWindow {
                         anchors.leftMargin: 12
                         anchors.rightMargin: 12
                         text: parent.name
-                        color: parent.picked ? Theme.accentForeground : Theme.text
+                        color: parent.picked ? Theme.inkInverse : Theme.inkPrimary
                         font.pixelSize: 13
                         elide: Text.ElideRight
                     }
@@ -162,7 +163,7 @@ PanelWindow {
                         // switch legible: without it, focusing a window that is
                         // not on screen looks like nothing happened.
                         text: (modelData.workspace ?? {}).name ?? ""
-                        color: parent.picked ? Theme.accentForeground : Theme.textDim
+                        color: parent.picked ? Theme.inkInverse : Theme.inkSecondary
                         font.pixelSize: 11
                     }
                 }

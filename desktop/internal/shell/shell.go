@@ -16,6 +16,21 @@
 // the entry point is present, and that nothing in the tree names a path outside
 // the boundary. Those are the faults that are silent at runtime and obvious
 // here.
+//
+// The shell's tree holds two kinds of file, and the difference runs through
+// everything here.
+//
+// Zenith's own files are the shell root, the Hub's windows and the settings
+// bridge. Every rule in this package is a rule about those: a theme that has
+// to be a theme, a glyph that has to be in the font, an import that has to be
+// on a closed list, a path that has to be inside the boundary.
+//
+// The vendored tree is upstream's: the component kit, the bar, the dock, the
+// side panel and the services, vendored from a pinned commit at upstream's own
+// paths. A vendored file is a shipped file, and the project's rule is that a
+// shipped file is never edited in place — so a rule that would demand an edit
+// of one is the wrong rule for it. The vendored tree is checked instead,
+// against the manifest it was pinned from, byte for byte.
 package shell
 
 import (
@@ -53,10 +68,12 @@ type Env struct {
 	// way — against the directory named by `-p`, not against the process's
 	// working directory.
 	Dir string
-	// EntryPoint is the file `quickshell -p` is expected to find. It differs per
-	// window: the desktop shell's is shell.qml, the Hub's is hub.qml. There is no
-	// default, because a default would mean one window silently passes another's
-	// check.
+	// EntryPoint is the file `quickshell -p` is expected to find. Both windows
+	// name `shell.qml`, because that is the name `quickshell -p` looks for in a
+	// directory — the Hub was renamed to it rather than given an entry point
+	// whose only job would have been to be a second name for the same file.
+	// There is no default, because a default would mean one window silently
+	// passes another's check.
 	EntryPoint string
 	// OwnsSettings says this tree is the one that reads GSettings. The desktop
 	// shell is; the Hub window is not — it renders what `zenith config export`
@@ -290,7 +307,17 @@ func Check(env Env) []Finding {
 		}}
 	}
 
-	findings = append(findings, checkEntryPoint(env, files)...)
+	// The shell's own files, and the vendored upstream tree.
+	//
+	// Every rule below is a rule about Zenith's own code: a theme that has to
+	// be a theme, a glyph that has to be in the font, an import that has to be
+	// on a closed list, a path that has to be inside the boundary. A vendored
+	// file is upstream's — a shipped file that is never edited in place — so a
+	// rule that would demand an edit of one is the wrong rule for it. The
+	// vendored tree is checked instead, byte for byte, against the manifest.
+	own, _ := partition(files)
+
+	findings = append(findings, checkEntryPoint(env, own)...)
 
 	if env.OwnsSettings {
 		schemas, schemaFindings := loadSchemas(env)
@@ -299,21 +326,24 @@ func Check(env Env) []Finding {
 			declared[id] = true
 		}
 		findings = append(findings, schemaFindings...)
-		findings = append(findings, checkSchemaIds(env, files, declared)...)
-		findings = append(findings, checkCatalogue(env, files)...)
-		findings = append(findings, checkSettingsReads(env, files, schemas)...)
-		findings = append(findings, checkUnusedWrapperProperties(env, files)...)
-		findings = append(findings, checkGlyphs(env, files)...)
-		findings = append(findings, checkPropertyAssignments(env, files)...)
+		findings = append(findings, checkSchemaIds(env, own, declared)...)
+		findings = append(findings, checkCatalogue(env, own)...)
+		findings = append(findings, checkSettingsReads(env, own, schemas)...)
+		findings = append(findings, checkUnusedWrapperProperties(env, own)...)
+		findings = append(findings, checkGlyphs(env, own)...)
+		findings = append(findings, checkPropertyAssignments(env, own)...)
 	}
 
-	findings = append(findings, checkCommands(env, files)...)
-	findings = append(findings, checkHardcodedColours(env, files)...)
-	findings = append(findings, checkImports(env, files)...)
-	findings = append(findings, checkBoundaries(env, files)...)
-	findings = append(findings, checkIPCTargets(env, files)...)
-	findings = append(findings, checkIPCFunctions(env, files)...)
+	findings = append(findings, checkCommands(env, own)...)
+	findings = append(findings, checkHardcodedColours(env, own)...)
+	findings = append(findings, checkImports(env, own)...)
+	findings = append(findings, checkBoundaries(env, own)...)
+	findings = append(findings, checkIPCTargets(env, own)...)
+	findings = append(findings, checkIPCFunctions(env, own)...)
 	findings = append(findings, checkBinds(env)...)
+
+	// The vendored tree, checked against the manifest it was pinned from.
+	findings = append(findings, CheckVendored(env).Findings...)
 
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].Path != findings[j].Path {
@@ -322,6 +352,31 @@ func Check(env Env) []Finding {
 		return findings[i].Rule < findings[j].Rule
 	})
 	return findings
+}
+
+// partition splits the tree's files into the ones Zenith owns and the ones
+// the vendored upstream tree holds.
+//
+// The vendored tree is upstream's namespace inside the shell: the component
+// kit, the bar, the dock, the side panel and the services, at the paths
+// upstream keeps them at. Everything else — the shell root, the Hub's
+// windows, the settings bridge — is Zenith's own code, and only Zenith's own
+// code is subject to the shell's rules.
+//
+// The overlay files are the exception that is not an exception: they are
+// Zenith's files that live inside the vendored namespace, at upstream's
+// paths. They are excluded here for the same reason the rest of the
+// namespace is: their shape is upstream's contract, because upstream's
+// components read them by upstream's names.
+func partition(files []string) (own, vendored []string) {
+	for _, file := range files {
+		if isVendored(file) {
+			vendored = append(vendored, file)
+			continue
+		}
+		own = append(own, file)
+	}
+	return own, vendored
 }
 
 // ipcTargetPattern finds an IPC target the shell registers.
@@ -1079,6 +1134,62 @@ func checkCommands(env Env, files []string) []Finding {
 	return findings
 }
 
+// assignsToProperty reports whether a source assigns to a bare name.
+//
+// A bare `name = value` is a write to the property of that name, and a
+// write to a readonly property throws. Two things are not writes to it.
+//
+// A name after a dot is a property of something else: `shell.dockAutohide =
+// value` writes to shell's property, and this file declaring a property of
+// the same name does not make that line a write to it.
+//
+// And a declaration is not a write at all: `const items = control.items`
+// binds a name inside the function and leaves the property alone. Reporting
+// it sent the reader looking for a write that was not there, which is the
+// most expensive kind of finding — a true statement about the wrong thing.
+func assignsToProperty(body, name string) bool {
+	write := regexp.MustCompile(regexp.QuoteMeta(name) + `\s*=[^=]`)
+	for _, match := range write.FindAllStringIndex(body, -1) {
+		start := match[0]
+		if start > 0 {
+			previous := body[start-1]
+			if previous == '.' || isWordByte(previous) {
+				continue
+			}
+		}
+		if declares(body[:start], name) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// declares reports whether the text before a name ends in a declaration.
+//
+// The keywords are the three a QML file's JavaScript can bind a name with,
+// and the name has to start the declaration rather than end it: `constant`
+// is not `const`.
+func declares(before, name string) bool {
+	trimmed := strings.TrimRight(before, " \t")
+	for _, keyword := range []string{"const", "let", "var"} {
+		if !strings.HasSuffix(trimmed, keyword) {
+			continue
+		}
+		if len(trimmed) == len(keyword) {
+			return true
+		}
+		return !isWordByte(trimmed[len(trimmed)-len(keyword)-1])
+	}
+	return false
+}
+
+// isWordByte reports whether a byte is part of an identifier.
+func isWordByte(b byte) bool {
+	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') ||
+		(b >= '0' && b <= '9')
+}
+
 // braceEnd is the index of the brace closing the one at open, or -1 when the
 // file stops before that happens. A string containing a brace can end the scan
 // early, and the consequence is an id whose block is not matched and therefore
@@ -1121,7 +1232,7 @@ func braceEnd(body string, open int) int {
 // visible: false }` declares none, and its real properties — `currentIndex`
 // and the rest — live in a type this repository has no source for, so the
 // absence of a declaration there means nothing. Reporting those is how a
-// validator gets a name for being wrong: hub.qml assigns `list.currentIndex`,
+// validator gets a name for being wrong: the Hub assigns `list.currentIndex`,
 // which is exactly right, and the check said it was not.
 func checkPropertyAssignments(env Env, files []string) []Finding {
 	var findings []Finding
@@ -1144,14 +1255,18 @@ func checkPropertyAssignments(env Env, files []string) []Finding {
 			readonly[string(match[1])] = true
 		}
 
-		// For each id this file declares, the properties the object block that
-		// carries it declares. An id with no custom properties of its own has
-		// no known property set and is left alone.
-		type objectProperties struct {
-			readOnly map[string]bool
-			writable map[string]bool
+		// The objects this file declares, and the block each one owns.
+		//
+		// A property belongs to the innermost object that contains it, not
+		// to every object above it: a `readonly property var currentPage`
+		// declared inside a page view is the page view's property, and
+		// reading it as the window's made a write to the window's own
+		// `currentPage` look like a write to a readonly one.
+		type objectBlock struct {
+			name      string
+			open, end int
 		}
-		blocks := map[string]objectProperties{}
+		var objects []objectBlock
 		for _, match := range objectDecl.FindAllStringSubmatchIndex(body, -1) {
 			// The regex keeps braces out of the span between the type and the
 			// id, so there is exactly one opening brace in it.
@@ -1161,15 +1276,65 @@ func checkPropertyAssignments(env Env, files []string) []Finding {
 			if end < 0 {
 				continue
 			}
-			block := objectProperties{
-				readOnly: map[string]bool{}, writable: map[string]bool{},
+			objects = append(objects, objectBlock{name: name, open: open, end: end})
+		}
+
+		// owner is the object a declaration at a position belongs to.
+		owner := func(position int) string {
+			name, span := "", 0
+			for _, object := range objects {
+				if position < object.open || position > object.end {
+					continue
+				}
+				if span == 0 || object.end-object.open < span {
+					name, span = object.name, object.end-object.open
+				}
 			}
-			for _, prop := range propertyDecl.FindAllStringSubmatch(body[open:end], -1) {
-				block.writable[string(prop[1])] = true
+			return name
+		}
+
+		// For each id this file declares, the properties that object declares
+		// itself. An id with no custom properties of its own has no known
+		// property set and is left alone.
+		type objectProperties struct {
+			readOnly map[string]bool
+			writable map[string]bool
+		}
+		blocks := map[string]objectProperties{}
+		blockOf := func(name string) objectProperties {
+			block, known := blocks[name]
+			if !known {
+				block = objectProperties{
+					readOnly: map[string]bool{}, writable: map[string]bool{},
+				}
 			}
-			for _, prop := range readonlyProperty.FindAllStringSubmatch(body[open:end], -1) {
-				block.readOnly[string(prop[1])] = true
+			return block
+		}
+		for _, match := range readonlyProperty.FindAllStringSubmatchIndex(body, -1) {
+			name := owner(match[0])
+			if name == "" {
+				continue
 			}
+			block := blockOf(name)
+			block.readOnly[body[match[2]:match[3]]] = true
+			blocks[name] = block
+		}
+		for _, match := range propertyDecl.FindAllStringSubmatchIndex(body, -1) {
+			name := owner(match[0])
+			if name == "" {
+				continue
+			}
+			property := body[match[2]:match[3]]
+			block := blockOf(name)
+			// A readonly property is a property too, and the plain pattern
+			// matches it as well. It is recorded as readonly, which is what
+			// the check below reads first.
+			if !block.readOnly[property] {
+				block.writable[property] = true
+			}
+			blocks[name] = block
+		}
+		for name, block := range blocks {
 			if len(block.readOnly)+len(block.writable) == 0 {
 				// A framework type with nothing of its own declared: its
 				// properties are in a source file this repository does not
@@ -1216,11 +1381,7 @@ func checkPropertyAssignments(env Env, files []string) []Finding {
 		// Palette.apply, which is the line that was supposed to record that a
 		// palette was loaded.
 		for name := range readonly {
-			// Not preceded by a dot: `shell.dockAutohide = value` assigns to a
-			// property of `shell`, and Config.qml declaring a property of the
-			// same name does not make that line a write to it.
-			bare := regexp.MustCompile(`(^|[^.\w])` + regexp.QuoteMeta(name) + `\s*=[^=]`)
-			if bare.MatchString(body) {
+			if assignsToProperty(body, name) {
 				report("readonly assignment", fmt.Sprintf(
 					"assigns %s, which this file declares readonly; the "+
 						"assignment throws", name))
@@ -1403,7 +1564,30 @@ var allowedImports = map[string]bool{
 	"QtQuick.Window":   true,
 }
 
-var importLine = regexp.MustCompile(`^\s*import\s+([A-Za-z0-9_.]+)\s*(?:[0-9.]+\s*)?$`)
+// importLine matches an import statement and captures the module.
+//
+// The version and the alias are both matched and both ignored: the module
+// is what the rule is about, and an import that renames the module is
+// still an import of it. The alias used to go unmatched, which meant a
+// file could import anything it liked by giving the import a name — the one
+// form of an import the rule could not see.
+var importLine = regexp.MustCompile(
+	`^\s*import\s+([A-Za-z0-9_.]+)\s*(?:[0-9.]+\s*)?(?:as\s+[A-Za-z_][A-Za-z0-9_]*\s*)?$`)
+
+// shellOwnModule reports whether a module is the shell's own.
+//
+// The shell's root is importable as `qs`, and the vendored component kit
+// lives inside that namespace: `qs.modules.common.widgets` is this
+// project's own component kit, pinned to a commit and shipped by this
+// project. Nothing a user could have installed provides it, so the closed
+// list does not have to name it — and the rule the list exists for, which
+// is that the shell's behaviour may not depend on what happens to be on the
+// machine, is not weakened by it.
+//
+// Everything else is on the list, and the list is still closed.
+func shellOwnModule(module string) bool {
+	return module == "qs" || strings.HasPrefix(module, "qs.")
+}
 
 func checkImports(env Env, files []string) []Finding {
 	var findings []Finding
@@ -1417,13 +1601,14 @@ func checkImports(env Env, files []string) []Finding {
 			if match == nil {
 				continue
 			}
-			if !allowedImports[match[1]] {
-				findings = append(findings, Finding{
-					Rule: "import", Path: env.path(f),
-					Detail: fmt.Sprintf("imports %s, which is not on the "+
-						"shell's closed module list", match[1]),
-				})
+			if allowedImports[match[1]] || shellOwnModule(match[1]) {
+				continue
 			}
+			findings = append(findings, Finding{
+				Rule: "import", Path: env.path(f),
+				Detail: fmt.Sprintf("imports %s, which is not on the "+
+					"shell's closed module list", match[1]),
+			})
 		}
 	}
 	return findings

@@ -15,7 +15,7 @@ closed question or assumes an open one is closed.
 | Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
 | Filesystem & Rollback | Btrfs subvolumes with automated pre-APT snapshot hooks | Enables atomic updates and instant rollback without wasting space on full system copies. |
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter, built by Zenith because the base layer carries no such shell | Compositor-agnostic, proven, and the design language already lives in QML/CSS. See [the shell](#the-shell). |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter. The **engine** is built by Zenith because the base layer carries no such shell; the **surfaces** are a vendored open-source Quickshell configuration, re-themed to Zenith's design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's, and that split is what makes a re-theme possible without a fork. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
 | Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
 | Terminal | Ghostty, installed from the base layer's archive and configured by Zenith, never rebuilt | GPU-accelerated and client-side rendered. The archive's version is behind upstream and Zenith accepts that rather than owning a source pin, a rebuild and a release. See [terminal: Ghostty](#terminal-ghostty). |
 | User shell | zsh + starship | fish ships alongside as an alternative. blesh does not — see [user shell: zsh](#user-shell-zsh). |
@@ -81,8 +81,20 @@ Zenith's packages follow from that rule:
 - The only two directories Zenith owns outright are `/usr/share/zenith/` and `/etc/zenith/`. Anything
   Zenith needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
   controls.
+- **Third-party content is content.** A vendored upstream tree, the patches on top of it and
+  its licence texts are content, and they live under `/usr/share/zenith/` like every other
+  file Zenith ships. They are not registrations and they are not exceptions: nothing in the
+  vendored tree is written outside the two directories, and nothing outside them points at it
+  except the shell's own entry point.
 - Ship only what Zenith needs from the base layer. Every package in the image is a liability on
   the next rebase; the manifest of what Zenith installs is itself a reviewed artefact.
+
+The vendored upstream tree is **content** under `/usr/share/zenith/`, and that is the whole of
+its boundary story. It is not a registration: a registration is a pointer a third-party binary
+must find in a fixed directory, and the vendored tree is in none of those directories — it is
+read by Zenith's own shell, at a path Zenith's own package lays down. The rule that applies to
+it is the ordinary one. It is replaced on update, and a change to it is a configuration value,
+an overlay, or a patch — never a hand edit.
 
 The payoff is that rebasing Zenith onto a new Ubuntu becomes a package-set change rather than a
 merge. That is the difference between a distribution that can track its base and one that
@@ -109,12 +121,27 @@ violation until it is added:
 | `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
 | `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory |
 | `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
-| `/usr/bin/zenith`, `/usr/bin/zenith-shell`, `/usr/bin/zenith-hub` | The executables | `PATH` resolution looks nowhere else. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
+| `/usr/bin/zenith`, `/usr/bin/zenithd`, `/usr/bin/zenith-hub` | The executables | `PATH` resolution looks nowhere else. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
 
 Content stays inside the two directories: the login surface's own files belong at
 `/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. A
 registration is a pointer, never a place to put content — a file that grows past a few lines of
 pointer belongs under `/usr/share/zenith/` with a registration pointing at it.
+
+The list used to carry `/usr/bin/zenith-shell`, and that entry was wrong on two counts. There
+is no such executable: the shell is a QML configuration read by Quickshell, started by
+`zenith-shell.service` as `quickshell -p /usr/share/zenith/shell`, and the binary that runs
+it is Quickshell's, shipped by the package that builds Quickshell. And the shell's own Go
+daemon is `zenithd`, which is what replaced the name in the row above. The name `zenith-shell`
+belongs to the *package* that builds the engine, and the two must not be confused: see
+[the shell](#the-shell).
+
+**Runtime state is not a package file.** The daemon's socket lives at
+`$XDG_STATE_HOME/zenith/shell.sock`, under the user's own state directory. It is not on the
+list because it is not a file a package installs: the daemon creates it at run time, in the
+one place a package must never write to, and it goes away when the session ends. A path that
+exists only while the session does cannot be a registration, and a registration is by
+definition a path that exists on every boot.
 
 `zenith doctor` reports drift between the registrations and the content they point at, the same
 way it reports drift everywhere else.
@@ -131,9 +158,10 @@ Zenith's layers, from bottom up.
 | Base system | Ubuntu packages | Unmodified; Zenith adds only what it needs |
 | Desktop services | Zenith + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
 | Display | Hyprland | Behind a `zenith wm` seam so it can be swapped |
-| Shell surfaces | Quickshell | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts |
+| Shell surfaces | Quickshell, over a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The components are upstream's, at a pinned commit; the theme and the settings binding are Zenith's. See [vendored upstream components](#vendored-upstream-components) |
+| Shell state | `zenithd` | The typed state daemon. One socket, one protocol, one writer of the state document |
 | Settings store | GSettings / dconf | One writer per setting |
-| Control tools | `zenith`, `zenith-shell`, `zenith-hub` | The only writers |
+| Control tools | `zenith`, `zenithd`, `zenith-hub` | The only writers |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk` | See below |
 | Updates | `zenith update` · `rollback` · `doctor` | Overlay model |
 
@@ -267,8 +295,8 @@ introspection — which is exactly what a widget catalogue needs.
 - `org.zenith.desktop` — desktop-level behaviour
 - `org.zenith.shell` — bar layout, dock, widgets, launcher
 
-The shell daemon and `zenith-hub` are the only writers. Hand-editing dconf directly causes drift
-and `zenith doctor` reports it.
+The shell daemon (`zenithd`) and `zenith-hub` are the only writers. Hand-editing dconf
+directly causes drift and `zenith doctor` reports it.
 
 ---
 
@@ -325,9 +353,17 @@ shell toolkit at all — verified rather than assumed: `quickshell`, `ags`, `eww
 `ironbar` are in no component of 26.04. What the archive does carry is *panels* —
 `waybar`, `yambar`, `tint2`, `polybar`, `xfce4-panel` — and a panel is not a
 substitute. A panel draws a bar. Zenith's shell hosts the bar, dock, launcher,
-popouts, widget catalogue, notification server, lock, idle screen, quick settings
+popouts, widget catalogue, notification server, idle screen, quick settings
 and status icons, and the Hub window as well, in one compositor-agnostic toolkit,
 so that the desktop has one UI toolkit and one design system rather than two.
+
+**The engine is what Zenith builds; the surfaces are what Zenith has adopted.** Those are
+two different statements, and the licence depends on the difference, so they are kept apart
+here as well. The engine is Quickshell: the binary, built by Zenith, shipped unmodified,
+**LGPL-3.0-only**. The surfaces are the QML — some of it Zenith's own, and a good part of it
+a vendored upstream component under **GPL-3.0**. The composed shell is GPL-3.0. See
+[vendored upstream components](#vendored-upstream-components) for the component, the pin and
+the three overlay files, and [`LICENSING.md`](../LICENSING.md) for the obligations.
 
 That makes this the recorded exception to the base-layer boundary, and it used to have a
 companion: the terminal, which Zenith also used to build. The terminal is not built any more —
@@ -336,24 +372,52 @@ shell is the only thing in the stack Zenith compiles for itself. It is a comfort
 Quickshell is **LGPL-3.0-only**, and the build needs nothing the archive does not already
 carry — `qt6-declarative-dev`, `qt6-declarative-private-dev`, `qt6-base-private-dev`,
 `qt6-base-dev`, `qt6-wayland`, `ninja-build`, `cmake` and `pkgconf` are all archive
-packages, so there is no vendored blob. Redistribution under LGPL-3 is a matter of
-shipping the licence and the copyright with the binary, which the package does; there is
-no question of deriving from it, because Zenith ships the binary unmodified and links
-nothing of its own into it. The rule the exception sits against is the one in the
-manifest's header: never repackage what the base layer carries. Quickshell is not in the
-base layer, so building it is not a fork.
+packages. Redistribution under LGPL-3 is a matter of shipping the licence and the copyright
+with the binary, which the package does; there is no question of deriving from it, because
+Zenith ships the binary unmodified and links nothing of its own into it. The rule the
+exception sits against is the one in the manifest's header: never repackage what the base
+layer carries. Quickshell is not in the base layer, so building it is not a fork.
 
-`zenith-shell` owns that build, and it is build-only — none of those names enter the
-runtime image, they are what the build needs to produce a package the image installs.
-The manifest's `zenith_built:` key exists so the departure from its own rule is
+**"There is no vendored blob" was true of the engine and false of the shell.** The sentence
+used to end with those words, and it was right about Quickshell and wrong about everything
+the shell draws. There is now a vendored tree of several hundred files under
+`shell/modules/` and `shell/services/`. It is GPL-3.0, it is declared, it is pinned, and it
+is byte-identical to its upstream commit — which is what makes it a dependency Zenith has
+taken rather than a fork Zenith has made. The two departures from the base-layer rule are
+now of different kinds and are recorded separately: one is a binary Zenith compiles, the
+other is source Zenith adopts.
+
+**`zenith-shell` is the build package; `zenithd` is the daemon.** Two things in this project
+were called `zenith-shell`, and they were not the same thing, which is the kind of collision
+that produces a bug report rather than a fix. The name `zenith-shell` belongs to the package
+that builds Quickshell — build-only, and none of those names enter the runtime image; they
+are what the build needs to produce a package the image installs. The shell's own Go daemon
+is `zenithd`, and the shell's own configuration is `/usr/share/zenith/shell/`, read by
+`quickshell -p /usr/share/zenith/shell` from `zenith-shell.service`. From here on the two
+names do not overlap: `zenith-shell` builds an engine, and `zenithd` serves the shell's
+state. The manifest's `zenith_built:` key exists so the departure from its own rule is
 visible in one place rather than implied by a comment, and
 `system/verify-packages.py` checks it in the inverse direction: a `zenith_built:`
 entry that turns up in the archive is a warning, because rebuilding a package the
 base layer now maintains is exactly the fork the rule prevents.
 
-The test matrix question stays open — see [open questions](#open-questions) — and it
-now has more weight than it did, because a shell Zenith builds is a shell Zenith has
-to rebuild when upstream moves.
+The wire protocol the daemon speaks keeps the name `zenith-shell/1`, after the shell it
+serves rather than after the process that implements it. A protocol name that changed with
+its implementation would break every client that had already learned it, and the shell is
+the thing that will still be there when the daemon is replaced.
+
+The test matrix question stays open — see [open questions](#open-questions) — and the
+re-vendoring cost has joined it. A shell Zenith builds is a shell Zenith has to rebuild when
+upstream moves: a new Quickshell release is a new build, a new package version and a new
+binary to put through every kernel and every Hyprland in the matrix. A vendored component is
+a different kind of debt. It is not rebuilt — it is *re-vendored*, which is one command,
+`sh shell/vendor/vendor.sh update ii <commit>`, followed by a sync and a verify. The cost is
+not the move; it is what the move can break. A new upstream commit can rename the properties
+the vendored components read, and the bridges — the palette bridge and the settings bridge
+— are exactly the parts that would notice, because a QML binding to a property that no
+longer exists is a runtime warning and not a load error. So a re-vendor is a *re-theme*
+event as much as a code event, and it has to be checked against the same matrix the engine is
+checked against. That is why the matrix question now covers two things rather than one.
 
 ### Terminal: Ghostty
 
@@ -462,6 +526,225 @@ to `~/.zshrc` is a user's change and survives every update.
 
 Preinstalled Rust tooling, because they are near-universal wins:
 `stable` toolchain, `cargo-edit`, `just`, `sccache`, `mold`, `cargo-nextest`, `ripgrep`, `fd`.
+
+---
+
+## Vendored upstream components
+
+Zenith's shell draws some of its surfaces with a vendored open-source Quickshell
+configuration. The tree is checked in, held byte-identical to a pinned upstream commit, and
+re-themed by three overlay files that Zenith owns. This section is the record: what is
+vendored, what is not, what may be changed, and who owns what.
+
+### What is vendored, and at which commit
+
+| Component | Upstream | Licence | Pinned commit | Vendored as |
+|---|---|---|---|---|
+| The "ii" Quickshell configuration | [`end-4/dots-hyprland`](https://github.com/end-4/dots-hyprland), the `dots/.config/quickshell/ii` directory | GPL-3.0-only | `2f2a376fdb2ad738bf55f693dd0b474b64bb0ab8` | `shell/modules/`, `shell/services/` |
+| The rounded-polygon widget kit | [`end-4/rounded-polygon-qmljs`](https://github.com/end-4/rounded-polygon-qmljs) | Apache-2.0 | `e31ec4cb4ebf6a46b267f5c42eabf6874916fa16` | `shell/modules/common/widgets/shapes/` |
+
+The second is upstream's own submodule, vendored as a component in its own right because
+`MaterialShape.qml` — one of the most used widgets in the kit — imports it.
+
+The manifest at `shell/vendor/manifest.yaml` is the record: per component, the upstream name,
+the URL, the path inside the upstream repository, the pinned commit, the licence, the licence
+file, the copyright line, and a hash for every file. `sh shell/vendor/vendor.sh verify`
+compares the tree against those hashes; a file edited by hand fails it, and nothing else
+would.
+
+### What is not vendored, and why
+
+The vendored tree is a **subset** of upstream's configuration, and the omissions are
+decisions rather than accidents.
+
+| Upstream | Why it is not here |
+|---|---|
+| The shell root — upstream's `shell.qml` | The shell root is Zenith's. Zenith's shell is a different shell that happens to draw some of the same surfaces, and upstream's root wires upstream's panels, upstream's services and upstream's state |
+| The settings window — upstream's `settings.qml` | The settings surface is the Hub, and the Hub is Zenith's |
+| Upstream's `Config.qml` and `Appearance.qml` | Replaced by Zenith's own at the same paths. See [the theme boundary](#the-theme-boundary) |
+| Upstream's `GlobalStates.qml` | Replaced by Zenith's own at the same path, for the same reason and one more |
+| Upstream's assets, defaults, panel families, scripts, translations, welcome screen, kill dialog and reload popup | None of it is Zenith's desktop. Upstream's icons and images are upstream's; Zenith's are its own |
+| Upstream's compositor configuration, including its Hyprland Lua | Zenith owns its own compositor configuration. The vendored tree is a Quickshell configuration and nothing else |
+| Upstream's licence files in place, and its examples | The licence texts are kept under `shell/vendor/` and the examples are not shipped. A file named `LICENSE` inside the tree would be caught by this repository's own licence rule, which is about Zenith's licence. See [licence hygiene](../LICENSING.md#the-rule-for-vendored-licence-files) |
+
+### What is vendored but not taken
+
+The tree carries more than Zenith's shell uses, and the extra is upstream's rather than
+Zenith's. The AI assistant, the booru image service, the weather service, the Google Cloud
+translation and vision services, and upstream's own lock surface with its PAM plumbing are all
+in the tree, byte-identical and listed in the manifest — and none of them is part of Zenith's
+shell.
+
+They are there because removing them would be an edit to the vendored tree, and an edit to the
+vendored tree is exactly what the byte-identical rule forbids. What Zenith does instead is not
+wire them up. The lock is the clearest case: Zenith's lock is `hyprlock`, the shell decides
+*when* to lock and never draws a lock surface, and upstream's lock components are vendored
+because they live upstream's directory and not because Zenith wanted them.
+
+### The byte-identical rule
+
+Every file in the vendored tree is byte-identical to the file at the pinned upstream commit,
+and that is checked rather than asserted.
+
+The reason is the same rule that governs every other shipped file in this project, applied to
+files that are not Zenith's: a shipped file is replaced on update, so a hand edit is destroyed
+by the next sync, cannot be re-vendored from upstream, and makes the manifest — a record of
+what changed — lie.
+
+### The three homes for a change
+
+| Home | What it is | When it is the answer |
+|---|---|---|
+| A **configuration value** | A setting the component reads | The component reads the setting and the setting is what you want to change. Upstream's components read `Config.options.*` for exactly this, and Zenith's bridge answers that shape |
+| An **overlay file** | A Zenith-owned file at the path the component expects | The component's *interface* is the thing that has to change. The palette bridge, the settings bridge and the shell-state bridge are all overlays, because the file is the interface |
+| A **patch** in `shell/vendor/patches/` | A diff applied on top of the pinned tree | The component's behaviour is wrong and no setting reaches it. There is no patch there today, because no change has needed one yet |
+
+### The theme boundary
+
+This is the part worth reading twice, because "strict monochrome" and "the vendored tree is
+byte-identical" look like a contradiction and are not.
+
+**Enforced by configuration.** Everything upstream's components read through `Appearance` is
+Zenith's: the palette, the layer ramp, the rounding, the spacing, the motion curves. A
+component that asks for `Appearance.colors.colPrimary` gets Zenith's monochrome ink; one that
+asks for `Appearance.rounding.normal` gets Zenith's radius scale. The components name
+Material 3 property names, and those names are Zenith's answers.
+
+The bridge is **complete**, and that is a decision rather than tidiness. Upstream's file
+names every colour it uses, so Zenith's does too: a component that reads a name the bridge
+does not have gets `undefined`, and `undefined` assigned to a colour is a binding error in
+the journal — a failure, but a quiet one, on a surface nobody may be looking at. A complete
+set costs one line per name and cannot fail that way.
+
+The vendored files do carry hex literals — thirty-four of them — and twenty-seven are
+fallbacks written as `Appearance?.colors.colPrimary ?? "#65558F"`: the value to use when the
+palette is not there. The palette is always there, because Zenith supplies it, so those
+literals are never the colour that is drawn. Zenith's own overlay carries two more, and both
+are `#000000` — the shadow and the scrim, which are black on a monochrome desktop anyway.
+
+A handful name a colour outright, and that is the finding a strict monochrome rule has to
+record rather than paper over. `DashedBorder.qml` draws `#ffffff`, `RoundCorner.qml` draws
+`#000000`, `SineCookie.qml` draws `#605790`, `ShapeCanvas.qml` draws `#685496`, and
+`LightDarkPreferenceButton.qml` mixes three literals into a hue. Black and white are inside
+the rule. The two Material purples are not, and they are upstream's, in a tree Zenith does
+not edit. That is a patch, or a bridge that overrides them, and until one of those happens
+there are two colours on a desktop that has no colours in it. It is recorded here rather
+than left to be found in a screenshot.
+
+**Enforced by overlay.** Two things could not be reached by configuration, and both are cases
+where the file *is* the interface.
+
+1. *The palette itself.* Upstream's `Appearance.qml` derives its colours from a Material 3
+   scheme and from the wallpaper, through `ColorQuantizer`, `MaterialThemeLoader.qml` and
+   `AdaptedMaterialScheme.qml`, and it reads the wallpaper path out of the configuration.
+   Zenith's design system says the wallpaper does not drive the drawing — the token set is
+   canonical, and the wallpaper palette is a record of what the wallpaper would have said.
+   That cannot be a setting, because the palette is the thing being set. It has to be a file.
+   Hence `shell/modules/common/Appearance.qml`: a monochrome token bridge that answers
+   upstream's property names with Zenith's tokens.
+2. *The settings store.* Upstream's `Config.qml` is a JSON store — a `JsonAdapter` over a
+   file in the shell's own configuration directory, written by the shell itself. Zenith's
+   settings live in GSettings and are written by one tool. That cannot be a setting either:
+   the store is the thing being replaced. Hence `shell/modules/common/Config.qml`: a
+   GSettings-backed bridge that exposes upstream's `options.*` shape.
+
+And a third overlay, which is not a theme question at all: `shell/GlobalStates.qml`.
+Upstream keeps its open-surface flags in a singleton at the shell root, and the vendored
+components read it — the bar asks whether the overview is open before it draws itself over
+it, the dock asks whether the screen is locked before it hides. Upstream's own file is not
+vendored for two reasons: it is upstream's shell root, and the shell root is Zenith's; and it
+imports the whole service graph, which closes a cycle through the `modules/` directory — the
+services reach back into the modules, and the modules reach back into the root. So Zenith
+supplies its own at the same path, carrying the same flags.
+
+The three overlays are therefore the entire re-theme and the entire re-bind.
+
+### The settings binding
+
+The chain is four links, and it has one writer.
+
+```
+org.zenith.shell  →  the settings bridge  →  upstream's Config.options.*  →  the surface
+```
+
+- The **store** is `org.zenith.shell`, with `org.zenith.desktop` beside it.
+- The **bridge** is `shell/modules/common/Config.qml`: it answers upstream's `options.*`
+  shape from the store, so a vendored component asks for a setting the way upstream taught it
+  to and gets Zenith's value.
+- The **surface** binds to the property and redraws. It never writes.
+- The **writer** is `zenithd` or `zenith-hub`, and only those two. A vendored component
+  binds; it does not write. A write goes through `zenith config set`, which validates the
+  value against the schema's type, range and enum before it is stored — because a value that
+  is well-formed GVariant and outside a declared range is accepted by GSettings, committed to
+  dconf, and then read by a surface that does something nobody asked for.
+
+One writer per setting is what stops a component written by somebody else from becoming a
+second writer in the middle of a desktop.
+
+The settings bridge is **deliberately partial**, and the partiality is the point. Upstream's
+file carries three hundred and seventy-nine options, most of them for surfaces Zenith does
+not adopt — an assistant's model, an image viewer's tags, a cheatsheet's keybindings — and
+those are not missing by oversight: an option for a surface that does not exist is a setting
+nobody can act on. What the bridge carries is what a component would read to draw. When one
+of those surfaces is adopted, its options are added to the bridge and bound to the settings
+the desktop keeps.
+
+### The licence position
+
+The engine is LGPL-3.0-only and shipped unmodified. The surfaces are GPL-3.0, because the
+"ii" component is GPL-3.0-only and the composed shell is a modified work of it. The shapes kit
+is Apache-2.0 and is not modified at all. The obligations, the section-by-section map and the
+corresponding-source argument are in
+[`LICENSING.md`](../LICENSING.md#the-vendored-components); what matters architecturally is the
+consequence: **the corresponding source of the composed shell is this repository**, because the
+vendored tree is byte-identical and the overlays are in it. A fork would have made the
+corresponding source a diff. Keeping the tree pristine makes it a checkout.
+
+### Re-vendoring, and what it costs
+
+The procedure is one command and a check:
+
+```sh
+sh shell/vendor/vendor.sh update ii 2f2a376fdb2ad738bf55f693dd0b474b64bb0ab8
+sh shell/vendor/vendor.sh verify
+```
+
+`update` moves the pin and re-syncs; `verify` is the check that the tree is byte-identical to
+the new pin.
+
+The cost is not the move. A vendored tree is not a fork, so there is no merge to reconcile:
+the new commit's files land, and Zenith's changes — the three overlays — land on top of them.
+The cost is that **the bridges are the contract, and nothing checks the contract.** The
+shell's own QML is checked against the schema and against the engine; the vendored QML is
+exempt from linting, because it is upstream's. So a commit that renames
+`Appearance.colors.colPrimary`, or renames a key in `Config.options`, breaks every component
+that reads it — silently, at run time, with a warning in the shell's log that nobody reads.
+
+Which is why a re-vendor is a re-theme event and not only a code event, and why it has to be
+checked against the same matrix as the engine: read the manifest's diff, read the two bridges
+against the new property names, and load the shell. The three overlays are the only three
+files a re-vendor can break, and they are the three files a re-vendor has to be reviewed
+against.
+
+### Who owns what, capability by capability
+
+| Capability | Owner | Why |
+|---|---|---|
+| The notification server | **Zenith** | `org.freedesktop.Notifications` is a session-scoped bus name and no daemon in the image holds it, so the shell draws it and hosts the server |
+| The lock screen | **Zenith** owns when; `hyprlock` does the locking | The shell owns *when* locking happens — `org.zenith.desktop`'s `idle-*` keys — and the locker owns the surface and the PAM conversation. A shell-drawn lock screen cannot authenticate against PAM |
+| The idle policy | **Zenith** | The timeouts live in `org.zenith.desktop`, and `zenithd` and `zenith-hub` are their only writers |
+| The keybind catalogue | **Zenith** | `session/binds.json`, installed at `/usr/share/zenith/session/binds.json`, checked in both directions against the compositor's configuration by `zenith doctor` |
+| The Hub | **Zenith** | The settings application: a navigation rail and a page per page in the registry. It draws pages it did not write — `zenith config export` hands it the navigation, the keys, their types, their permitted values, their ranges and their current values — and every control writes through `zenith config set`, never through GSettings. Its chrome is the vendored kit's, from the same tree the desktop shell is built from, so both windows are one design system |
+| The wallpaper | **Zenith** | `org.zenith.shell`'s `wallpaper-path` and `wallpaper-path-dark`, drawn by the shell's own surface |
+| The palette, the settings binding, the shell's own state | **Zenith** | The three overlays, at upstream's paths |
+| The bar, the dock, the launcher and the popover surfaces | **upstream** | The components, byte-identical to the pinned commit |
+| The overview, the media controls, the on-screen display, the cheatsheet | **upstream** | The components, byte-identical to the pinned commit |
+| The vertical bar, the background, the rounded-polygon widget kit | **upstream** | The components, byte-identical to the pinned commit |
+| The service graph — audio, network, bluetooth, battery, media, tray | **upstream** | The components, byte-identical to the pinned commit |
+
+A row says who owns the *capability*, not who draws the pixels. Zenith's own shell root hosts
+the vendored components and wires them together; upstream wrote the components, and Zenith
+owns the desktop they appear on.
 
 ---
 
@@ -696,6 +979,33 @@ neighbourhood as the correct ones, and neither of them a Font Awesome 4.7 glyph.
 A codepoint a font does not contain renders as a hollow box: no error, nothing in
 the log, and a status area that reads as decorative rather than broken.
 
+**The vendored components expect a font the base layer does not carry.** This is the one
+place where the vendored tree's expectations and the base layer's inventory do not meet, and
+it is worth stating plainly rather than leaving to be discovered.
+
+Upstream names its icons the Material Symbols way — `battery_android_full`,
+`signal_wifi_4_bar`, `headphones` — and draws them through a `MaterialSymbol` widget that
+asks for the "Material Symbols Rounded" family. No component of 26.04 provides that family.
+The archive does carry two material icon packages —
+`fonts-material-design-icons-iconfont` and `fonts-materialdesignicons-webfont` — and
+neither is the Material Symbols family the components ask for. Zenith does not add one: the
+archive's Font Awesome 4.7 and Powerline are what the desktop draws with, and the argument
+for taking a font from the archive rather than shipping one applies to a vendored component
+exactly as it applies to Zenith's own surfaces.
+
+The consequence is not that the icons look different. It is that they do not resolve. A
+Material Symbols *name* is a ligature, and Font Awesome 4.7 is a codepoint font with no
+ligatures at all — so `battery_android_full` has nothing behind it in the font Zenith
+carries, and the shell's own `Icons.qml` is the only place a codepoint may be declared.
+A vendored icon name that has no entry in that map is a hollow box, in exactly the way the
+U+F8FF draft was, and for the same reason: the font does not contain the glyph.
+
+Which makes it a finding about the component rather than a licence to add a font. Upstream's
+icon names are upstream's, the desktop's font is Zenith's, and they do not match. What
+resolves it is a mapping from upstream's names onto the codepoints the desktop already has,
+and that mapping belongs in the bridge — the same place the palette and the settings are
+bridged — rather than in the component.
+
 **Why Weston and not the Xorg server.** The obvious alternative was keeping `xorg-server` in the
 image purely so the greeter could draw on it. That keeps a display server Zenith otherwise has
 no use for, adds an X11 login path whose failure modes nobody would be watching, and means the
@@ -704,10 +1014,13 @@ nothing afterwards. `modetest` reads each connector's modes without holding DRM 
 runs before Weston takes the card; any uncertainty — no `modetest`, nothing connected, an empty
 parse — falls back to plain Weston, so **the greeter always comes up.**
 
-This is a working answer, not a theory: Ryoku ships exactly this chain and it is the reason
-this question is closed rather than open. Zenith's copy must be its own — a `zenith-greeter`
-wrapper and a Zenith-drawn login surface, under a drop-in in `/etc/sddm.conf.d/` — because a
-shipped file is never edited in place.
+This is a working answer, not a theory, and the reason it is closed rather than open is
+technical rather than rhetorical. SDDM's Wayland greeter mode needs a compositor to hold the
+login surface, the base layer carries one, and the only question left was who hosts it. A
+kiosk Weston is a process that starts at login and exits at logout, it needs no session, and
+it lets the login surface be drawn by the same toolkit the desktop is drawn by. Zenith's copy
+must be its own — a `zenith-greeter` wrapper and a Zenith-drawn login surface, under a
+drop-in in `/etc/sddm.conf.d/` — because a shipped file is never edited in place.
 
 ---
 
@@ -802,43 +1115,39 @@ just in is `0` and **lower is more recent**. Sorting descending — the obvious
 thing — is least-recently-used, and looks correct until you press it twice. `-1`
 means never focused and is pushed to the end rather than the front.
 
-## Why the sidebar polls instead of subscribing
+## Why the shell subscribes to a daemon
 
 `zenith state` probes five command-line tools and the sidebar redraws from its JSON.
 Every other widget in the shell reads a Quickshell service singleton instead —
 `PulseAudio.sinks` in `Widgets/Volume.qml`, `NetworkManager.status` in
 `Widgets/Network.qml`, `Hyprland.workspaces` in `Widgets/Workspaces.qml`. Those are
-event-driven and they push changes; this pulls and re-runs five subprocesses every
+event-driven and they push changes; this pulled and re-ran five subprocesses every
 two seconds.
 
-That is a real cost and it is worth being honest about why it is the wrong shape.
+It does not any more. `zenithd` is a streaming Go daemon that speaks `zenith-shell/1` —
+newline-delimited JSON over a Unix socket at `$XDG_STATE_HOME/zenith/shell.sock` — and the
+shell subscribes to it. The daemon runs the same collectors the sidebar used to run, on a
+schedule the daemon owns, and pushes a state document when something changes. The two-second
+timer is gone, and so is the shape of the problem it was papering over.
 
-The shell already assumes Quickshell exposes event-driven services for exactly
-these subsystems, so `zenith state` is plausibly redundant work for audio and
-network. It is not redundant today for three reasons, and the first two may stop
-being true:
+The argument underneath the change is the one that was already true and is still true:
 
-1. **Nothing here can verify the alternative.** Quickshell is built by this project
-   and is installed on no machine available to it. Every QML file in the shell is
-   structurally checked and never executed, and choosing an API surface that
-   cannot be called once over one that has just been called successfully against
-   real hardware is the wrong way round.
-2. **The parsing is the part that is hard, and it is tested.** `wpctl` reports a
+1. **The parsing is the part that is hard, and it is tested.** `wpctl` reports a
    volume of `1.53` and does not clamp it. `nmcli -g` escapes a literal colon as
    `\:` and a bluetooth device's MAC comes back as `CC\:42\:10\:65\:BE\:FB`.
    `bluetoothctl` exits 0 while printing an error, and blocks forever when
    `bluetoothd` is down. Those are tests over real captured output, and they
    would have to be written again against an unverified API.
-3. **It is not only a shell feature.** `zenith state` is a command. It is useful at
-   a terminal, in a script, and to anything that is not Quickshell.
+2. **The parsing stays in Go.** A daemon is not a licence to move the parsers into QML. The
+   collectors and their fixtures are the same code the CLI uses, and the shell reads a
+   document rather than interpreting a tool's output.
+3. **`zenith state` survives as the CLI** over the same collectors. It is a command, it is
+   useful at a terminal, in a script, and to anything that is not Quickshell, and it is now
+   a query against the daemon's own code rather than a second implementation of it.
 
-If Quickshell turns out to expose audio, network, bluetooth, display and media as
-services, the honest end state is that the shell subscribes to them and
-`desktopstate` survives as the CLI and the tests. What should not happen is the
-other migration — hand-written QML parsing to avoid running a tested binary.
-
-The polling is bounded where it can be: the timer only runs while the panel is
-open, so a closed sidebar costs nothing.
+What should not happen is the other migration — hand-written QML parsing to avoid running a
+tested binary, in either direction. The daemon is where the tested code lives; the shell is
+where the document is drawn.
 
 ## Open questions
 

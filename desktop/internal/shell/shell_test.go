@@ -403,6 +403,44 @@ func TestUnknownImportIsFound(t *testing.T) {
 	}
 }
 
+// TestAnAliasedImportIsFound covers the form of an import the rule used to
+// be blind to.
+//
+// An import can be given a name — `import SomeUserModule as Whatever` — and
+// the rule used to match only the lines that ended after the module. So the
+// one spelling of an import that brought in a module the machine happened
+// to have was the one the rule could not see.
+func TestAnAliasedImportIsFound(t *testing.T) {
+	files := goodShell()
+	files["Widgets/Clock.qml"] = "import Quickshell\nimport SomeUserModule as Whatever\nItem {}\n"
+
+	findings := Check(treeEnv(t, files))
+	if !hasRule(findings, "import") {
+		t.Errorf("an aliased import outside the closed list was not found: %v",
+			rules(findings))
+	}
+}
+
+// TestTheShellsOwnNamespaceIsAllowed covers the one namespace the closed
+// list does not have to name.
+//
+// The shell's root is importable as `qs`, and the vendored component kit
+// lives inside it. Those are this project's own modules, pinned to a
+// commit and shipped by this project, so nothing a user installed provides
+// them — which is the thing the closed list is for.
+func TestTheShellsOwnNamespaceIsAllowed(t *testing.T) {
+	files := goodShell()
+	files["Widgets/Clock.qml"] = "import Quickshell\nimport qs\n" +
+		"import qs.modules.common as Kit\nimport qs.modules.common.widgets\nItem {}\n"
+
+	for _, f := range Check(treeEnv(t, files)) {
+		if f.Rule == "import" {
+			t.Errorf("the shell's own namespace was reported against the "+
+				"closed list: %s", f)
+		}
+	}
+}
+
 // TestMalformedSchemaIsReported covers a schema that will not compile.
 //
 // glib-compile-schemas is the real check, and it is not available here. A parse
@@ -693,16 +731,23 @@ func TestEscapeCodepointsAreInRange(t *testing.T) {
 	}
 }
 
-// TestTheHubsOwnTreePasses runs the same checks over the Hub's window.
+// TestTheHubsEntryPointIsInTheTree covers the one claim the shell's pass cannot.
 //
-// It is a separate test rather than an extra case in the shell's, because the
-// two windows are checked differently on purpose. The desktop shell owns the
-// schemas and is checked against them; the Hub renders what `zenith config
-// export` hands it and reads no schema, so the shell's settings checks over it
-// would report every property only the shell uses as an unused setting — a true
-// statement about the wrong tree, which is the most expensive kind of finding.
-func TestTheHubsOwnTreePasses(t *testing.T) {
-	env := Env{Root: "../../..", Dir: "shell/hub", EntryPoint: "hub.qml"}
+// Both windows live in one directory. The Hub is drawn with the same component
+// kit as the desktop, and the kit's files reach each other through `qs.modules.*`
+// — imports that only resolve when the configuration's root is the directory
+// both entry files are in. So there is no second tree, the shell's pass already
+// covers every file the Hub draws, and the reason the windows used to be checked
+// apart is gone: the Hub reads no schema, and the shell's settings checks are
+// about `Config.qml`, which no Hub file is.
+//
+// What the shell's pass cannot see is that `hub.qml` is still the file at the top
+// of the tree. The entry point it looks for is `shell.qml`, and `zenith-hub`
+// names the Hub's path rather than the tree's — a rename would leave the settings
+// window starting a file that is not there, with nothing in this package naming
+// the path it used to have.
+func TestTheHubsEntryPointIsInTheTree(t *testing.T) {
+	env := Env{Root: "../../..", Dir: "shell", EntryPoint: "hub.qml"}
 
 	findings := Check(env)
 	if len(findings) != 0 {
@@ -715,8 +760,9 @@ func TestTheHubsOwnTreePasses(t *testing.T) {
 // TestTheEntryPointIsNotDefaulted covers the reason EntryPoint is not optional.
 //
 // A default would let one window silently pass another's check: with "shell.qml"
-// as a default, the Hub tree would be checked for a file it does not have and
-// every run would report the same missing entry point.
+// as a default, a tree whose own entry file is named something else is checked
+// against a file that may well be there — the desktop's — and passes as if the
+// window it was asked about had been checked.
 func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 	files := goodShell()
 	delete(files, "shell.qml")
@@ -1086,12 +1132,48 @@ func TestPropertyAssignmentCheck(t *testing.T) {
 			want: 0,
 		},
 		{
+			// A property declared inside a nested object belongs to that
+			// object, and the rule used to read it as the outer object's: a
+			// write to the window's own `currentPage` looked like a write
+			// to a readonly property, because a page view inside the window
+			// declared a readonly property of the same name.
+			name: "a property declared in a nested object",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: window\n" +
+					"property int currentPage: 0\n" +
+					"PageView {\n" +
+					"  id: page\n" +
+					"  readonly property var currentPage: window.currentPage\n" +
+					"}\n" +
+					"function go(index) { window.currentPage = index }\n" +
+					"}\n",
+			},
+			want: 0,
+		},
+		{
 			name: "assigning to a writable property of this file",
 			files: map[string]string{
 				"shell.qml": "import Quickshell\nSingleton {\n" +
 					"id: palette\n" +
 					"property string background: \"#15171a\"\n" +
 					"function apply(doc) { palette.background = doc.background }\n" +
+					"}\n",
+			},
+			want: 0,
+		},
+		{
+			// A name bound inside a function is not a write to the property
+			// that happens to have the same name, and the rule used to
+			// report it: `const items = control.items` was read as an
+			// assignment to a readonly property, and the reader was sent
+			// looking for a write that was not there.
+			name: "declaring a local that shares a name with a readonly property",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"readonly property var items: []\n" +
+					"function apply(doc) { const items = doc.items }\n" +
 					"}\n",
 			},
 			want: 0,

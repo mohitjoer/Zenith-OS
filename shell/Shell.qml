@@ -222,7 +222,7 @@ Item {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 text: line.modelData.label
-                color: Theme.textDim
+                color: Theme.inkSecondary
                 font.pixelSize: 11
                 font.letterSpacing: 0.6
             }
@@ -235,7 +235,7 @@ Item {
                 anchors.rightMargin: Theme.space3
                 anchors.verticalCenter: caps.verticalCenter
                 text: line.modelData.label
-                color: Theme.text
+                color: Theme.inkPrimary
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }

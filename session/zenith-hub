@@ -2,9 +2,16 @@
 # The settings application.
 #
 # A wrapper rather than a binary because there is nothing to wrap that is not
-# Quickshell: `quickshell -p` on the Hub's directory is the whole program, and a
+# Quickshell: `quickshell -p` on the Hub's entry file is the whole program, and a
 # Go binary that did one exec and exited would be a second name to keep in step
-# with a directory path.
+# with a file path.
+#
+# The entry file is the one at the shell's root and not a file of its own under
+# it, because a Quickshell configuration's root is the directory of the file it
+# is started on. The Hub is drawn with the same component kit as the desktop,
+# and that kit reaches itself through `qs.modules.*`; a Hub started on
+# `shell/hub/shell.qml` would have `shell/hub/` as its root, where those imports
+# name nothing.
 #
 # It is not a systemd unit. The Hub is a window the user opens; making it a unit
 # would mean it starts at login whether or not anyone is going to look at it.
@@ -12,7 +19,7 @@ set -eu
 
 PREFIX=/usr/share/zenith
 QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
-HUB_DIR="$PREFIX/hub"
+HUB_ENTRY="$PREFIX/shell/hub.qml"
 
 # The same wrapper pattern as the greeter: a missing quickshell is the package
 # build's problem and is stated, rather than being a shell error about an
@@ -35,4 +42,4 @@ fi
 # Keep this equal to settingsDir in desktop/cmd/zenith/config.go.
 export ZENITH_SCHEMA_DIR="${ZENITH_SCHEMA_DIR:-/usr/share/glib-2.0/schemas}"
 
-exec "$QUICKSHELL_BIN" -p "$HUB_DIR"
+exec "$QUICKSHELL_BIN" -p "$HUB_ENTRY"

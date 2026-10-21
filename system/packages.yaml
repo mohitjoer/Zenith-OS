@@ -311,9 +311,77 @@ desktop:
     # QtQuick module installed cannot resolve it — the shell starts and every
     # window in it fails to construct. The controls and layouts modules are what
     # quickshell's own shipped module imports.
+    #
+    # The controls module also carries the Material style. Verified against the
+    # archive's own file list rather than against its name:
+    # `qml6-module-qtquick-controls` ships Basic, Fusion, Imagine, Material and
+    # Universal, so `QtQuick.Controls.Material` — imported by three vendored
+    # files — is covered by an entry that is already here.
     - qml6-module-qtquick
     - qml6-module-qtquick-controls
     - qml6-module-qtquick-layouts
+
+    # The QML modules the vendored component tree imports.
+    #
+    # The tree is end-4's "ii" Quickshell config, vendored under shell/modules
+    # and shell/services and loaded as part of the shell rather than beside it.
+    # A module it imports and the image does not carry is a module that fails to
+    # resolve at load time, which in QML is a component that never constructs:
+    # the widget is simply absent and nothing says why.
+    #
+    # Every entry below was measured against the file list in
+    # shell/vendor/manifest.yaml rather than assumed, and the count in its
+    # comment is the number of vendored files that import the module. Versions
+    # are the archive's own, resolved at image-build time; every one of these is
+    # in `universe`, and none of them is in `main`.
+    #
+    # The rule for this list is that every module the tree imports is named
+    # here, whether or not something else already drags it in transitively:
+    # `qml6-module-qtquick-shapes` is a dependency of the controls module above
+    # and is named anyway, because this list says what the shell needs and not
+    # what apt happens to resolve.
+    #
+    # QtQuick.Effects — MultiEffect and OpacityMask. Nine vendored files.
+    - qml6-module-qtquick-effects
+    #
+    # QtQuick.Shapes — Shape, ShapePath, PathAngleArc. Five vendored files.
+    - qml6-module-qtquick-shapes
+    #
+    # Qt5Compat.GraphicalEffects — the pre-6 effects the tree still draws with:
+    # OpacityMask, Gradient, DropShadow, Desaturate, ColorOverlay,
+    # RadialGradient, GaussianBlur. Thirty-one vendored files, which makes it
+    # the most-used module in the tree by an order of magnitude.
+    - qml6-module-qt5compat-graphicaleffects
+    #
+    # Qt.labs.synchronizer — Synchronizer, which keeps two bindings on one
+    # property from fighting each other. Four vendored files.
+    - qml6-module-qt-labs-synchronizer
+    #
+    # Qt.labs.folderlistmodel — FolderListModel. Three vendored files.
+    - qml6-module-qt-labs-folderlistmodel
+
+    # Two more modules the vendored tree imports, which nothing above brings in
+    # with it. Verified against the archive's own dependency fields: neither
+    # `qml6-module-qtcore` nor `qml6-module-qtpositioning` is a dependency of
+    # any module already installed here, so leaning on a transitive dependency
+    # would be leaning on how Qt happens to be packaged rather than on
+    # anything the image declares.
+    #
+    # QtCore — StandardPaths, which is how the tree finds the XDG directories
+    # it reads. One vendored file.
+    - qml6-module-qtcore
+    #
+    # QtPositioning — PositionSource, which is how the weather service finds the
+    # machine's coordinates. One vendored file. It carries
+    # libqt6positioning6-plugins and nothing else that is not already here: no
+    # GNOME component and no KDE one.
+    - qml6-module-qtpositioning
+
+    # Three modules the tree does not import, recorded so that nobody adds them
+    # on a hunch. QtQuick.Window and QtQuick.Templates are dependencies of
+    # `qml6-module-qtquick-controls` above and are on the image with it.
+    # QtQuick.Dialogs is imported by nothing here: the tree's dialogs are its
+    # own widgets, not the platform's.
 
     # The GTK 4 and libadwaita runtimes. Zenith's own UI is Quickshell, not GTK —
     # but third-party GTK 4 applications are on the desktop and will not start
@@ -486,6 +554,20 @@ desktop:
     "*-desktop": >-
       Any other desktop environment's metapackage. One compositor, one shell,
       one session. A second one is not a feature, it is a second answer.
+    # KDE Frameworks 6, for the one vendored widget that upstream drew with
+    # them. The vendored tree's application icon is a `Kirigami.Icon`, and the
+    # archive's answer to that single widget is the whole framework: the
+    # dependency closure of `qml6-module-org-kde-kirigami` is a hundred and
+    # seventy packages and about three hundred and sixty megabytes, thirteen of
+    # them KF6 libraries. Zenith's own two-property icon widget stands in at
+    # upstream's path instead, so the import leaves the tree rather than the
+    # framework arriving on the image.
+    "qml6-module-org-kde-kirigami*": >-
+      A KDE Frameworks 6 application framework, for one widget that has a
+      two-property replacement. What breaks without it is one icon, and the icon
+      is replaced: pulling the framework in would put a hundred and seventy
+      packages and three hundred and sixty megabytes on a desktop whose manifest
+      deliberately excludes KDE.
 
 # ---------------------------------------------------------------------------
 # session
@@ -1059,6 +1141,30 @@ fonts-and-icons:
     # it. A codepoint the font does not have renders as a box, and nothing on the
     # machine says so.
     - fonts-font-awesome
+
+    # The Material Symbols font is the other half of that decision, and it is
+    # not in the archive.
+    #
+    # The vendored tree's icon widget asks for the family "Material Symbols
+    # Rounded" — a variable font with FILL and opsz axes — and draws its icons
+    # as ligature names ("battery_android_full", "signal_wifi_4_bar"), which is
+    # a font whose glyphs are reached by spelling the name out. The whole
+    # archive was enumerated for it: the only two "material" font packages 26.04
+    # carries are `fonts-material-design-icons-iconfont` and
+    # `fonts-materialdesignicons-webfont`, and both were extracted and read.
+    # They are family "Material Icons" and family "Material Design Icons",
+    # both static, neither with an fvar table — so neither has a FILL axis and
+    # neither has the codepoints the tree asks for. There is no
+    # `fonts-material-symbols` in any component of 26.04, and the archive's only
+    # variable fonts are Inter, Mikhak and Sahel, which are text faces.
+    #
+    # So the icon font on a Zenith machine is Font Awesome 4.7 and the
+    # powerline separators, and that is the end of it. The same rule that keeps
+    # the Nerd Font out of the image keeps Material Symbols out of it: Zenith
+    # does not become the distributor of a font blob, and the archive does not
+    # carry this one. A shell that wants the tree's ligature icons is asking for
+    # a font Zenith does not ship, and the honest answer is that the icons on
+    # the image are the ones the image can draw.
 
     # Powerline separators for the bar. 26 KB, one dependency, and it is the
     # only one of the archive's fonts that is specifically a set of separators

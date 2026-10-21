@@ -1,12 +1,28 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Zenith OS
 Source: https://github.com/mohitjoer/Zenith-OS
+Comment:
+ This package ships three kinds of work, and they are attributed separately
+ below.
+ .
+ Zenith's own code — the control tool, the session, and the Quickshell
+ configuration Zenith writes — is GPL-3.0-or-later.
+ .
+ The shell's configuration is a vendored copy of two upstream components,
+ redistributed unmodified and each pinned to a commit: end-4's "ii"
+ configuration (GPL-3.0-only) and the rounded-polygon-qmljs submodule it
+ carries (Apache-2.0). Every vendored file is byte-identical to the commit
+ named above, and `zenith doctor` checks the installed tree against
+ /usr/share/zenith/shell/vendor/manifest.yaml, which records the pins, the
+ licence and the copyright line of each component. The same facts are written
+ out for a reader in /usr/share/doc/zenith/vendor-manifest.md.
+ .
+ The SPDX identifiers of the licences used here are GPL-3.0-or-later, GPL-3.0-only
+ and Apache-2.0.
 
 Files: *
 Copyright: 2026 the Zenith OS contributors
-License: GPL-3.0-or-later
-
-License: GPL-3.0-or-later
+License: GPL-3+
  This program is free software: you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software
  Foundation, either version 3 of the License, or (at your option) any later
@@ -17,4 +33,45 @@ License: GPL-3.0-or-later
  PARTICULAR PURPOSE. See the GNU General Public License for more details.
  .
  On Debian systems, the complete text of the GNU General Public License version
- 3 can be found in "/usr/share/common-licenses/GPL-3".
+ 3 can be found in "/usr/share/common-licenses/GPL-3". It is also shipped with
+ this package, in "/usr/share/doc/zenith/GPL-3".
+
+Files:
+ usr/share/zenith/shell/modules/*
+ usr/share/zenith/shell/services/*
+ usr/share/zenith/shell/vendor/COPYING
+Copyright: Copyright (C) the end-4/dots-hyprland contributors
+License: GPL-3
+ The vendored "ii" component is licensed under the GNU General Public License,
+ version 3 only. The complete text of the licence is shipped with this package
+ in "/usr/share/doc/zenith/GPL-3" and, on Debian systems, can be found in
+ "/usr/share/common-licenses/GPL-3".
+
+Files:
+ usr/share/zenith/shell/modules/common/widgets/shapes/*
+ usr/share/zenith/shell/vendor/LICENSE.apache-2.0
+Copyright: Copyright the end-4/rounded-polygon-qmljs contributors
+License: Apache-2.0
+ The vendored "shapes" component is licensed under the Apache License, version
+ 2.0. The complete text of the licence is shipped with this package in
+ "/usr/share/doc/zenith/Apache-2.0" and, on Debian systems, can be found in
+ "/usr/share/common-licenses/Apache-2.0".
+
+Files:
+ usr/share/zenith/shell/modules/common/Appearance.qml
+ usr/share/zenith/shell/modules/common/Config.qml
+ usr/share/zenith/shell/modules/common/widgets/AppIcon.qml
+Copyright: 2026 the Zenith OS contributors
+License: GPL-3+
+ These three files sit at the paths the vendored component uses for its own
+ palette, its own settings and one of its widgets, and they are Zenith's, not
+ upstream's: Zenith supplies them so the vendored components read Zenith's
+ colours and Zenith's settings without a vendored file being edited. The third
+ is an application icon drawn with Quickshell's own image type, because
+ upstream's is a KDE Frameworks widget and this desktop does not carry KDE
+ Frameworks for one icon.
+ .
+ This paragraph is last because the format resolves a file to the last
+ paragraph that matches it, and the paragraph above matches these two paths
+ as well. A paragraph that is meant to override another one has to come after
+ it.

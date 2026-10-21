@@ -16,6 +16,11 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
+// The vendored component kit. The sidebar's surface, its text and its layers
+// are the kit's, so a change to how a surface step looks reaches this panel
+// without this panel being edited.
+import qs.modules.common as Kit
+import qs.modules.common.widgets
 
 PanelWindow {
     id: sidebar
@@ -27,24 +32,24 @@ PanelWindow {
     // They are members of this object because `component` is a member keyword:
     // an inline component declared at file scope is a syntax error, which is
     // what this was before the shell had ever been run by an engine.
-    component SectionTitle: Text {
-        color: Theme.textDim
-        font.pixelSize: 11
+    component SectionTitle: StyledText {
+        color: Kit.Appearance.colors.colOnSurfaceVariant
+        font.pixelSize: Theme.typeCaptionSize
         font.capitalization: Font.AllUppercase
         font.letterSpacing: 1.2
     }
 
-    component Dim: Text {
-        color: Theme.textDim
+    component Dim: StyledText {
+        color: Kit.Appearance.colors.colOnSurfaceVariant
         font.pixelSize: 12
         width: parent ? parent.width : 0
         elide: Text.ElideRight
     }
 
-    component Glyph: Text {
+    component Glyph: StyledText {
         font.family: Icons.iconFamily
         font.pixelSize: 13
-        color: Theme.text
+        color: Kit.Appearance.m3colors.m3onBackground
     }
 
     // A hidden section collapses rather than showing an empty header. A sidebar
@@ -72,10 +77,10 @@ PanelWindow {
         spacing: 8
 
         Glyph { text: parent.icon }
-        Text {
+        StyledText {
             anchors.verticalCenter: parent.verticalCenter
             text: parent.value
-            color: Theme.text
+            color: Kit.Appearance.m3colors.m3onBackground
             font.pixelSize: 13
         }
     }
@@ -88,7 +93,7 @@ PanelWindow {
 
     anchors { top: true; right: true }
 
-    color: Theme.background
+    color: Theme.canvas
     exclusionMode: ExclusionMode.Ignore
 
     // Polled, not watched, because there is nothing to watch: none of these five
@@ -136,14 +141,14 @@ PanelWindow {
 
     onVisibleChanged: sidebar.refreshToken = Date.now()
 
-    Rectangle {
+    StyledRectangle {
         anchors.fill: parent
-        color: Theme.surface
+        contentLayer: StyledRectangle.ContentLayer.Pane
 
         Rectangle {
             anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
             width: 1
-            color: Theme.border
+            color: Theme.lineDivider
         }
 
         Flickable {
@@ -197,16 +202,17 @@ PanelWindow {
                             width: parent.width
                             spacing: 8
 
-                            Text {
+                            StyledText {
                                 width: 92
                                 text: modelData.name
-                                color: Theme.textDim
+                                color: Kit.Appearance.colors.colOnSurfaceVariant
                                 font.pixelSize: 12
                             }
-                            Text {
+                            StyledText {
                                 text: modelData.state
                                 color: modelData.state.indexOf("connected") === 0
-                                    ? Theme.text : Theme.textDim
+                                    ? Kit.Appearance.m3colors.m3onBackground
+                                    : Kit.Appearance.colors.colOnSurfaceVariant
                                 font.pixelSize: 12
                             }
                         }

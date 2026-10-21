@@ -108,18 +108,81 @@ mkdir -p "$STAGE/usr/share/zenith/shell/Widgets"
 cp "$REPO_ROOT/shell/"*.qml "$STAGE/usr/share/zenith/shell/"
 cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
 
+# The vendored upstream tree.
+#
+# Two components, each pinned to a commit, each byte-identical to upstream, and
+# none of them edited in place. The whole tree ships, not only the files at the
+# shell's root: the vendored components import each other through the shell
+# root's own `modules/` and `services/` directories, so a package that shipped
+# only the top-level QML would install a shell whose every import fails to
+# resolve — a shell that starts and then renders nothing, with nothing in the
+# journal saying why.
+#
+# Zenith's own files are in the tree too, at the paths upstream uses for them.
+# `modules/common/Appearance.qml` and `modules/common/Config.qml` are Zenith's
+# palette and Zenith's settings, and they are the whole of the re-theme: the
+# vendored components read Zenith's colours and Zenith's settings because they
+# are told to, and not one vendored file is changed to do it. They are copied
+# with everything else, which is the only way they can be — upstream names them
+# by path, so they have to be at it.
+mkdir -p "$STAGE/usr/share/zenith/shell/modules" \
+         "$STAGE/usr/share/zenith/shell/services" \
+         "$STAGE/usr/share/zenith/shell/vendor"
+cp -R "$REPO_ROOT/shell/modules/." "$STAGE/usr/share/zenith/shell/modules/"
+cp -R "$REPO_ROOT/shell/services/." "$STAGE/usr/share/zenith/shell/services/"
+
+# The manifest, and the licences.
+#
+# The manifest is the list of what the vendored tree consists of: every file,
+# and the hash of its bytes. `zenith doctor` checks the installed tree against
+# it, so it ships with the tree — a check that reads a file the package does
+# not install is a check that reads nothing, and the doctor would report a
+# missing manifest on a machine where the manifest is sitting in the checkout
+# and was simply never packaged.
+#
+# The licences travel with the code they cover. GPL-3.0 section 4 asks for a
+# copy of the licence with the work, and the Apache licence asks for its own
+# text, so both texts are installed beside the tree.
+#
+# `vendor.sh` is not installed, and that is a decision rather than an
+# omission. It is the tool that syncs the tree from upstream: it clones over
+# the network, it needs git, and it writes into a checkout. There is no
+# checkout on an installed machine, and the directory it would write into is
+# owned by this package — so shipping it would put a script on a user's
+# machine whose only possible effect is to rewrite a package-owned directory.
+# It stays in the repository, where it is run from.
+cp "$REPO_ROOT/shell/vendor/manifest.yaml" \
+   "$REPO_ROOT/shell/vendor/COPYING" \
+   "$REPO_ROOT/shell/vendor/LICENSE.apache-2.0" \
+   "$STAGE/usr/share/zenith/shell/vendor/"
+
+# The attribution. It is installed at the path the manifest names — `notices:`
+# says `shell/vendor/notices.md` — and in the package's documentation
+# directory, where a reader looking for who wrote this looks first. One file,
+# two copies, so the two cannot disagree.
+#
+# It is not rendered from the manifest, and that is deliberate. The manifest
+# records two components and a hash for every file in them. It cannot record
+# that `modules/common/functions/fuzzysort.js` is MIT code from another
+# project, or that `services/MprisController.qml` carries no grant at all, or
+# that four files inside the tree came from caelestia. Those are facts about
+# files inside the vendored tree, and two of the licences involved — MIT and
+# Apache-2.0 — require the notice to travel with the copies. A file rendered
+# from the manifest would ship the GPL and Apache texts and none of the
+# per-file credits.
+cp "$REPO_ROOT/shell/vendor/notices.md" \
+   "$STAGE/usr/share/zenith/shell/vendor/notices.md"
+
 # The Hub's window.
 #
-# Config.qml and Theme.qml are copied in beside it as well. Quickshell's -p sets
-# the import path for one window and nothing else, so the Hub cannot see the
-# singletons the shell uses from its own directory — and it reads the same
-# settings and the same colours as every other surface. One source file, two
-# installed copies, rather than a second file that could drift from the first.
-mkdir -p "$STAGE/usr/share/zenith/hub/Controls"
-cp "$REPO_ROOT/shell/hub/"*.qml "$STAGE/usr/share/zenith/hub/"
-cp "$REPO_ROOT/shell/hub/Controls/"*.qml "$STAGE/usr/share/zenith/hub/Controls/"
-cp "$REPO_ROOT/shell/Config.qml" "$STAGE/usr/share/zenith/hub/"
-cp "$REPO_ROOT/shell/Theme.qml" "$STAGE/usr/share/zenith/hub/"
+# The entry file is at the shell's root and the window's own code is in a
+# directory under it, because Quickshell's configuration root is the directory of
+# the file it is started on, and nothing else will do: the Hub is drawn with the
+# same component kit as the desktop, the kit's files reach each other through
+# `qs.modules.*`, and those imports name nothing from a root of `shell/hub/`. The
+# entry file therefore ships with the shell's other root files, above, and only
+# the directory below is copied here.
+cp -R "$REPO_ROOT/shell/hub" "$STAGE/usr/share/zenith/shell/"
 cp "$REPO_ROOT/session/zenith-hub" "$STAGE/usr/bin/zenith-hub"
 chmod 0755 "$STAGE/usr/bin/zenith-hub"
 
@@ -160,8 +223,31 @@ mkdir -p "$STAGE/usr/share/zenith/hardware/profiles"
 cp "$REPO_ROOT/system/hardware/tiers.yaml" "$STAGE/usr/share/zenith/hardware/"
 cp "$REPO_ROOT/system/hardware/profiles/"*.yaml \
    "$STAGE/usr/share/zenith/hardware/profiles/"
+
+# ------------------------------------------------------------------ the licences
+# The package's own documentation directory, and what has to be in it.
+#
+# `copyright` is the machine-readable one: the Debian copyright format, with a
+# paragraph per licence group. It used to be the repository's root LICENSE file
+# copied in verbatim, which records Zenith's own licence and says nothing about
+# the two vendored components the package also ships — and a copyright file
+# that names one licence for a package under three is a file that tells a
+# reader the package is under a licence it is not entirely under.
+#
+# The licence texts go with it. A vendored GPL-3.0 component and a vendored
+# Apache-2.0 component both oblige the redistributor to ship the licence, and
+# dpkg's own tools and `licensecheck` look for them here. The GPL-3 text is
+# the vendored component's own, which is byte-identical to the repository's
+# root LICENSE; release_test.sh checks that it stays that way, because a
+# package that ships two different GPL-3 texts is shipping a licence nobody
+# has read.
 mkdir -p "$STAGE/usr/share/doc/$PKG"
-cp "$REPO_ROOT/LICENSE" "$STAGE/usr/share/doc/$PKG/copyright"
+cp "$REPO_ROOT/release/mkdeb/copyright" "$STAGE/usr/share/doc/$PKG/copyright"
+cp "$REPO_ROOT/shell/vendor/COPYING" "$STAGE/usr/share/doc/$PKG/GPL-3"
+cp "$REPO_ROOT/shell/vendor/LICENSE.apache-2.0" \
+   "$STAGE/usr/share/doc/$PKG/Apache-2.0"
+cp "$STAGE/usr/share/zenith/shell/vendor/notices.md" \
+   "$STAGE/usr/share/doc/$PKG/vendor-manifest.md"
 
 # --------------------------------------------------------------- control files
 INSTALLED_KB=$(du -sk "$STAGE" | cut -f1)
@@ -207,6 +293,26 @@ EXECUTABLES
 chmod 0755 "$STAGE/DEBIAN/postinst"
 chmod 0640 "$STAGE/DEBIAN/control"
 chmod 0644 "$STAGE/DEBIAN/zenith.list"
+
+# The shell's tree is installed under the names it has in the repository, so
+# its executables are asked for rather than written down.
+#
+# The list above is written by hand because the session's files are installed
+# under names that are not their own, and a hand-written list is a list that
+# goes stale. The shell's are not renamed, so the checkout is the authority:
+# a vendored script upstream ships executable and the package ships
+# non-executable is a script that works in the checkout and fails on the
+# machine, which is the same fault as a non-executable session entry point and
+# exactly as silent.
+#
+# The vendor directory is not in this list because `vendor.sh` is not
+# installed; asking the checkout about a file the package does not ship would
+# be asking the package about a file it does not have.
+while IFS= read -r program; do
+  chmod 0755 "$STAGE/usr/share/zenith/shell/$program"
+done <<EOF
+$(cd "$REPO_ROOT/shell" && find modules services -type f -perm -u+x | sort)
+EOF
 
 find "$STAGE" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 mkdir -p "$OUTDIR"

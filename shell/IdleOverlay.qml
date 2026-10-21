@@ -35,7 +35,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        // Black on purpose, and not Theme.background. A scrim darkens
+        // Black on purpose, and not Theme.canvas. A scrim darkens
         // whatever is behind it, so it has to be independent of the palette's
         // own background — a tinted scrim would tint the wallpaper too.
         color: "#000000"

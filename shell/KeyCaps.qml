@@ -91,7 +91,7 @@ Item {
                     visible: token.index > 0
                     anchors.verticalCenter: parent.verticalCenter
                     text: "+"
-                    color: Theme.textDim
+                    color: Theme.inkSecondary
                     font.pixelSize: 11
                 }
 
@@ -111,7 +111,7 @@ Item {
                         id: label
                         anchors.centerIn: parent
                         text: caps.display(token.modelData)
-                        color: Theme.text
+                        color: Theme.inkPrimary
                         font.pixelSize: 12
                     }
                 }

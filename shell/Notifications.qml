@@ -74,7 +74,7 @@ Popover {
         radius: 12
         color: Theme.panelFill
         border.width: 1
-        border.color: Theme.border
+        border.color: Theme.lineDivider
 
         Column {
             id: content
@@ -106,7 +106,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.summary
                             : ""
-                        color: Theme.text
+                        color: Theme.inkPrimary
                         font.pixelSize: 13
                         font.bold: true
                         elide: Text.ElideRight
@@ -117,7 +117,7 @@ Popover {
                         text: surface.server.current
                             ? surface.server.current.body
                             : ""
-                        color: Theme.textDim
+                        color: Theme.inkSecondary
                         font.pixelSize: 12
                         wrapMode: Text.WordWrap
                         // Matches the server's bodyMarkupSupported: false. The

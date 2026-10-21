@@ -381,7 +381,7 @@ PanelWindow {
                             radius: 1.5
                             width: cell.focused ? cell.width : 3
                             visible: cell.running || cell.focused
-                            color: Theme.text
+                            color: Theme.inkPrimary
                             opacity: 0.6
                         }
 
@@ -436,7 +436,7 @@ PanelWindow {
                 id: labelText
                 anchors.centerIn: parent
                 text: dock.hoveredIndex >= 0 ? dock.items[dock.hoveredIndex].name : ""
-                color: Theme.text
+                color: Theme.inkPrimary
                 font.pixelSize: 12
             }
         }
