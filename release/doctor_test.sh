@@ -14,7 +14,10 @@
 #   - an installed zenith unable to find the profile database it shipped with,
 #     reporting an empty database instead of a broken install;
 #   - the portal configuration the package installs never being a file doctor
-#     would look at, so an installed machine reported none at all.
+#     would look at, so an installed machine reported none at all;
+#   - the Hub's entry file left out of the package, which nothing else notices:
+#     the doctor checks the one tree it walks, and zenith-hub would still be
+#     installed and executable, and would open a window that is not there.
 #
 # What this asserts is that everything the package owns is right. What it does
 # not assert is that a CI runner is a working Zenith machine: Quickshell is
