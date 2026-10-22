@@ -158,10 +158,11 @@ check "the GPL-3 text the package ships is the repository's own" $rc
 #
 # The licence each file is claimed under comes from the manifest: a file the
 # manifest lists belongs to the component that lists it, and a file it does
-# not list is Zenith's own. The short names are the format's, and the mapping
-# from the manifest's SPDX identifiers to them is written out rather than
-# derived, because the format's names are the format's business — an
-# identifier this table does not know is a failure, not a guess.
+# not list is Zenith's own — except the two licence texts, below. The short
+# names are the format's, and the mapping from the manifest's SPDX identifiers
+# to them is written out rather than derived, because the format's names are
+# the format's business — an identifier this table does not know is a failure,
+# not a guess.
 manifest_claims() {
     awk '
     function short_name(id) {
@@ -251,13 +252,35 @@ copyright_claims() {
 MANIFEST_PATHS="$WORK/manifest-paths"
 manifest_claims | cut -f1 | sort -u > "$MANIFEST_PATHS"
 
+# The two licence texts are the exception to "not in the manifest, therefore
+# Zenith's". The manifest lists what each vendored component is made of, and
+# the component's licence text is shipped beside the tree rather than listed in
+# it: it is the same document as the one in /usr/share/doc/zenith, which is
+# where the format expects a licence to be read. It is also not Zenith's to
+# license — a copyright file that called the GPL-3 text itself
+# GPL-3.0-or-later would be making a claim about a document instead of about
+# the code it ships with.
+licence_of() {
+    case "$1" in
+    usr/share/zenith/shell/vendor/COPYING)
+        printf '%s' "GPL-3"
+        ;;
+    usr/share/zenith/shell/vendor/LICENSE.apache-2.0)
+        printf '%s' "Apache-2.0"
+        ;;
+    *)
+        printf '%s' "GPL-3+"
+        ;;
+    esac
+}
+
 EXPECTED="$WORK/expected-licences"
 {
     manifest_claims
     ( cd "$STAGE" && find usr/share/zenith/shell -type f ) |
         grep -Fxv -f "$MANIFEST_PATHS" |
         while IFS= read -r file; do
-            printf '%s\t%s\n' "$file" "GPL-3+"
+            printf '%s\t%s\n' "$file" "$(licence_of "$file")"
         done
 } > "$EXPECTED"
 
