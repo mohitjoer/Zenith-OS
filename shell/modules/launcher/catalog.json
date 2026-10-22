@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "default": "hero",
+  "fallback": "okshell",
+  "variants": [
+    {
+      "id": "main",
+      "name": "Main",
+      "description": "Compact command palette with a centered RestDashboard image card.",
+      "entrypoint": "variants/main/Main.qml",
+      "preview": "variants/main/Preview.qml",
+      "capabilities": ["shape", "background", "results", "hero"]
+    },
+    {
+      "id": "hero",
+      "name": "Hero",
+      "description": "Full HeroShutter image header with modes, actions, and provider results.",
+      "entrypoint": "variants/hero/Main.qml",
+      "preview": "variants/hero/Preview.qml",
+      "capabilities": ["shape", "background", "results", "hero"]
+    },
+    {
+      "id": "okshell",
+      "name": "OkShell",
+      "description": "Fast applications-only list in Zenith's live palette.",
+      "entrypoint": "variants/okshell/Main.qml",
+      "preview": "variants/okshell/Preview.qml",
+      "capabilities": []
+    },
+    {
+      "id": "kairos",
+      "name": "Kairos",
+      "description": "The island launcher: the Kairos bar island opens into the clock, a rolling date wheel, and the apps.",
+      "entrypoint": "variants/kairos/Main.qml",
+      "preview": "variants/kairos/Preview.qml",
+      "capabilities": []
+    }
+  ]
+}

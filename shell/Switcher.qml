@@ -55,10 +55,14 @@ PanelWindow {
 
         stdout: StdioCollector {
             onStreamFinished: {
+                // Exit codes are not settled when the stream closes (the exit
+                // signal lands after this collector), so the guard is content,
+                // not exit code: `exitedWithCode` is still undefined here.
                 // No compositor, or nothing to switch to: close rather than show
                 // an empty card. The keybind fired; there was simply no window
                 // behind it.
-                if (load.exitedWithCode !== 0 || text.trim() === "null" || text.trim() === "[]") {
+                var t = text.trim()
+                if (t === "" || t === "null" || t === "[]") {
                     switcher.close()
                     return
                 }

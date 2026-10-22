@@ -470,9 +470,12 @@ func reportSession(root string) int {
 		fmt.Printf("  %-22s %s starts the session\n", "compositor", compositorConfig)
 	}
 
-	// The keybinds call the shell by the path it was installed at, because the
-	// IPC call has to know which instance it is talking to. A keybind that
-	// names the wrong path is a keybind that finds no shell and says nothing.
+	// The keybinds call the shell through the zenith CLI, which finds the
+	// running instance rather than naming one, because the shell the login
+	// manager runs and the shell a development tree runs are different trees
+	// and the compositor cannot tell them apart. The older form of the call
+	// names the installed path plainly; both of them are the keybinds
+	// reaching a shell, and a configuration that reaches neither is the fault.
 	const shellDir = "/usr/share/zenith/shell"
 	shellPath := filepath.Join(root, shellDir)
 	if _, err := os.Stat(filepath.Join(shellPath, "shell.qml")); err != nil {
@@ -484,12 +487,20 @@ func reportSession(root string) int {
 			fmt.Printf("  %-22s the compositor's configuration is not installed\n",
 				"keybinds")
 			problems++
-		} else if !strings.Contains(string(ipc), "--path "+shellDir) {
-			fmt.Printf("  %-22s the keybinds do not name %s; they will call "+
-				"no shell\n", "keybinds", shellDir)
-			problems++
 		} else {
-			fmt.Printf("  %-22s call %s\n", "keybinds", shellDir)
+			body := string(ipc)
+			switch {
+			case strings.Contains(body, "zenith ipc call"):
+				fmt.Printf("  %-22s call the shell through the zenith CLI, which "+
+					"finds it running\n", "keybinds")
+			case strings.Contains(body, "--path "+shellDir):
+				fmt.Printf("  %-22s call %s\n", "keybinds", shellDir)
+			default:
+				fmt.Printf("  %-22s the keybinds reach no shell: they name "+
+					"neither the installed path nor the CLI that finds the "+
+					"running one\n", "keybinds")
+				problems++
+			}
 		}
 	}
 

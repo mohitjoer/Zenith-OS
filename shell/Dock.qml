@@ -23,6 +23,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Widgets
 import QtQuick
+import QtQuick.Effects
 
 PanelWindow {
     id: dock
@@ -273,28 +274,20 @@ PanelWindow {
 
         // The shadow.
         //
-        // A blur without a shader is a stack of rounded rectangles, each a
-        // little larger and a little fainter than the one inside it, which is
-        // what a blur of a rounded shape amounts to. The weights fall away
-        // towards the outside so the shadow is heaviest where it touches the
-        // panel and gone by the time it reaches the blur's radius.
-        Repeater {
-            model: 6
+        // A real one, thrown away from the edge of the screen so it falls on
+        // the desktop rather than off it.
+        RectangularShadow {
+            x: 0
+            y: 0
+            width: dock.panelWidth
+            height: dock.panelHeight
+            radius: Theme.radiusLarge
 
-            delegate: Rectangle {
-                required property int index
-
-                readonly property int grow: (index + 1) * Math.ceil(dock.shadowBand / 6)
-                readonly property real weight: (6 - index) / 21
-
-                x: -grow + dock.shadowOffsetX
-                y: -grow + dock.shadowOffsetY
-                width: dock.panelWidth + grow * 2
-                height: dock.panelHeight + grow * 2
-                radius: Theme.radiusLarge + grow
-                color: Theme.shadow
-                opacity: weight
-            }
+            offset: Qt.point(dock.shadowOffsetX, dock.shadowOffsetY)
+            blur: Theme.shadowBlur
+            spread: 0
+            color: Theme.shadow
+            opacity: 0.55
         }
 
         // The panel.
@@ -346,21 +339,52 @@ PanelWindow {
 
                         property bool hovered: false
 
-                        // The state layer, under the icon.
+                        // The plate the icon sits on.
+                        //
+                        // Every icon has one, and it is not a hover state: a
+                        // row of icons with a plate under each of them reads as
+                        // a row of things, where a row of bare icons reads as a
+                        // row of pictures. The plate is the same surface as
+                        // the dock's own, a little smaller, so the two do not
+                        // have to be the same colour to belong together.
                         Rectangle {
-                            anchors.fill: parent
+                            id: plate
+                            x: (cell.width - plate.width) / 2
+                            y: (cell.height - plate.height) / 2
+                            width: dock.iconSize + Theme.space1 * 2
+                            height: dock.iconSize + Theme.space1 * 2
                             radius: Theme.radiusMedium
-                            color: Theme.stateLayer
-                            visible: cell.hovered
+                            // The plate carries the hover: it is the state
+                            // layer laid over the fill, so the two are one
+                            // rectangle and not two.
+                            color: cell.hovered ? Theme.stateLayer : Theme.panelFill
+                            border.width: Theme.hairlineWidth
+                            border.color: Theme.hairline
                         }
 
                         // The application's own icon.
+                        //
+                        // It grows under the pointer. A dock that answers the
+                        // pointer by doing nothing is a dock that reads as a
+                        // row of pictures on a shelf; one that answers it by
+                        // lifting the thing under it reads as a thing you can
+                        // pick up.
                         IconImage {
                             x: (cell.width - dock.iconSize) / 2
                             y: dock.iconTop
                             width: dock.iconSize
                             height: dock.iconSize
                             source: dock.iconSource(cell.modelData)
+
+                            transformOrigin: Item.Center
+                            scale: cell.hovered ? 1.25 : 1
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
                         }
 
                         // The mark that says the application is running.

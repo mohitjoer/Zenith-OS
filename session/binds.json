@@ -266,11 +266,18 @@
     {
       "id": "screenshot",
       "category": "display",
-      "label": "Copy a screenshot of the screen",
+      "label": "Take a screenshot",
       "chord": "Print",
-      "kind": "app",
-      "action": "grim",
-      "argument": "- | wl-copy"
+      "kind": "shell",
+      "action": "toggleScreenshot"
+    },
+    {
+      "id": "screenshot-xf86",
+      "category": "display",
+      "label": "Take a screenshot (XF86)",
+      "chord": "XF86Print",
+      "kind": "shell",
+      "action": "toggleScreenshot"
     }
   ]
 }

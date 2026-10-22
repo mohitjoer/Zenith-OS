@@ -8,22 +8,20 @@ import (
 	"testing"
 )
 
-// The session names the shell in three places, and they have to name the same
-// shell.
+// The session names the shell in the places that have to agree, and none of
+// them can check the others: the compositor's configuration is a text file,
+// the shell's IPC target is a string in QML, and the control tool's command
+// table is Go. One is not QML-adjacent to another, so a rename in one of them
+// is invisible to the rest, and the symptom is the same every time: a session
+// that starts a compositor, keybinds that call nothing, and a shell that
+// never hears about a settings write.
 //
-// The compositor's configuration says where the shell lives, because that is
-// what the keybinds call: the IPC call has to know which instance it is
-// talking to, and it finds it by path. The packaging says where the shell is
-// installed. The control tool says where the shell is, because it tells the
-// shell to read its settings again after a write.
-//
-// None of the three can check the others, because none of them can see the
-// others' files: one is a QML-adjacent configuration file, one is a shell
-// script, and one is a Go constant. So a rename in one is invisible to the
-// other two, and the symptom is the same every time: a session that starts a
-// compositor, a shell that never starts, and keybinds that call nothing.
-//
-// Each of these has been wrong on this project, one at a time.
+// The keybinds no longer name a path, because a name for the instance points
+// at one tree and the machine can be running another: the installed shell,
+// which the package owns, is not the shell a development checkout starts, and
+// both are legitimate. The calls say who to call — the target "zenith", the
+// shell's own IPC handler — and leave which instance is running to `zenith
+// ipc`, which finds it in the process table.
 
 // repoRoot is the checkout, from the package directory.
 func repoRoot(t *testing.T) string {
@@ -97,33 +95,47 @@ func TestTheCompositorStartsTheActivationScript(t *testing.T) {
 	}
 }
 
-// TestTheKeybindsCallTheInstalledShell checks that the keybinds, the
-// packaging and the control tool all name the same directory.
+// TestTheKeybindsReachTheShell checks that the keybinds, the compositor's
+// configuration and the shell's IPC surface agree.
 //
-// The keybinds call the shell by path, and the path the control tool uses to
-// tell the shell to re-read its settings has to be the same one: a shell
-// reached at one path and updated at another is a shell whose settings
-// change when nothing else does.
-func TestTheKeybindsCallTheInstalledShell(t *testing.T) {
+// Every IPC bind dispatches through `zenith ipc call`, and every one of those
+// calls names the target the shell's entry point registers. A call whose
+// target is anything else is a bind that runs a command that succeeds and
+// opens nothing.
+func TestTheKeybindsReachTheShell(t *testing.T) {
 	root := repoRoot(t)
 	config := compositorConfig(t, root)
 
-	match := regexp.MustCompile(`quickshell ipc --path (\S+) call`).FindStringSubmatch(config)
-	if match == nil {
-		t.Fatal("no keybind names the shell's path; an IPC call without one " +
-			"looks for a default configuration, finds none, and does nothing")
+	const pattern = `zenith ipc call (\S+) ?(\S*)`
+	matches := regexp.MustCompile(pattern).FindAllStringSubmatch(config, -1)
+	if len(matches) == 0 {
+		t.Fatal("no keybind dispatches through `zenith ipc call`; either the " +
+			"keybinds run the shell's surfaces themselves, which is a second " +
+			"shell, or they call quickshell directly by a path that only names " +
+			"one of the trees it can run from")
 	}
-	path := match[1]
-
-	if path != shellConfigPath {
-		t.Errorf("the keybinds call %q, and the control tool tells %q to "+
-			"re-read its settings; they have to be the same shell",
-			path, shellConfigPath)
+	for _, match := range matches {
+		if match[1] != "zenith" {
+			t.Errorf("a keybind calls the IPC target %q, and the shell's "+
+				"handler is \"zenith\"", match[1])
+		}
 	}
 
-	// And that is where the packaging puts it.
-	if !strings.Contains(packaging(t, root), path) {
-		t.Errorf("the packaging does not install the shell at %q, which is "+
-			"where the keybinds look for it", path)
+	// The command exists: a bind that dispatches through a subcommand the
+	// control tool does not have fails before it reaches any IPC surface.
+	if _, ok := commands["ipc"]; !ok {
+		t.Error("the keybinds dispatch through `zenith ipc`, and the control " +
+			"tool has no ipc command")
+	}
+
+	// And the shell registers the target the binds name, in the checkout's
+	// own entry point: the one file that is both sides of the seam.
+	entry, err := os.ReadFile(filepath.Join(root, "shell", "shell.qml"))
+	if err != nil {
+		t.Skipf("the shell's entry point is not in the checkout: %v", err)
+	}
+	if !strings.Contains(string(entry), `target: "zenith"`) {
+		t.Error("the keybinds call the target \"zenith\", and the shell's " +
+			"entry point registers no such handler")
 	}
 }

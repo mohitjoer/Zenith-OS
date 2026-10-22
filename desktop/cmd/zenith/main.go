@@ -44,6 +44,7 @@ var commands = map[string]func(args []string) int{
 	"config":      zenithConfig,
 	"apps":        configApps,
 	"binds":       zenithBinds,
+	"ipc":         zenithIpc,
 	"theme":       zenithTheme,
 	"doctor":      zenithDoctor,
 	"status":      zenithStatus,
@@ -100,6 +101,7 @@ Commands:
   config        read and write Zenith's settings
   apps          the applications on this machine, as JSON, for the launcher
   binds         the keybinding catalogue, as JSON, for the cheat sheet
+  ipc           call the running shell's IPC surface, as the keybinds do
   theme         take the desktop's colours from one image
   doctor        report drift between base and overlay
   status        revision, paths, and how much drift

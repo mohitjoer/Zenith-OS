@@ -25,6 +25,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Widgets
 import QtQuick
+import QtQuick.Effects
 
 PanelWindow {
     id: bar
@@ -70,13 +71,32 @@ PanelWindow {
     // The chip's thickness: the panel's, less the gap on either side of it.
     readonly property int innerThickness: thickness - padding * 2
 
-    // Where the panel sits inside the window, and how large it is. The panel
-    // is measured rather than anchored because the shadow has to know where
-    // the panel is in order to be drawn underneath it.
-    readonly property int panelWidth: horizontal ? bar.width : thickness
-    readonly property int panelHeight: horizontal ? thickness : bar.height
-    readonly property int panelX: horizontal ? 0 : (onRight ? bar.width - thickness : 0)
-    readonly property int panelY: horizontal ? (onBottom ? bar.height - thickness : 0) : 0
+    // The bar is an island, not a strip.
+    //
+    // A strip that runs the whole width of the screen is a piece of the
+    // desktop with some things on it; an island in the middle of the edge is a
+    // thing on the desktop. The island is as wide as the widgets it holds and
+    // no wider, which means the wallpaper is wallpaper again on either side
+    // of it rather than a bar with a strip of picture under it.
+    //
+    // The width is the content's, and the content's width is the zones'. The
+    // zones' *positions* depend on this width and their widths do not, so
+    // there is no loop: the bar is as wide as it needs to be and no wider.
+    readonly property int gap: Theme.space3
+    readonly property int panelWidth: horizontal
+        ? startZone.width + centreZone.width + endZone.width + padding * 2 + gap * 2
+        : thickness
+    readonly property int panelHeight: horizontal
+        ? thickness
+        : startZone.height + centreZone.height + endZone.height + padding * 2 + gap * 2
+
+    // Where the island sits in the window: centred along the edge it is on.
+    readonly property int panelX: horizontal
+        ? (bar.width - panelWidth) / 2
+        : (onRight ? bar.width - thickness : 0)
+    readonly property int panelY: horizontal
+        ? (onBottom ? bar.height - thickness : 0)
+        : (bar.height - panelHeight) / 2
 
     // The way the shadow falls: away from the edge of the screen, always.
     readonly property int shadowDx: onLeft ? 1 : (onRight ? -1 : 0)
@@ -242,64 +262,28 @@ PanelWindow {
 
     // The shadow under the panel.
     //
-    // The shell has no MultiEffect and no shader, so the shadow cannot be
-    // blurred. What it can be is a falloff, and a falloff is most of what a
-    // blur is: a dozen copies of the panel's own shape, each reaching a
-    // little further than the last and each fainter, so the shadow thins out
-    // as it leaves the panel instead of ending at a hard edge. One copy per
-    // pixel of blur, because fewer copies are steps rather than a falloff.
+    // A real one, and the reason it can be a real one is that the module is
+    // in the image: the shell's surfaces are translucent and they sit over
+    // the wallpaper, and a translucent panel with a stack of rectangles under
+    // it looks like a panel with a stack of rectangles under it.
     //
-    // The copies reach only in the direction the shadow falls. A shadow that
-    // spread sideways as well would need room beside the panel that the
-    // panel's own window does not have, and a shadow clipped by the edge of
-    // its own window is worse than one that was never drawn.
-    component Shadow: Item {
-        id: shadow
-
-        property int dx: 0
-        property int dy: 1
-        property int layers: Theme.shadowBlur
-        property int extent: Theme.shadowBlur
-        property int radius: Theme.radiusMedium
-
-        Repeater {
-            model: shadow.layers
-            delegate: Rectangle {
-                required property int index
-
-                // The furthest copy is the faintest and the nearest is the
-                // darkest, and the weights are chosen so that the copies
-                // together are the shadow the theme asked for and not more
-                // than it.
-                readonly property int reach: (shadow.layers - index)
-                    * (shadow.extent / shadow.layers)
-                readonly property real weight: (index + 1)
-                    / (shadow.layers * (shadow.layers + 1) / 2)
-
-                x: shadow.dx * Theme.shadowOffset + (shadow.dx < 0 ? -reach : 0)
-                y: shadow.dy * Theme.shadowOffset + (shadow.dy < 0 ? -reach : 0)
-                width: shadow.width + (shadow.dx !== 0 ? reach : 0)
-                height: shadow.height + (shadow.dy !== 0 ? reach : 0)
-                radius: shadow.radius
-
-                color: Qt.rgba(
-                    Theme.shadow.r,
-                    Theme.shadow.g,
-                    Theme.shadow.b,
-                    Theme.shadow.a * weight
-                )
-            }
-        }
-    }
-
-    // The shadow, under the panel and in the room the window carries for it.
-    Shadow {
+    // The shadow falls away from the edge of the screen, so it falls on the
+    // desktop and never on the panel's neighbour.
+    RectangularShadow {
         x: bar.panelX
         y: bar.panelY
         width: bar.panelWidth
         height: bar.panelHeight
-        dx: bar.shadowDx
-        dy: bar.shadowDy
+        radius: bar.panelHeight / 2
+
+        offset: Qt.point(
+            bar.shadowDx * Theme.shadowOffset,
+            bar.shadowDy * Theme.shadowOffset
+        )
+        blur: Theme.shadowBlur
+        spread: 0
+        color: Theme.shadow
+        opacity: 0.55
     }
 
     // The panel itself. The window is transparent and the panel is drawn
@@ -313,7 +297,10 @@ PanelWindow {
         height: bar.panelHeight
 
         color: Theme.panelFill
-        radius: Theme.radiusMedium
+        // A stadium: the island's ends are as round as the bar is thick, which
+        // is what makes it an island and not a rectangle that happens to be
+        // short.
+        radius: height / 2
         border.width: Theme.hairlineWidth
         border.color: Theme.hairline
 

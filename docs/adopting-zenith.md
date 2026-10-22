@@ -1267,6 +1267,79 @@ Consistency rules with the existing surface:
 
 ---
 
+## Ubuntu runtime dependencies
+
+Adoption installs Zenith's own packages from its signed APT repository (`zenith-shell`, `zenith-hub`,
+`quickshell`, `hyprland`, and the session/portal stack). The rest of the desktop runs on Ubuntu
+26.04 base-layer packages. The table below lists every base-layer package the Zenith session
+visibly depends on, what breaks without it, and the `apt` line to restore it.
+
+All of these are in `main` or `universe` on Ubuntu 26.04. Install with `--no-install-recommends`
+to avoid pulling GNOME metapackages.
+
+| Package | Purpose | Visible degradation without it | Restore command |
+|---|---|---|---|
+| `hyprland` | Wayland compositor | No desktop at all — black screen, no windows | `sudo apt install --no-install-recommends hyprland` |
+| `xdg-desktop-portal` | Portal dispatcher | File choosers, screen share, screenshots, printing all fail silently | `sudo apt install --no-install-recommends xdg-desktop-portal` |
+| `xdg-desktop-portal-hyprland` | Hyprland portal backend (ScreenCast, Screenshot, GlobalShortcuts) | Screenshots and screen sharing produce nothing; global shortcuts via portal don't work | `sudo apt install --no-install-recommends xdg-desktop-portal-hyprland` |
+| `xdg-desktop-portal-gtk` | GTK portal backend (FileChooser, Print, OpenURI, Secret via lxqt) | GTK file choosers hang; print dialog never appears | `sudo apt install --no-install-recommends xdg-desktop-portal-gtk` |
+| `xdg-desktop-portal-lxqt` | Secret portal backend | Flatpaks (Firefox, VS Code, Thunderbird) cannot store passwords | `sudo apt install --no-install-recommends xdg-desktop-portal-lxqt` |
+| `gnome-keyring` | Secret service daemon (backing store for lxqt backend) | Secret portal starts but has nowhere to write credentials | `sudo apt install --no-install-recommends gnome-keyring` |
+| `libpam-gnome-keyring` | PAM module unlocking the keyring at login | Every secret prompt asks for a second password | `sudo apt install --no-install-recommends libpam-gnome-keyring` |
+| `pipewire` + `pipewire-pulse` + `wireplumber` | Audio stack | No sound; volume widget shows nothing | `sudo apt install --no-install-recommends pipewire pipewire-pulse wireplumber` |
+| `power-profiles-daemon` | Power policy (governors, platform profiles) | Power mode stuck; sidebar power control does nothing; laptop runs hot/cold | `sudo apt install --no-install-recommends power-profiles-daemon` |
+| `upower` | Battery reporting | Sidebar shows no battery info; no low-battery actions | `sudo apt install --no-install-recommends upower` |
+| `iwd` + `network-manager` | Wi-Fi and wired networking | No network; sidebar network section empty | `sudo apt install --no-install-recommends iwd network-manager` |
+| `netplan.io` | NetworkManager persistent config storage | Network settings not persisted across reboots | `sudo apt install --no-install-recommends netplan.io` |
+| `bluez` | Bluetooth daemon (provides `bluetoothctl`) | Sidebar Bluetooth section empty; no device pairing | `sudo apt install --no-install-recommends bluez` |
+| `fprintd` | Fingerprint authentication | Fingerprint login/enroll unavailable | `sudo apt install --no-install-recommends fprintd` |
+| `brightnessctl` | Internal panel backlight control | Brightness slider in sidebar does nothing (reads work, writes need udev rule) | `sudo apt install --no-install-recommends brightnessctl` |
+| `ddcutil` | External monitor brightness/contrast | External monitor controls in sidebar do nothing | `sudo apt install --no-install-recommends ddcutil` |
+| `playerctl` | MPRIS media player control (sidebar media widget) | Media widget shows nothing; media keys (XF86Audio*) no-op | `sudo apt install --no-install-recommends playerctl` |
+| `grim` + `slurp` + `hyprpicker` | Screenshot toolchain (shells out from Hyprland portal) | Screenshot keybindings produce nothing; colour picker absent | `sudo apt install --no-install-recommends grim slurp hyprpicker` |
+| `hyprlock` | Lock screen (PAM authentication) | `Super+L` and lid-close lock do nothing; no lock screen at all | `sudo apt install --no-install-recommends hyprlock` |
+| `wl-clipboard` | Wayland clipboard (`wl-copy`, `wl-paste`) | Clipboard sync between Wayland/XWayland apps broken | `sudo apt install --no-install-recommends wl-clipboard` |
+| `xdg-utils` | `xdg-open`, `xdg-email`, `xdg-settings` | "Open in browser/file manager" actions fail everywhere | `sudo apt install --no-install-recommends xdg-utils` |
+| `qt6-wayland` | Qt6 Wayland platform plugin | Qt apps flicker on resize, go grey at fractional scaling | `sudo apt install --no-install-recommends qt6-wayland` |
+| `libgtk-4-1` + `libadwaita-1-0` | GTK4/libadwaita runtime for third-party apps | GTK4 applications fail to start | `sudo apt install --no-install-recommends libgtk-4-1 libadwaita-1-0` |
+| `libglib2.0-bin` | `gsettings` CLI (settings read/write) | `zenith config` and shell settings controls stop working | `sudo apt install --no-install-recommends libglib2.0-bin` |
+| `fwupd` | Firmware updates via LVFS | No firmware update capability in Hub | `sudo apt install --no-install-recommends fwupd` |
+| `switcheroo-control` | Hybrid GPU mux switching | Hybrid laptops stuck on wrong GPU | `sudo apt install --no-install-recommends switcheroo-control` |
+| `rtkit` | Real-time scheduling for PipeWire | Audio crackles under load | `sudo apt install --no-install-recommends rtkit` |
+| `accountsservice` | User enumeration for SDDM greeter | Login screen shows empty/uneditable user field | `sudo apt install --no-install-recommends accountsservice` |
+| `sddm` | Login manager (Zenith OS default) | No graphical login; adoption leaves GDM in place unless `--display-manager sddm` | `sudo apt install --no-install-recommends sddm` |
+
+### Zenith-provided packages (not in Ubuntu archive)
+
+These come from Zenith's own signed repository and are installed by `zenith adopt` automatically.
+If the repository is not yet configured, `zenith adopt --check` will report it as a blocker.
+
+| Package | Purpose | Visible degradation without it |
+|---|---|---|
+| `zenith-shell` | Quickshell engine (built by Zenith) | No shell at all — bar, dock, launcher, notifications, idle, quick settings, status icons all absent; ~700+/min `ServerNotFoundError` noise in logs |
+| `zenith-hub` | Settings application (Go) | No settings UI; `zenith-hub` command missing |
+| `zenith-session` | Session entry point + `zenith-activate` | Zenith session doesn't appear in greeter or fails to start |
+| `quickshell` | QML runtime engine (built by Zenith) | Shell cannot start; `zenith-shell.service` fails immediately |
+| `zenithd` | State daemon (socket at `$XDG_RUNTIME_DIR/zenith/shell.sock`) | Sidebar sections (audio, network, bluetooth, display, media) show stale data or nothing; no live updates |
+
+### One-line restore for the common missing set
+
+```bash
+sudo apt update && sudo apt install --no-install-recommends \
+  hyprland xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+  xdg-desktop-portal-lxqt gnome-keyring libpam-gnome-keyring \
+  pipewire pipewire-pulse wireplumber \
+  power-profiles-daemon upower iwd network-manager netplan.io \
+  bluez fprintd brightnessctl ddcutil playerctl \
+  grim slurp hyprpicker hyprlock wl-clipboard xdg-utils \
+  qt6-wayland libgtk-4-1 libadwaita-1-0 libglib2.0-bin \
+  fwupd switcheroo-control rtkit accountsservice sddm
+```
+
+> **Note:** `zenith-shell`, `zenith-hub`, `zenith-session`, `quickshell`, and `zenithd` are not in the
+> Ubuntu archive — they come from `packages.zenith.sh`. The command above restores only base-layer
+> dependencies. Run `zenith adopt` to install the Zenith packages.
+
 ## What is still open
 
 | Question | Why it matters here |

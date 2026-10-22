@@ -1,330 +1,993 @@
+//@ pragma UseQApplication
+// Threaded render loop: the frame's blob melt is a per-frame spring plus live
+// scene-graph MultiEffects (menu glass blur, blobs); threaded is vsync-locked and
+// frees the GUI thread so those effects get regular frame deltas and never ghost
+// or stutter. `basic` idled a touch cheaper on NVIDIA but smeared the live effects
+// when switching menu pages, so this matches the pill's proven render setup.
+//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
+//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
+//@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 pragma ComponentBehavior: Bound
 
-// The shell's entry point.
-//
-// `quickshell -p /usr/share/zenith/shell` runs this file. Nothing else names it,
-// which is why the packaging check can assert it exists: a missing entry point
-// is a shell that starts and immediately exits, with nothing in the journal that
-// says why.
-//
-// Everything below is loaded once, here, rather than on demand. A bar that
-// assembles itself from a Loader per widget means the bar is absent until every
-// widget has constructed, and a widget that fails to construct leaves a hole in
-// it with no indication which one.
-
 import Quickshell
-import Quickshell.Io
-import Quickshell.Services.Notifications
-import Quickshell.Widgets
+import qs.Services
+import "modules/visualizer/Singletons" as VizCfg
+import "modules/stage/Singletons" as StageCfg
+import "components"
+import "modules/wallpaper"
+import "modules/wallpaper/Singletons" as WallCfg
+import "modules/desktop"
+import "modules/visualizer"
+import "modules/bar"
+import "modules/dock"
+import "modules/launcher"
+import "modules/overview"
+import "modules/clipboard"
 import QtQuick
+import Quickshell.Io
+import Quickshell.Wayland
+import "modules/osd"
+import "modules/notifications"
+import "modules/capture"
+import "modules/confirm"
+import qs.Ui.Singletons
 
+/**
+ * The single resident Zenith shell instance.
+ *
+ * One ShellRoot for the whole desktop. It brings the shared service singletons
+ * online, holds the per-monitor ShellState every surface binds its visibility
+ * to, and registers the shell's in-QML global shortcuts. Each monitor
+ * gets one Scope carrying that screen's ShellState slice (st); every migrated
+ * surface is instantiated once inside it and binds its screen and its visibility
+ * to the slice, so a keybind that flips a flag on the active monitor reveals or
+ * hides exactly this monitor's copy in-process, where the old shell spawned a
+ * zenith-shell client per press across separate surface processes.
+ *
+ * The zenith-shell daemon launches this instance as `qs -c shell`, the live
+ * desktop. Where the compositor offers a global-shortcuts protocol its binds
+ * dispatch straight to the shortcuts registered here.
+ *
+ * UseQApplication is declared once for the whole shell (the tray needs Qt
+ * Widgets), replacing the six per-surface copies the old multi-process shell paid.
+ */
 ShellRoot {
     id: root
+    // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
+    // the notification column), armed 1.5 s into boot so a keypress or an
+    // arriving toast never waits on a component build. Everything heavier is
+    // built on its own first open and torn down a grace period after every
+    // close, so nothing parses, instantiates or commits for a surface nobody
+    // asked for. The grace is what protects the animations: a surface is only
+    // ever destroyed while it sits closed.
+    property int warm: 0
+    Timer { interval: 1500; running: true; repeat: false; onTriggered: root.warm = 1 }
 
-    // The session's colour scheme is read once and bound, not polled. A shell
-    // that re-reads settings on a timer is a shell that redraws on a clock
-    // rather than on a change. The value itself lives on the wrapper, because
-    // that is what every widget asks for it through.
-    readonly property bool dark: Config.dark
-
-    // Popovers are children of the root rather than of the surface that opened
-    // them, so closing a popover is closing one object instead of tracking which
-    // surface owns it. Two popovers open at once is two independent objects.
-    //
-    // Exactly one is open at a time, and that is the point of `currentPopover`
-    // rather than three separate booleans: with three booleans, opening the
-    // third leaves the first two open and the user gets two orphaned surfaces
-    // with no keybinding that closes them.
-    property string currentPopover: ""
-
-    function togglePopover(name) {
-        currentPopover = currentPopover === name ? "" : name
-        launcherPopover.opened = currentPopover === "launcher"
-        quickSettingsPopover.opened = currentPopover === "quick"
-        cheatsheetPopover.opened = currentPopover === "cheatsheet"
+    // Construct the shared services (ShellState's per-monitor state now, heavier
+    // providers as surfaces migrate) at load rather than on the first keybind.
+    ServiceLoader {
+        services: [ShellState, ScreenTime, Keypresses, KeyboardLayout]
     }
 
-    // A popover that closes itself tells the root, so that the next press of
-    // its key opens it rather than swallowing the press.
-    //
-    // The popover cannot say so itself, because the file that draws it is a
-    // surface and the thing that decides what is open is the root. Without
-    // this, a surface that closed itself — with Escape, or with a click
-    // somewhere else — leaves the root believing it is still open, and the
-    // press that should open it is spent clearing a decision that is no
-    // longer true.
-    function forget(name: string) {
-        if (root.currentPopover === name) {
-            root.currentPopover = ""
+    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-reload-cover.json"
+    readonly property string reloadCoverBin: Quickshell.env("ZENITH_SHELL_DIR")
+        ? Quickshell.env("ZENITH_SHELL_DIR") + "/scripts/zenith-reload-cover"
+        : "zenith-reload-cover"
+    property string reloadToken: ""
+    property bool reloadFinishSent: false
+    property bool reloadReleaseArmed: false
+    property var reloadScreens: ({})
+    function setReloadScreenReady(name: string, ready: bool): void {
+        var next = ({});
+        for (var key in reloadScreens)
+            next[key] = reloadScreens[key];
+        next[name] = ready;
+        reloadScreens = next;
+        finishReloadCover();
+    }
+    function finishReloadCover(): void {
+        if (!reloadToken || reloadFinishSent)
+            return;
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            var screen = Quickshell.screens[i];
+            if (!screen || !reloadScreens[screen.name])
+                return;
+        }
+        if (!reloadReleaseArmed) {
+            reloadReleaseArmed = true;
+            reloadHold.restart();
         }
     }
 
+    FileView {
+        id: reloadState
+        path: root.reloadStatePath
+        blockLoading: true
+        printErrors: false
+        onLoaded: {
+            try {
+                const token = JSON.parse(text() || "{}").token;
+                root.reloadToken = typeof token === "string" && /^[0-9a-f]{32}$/.test(token) ? token : "";
+            } catch (error) {
+                root.reloadToken = "";
+            }
+            root.finishReloadCover();
+        }
+    }
+    Timer {
+        id: reloadHold
+        interval: 1500
+        onTriggered: {
+            if (!root.reloadToken || root.reloadFinishSent)
+                return;
+            root.reloadFinishSent = true;
+            reloadFinish.command = [root.reloadCoverBin, "finish", root.reloadToken];
+            reloadFinish.running = true;
+        }
+    }
+
+    Process {
+        id: reloadFinish
+    }
+
+    // ── QML source hot-reload watcher (mirrors brand.json pattern) ──────────
+    // Watches the shell QML tree for any .qml/.js change and requests a
+    // coordinated reload via the existing reload-cover IPC. This survives
+    // quickshell restarts because it runs *inside* the shell process and
+    // uses Qt's own FileSystemWatcher (not quickshell's qmlscanner).
+    FileView {
+        id: qmlSourceWatcher
+        // Watch the whole shell directory non-recursively; subdirs covered by
+        // additional watchers below. blockLoading:false so we never block boot.
+        path: Quickshell.env("ZENITH_SHELL_DIR")
+            ? Quickshell.env("ZENITH_SHELL_DIR") + "/shell"
+            : "/usr/share/zenith/shell"
+        blockLoading: false
+        printErrors: false
+        watchChanges: true
+        onFileChanged: {
+            // Debounce: quickshell's scanner also debounces; 300 ms is safe.
+            qmlReloadDebounce.restart()
+        }
+    }
+    FileView {
+        id: qmlModulesWatcher
+        path: Quickshell.env("ZENITH_SHELL_DIR")
+            ? Quickshell.env("ZENITH_SHELL_DIR") + "/shell/modules"
+            : "/usr/share/zenith/shell/modules"
+        blockLoading: false
+        printErrors: false
+        watchChanges: true
+        onFileChanged: qmlReloadDebounce.restart()
+    }
+    Timer {
+        id: qmlReloadDebounce
+        interval: 300
+        repeat: false
+        onTriggered: {
+            // Kick off the reload-cover sequence exactly as the daemon does.
+            // The cover screen will wait for all monitors' reloadReady.
+            const statePath = (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-reload-cover.json"
+            reloadCoverBegin.command = [root.reloadCoverBin, "begin"]
+            reloadCoverBegin.running = true
+        }
+    }
+    Process {
+        id: reloadCoverBegin
+        onExited: {
+            if (exitCode === 0 && stdout.trim().length === 32) {
+                root.reloadToken = stdout.trim()
+                root.reloadFinishSent = false
+                root.reloadReleaseArmed = false
+                // Clear per-screen readiness; each Scope will re-report via onReloadReadyChanged
+                root.reloadScreens = ({})
+                for (let i = 0; i < Quickshell.screens.length; i++) {
+                    const name = Quickshell.screens[i]?.name
+                    if (name) root.reloadScreens[name] = false
+                }
+            }
+        }
+    }
+
+    // Power Saver strips compositor blur and shadow too (the heaviest present-time
+    // GPU cost), reusing the decoration.lua path lowPowerMode already takes. Perf
+    // folds the active power profile into its switches; mirror the profile-driven
+    // "saver" flag to a cache the compositor reads, and reload it when it flips
+    // so it re-reads the value live. Seeded once at load with no reload
+    // (login already parsed the right value); only a later profile change reloads.
+    FileView {
+        id: hyprPerf
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/hypr-perf.json"
+        printErrors: false
+        property bool armed: false
+        onSaved: if (hyprPerf.armed) Wm.reloadConfig("")
+        JsonAdapter { id: hyprPerfA; property bool saver: false }
+        Component.onCompleted: {
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
+        }
+    }
     Connections {
-        target: launcherPopover
-        function onVisibleChanged() { root.forget("launcher") }
+        target: Perf
+        function onSaverChanged() {
+            hyprPerf.armed = true;
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
+        }
     }
 
+    // One per-monitor surface stack. Each screen gets a Scope carrying its
+    // ShellState slice (st); every resident surface binds its screen and its
+    // visibility to that slice, so flipping a flag on the active monitor reveals
+    // or hides this monitor's copy. The order here reads top-to-bottom only; the
+    // Wayland layer each surface maps on decides the real stacking.
+    Variants {
+        model: ShellState.screens
+
+        Scope {
+            id: perScreen
+            required property var modelData
+            readonly property var st: ShellState.forScreen(modelData)
+            readonly property bool reloadReady: wallpaper.reloadReady && desktop.reloadReady
+            onReloadReadyChanged: root.setReloadScreenReady(modelData.name, reloadReady)
+            Component.onCompleted: root.setReloadScreenReady(modelData.name, reloadReady)
+
+            // Always-on backdrop and desktop widget layer.
+            Wallpaper {
+                id: wallpaper
+                screen: perScreen.modelData
+            }
+            Desktop {
+                id: desktop
+                screen: perScreen.modelData
+                active: true
+                widgetsEnabled: Tokens.widgetsEnabledFor(perScreen.modelData.name)
+                wallpaperUrl: wallpaper.wallpaperUrl
+                wallpaperPath: wallpaper.wallpaperPath
+                wallpaperFit: wallpaper.fit
+                wallpaperTransition: wallpaper.transition
+                videoUrl: wallpaper.videoUrl
+                wallpaperLive: wallpaper.live
+                videoMuted: wallpaper.videoMuted
+                videoVolume: wallpaper.videoVolume
+            }
+
+            // A blurred copy of the wallpaper for the compositor's overview
+            // backdrop, mapped below the desktop so it shows only in the
+            // overview. Built only where the capability and the user's setting
+            // both ask for it; a box with the backdrop off never pays for it.
+            LazyLoader {
+                id: backdropLoader
+                activeAsync: Wm.caps.overviewBackdrop === true && WallCfg.OverviewBackdropConfig.enabled
+                OverviewBackdrop {
+                    screen: perScreen.modelData
+                    available: Wm.caps.overviewBackdrop === true
+                    overviewOpen: Wm.overviewOpen
+                    wallpaperUrl: wallpaper.wallpaperUrl
+                }
+            }
+
+            // Stage now renders entirely inside the desktop surface (one stack:
+            // backdrop, layers, widgets), so there is no separate Background
+            // surface here (docs/stage.md). Built on first enable or first
+            // placement; cava and its buffers never exist while the visualizer
+            // is off.
+            LazyLoader {
+                id: vizLoader
+                activeAsync: VizCfg.Config.enabled || (perScreen.st && perScreen.st.visualizerPlacing)
+                Visualizer {
+                    id: perScreenViz
+                    screen: perScreen.modelData
+                    mode: !VizCfg.Config.enabled ? "off"
+                        : (perScreen.st && perScreen.st.visualizerOverlay ? "overlay" : "desktop")
+                    placing: perScreen.st ? perScreen.st.visualizerPlacing : false
+                    // The desktop hosts the visualizer behind the cut-outs while the
+                    // stage is on; this surface steps aside (cava keeps running).
+                    // A rebuilt monitor stack (DPMS off/on, a lid close/open) starts
+                    // with no wallpaper frame, so hostsVisualizer briefly reads false
+                    // even for a stage wallpaper: stay suppressed until the frame
+                    // lands, or the surface maps full-screen and pulses for a few
+                    // seconds on every resume.
+                    suppressed: desktop.hostsVisualizer || !wallpaper.reloadReady
+                    onPlacingDone: if (perScreen.st) perScreen.st.visualizerPlacing = false
+                }
+            }
+
+            // The frame bar (Phase 2): reads its own reveal from this slice.
+            Frame {
+                modelData: perScreen.modelData
+                // park the record island flush beside this monitor's dock band
+                dockLaneEdge: dockLoader.item ? dockLoader.item.edge : ""
+                dockLaneSize: dockLoader.item ? dockLoader.item.bandSize : 0
+                dockLaneCenter: dockLoader.item ? dockLoader.item.bandCenter : 0
+            }
+
+            // The dock: a resident per-monitor surface on the edge opposite the
+            // bar. Style-agnostic, so it lives here rather than inside a bar style;
+            // it is not built until the user turns it on (Hub -> Bar Studio -> Dock).
+            LazyLoader {
+                id: dockLoader
+                activeAsync: Dock.cfg("enabled", false)
+                DockSurface {
+                    id: perScreenDock
+                    screen: perScreen.modelData
+                    // Edit widgets steps the dock back so the whole desktop is the canvas.
+                    visible: Dock.cfg("enabled", false)
+                        && !(StageCfg.StageSession.widgets && StageCfg.StageSession.monitor === perScreen.modelData.name)
+                }
+            }
+
+            // The dock's right-click context menu: a full-screen overlay on the
+            // monitor that owns the open menu (the thin dock strip cannot host it).
+            LazyLoader {
+                id: dockMenuLoader
+                property bool open: Dock.menuOpen && Dock.menuScreen === perScreen.modelData.name
+                activeAsync: open || dockMenuHold.running
+                onOpenChanged: if (!open && active) dockMenuHold.restart()
+                DockMenuOverlay {
+                    screen: perScreen.modelData
+                }
+            }
+            Timer { id: dockMenuHold; interval: 2000 }
+
+            // Toggle-driven overlays: built on first open (async, so the key
+            // press never blocks on a component build) and destroyed 15 s after
+            // every close, once the slide-out has long finished.
+            // The inner surface must be BORN closed and opened one tick later:
+            // its reveal is driven by an active-change, and an item created with
+            // the flag already true would never animate (or show) at all.
+            LazyLoader {
+                id: launcherLoader
+                property bool open: perScreen.st ? perScreen.st.launcherOpen : false
+                property bool showNow: false
+                activeAsync: open || launcherHold.running
+                onItemChanged: if (launcherLoader.item) Qt.callLater(function() { launcherLoader.showNow = launcherLoader.open; })
+                onOpenChanged: {
+                    if (launcherLoader.open) {
+                        if (launcherLoader.item) launcherLoader.showNow = true;
+                        return;
+                    }
+                    launcherLoader.showNow = false;
+                    if (launcherLoader.active) launcherHold.restart();
+                }
+                Launcher {
+                    screen: perScreen.modelData
+                    active: launcherLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.launcherOpen = false
+                }
+            }
+            Timer { id: launcherHold; interval: 15000 }
+            LazyLoader {
+                id: overviewLoader
+                property bool open: perScreen.st ? perScreen.st.overviewOpen : false
+                property bool showNow: false
+                activeAsync: open || overviewHold.running
+                onItemChanged: if (overviewLoader.item) Qt.callLater(function() { overviewLoader.showNow = overviewLoader.open; })
+                onOpenChanged: {
+                    if (overviewLoader.open) {
+                        if (overviewLoader.item) overviewLoader.showNow = true;
+                        return;
+                    }
+                    overviewLoader.showNow = false;
+                    if (overviewLoader.active) overviewHold.restart();
+                }
+                OverviewSurface {
+                    screen: perScreen.modelData
+                    active: overviewLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.overviewOpen = false
+                }
+            }
+            Timer { id: overviewHold; interval: 15000 }
+            LazyLoader {
+                id: clipboardLoader
+                property bool open: perScreen.st ? perScreen.st.clipboardOpen : false
+                property bool showNow: false
+                activeAsync: open || clipboardHold.running
+                onItemChanged: if (clipboardLoader.item) Qt.callLater(function() { clipboardLoader.showNow = clipboardLoader.open; })
+                onOpenChanged: {
+                    if (clipboardLoader.open) {
+                        if (clipboardLoader.item) clipboardLoader.showNow = true;
+                        return;
+                    }
+                    clipboardLoader.showNow = false;
+                    if (clipboardLoader.active) clipboardHold.restart();
+                }
+                ClipboardSurface {
+                    screen: perScreen.modelData
+                    active: clipboardLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.clipboardOpen = false
+                }
+            }
+            Timer { id: clipboardHold; interval: 15000 }
+            // Shell-wide per-monitor surfaces. The OSDs and the popup column are
+            // small and event-driven (a keypress or an arriving toast must never
+            // wait on a build), so they join the first wave and stay resident.
+            // The capture overlays are per-flow: built on the flow's first
+            // signal, kept across the flow's pauses, dropped 20 s after it ends.
+            LazyLoader {
+                id: osdVolumeLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "volume"
+                }
+            }
+            LazyLoader {
+                id: osdMicLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "mic"
+                }
+            }
+            LazyLoader {
+                id: osdBrightnessLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "brightness"
+                }
+            }
+            LazyLoader {
+                id: osdKeyboardLoader
+                activeAsync: root.warm >= 1
+                KeyboardOsdWindow {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: notifsLoader
+                activeAsync: root.warm >= 1 || Notifs.popups.length > 0
+                NotificationPopups {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: regionLoader
+                property bool open: Recorder.anyActive || Recorder.chooserOpen
+                activeAsync: open || regionHold.running
+                onOpenChanged: if (!open && active) regionHold.restart()
+                RegionOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: regionHold; interval: 20000 }
+            LazyLoader {
+                id: captureLoader
+                property bool open: Capture.selecting !== ""
+                activeAsync: open || captureHold.running
+                onOpenChanged: if (!open && active) captureHold.restart()
+                CaptureOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: captureHold; interval: 20000 }
+            LazyLoader {
+                id: cameraLoader
+                property bool open: Camera.active
+                activeAsync: open || cameraHold.running
+                onOpenChanged: if (!open && active) cameraHold.restart()
+                CameraOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: cameraHold; interval: 20000 }
+            LazyLoader {
+                id: keypressLoader
+                property bool open: Keypresses.active
+                activeAsync: open || keypressHold.running
+                onOpenChanged: if (!open && active) keypressHold.restart()
+                KeypressOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: keypressHold; interval: 20000 }
+            // Shown only on the monitor whose frame bar raised it; the positive
+            // button runs the power action through the daemon, then clears.
+            LazyLoader {
+                id: confirmLoader
+                property bool open: ShellState.sessionAction !== ""
+                activeAsync: open || confirmHold.running
+                onOpenChanged: if (!open && active) confirmHold.restart()
+                ZenithConfirmationDialog {
+                    modelData: perScreen.modelData
+                    action: ShellState.sessionActionMonitor === perScreen.modelData.name ? ShellState.sessionAction : ""
+                    message: ShellState.sessionMessage
+                    positiveLabel: ShellState.sessionPositive
+                    negativeLabel: I18n.tr("Cancel")
+                    onConfirmed: a => { SessionActions.run(a); ShellState.clearSessionAction(); }
+                    onCancelled: ShellState.clearSessionAction()
+                }
+            }
+            Timer { id: confirmHold; interval: 5000 }
+        }
+    }
+
+    // The single surface-toggle mapping. Every shell surface id resolves to one
+    // transition here: a per-monitor ShellState flip, a global config toggle, or
+    // a request onto the frame menu bus. Both routes to a surface end in this one
+    // call -- a CustomShortcut press where the compositor bridges global
+    // shortcuts, and the surfaceRequested bus a `zenith-shell <id>` spawn drives
+    // where that protocol is absent (niri) -- so a toggle is defined once.
+    function toggleSurface(id) {
+        const st = ShellState.forActive();
+        switch (id) {
+        case "barToggle":
+            if (st)
+                st.barRevealed = !st.barRevealed;
+            break;
+        case "launcher":
+            if (st)
+                st.launcherOpen = !st.launcherOpen;
+            break;
+        case "overview":
+            if (Wm.caps.nativeOverview)
+                Wm.toggleOverview();
+            else if (st)
+                st.overviewOpen = !st.overviewOpen;
+            break;
+        case "visualizer":
+            VizCfg.Config.setEnabled(!VizCfg.Config.enabled);
+            break;
+        case "visualizer-overlay":
+            if (st)
+                st.visualizerOverlay = !st.visualizerOverlay;
+            break;
+        case "visualizer-place":
+            if (st)
+                root.placeVisualizer(!st.visualizerPlacing);
+            break;
+        case "quicksettings":
+            ShellState.requestSurfaceActive("quick-settings", undefined);
+            break;
+        case "wallpaper-menu":
+            ShellState.requestSurfaceActive("wallpaper", undefined);
+            break;
+        case "clipboard":
+            if (st)
+                st.clipboardOpen = !st.clipboardOpen;
+            break;
+        case "stash":
+            ShellState.requestSurfaceActive("stash", undefined);
+            break;
+        case "screenshot":
+            ShellState.requestSurfaceActive("quick-settings#capture", undefined);
+            break;
+        case "compress":
+            ShellState.requestSurfaceActive("stash#compress", undefined);
+            break;
+        case "install":
+            ShellState.requestSurfaceActive("stash#install", undefined);
+            break;
+        }
+    }
+
+    // The style-independent half of the surface bus. With no global-shortcuts
+    // protocol a keybind reaches a surface only by spawning `zenith-shell <id>`,
+    // which arrives here as a surfaceRequested. Frame-menu surfaces are opened by
+    // the per-monitor FrameMenuManager (Frame.qml), which maps in every bar
+    // style; the shell-wide flag surfaces have no such host, so this routes them
+    // through the same toggleSurface a shortcut press uses. Frame-menu ids never
+    // match here, so a surface still opens exactly once.
     Connections {
-        target: quickSettingsPopover
-        function onVisibleChanged() { root.forget("quick") }
+        target: ShellState
+        function onSurfaceRequested(id, mon, ctx) {
+            switch (id) {
+            case "barToggle":
+            case "launcher":
+            case "overview":
+            case "clipboard":
+            case "visualizer":
+            case "visualizer-overlay":
+            case "visualizer-place":
+                root.toggleSurface(id);
+                break;
+            }
+        }
     }
 
+    // In-process global shortcuts. Each dispatches to the one toggleSurface
+    // mapping above, so the compositor's global-shortcut bind and a `zenith-shell`
+    // spawn drive the identical transition. Names match the compositor binds.
+    CustomShortcut {
+        name: "barToggle"
+        description: I18n.tr("Toggle the Zenith frame bar on the active monitor")
+        onPressed: root.toggleSurface("barToggle")
+    }
+    CustomShortcut {
+        name: "launcher"
+        description: I18n.tr("Toggle the app launcher on the active monitor")
+        onPressed: root.toggleSurface("launcher")
+    }
+    CustomShortcut {
+        name: "overview"
+        description: I18n.tr("Toggle the workspace overview on the active monitor")
+        onPressed: root.toggleSurface("overview")
+    }
+    // On/off is the persisted key, so the keybind, the Hub switch and the next
+    // restart all read the same answer. Only the layer is per-monitor memory.
+    CustomShortcut {
+        name: "visualizer"
+        description: I18n.tr("Cycle the desktop audio visualiser off and on")
+        onPressed: root.toggleSurface("visualizer")
+    }
+    CustomShortcut {
+        name: "visualizer-overlay"
+        description: I18n.tr("Toggle the audio visualiser overlay over windows")
+        onPressed: root.toggleSurface("visualizer-overlay")
+    }
+    CustomShortcut {
+        name: "visualizer-place"
+        description: I18n.tr("Grab the audio visualiser's ring or orb and drag it into place")
+        onPressed: root.toggleSurface("visualizer-place")
+    }
+
+    // Aiming a hidden spectrum aims nothing, so placing it shows it first.
+    function placeVisualizer(on) {
+        const st = ShellState.forActive();
+        if (!st)
+            return;
+        if (on && !VizCfg.Config.enabled)
+            VizCfg.Config.setEnabled(true);
+        st.visualizerPlacing = on;
+    }
+
+    // --- Root machinery (ported from the reference pill root) --------------
+
+    // Bring the durable services online and prewarm the slow scans so the first
+    // open of each surface is instant. Ported from pill/shell.qml 170-194:
+    // device restore + ddc prewarm and re-arming the persisted Keep-Awake /
+    // Game Mode external inhibitors.
+    Component.onCompleted: {
+        Devices.restore();
+        root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        if (Flags.gameMode)
+            root.syncGameMode("start");
+        Devices.probeDisplays();
+    }
+
+    // Keep-Awake's durable inhibitor lives outside the shell so it survives a
+    // reload/restart: zenith-cmd-caffeine runs systemd-inhibit independent of our
+    // lifetime, while the Wayland IdleInhibitor below only gives compositor-level
+    // effect. Every surface toggle just flips Flags.keepAwake. (pill 246-257)
+    function syncCaffeine(action) {
+        Quickshell.execDetached(["zenith-cmd-caffeine", action]);
+    }
     Connections {
-        target: cheatsheetPopover
-        function onVisibleChanged() { root.forget("cheatsheet") }
+        target: Flags
+        function onKeepAwakeChanged() {
+            root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        }
     }
 
-    // The popovers hang off the dock, because the dock is what opens them and
-    // a popup placed against the dock is a popup placed against the edge of
-    // the screen the dock is on. The launcher and the quick settings hang from
-    // the side of the dock that faces the screen, so they open beside it
-    // rather than over it.
-    Popover {
-        id: launcherPopover
-        implicitWidth: 640
-        implicitHeight: 480
-        anchorItem: dock.contentItem
-        edgeTop: Config.dockPosition === Config.edgeBottom
-        edgeBottom: Config.dockPosition === Config.edgeTop
-        edgeLeft: Config.dockPosition === Config.edgeRight
-        edgeRight: Config.dockPosition === Config.edgeLeft
-        Launcher {}
+    // Game mode's compositor and WiFi tuning lives outside the shell, same shape
+    // as Keep-Awake: zenith-cmd-game-mode (on PATH) drives it so the tuning
+    // survives a reload. The deck toggle just flips Flags.gameMode. It is
+    // compositor tuning though (Hyprland live config eval), so it only fires
+    // where the window manager can run it -- the deck tile and the launcher
+    // action hide it there, and this stands down to match instead of running a
+    // script that would no-op.
+    function syncGameMode(action) {
+        if (Wm.caps.liveConfigEval !== true)
+            return;
+        Quickshell.execDetached(["zenith-cmd-game-mode", action]);
+    }
+    Connections {
+        target: Flags
+        function onGameModeChanged() {
+            root.syncGameMode(Flags.gameMode ? "start" : "stop");
+        }
     }
 
-    Popover {
-        id: quickSettingsPopover
-        implicitWidth: 360
-        implicitHeight: 320
-        anchorItem: dock.contentItem
-        edgeTop: Config.dockPosition === Config.edgeBottom
-        edgeBottom: Config.dockPosition === Config.edgeTop
-        edgeLeft: Config.dockPosition === Config.edgeRight
-        edgeRight: Config.dockPosition === Config.edgeLeft
-        QuickSettings {}
+    // Do-not-disturb: the notification server suppresses popups while the flag is
+    // set (the deck toggle owns the flag). (pill 196-200)
+    Binding {
+        target: Notifs
+        property: "dnd"
+        value: Flags.dnd
     }
 
-    // The cheat sheet.
-    //
-    // It hangs off the dock like the other two, because the dock is what the
-    // popovers hang off and where a surface sits is the dock's business and
-    // not the sheet's.
-    Popover {
-        id: cheatsheetPopover
-        // The size is the sheet's, because the sheet is as tall as the
-        // catalogue needs it to be.
-        implicitWidth: cheatsheet.implicitWidth
-        implicitHeight: cheatsheet.implicitHeight
-        anchorItem: dock.contentItem
-        edgeTop: Config.dockPosition === Config.edgeBottom
-        edgeBottom: Config.dockPosition === Config.edgeTop
-        edgeLeft: Config.dockPosition === Config.edgeRight
-        edgeRight: Config.dockPosition === Config.edgeLeft
-        // The window's own background is white, and the sheet draws its own
-        // card over it, so the window has to be transparent for the card to
-        // have corners. The sheet is dark whatever the window is.
+    // Compositor-level idle inhibitor, mapped only while Keep-Awake is on. It
+    // dies with the shell; the external caffeine bridge above keeps the durable
+    // one. (pill 202-214)
+    PanelWindow {
+        id: inhibitWin
+        visible: Flags.keepAwake
+        implicitWidth: 1
+        implicitHeight: 1
         color: "transparent"
-        Shell {
-            id: cheatsheet
-            width: implicitWidth
-            height: implicitHeight
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Background
+        WlrLayershell.namespace: "zenith-frame-inhibit"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        anchors { top: true; left: true }
+        IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
+    }
+
+    // keyboard-return bounce. The frame overlay never unmaps, and dropping an
+    // Exclusive grab on a mapped layer strands the keyboard (the window looks
+    // active but cannot type). This 1x1 helper takes the grab and unmaps, which
+    // makes Hyprland hand the keyboard back. A per-monitor FrameSurfaceLifecycle
+    // pulses it through ShellState.focusRestoreRequested when a keyboard surface
+    // is dismissed, since the lifecycle is per-monitor but this window is single.
+    // (pill 216-237, 304-308)
+    property bool kbBounce: false
+    Timer {
+        id: kbBounceTimer
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    PanelWindow {
+        id: kbBounceWin
+        visible: root.kbBounce
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "zenith-frame-kbfocus"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        anchors { top: true; left: true }
+    }
+    Connections {
+        target: ShellState
+        function onFocusRestoreRequested() {
+            root.kbBounce = true;
+            kbBounceTimer.restart();
         }
     }
 
-    // The two always-present surfaces. The bar and the dock are siblings of the
-    // popovers rather than children of them: a popover that closes must not take
-    // the bar with it.
-    // The wallpaper first, because QML draws siblings in declaration order and
-    // nothing else. A wallpaper declared after the bar is a wallpaper the bar
-    // is drawn over.
-    Wallpaper {}
-
-    Bar {}
-    Dock {
-        id: dock
-    }
-
-    // The sidebar is a sibling of the bar and the dock rather than a popover
-    // child, for the same reason: a panel that opens must not take the surfaces
-    // it was opened from down with it when it closes.
-    Sidebar {
-        id: sidebar
-        visible: root.currentPopover === "sidebar"
-    }
-
-    // The switcher is independent of the popovers. It is driven by a keybind
-    // rather than by togglePopover, and it closes itself, so keeping it out of
-    // currentPopover is what stops a Super+Tab from also closing an open
-    // launcher.
-    Switcher {
-        id: switcher
-    }
-
-    // Idle owns the timers and the overlay draws what they mean. The overlay is
-    // declared last so it is on top of everything, which is the whole point of
-    // it.
-    //
-    // The overlay is told what the idle object knows rather than asking it:
-    // they are two files, and a file cannot see another file's ids.
-    Idle {
-        id: idleState
-    }
-    IdleOverlay {
-        dimmed: idleState.dimmed
-        blanked: idleState.blanked
-    }
-
-    // The notification server. One for the session, because one bus name for
-    // the interface is all there is: a second server loses the registration
-    // and the notifications go to a surface nobody is looking at.
-    NotificationServer {
-        id: notificationServer
-    }
-
-    // The notification popup. It is a child of the root and not of the popovers,
-    // for the reason the popovers are: a notification that arrives while the
-    // quick settings are open must not be dismissed by them closing, and a
-    // popup that owns its own lifetime cannot be taken down by someone else's.
-    Notifications {
-        anchorItem: dock.contentItem
-        server: notificationServer
-    }
-
-    // The shell's external surface: what the compositor's keybinds call.
-    //
-    // A keybind is a string in one file and the surface it names is a string
-    // in another, and nothing in either file checks the other. A rename on one
-    // side leaves a keybind that runs, succeeds, and does nothing — the
-    // quietest possible failure, and the one a user reports as "the shortcut
-    // stopped working" rather than as a bug.
-    //
-    // So the target name is written once, here, and `zenith doctor` checks the
-    // compositor's configuration against it.
-    //
-    // The functions are the shell's own, not wrappers around them: togglePopover
-    // is what the shell's own surfaces call, and a keybind that took a
-    // different path would be a second opinion about what Super+Space means.
-    // ---------------------------------------------------------------- readers
-    //
-    // The shell's three inputs from the machine: the settings, the catalogue of
-    // applications, and the palette. All three are read here, in the root,
-    // rather than in the singletons that hold them.
-    //
-    // A process inside a singleton is a process that never runs. That is the
-    // one thing about a singleton the engine does not make work, and it is
-    // silent: the shell carries on and the value never arrives. A shell that
-    // reads its settings in a singleton is a shell with no settings, and it
-    // looks like a shell whose settings are all empty rather than like a shell
-    // that never asked.
-    //
-    // So the root reads, and pushes the answers into the singletons that own
-    // them. The singletons stay what they are good at: the vocabulary the
-    // surfaces read through.
-    Process {
-        id: settingsReader
-        command: ["zenith", "config", "values"]
-        running: true
-
-        stdout: StdioCollector {
-            id: settingsOut
-            waitForEnd: true
-            onStreamFinished: {
-                try {
-                    Config.values = JSON.parse(settingsOut.text);
-                } catch (error) {
-                    console.warn("Config: the settings could not be read:", error);
-                }
-            }
+    // the self-view is a recording companion: when the last capture stops, clear
+    // it so it does not linger. (pill 872-878)
+    Connections {
+        target: Recorder
+        function onAnyActiveChanged() {
+            if (!Recorder.anyActive)
+                Camera.active = false;
         }
     }
 
-    Process {
-        id: appsReader
-        command: ["zenith", "apps"]
-        running: true
-
-        stdout: StdioCollector {
-            id: appsOut
-            waitForEnd: true
-            onStreamFinished: {
-                try {
-                    Apps.applications = JSON.parse(appsOut.text);
-                } catch (error) {
-                    console.warn("Apps: the application list could not be read:", error);
-                }
-            }
+    // The polkit agent streams its prompt on a topic rather than pushing a
+    // surface, so raise and drop the island from the state itself. (pill 321-329)
+    Connections {
+        target: Polkit
+        function onActiveChanged() {
+            if (Polkit.active)
+                ShellState.requestSurface("polkit", "", undefined);
+            else
+                ShellState.closeSurface("polkit", "");
         }
     }
 
-    Process {
-        id: paletteReader
-        command: ["cat", Theme.path]
-        running: true
-
-        stdout: StdioCollector {
-            id: paletteOut
-            waitForEnd: true
-            onStreamFinished: {
-                try {
-                    Theme.palette = JSON.parse(paletteOut.text);
-                } catch (error) {
-                    // A broken palette leaves the fallback in place rather than
-                    // throwing, because a shell that dies on a parse error is
-                    // a shell with no desktop at all.
-                }
-            }
-        }
+    // Stash steps a running task's own surface aside when it needs the auth
+    // island. (pill 332-335)
+    Connections {
+        target: Stash
+        function onAuthStepAside(mon, id) { ShellState.closeSurface(id, mon); }
     }
 
-    // Read the three again.
-    //
-    // The settings are read once and held, because a shell that re-reads them
-    // on a timer redraws on a clock rather than on a change. A write says so
-    // over the IPC target, and the tool that made the write says so too, so
-    // nothing is polled.
-    function reloadSettings() {
-        settingsReader.running = false;
-        settingsReader.running = true;
-        appsReader.running = false;
-        appsReader.running = true;
-        paletteReader.running = false;
-        paletteReader.running = true;
+    // Daemon-facing surface channel (Phase 10 points the daemon here). Target
+    // "shell" avoids the live pill's "pill" target; each call maps onto the
+    // ShellState surface bus. Ported from pill/shell.qml 341-364; the SocketServer
+    // fast path (pill 402-411) is deliberately omitted so this instance owns no
+    // runtime socket and produces zero live side effects alongside the daemon.
+    IpcHandler {
+        target: "shell"
+        // An empty monitor means "wherever focus is": the daemon sends "" when
+        // its focused-output cache is cold.
+        function openSurface(mon: string, id: string): void {
+            if (mon && mon.length > 0)
+                ShellState.requestSurface(id, mon, undefined);
+            else
+                ShellState.requestSurfaceActive(id, undefined);
+        }
+        function closeSurface(mon: string, id: string): void { ShellState.closeSurface(id, mon); }
+        function keyringPrompt(payload: string): void {
+            Keyring.apply(payload);
+            ShellState.keyringPromptChanged(Keyring.promptId);
+            ShellState.requestSurface("keyring", Keyring.mon !== "" ? Keyring.mon
+                : (ShellState.screens.length > 0 ? ShellState.screens[0].name : ""),
+                { promptId: Keyring.promptId });
+        }
+        function keyringHide(): void {
+            Keyring.clear();
+            ShellState.closeSurface("keyring", "");
+        }
+        function voiceShow(mon: string): void { ShellState.requestSurface("voice", mon, undefined); }
+        function voiceOff(mon: string): void { ShellState.requestSurface("voice-off", mon, undefined); }
+        function voiceHide(): void { ShellState.closeSurface("voice", ""); }
+        function pluginPopout(mon: string, id: string): void { ShellState.requestSurface("plugin:" + id, mon, undefined); }
+        function bar(mon: string, id: string): void { ShellState.requestSurface(id, mon, undefined); }
+        function closeAllMenus(mon: string): void { ShellState.closeSurface("", mon); }
+        function sessionConfirm(mon: string, action: string): void { ShellState.askSessionAction(action, mon); }
+    }
+
+    // The Hub's "Place on the desktop" button lands here: a slider cannot let a
+    // user drop a ring where they want it, so the shell hands them the shape.
+    IpcHandler {
+        target: "visualizer"
+        function place(): void {
+            const st = ShellState.forActive();
+            if (st)
+                root.placeVisualizer(true);
+        }
+        function done(): void {
+            const st = ShellState.forActive();
+            if (st)
+                root.placeVisualizer(false);
+        }
     }
 
     IpcHandler {
-        id: ipc
+        target: "keypresses"
+        readonly property bool active: Keypresses.active
+        readonly property string status: Keypresses.backendStatus
+        readonly property string lastEvent: Keypresses.lastEventSignature
+        readonly property string theme: Keypresses.theme
+        readonly property string mode: Keypresses.mode
+        readonly property real revision: Keypresses.previewRevision
+        function activate(theme: string, mode: string, revision: string): void {
+            Keypresses.activatePreview(theme, mode, revision);
+        }
+        function deactivate(revision: string): void {
+            Keypresses.deactivatePreview(revision);
+        }
+        function toggle(): void { Keypresses.toggle(); }
+    }
+    // Menu global shortcuts: open a bar surface on the focused monitor. Each
+    // dispatches to the one toggleSurface mapping so the compositor bind and the
+    // `zenith-shell <id>` spawn open the identical surface.
+    CustomShortcut {
+        name: "quicksettings"
+        description: I18n.tr("Open quick settings on the active monitor")
+        onPressed: root.toggleSurface("quicksettings")
+    }
+    CustomShortcut {
+        name: "wallpaper-menu"
+        description: I18n.tr("Open the wallpaper and theme menu on the active monitor")
+        onPressed: root.toggleSurface("wallpaper-menu")
+    }
+    CustomShortcut {
+        name: "clipboard"
+        description: I18n.tr("Open the clipboard history on the active monitor")
+        onPressed: root.toggleSurface("clipboard")
+    }
+    CustomShortcut {
+        name: "stash"
+        description: I18n.tr("Open the feature sidebar on the active monitor")
+        onPressed: root.toggleSurface("stash")
+    }
+    CustomShortcut {
+        name: "screenshot"
+        description: I18n.tr("Open the capture tab in quick settings on the active monitor")
+        onPressed: root.toggleSurface("screenshot")
+    }
+    CustomShortcut {
+        name: "compress"
+        description: I18n.tr("Open the feature sidebar's file picker to compress media")
+        onPressed: root.toggleSurface("compress")
+    }
+    CustomShortcut {
+        name: "install"
+        description: I18n.tr("Open the feature sidebar's file picker to install a package")
+        onPressed: root.toggleSurface("install")
+    }
+
+    // --- Zenith keybind bridge --------------------------------------------
+    // The compositor's configuration (session/hyprland/hyprland.conf) still
+    // speaks the homegrown contract -- target "zenith" and the functions the
+    // `kind: "shell"` entries of session/binds.json name -- because the
+    // catalogue and the configuration are one list written down twice, and
+    // `zenith doctor` (internal/shell/binds.go) compares them in both
+    // directions. Neither side may rename alone, so this root hosts the old
+    // IpcHandler. Every function is a one-line route onto a surface the
+    // ported shell already owns, ending in the same toggleSurface mapping
+    // the CustomShortcuts above dispatch through.
+    //
+    // Global-shortcut collision: the conf's chords reach the shell only
+    // through its exec binds, and they own the dispatch. The CustomShortcuts
+    // here are left in place but cannot double-fire the same chord: the
+    // shipped hyprland.conf declares no `global,` dispatch binds at all, and
+    // the quickshell bridge module CustomShortcut loads
+    // (Zenith.Wm.Hyprland GlobalShortcutBridge) was not carried over by the
+    // port, so nothing in this file registers those chords with the
+    // global-shortcut protocol. The exec binds are the dispatcher for these
+    // surface -keybinds, exactly as the conf's own comments say.
+    IpcHandler {
         target: "zenith"
 
-        // Open or close a surface by name: "launcher", "quick", "sidebar".
         function togglePopover(name: string): void {
-            root.togglePopover(name)
+            switch (name) {
+            case "launcher":
+                root.toggleSurface("launcher");
+                break;
+            case "quick":
+                // The fork bar's frame card for quick-settings renders nothing
+                // on this bar style (verified live: the record opens, the
+                // panel never draws). The working renderer is the bar's control
+                // center (zenith-control layer, verified open+close), so the
+                // toggle forwards there over the bar's own IPC surface.
+                Quickshell.execDetached(["zenith", "ipc", "call", "qsbar", "toggle"]);
+                break;
+            case "sidebar":
+                root.toggleSurface("stash");
+                break;
+            case "cheatsheet":
+                root.showCheatsheet(zenithSheetWindow.visible !== true);
+                break;
+            }
         }
 
-        // The window switcher. It has its own lifetime — it is not a popover —
-        // and it closes itself, so the two verbs are separate on purpose.
-        function advanceSwitcher(): void {
-            switcher.advance()
-        }
+        // The switcher keeps its two verbs: advance while the key is down,
+        // close when it comes up (bind + bindl on SUPER, Tab).
+        function advanceSwitcher(): void { root.advanceSwitcher(); }
+        function closeSwitcher(): void { root.closeSwitcher(); }
+        function toggleCheatsheet(): void { root.toggleCheatsheet(); }
 
-        function closeSwitcher(): void {
-            switcher.close()
-        }
+        // The print key arrives here as a compositor bind (Print / XF86Print)
+        // and opens the capture tab in quick settings, where the shell takes
+        // the screenshot itself with the compositor's screencopy.
+        function toggleScreenshot(): void { root.toggleSurface("screenshot"); }
 
-        // The cheat sheet: the list of what the keyboard does.
-        //
-        // Its own verb rather than a name for togglePopover, because the
-        // compositor's configuration names it as a thing in its own right —
-        // the catalogue is the shell's list and the sheet is where that list
-        // is drawn, and a keybind that called it by the popover's name would
-        // be calling a surface by the name of the thing that opens surfaces.
-        function toggleCheatsheet(): void {
-            root.togglePopover("cheatsheet")
-        }
+        // The old shell re-read its cached settings files on a write; the
+        // ported shell reads GSettings reactively, so the contract's reload
+        // became a no-op rather than a call a Hub write would find missing.
+        function reloadSettings(): void {}
+    }
 
-        // The settings changed. The shell reads them once and holds what it
-        // read, so a change has to be told to it rather than waited for. The
-        // tool that writes a setting says so, and so does the Hub.
-        function reloadSettings(): void {
-            root.reloadSettings()
+    function toggleCheatsheet() {
+        root.showCheatsheet(zenithSheetWindow.visible !== true);
+    }
+
+    function showCheatsheet(on) {
+        if (on)
+            zenithSheetLoader.active = true; // the sheet builds on first open
+        zenithSheetWindow.visible = on;
+    }
+
+    function advanceSwitcher() {
+        if (zenithSwitcher.item)
+            zenithSwitcher.item.advance();
+    }
+
+    function closeSwitcher() {
+        if (zenithSwitcher.item)
+            zenithSwitcher.item.close();
+    }
+
+    // The switcher and the cheat sheet are Zenith's own parked surfaces from
+    // the homegrown shell (Switcher.qml, Shell.qml), hosted here so the conf's
+    // exec binds drive them in-process. The Loader confines a component that
+    // fails to load to a log line: a sheet that will not load is a sheet that
+    // does not open, not a desktop that does not boot. The switcher is
+    // resident (its window is born hidden), the sheet builds on first open
+    // like the port's own toggle surfaces.
+    Loader {
+        id: zenithSwitcher
+        source: "Switcher.qml"
+    }
+
+    PanelWindow {
+        id: zenithSheetWindow
+        visible: false
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        // Click-away and Escape close, because a sheet dismissed only by
+        // pressing its key again is a sheet the user is stuck in when the
+        // catalogue is not what they were looking for.
+        TapHandler { onTapped: root.showCheatsheet(false) }
+        Shortcut { sequence: "Escape"; onActivated: root.showCheatsheet(false) }
+
+        Loader {
+            id: zenithSheetLoader
+            active: false
+            anchors.centerIn: parent
+            source: "Shell.qml"
         }
     }
+
 }

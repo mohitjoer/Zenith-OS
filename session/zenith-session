@@ -111,6 +111,17 @@ if [ ! -e "$USER_HYPRLAND_CONF" ]; then
 USERCONF
 fi
 
+# First-boot wallpaper seed: establish the current/background fallback symlink
+# pointing to the default wallpaper. Idempotent — only creates when absent,
+# never clobbers a user's choice (which replaces the symlink).
+USER_WALLPAPER_DIR="$HOME/.config/zenith/current"
+USER_WALLPAPER_LINK="$USER_WALLPAPER_DIR/background"
+DEFAULT_WALLPAPER="/usr/share/zenith/backgrounds/galaxy.png"
+if [ ! -e "$USER_WALLPAPER_LINK" ]; then
+    mkdir -p "$USER_WALLPAPER_DIR"
+    ln -sf "$DEFAULT_WALLPAPER" "$USER_WALLPAPER_LINK"
+fi
+
 echo "zenith-session: env ok, starting Hyprland"
 
 # The compositor's configuration. Zenith ships one — the keybinds are the only

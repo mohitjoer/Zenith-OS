@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -28,8 +29,11 @@ Terminal=false
 	if app.Name != "Terminal" {
 		t.Errorf("name is %q, want Terminal", app.Name)
 	}
-	if app.Icon != "com.mitchellh.ghostty" {
-		t.Errorf("icon is %q, want the entry's own icon", app.Icon)
+	// The icon is resolved to a file, because the shell cannot ask the icon
+	// engine for a name: the engine's theme is a setting of the session, and
+	// an icon that is not in that theme is a broken-image placeholder.
+	if !strings.HasPrefix(app.Icon, "file://") {
+		t.Errorf("icon is %q, want a file", app.Icon)
 	}
 	if app.Exec != "ghostty" {
 		t.Errorf("exec is %q, want ghostty", app.Exec)

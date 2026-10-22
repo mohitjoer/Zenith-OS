@@ -55,10 +55,12 @@ func findIconFile(name string) string {
 		return ""
 	}
 
+	// The name is used as it is given. A desktop entry's icon name is not a
+	// file name, and stripping what looks like an extension from it is how
+	// "org.gnome.Nautilus" turns into "org.gnome" — the last dot in a name is
+	// usually part of the name, and the file behind it is found by the name
+	// with the extension added, not the extension taken away.
 	base := name
-	if ext := filepath.Ext(base); ext != "" {
-		base = strings.TrimSuffix(base, ext)
-	}
 
 	for _, dir := range iconDirs() {
 		if found := walkIcons(dir, base); found != "" {
@@ -119,7 +121,13 @@ func findInTree(root, base string) string {
 			return nil
 		}
 		name := info.Name()
-		if strings.TrimSuffix(name, filepath.Ext(name)) != base {
+		if name != base && strings.TrimSuffix(name, filepath.Ext(name)) != base {
+			return nil
+		}
+		// A cursor is not an image. It is in the icon directory because
+		// the pointer themes live there too, and handing one to an image
+		// is a picture that never appears.
+		if filepath.Ext(name) == ".cursor" {
 			return nil
 		}
 		found = path

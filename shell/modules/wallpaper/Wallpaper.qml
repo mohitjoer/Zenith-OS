@@ -1,0 +1,138 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+/**
+ * Zenith wallpaper topic bridge, one instance per monitor (the shell root's
+ * per-screen scope constructs it with `screen`).
+ *
+ * Ryogami (the Go wallpaper daemon) publishes one coalesced full-state frame
+ * {default: ENTRY, outputs: {connector: ENTRY}} per revision on the `wallpaper`
+ * topic of $XDG_RUNTIME_DIR/ryogami.sock. This bridge subscribes and re-exposes
+ * this output's entry (outputs[screen.name] or, absent an override, default)
+ * as the wallpaper/video urls and fit that the desktop's backdrop
+ * (modules/desktop -> WallpaperMod.Backdrop) paints: stills with the reveal
+ * transition, and live clips yielded to the separate ryogami-live C player via
+ * `live` (in-shell QtMultimedia playback is trimmed on systems without the
+ * module). Stage
+ * cuts and renders its own subject from the daemon `stage` topic; the frame's
+ * `depth` fold stays ryogami's pixel-lock subject, unchanged on the wire
+ * (docs/stage.md). Contract 08 sec 1, 2.6, 5, 7.
+ *
+ * The ryogami wallpaper picker (Super+W) sets wallpapers through ryogami,
+ * which feeds this same topic.
+ */
+Item {
+    id: root
+
+    // The monitor this bridge tracks, supplied by the shell root's per-screen
+    // scope (contract 08 sec 7: hotplug adds a monitor -> a new instance here).
+    required property var screen
+
+    WallpaperFrame {
+        id: frame
+        screenName: root.screen ? root.screen.name : ""
+    }
+    readonly property string wallpaperUrl: frame.path.length > 0
+        ? "file://" + frame.path + "?v=" + frame.revision : ""
+    readonly property string wallpaperPath: frame.path
+    readonly property string fit: frame.fit
+    // The reveal preset for the current revision (null = plain crossfade).
+    readonly property var transition: frame.transition
+    // The video clip for a live wallpaper ("" for a still).
+    readonly property string videoUrl: frame.videoPath.length > 0
+        ? "file://" + frame.videoPath : ""
+    // The in-shell clip's audio, threaded to the backdrop's player: muted by
+    // default, volume 0-100 (Backdrop scales it to 0..1).
+    readonly property bool videoMuted: frame.mute
+    readonly property int videoVolume: frame.volume
+    // The ryogami-live yield flag: hide the in-shell painter while the C
+    // player owns the background layer; false for the in-shell engine.
+    readonly property bool live: frame.live
+    // The first topic frame gates readiness, not the in-shell decode: the
+    // backdrop itself waits on the Image decode before revealing.
+    readonly property bool reloadReady: frame.ready
+
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryogami.sock"
+
+    function apply(line: string): void {
+        frame.apply(line);
+    }
+
+    // Subscribe once, then stream, mirroring the Tray/Clipboard singletons. A
+    // second write would half-close the stream (daemon rule), so nothing else
+    // writes here.
+    Socket {
+        id: sub
+        path: root.sockPath
+        parser: SplitParser {
+            onRead: line => root.apply(line)
+        }
+        Component.onCompleted: connected = true
+        onConnectionStateChanged: {
+            if (connected) {
+                write("subscribe wallpaper\n");
+                flush();
+            } else {
+                retry.restart();
+            }
+        }
+        // A peer close (the daemon restarting under us, which is what login does
+        // with the session daemons) arrives as a socket error and leaves
+        // `connected` true, so the branch above never ran: the desktop kept a
+        // grey wallpaper until something re-applied by hand. Drop the link on the
+        // error so the reconnect path takes over and re-requests the frame.
+        onError: {
+            connected = false;
+            retry.restart();
+        }
+    }
+
+    // Ryogami may be down when the shell loads (or restart under it); retry
+    // quietly so the desktop rebinds once it returns.
+    Timer {
+        id: retry
+        interval: 2000
+        onTriggered: if (!sub.connected)
+            sub.connected = true
+    }
+
+    // Ryogami may never publish in a session (daemon not installed, or its unit
+    // wedged off): without a frame `frame.path` stays empty and the desktop
+    // paints a blank surface. Give the backdrop a still image from the local
+    // config instead: the current background seed (~/.config/zenith/current/
+    // background, the same file the theme side reads for its palette), else the
+    // first image bundled in ~/.config/zenith/backgrounds. The daemon still owns
+    // the wallpaper the moment it exists: nothing runs once a frame has landed,
+    // and a later topic frame overwrites these fields through apply().
+    Timer {
+        id: fallbackTimer
+        interval: 3000
+        running: true
+        onTriggered: if (!frame.ready)
+            fallbackProc.running = true
+    }
+
+    Process {
+        id: fallbackProc
+        command: ["sh", "-c",
+            "p=\"$HOME/.config/zenith/current/background\"; "
+            + "if [ -e \"$p\" ]; then printf '%s\\n' \"$p\"; exit 0; fi; "
+            + "find \"$HOME/.config/zenith/backgrounds\" -maxdepth 1 -type f "
+            + "\\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\) "
+            + "| sort | head -n 1"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const p = (this.text || "").trim()
+                if (frame.ready || p.length === 0)
+                    return
+                frame.fit = "Cover"
+                frame.path = p
+                frame.revision = Date.now()
+                frame.ready = true
+            }
+        }
+    }
+}

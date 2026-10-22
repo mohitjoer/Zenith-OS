@@ -240,13 +240,6 @@ func configSet(catalogue *settings.Catalogue, args []string) int {
 	return exitOK
 }
 
-// shellConfigPath is where the shell's configuration is installed.
-//
-// It is the same path the compositor's keybinds use, and the same path the
-// shell's own unit starts it with: a shell that is told to look in one place
-// and is asked to talk to another is a shell that never hears the answer.
-const shellConfigPath = "/usr/share/zenith/shell"
-
 // notifyShell asks a running shell to read its settings again.
 //
 // The shell holds the settings it read when it started, because a shell that
@@ -259,11 +252,14 @@ func notifyShell() {
 	if _, err := exec.LookPath("quickshell"); err != nil {
 		return
 	}
-	// The path, because the IPC call has to know which instance it is talking
-	// to. Without it the call looks for the default configuration, finds
-	// none, and fails — which is a write that happened and a shell that never
-	// heard about it.
-	cmd := exec.Command("quickshell", "ipc", "--path", shellConfigPath,
+	// The instance is found rather than named, because a shell started from a
+	// development tree is the one whose settings have to change and the
+	// installed path is not where it is listening.
+	path, err := findShellConfig()
+	if err != nil {
+		return
+	}
+	cmd := exec.Command("quickshell", "ipc", "--path", path,
 		"call", "zenith", "reloadSettings")
 	if err := cmd.Run(); err != nil {
 		return

@@ -114,10 +114,14 @@ PanelWindow {
 
         stdout: StdioCollector {
             onStreamFinished: {
+                // Exit codes are not settled when the stream closes (the exit
+                // signal lands after this collector), so the guard is content,
+                // not exit code: `exitedWithCode` is still undefined here.
                 // A failed probe leaves the previous document in place rather
                 // than blanking the panel. And it does not fail on absent
                 // hardware anyway — it reports it as absent, which is the point.
-                if (probe.exitedWithCode !== 0) return
+                if (text.trim() === "")
+                    return
                 try {
                     sidebar.document = JSON.parse(text)
                 } catch (error) {
