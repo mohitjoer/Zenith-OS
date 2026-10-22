@@ -58,6 +58,20 @@ for program in usr/bin/zenith usr/bin/zenith-hub usr/share/zenith/session/zenith
 	fi
 done
 
+# The two entry points the session files name, at the paths they name them at.
+#
+# The doctor walks one tree and checks one entry point, so it cannot notice a
+# package that dropped the Hub's entry file: the tree it does walk would still
+# pass. The cost of not noticing is a window that fails at login with nothing
+# but a shell error in the journal, and the session file that starts it is
+# installed and executable, so every other check here would be green.
+for entry in usr/share/zenith/shell/shell.qml usr/share/zenith/shell/hub.qml; do
+	if [ ! -f "$STAGE/$entry" ]; then
+		echo "doctor_test: $entry is not in the installed tree" >&2
+		exit 1
+	fi
+done
+
 # The config tree is the half of doctor that needs the base to have been
 # materialized once, exactly as a machine would after install.
 "$STAGE/usr/bin/zenith" materialize --root "$STAGE" >/dev/null
@@ -90,7 +104,15 @@ must_not_contain() {
 }
 
 # The shell's source, checked against the schemas where GLib actually puts them.
-must_contain "source checks pass for 2 window(s)"
+#
+# One window and not two. The Hub's entry file sits beside the shell's in the
+# same tree, because both are drawn from the same component kit and the kit's
+# imports name nothing from a root of shell/hub/ — so the doctor walks one
+# directory and checks one entry point. A second pass over the same directory
+# would not be evidence about a second window; it would be the same check
+# counted twice. That the Hub's entry file is in the tree is stated separately,
+# by the entry-point list above.
+must_contain "source checks pass for 1 window(s)"
 must_not_contain "declares no schema id"
 must_not_contain "settings unreachable"
 must_not_contain "contains no .gschema.xml"
