@@ -72,6 +72,8 @@ DEFAULT_EXCLUDES = [
     "shell/vendor/**",
     "shell/i18n/**",
     "shell/modules/ii/**",
+    "shell/modules/common/**",
+    "shell/services/**",
     "shell/Blobs-src/**",
     "shell/legacy-shell.qml",
     "shell/**/qa/**",

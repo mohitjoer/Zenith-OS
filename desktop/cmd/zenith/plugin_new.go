@@ -174,6 +174,9 @@ func pluginScaffoldFiles(id, name, author, host string, bar bool) (map[string][]
 		if rel == "gitignore" {
 			rel = ".gitignore"
 		}
+		if rel == "LICENSE.template" {
+			rel = "LICENSE"
+		}
 		files[rel] = []byte(replacer.Replace(string(body)))
 		return nil
 	})

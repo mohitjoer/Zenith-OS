@@ -5,7 +5,7 @@ on a developer machine is finished — and none of them depends on work that has
 The order is deliberate: hardware reach comes early because it decides whether Zenith is
 usable by anyone but its author.
 
-The ISO (M4), the Limine/UKI boot chain and Btrfs rollback are deferred: the product today is the Zenith session on a stock Ubuntu 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
+The ISO (M4), the Limine/UKI boot chain and Btrfs rollback are deferred: the product today is the Zenith session on a stock Ubuntu Server 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
 
 ---
 
@@ -114,9 +114,14 @@ confirm.
 
 ## M4 — Bootable ISO
 
-The first thing anyone can install.
+*Status: the ISO build entry point now exists and derives its package list from the reviewed
+Ubuntu Server 26.04 manifest, builds the local Zenith package, and invokes live-build for an
+iso-hybrid image. It has not yet been run here because live-build/mmdebstrap are not installed,
+and it does not install to disk yet.*
 
 - `live-build` for the ISO, `mmdebstrap` for the rootfs seed
+- [x] `installation/build-iso.sh` — reproducible build entry point with explicit tool checks,
+  reviewed-manifest package extraction and local Zenith package inclusion
 - Hardware detection in the installer, profile selection, tier display
 - Limine on a separate ESP, Secure Boot via shim + MOK
 - The offline firmware path: a broad rescue bundle plus `zenith-firmware load`

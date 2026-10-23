@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"log"
@@ -134,6 +135,7 @@ func (d *daemon) startNightlight() {
 		n.publish(n.running())
 		return
 	}
+	n.publish(n.running())
 	go n.watch()
 	go n.runSchedule()
 }
@@ -345,10 +347,10 @@ func (n *nightlightState) running() bool {
 	return false
 }
 
-// procCommIs reports whether the pid's comm equals name. It skips anything that
-// is not a numeric process directory, so the caller can hand it every /proc
-// entry. comm truncates at 15 characters; hyprsunset fits, so an exact compare
-// is right.
+// procCommIs reports whether the pid's comm equals name and the process is alive
+// (not in zombie or dead state). It skips anything that is not a numeric process
+// directory, so the caller can hand it every /proc entry. comm truncates at 15
+// characters; hyprsunset fits, so an exact compare is right.
 func procCommIs(pid, name string) bool {
 	if _, err := strconv.Atoi(pid); err != nil {
 		return false
@@ -357,5 +359,17 @@ func procCommIs(pid, name string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.TrimSpace(string(b)) == name
+	if strings.TrimSpace(string(b)) != name {
+		return false
+	}
+	stat, err := os.ReadFile("/proc/" + pid + "/stat")
+	if err != nil {
+		return false
+	}
+	idx := bytes.LastIndexByte(stat, ')')
+	if idx < 0 || idx+2 >= len(stat) {
+		return false
+	}
+	state := stat[idx+2]
+	return state != 'Z' && state != 'X'
 }

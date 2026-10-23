@@ -16,6 +16,7 @@ for u in session/units/*.service session/units/*.target; do
         [ "$r" != "$p" ] && [ -e "$r" ] && continue
         grep -qsE -- "->[[:space:]]*$p([[:space:]]|\$)" release/build.d/*.build ||
             grep -qsF -- "\$STAGE$p" release/build-debs.sh || [ -e "$p" ] ||
+            [ -e "/usr/lib/$(basename "$p")" ] || [ -e "/usr/libexec/$(basename "$p")" ] ||
             { echo "$u: $p is installed by no build line"; rc=1; }
     done
 done

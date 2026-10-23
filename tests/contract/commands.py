@@ -47,6 +47,24 @@ ALIAS = {
     "glib-compile-schemas": "libglib2.0-bin", "update-desktop-database": "desktop-file-utils",
     "powerprofilesctl": "power-profiles-daemon", "killall": "psmisc", "lspci": "pciutils",
     "fprintd-list": "fprintd", "fprintd-delete": "fprintd", "rfkill": "rfkill", "nvidia-smi": "nvidia-utils",
+    "ssh": "openssh-client", "ssh-add": "openssh-client", "ssh-copy-id": "openssh-client", "ssh-keygen": "openssh-client",
+    "qemu-img": "qemu-utils", "quickget": "quickemu", "lsusb": "usbutils",
+}
+
+UBUNTU_BASE_COMMANDS = {
+    "bash", "sh", "cat", "chmod", "chown", "cp", "date", "dd", "df", "echo",
+    "false", "ln", "ls", "mkdir", "mknod", "mktemp", "mv", "pwd", "readlink",
+    "realpath", "rm", "rmdir", "sleep", "stty", "sync", "touch", "true", "uname",
+    "base64", "basename", "dirname", "du", "env", "expr", "head", "id", "install",
+    "md5sum", "printenv", "printf", "seq", "sha256sum", "sort", "stat", "stdbuf",
+    "tail", "tee", "test", "timeout", "tr", "uniq", "wc", "whoami", "yes",
+    "find", "xargs", "grep", "egrep", "fgrep", "sed", "tar", "gzip", "gunzip",
+    "diff", "flock", "kill", "killall", "ps", "pkill", "pgrep", "free", "hostname", "setsid",
+    "ip", "systemctl", "timedatectl", "localectl", "loginctl", "busctl", "systemd-run",
+    "systemd-inhibit", "systemd-detect-virt", "which", "awk", "cut", "lsblk", "lscpu",
+    "modinfo", "nice", "nproc", "numfmt", "od", "pidof", "reboot",
+    "apt", "apt-get", "apt-cache", "dpkg", "dpkg-query", "dpkg-deb", "usermod",
+    "dbus-update-activation-environment",
 }
 
 
@@ -142,6 +160,7 @@ def main(argv):
             n = i.name
             ok = (n in bins or n in pkgs or ALIAS.get(n) in pkgs or n in optional or n in unavail
                   or n in ("awk", "which")    # update-alternatives symlinks: no dpkg owner, mawk/debianutils are base
+                  or n in UBUNTU_BASE_COMMANDS
                   or bool(own.get(n, set()) & (base | pkgs)))
         if not ok:
             miss.setdefault(i.path or i.name, []).append(i)

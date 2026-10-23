@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs
 
 // Thin reader of the daemon palette for the plugin kit. The theme daemon is the
 // sole author of colour in Zenith: a fixed named theme publishes its palette into
@@ -43,13 +44,13 @@ Singleton {
     }
 
     // --- surface depth ramp (the plugin card sits on these) -------------------
-    readonly property color base:     role("surface", "#1a1a1a")
-    readonly property color elevated: role("surfaceContainer", "#242424")
-    readonly property color deep:     role("surfaceContainerLowest", "#101010")
-    readonly property color line:     role("outlineVariant", "#2b2b2b")
+    readonly property color base:     role("surface", Theme.surface)
+    readonly property color elevated: role("surfaceContainer", Theme.surfaceRaised)
+    readonly property color deep:     role("surfaceContainerLowest", Theme.canvas)
+    readonly property color line:     role("outlineVariant", Theme.surfaceOverlay)
 
     // --- accent: the ink itself ------------------------------------------------
-    readonly property color accent: role("onSurface", "#f2f2f2")
+    readonly property color accent: role("onSurface", Theme.inkPrimary)
 
     // --- ink, resolved from the palette so text reads on the themed card.
     // Declared plain and set via Binding: QML's signal-handler grammar parses an
@@ -58,8 +59,8 @@ Singleton {
     // element assigns the role by name instead. ---
     property color onSurface
     property color onSurfaceVariant
-    Binding { target: root; property: "onSurface";        value: root.role("onSurface", "#f2f2f2") }
-    Binding { target: root; property: "onSurfaceVariant"; value: root.role("onSurfaceVariant", "#a1a1a1") }
+    Binding { target: root; property: "onSurface";        value: root.role("onSurface", Theme.inkPrimary) }
+    Binding { target: root; property: "onSurfaceVariant"; value: root.role("onSurfaceVariant", Theme.inkTertiary) }
 
     function refreshWall() {
         try {

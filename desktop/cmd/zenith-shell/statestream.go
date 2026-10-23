@@ -71,7 +71,7 @@ func (t *stateTopic) subscribe() *topicSubscriber {
 	}
 	t.mu.Lock()
 	t.subs[sub] = struct{}{}
-	if t.last != nil {
+	if !t.ordered && t.last != nil {
 		sub.frames <- t.last
 	}
 	t.mu.Unlock()

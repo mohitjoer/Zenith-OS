@@ -4,3 +4,27 @@
 #
 # A command belongs here only when the caller really degrades visibly without it.
 # A command that is simply needed belongs in release/deps.d/<lane>.deps instead.
+zenith-clamshell       # gated by command -v in session/hyprland/lid.conf
+zenith-power           # unbuilt helper, gated by PATH check in cputune.go and CONTRACT.md
+zenith-docker          # gated by Stash.dockerState and stash-cobalt-server.sh
+zenith-cursor-track    # gated by command -v in zenith-cmd-studiorecord
+snapper                # Btrfs/snapper rollback in import_apply.go
+steamcmd               # Steam workshop downloads in wallpaper-ui
+checkupdates           # Arch checkupdates fallback in Updates.qml
+kitty                  # terminal emulator fallback in qsbar
+kdialog                # fallback file dialog in shot/vm/wallpaper-ui
+deactivate             # Python venv deactivate in token-from-key-venv.sh
+warp-cli               # Cloudflare WARP quick toggle in CloudflareWarpToggle.qml
+ydotool                # virtual keyboard daemon in Ydotool.qml
+easyeffects            # audio effects quick toggle in EasyEffectsToggle.qml
+inxi                   # hardware info tool in qsbar Theme.qml
+uv                     # Python package runner in zenith-stage
+usbreset               # USB audio reset helper in zenith-restart-audio
+docker                 # Docker engine in stash-cobalt-server.sh
+makoctl                # Mako notification daemon fallback in qsbar
+matugen                # Material theme generator fallback in schemes.go
+nautilus               # GNOME Files fallback in CapturePopout.qml and Remotes.qml
+nvibrant               # NVIDIA digital vibrance tool in Devices.qml
+nvidia-smi             # NVIDIA System Management Interface in StatsFeed/LiveStats/GpuPage
+openssl                # SSL/TLS toolkit in localsend.sh
+pavucontrol            # PulseAudio/PipeWire volume control GUI fallback in VolumePanel.qml

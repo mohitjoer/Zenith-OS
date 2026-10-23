@@ -21,6 +21,10 @@ import qs.Services
 Scope {
     id: idle
 
+    readonly property int dimAfter: Config.idleDimSeconds
+    readonly property int blankAfter: Config.idleBlankSeconds
+    readonly property int lockAfter: Config.idleLockSeconds
+
     property bool dimmed: false
     property bool ready: false
     readonly property string flag: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-idle"

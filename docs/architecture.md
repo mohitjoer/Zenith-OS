@@ -6,7 +6,7 @@ This document records **decisions, not aspirations**. Where a decision is settle
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
 closed question or assumes an open one is closed.
 
-The ISO, the Limine/UKI boot chain and Btrfs rollback below are decided but deferred, not shipped: the product today is the Zenith session on a stock Ubuntu 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
+The ISO, the Limine/UKI boot chain and Btrfs rollback below are decided but deferred, not shipped: the product today is the Zenith session on a stock Ubuntu Server 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
 
 ---
 

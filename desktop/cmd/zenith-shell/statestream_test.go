@@ -53,6 +53,24 @@ func TestEventTopicRetainsIdenticalEvents(t *testing.T) {
 	}
 }
 
+func TestEventTopicDoesNotReplayBeforeSubscription(t *testing.T) {
+	topic := newEventTopic()
+	topic.publish([]byte("old"))
+
+	sub := topic.subscribe()
+	defer topic.unsubscribe(sub)
+
+	topic.publish([]byte("new"))
+	select {
+	case frame := <-sub.frames:
+		if string(frame) != "new" {
+			t.Fatalf("event = %q, want new", frame)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for new event")
+	}
+}
+
 // The key overlay's evdev reader must not outlive the shell that asked for it:
 // when the last keypress subscriber goes, the backend is switched off.
 func TestKeypressBackendStopsWhenLastSubscriberLeaves(t *testing.T) {

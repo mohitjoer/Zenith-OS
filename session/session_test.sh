@@ -171,7 +171,8 @@ if command -v systemd-analyze >/dev/null 2>&1; then
         # and systemd resolves references against the installed units. That is
         # what the session's own target is for: it is installed, and the
         # references resolve there.
-        PROBLEMS=$(systemd-analyze verify "$unit" 2>&1 \
+        PROBLEMS=$(systemd-analyze --user verify "$unit" 2>&1 \
+            | grep -F "$(basename "$unit")" \
             | grep -vE "(zenith-session|graphical-session)\.target not found|not executable" || true)
 
         rc=0; [ -z "$PROBLEMS" ] || rc=$?

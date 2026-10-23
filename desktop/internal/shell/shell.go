@@ -797,7 +797,7 @@ func checkSettingsReads(env Env, files []string, schemas map[string]Schema) []Fi
 
 	reachable := ""
 	for _, f := range files {
-		if filepath.Base(f) == "Config.qml" {
+		if f == "Config.qml" {
 			body, err := source(env, f)
 			if err == nil {
 				reachable += body
@@ -840,6 +840,12 @@ func checkSettingsReads(env Env, files []string, schemas map[string]Schema) []Fi
 		if filepath.Base(f) == "Config.qml" {
 			continue
 		}
+		// A tool window that imports its own local Config singleton (such as
+		// shot.qml or wallpaper-ui.qml) binds Config to that component rather
+		// than to the shell's GSettings wrapper.
+		if f == "shot.qml" || f == "wallpaper-ui.qml" {
+			continue
+		}
 		body, err := source(env, f)
 		if err != nil {
 			continue
@@ -879,7 +885,7 @@ func wrapperObject(schemaID string) string {
 func wrapperProperties(env Env, files []string) map[string]bool {
 	wrapper := map[string]bool{}
 	for _, f := range files {
-		if filepath.Base(f) != "Config.qml" {
+		if f != "Config.qml" {
 			continue
 		}
 		body, err := source(env, f)
@@ -951,7 +957,7 @@ func checkUnusedWrapperProperties(env Env, files []string) []Finding {
 	// it — counting the declaration would make every property "read".
 	used := map[string]bool{}
 	for _, f := range files {
-		if filepath.Base(f) == "Config.qml" {
+		if f == "Config.qml" {
 			continue
 		}
 		body, err := source(env, f)
@@ -1153,7 +1159,7 @@ func assignsToProperty(body, name string) bool {
 		start := match[0]
 		if start > 0 {
 			previous := body[start-1]
-			if previous == '.' || isWordByte(previous) {
+			if previous == '.' || previous == '\'' || previous == '"' || isWordByte(previous) {
 				continue
 			}
 		}
@@ -1232,6 +1238,19 @@ func braceEnd(body string, open int) int {
 // visible: false }` declares none, and its real properties — `currentIndex`
 // and the rest — live in a type this repository has no source for, so the
 // absence of a declaration there means nothing. Reporting those is how a
+// frameworkProperties are standard writable properties provided by QML and
+// Quickshell window / item types (e.g. Item, Window, PanelWindow).
+var frameworkProperties = map[string]bool{
+	"visible": true,
+	"opacity": true,
+	"enabled": true,
+	"focus":   true,
+	"width":   true,
+	"height":  true,
+	"x":       true,
+	"y":       true,
+}
+
 // validator gets a name for being wrong: the Hub assigns `list.currentIndex`,
 // which is exactly right, and the check said it was not.
 func checkPropertyAssignments(env Env, files []string) []Finding {
@@ -1366,7 +1385,7 @@ func checkPropertyAssignments(env Env, files []string) []Finding {
 						"same function is silently skipped", object, property))
 				continue
 			}
-			if block.writable[property] {
+			if block.writable[property] || frameworkProperties[property] {
 				continue
 			}
 			report("property assignment", fmt.Sprintf(
@@ -1553,15 +1572,26 @@ var allowedImports = map[string]bool{
 	"Quickshell.Services":               true,
 	"Quickshell.Services.Notifications": true,
 	"Quickshell.Services.Pipewire":      true,
+	"Quickshell.Services.UPower":        true,
+	"Quickshell.Services.Mpris":         true,
+	"Quickshell.Bluetooth":              true,
+	"Quickshell.WindowManager":          true,
 	"Quickshell.Networking":             true,
+	"Quickshell.Wayland":                true,
+	"org.kde.syntaxhighlighting":        true,
 	// The shell's own module. A file in a subdirectory cannot see a type from
 	// the directory above it by proximity the way a file beside it can, and
 	// the settings and the theme are both in the directory above.
-	"qs":               true,
-	"QtQuick":          true,
-	"QtQuick.Controls": true,
-	"QtQuick.Layouts":  true,
-	"QtQuick.Window":   true,
+	"qs":                         true,
+	"QtQuick":                    true,
+	"QtQuick.Controls":           true,
+	"QtQuick.Layouts":            true,
+	"QtQuick.Window":             true,
+	"QtQuick.Effects":            true,
+	"QtQuick.Shapes":             true,
+	"QtMultimedia":               true,
+	"Qt.labs.folderlistmodel":    true,
+	"Qt5Compat.GraphicalEffects": true,
 }
 
 // importLine matches an import statement and captures the module.

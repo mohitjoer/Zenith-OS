@@ -440,6 +440,8 @@ def parse_shell(src: str, base_line: int = 1) -> Parsed:
             first = words[0].text if words else ""
             if first == "esac" and not words[0].dyn:
                 case_stack.pop()
+                if term == ";;" and case_stack:
+                    case_stack[-1] = True
             elif term == ")":
                 case_stack[-1] = False
             continue
@@ -470,6 +472,8 @@ def parse_shell(src: str, base_line: int = 1) -> Parsed:
         if not head.dyn and head.text == "esac":
             if case_stack:
                 case_stack.pop()
+            if term == ";;" and case_stack:
+                case_stack[-1] = True
             continue
         if not head.dyn and head.text in _TERMINAL_WORDS:
             if term == ";;" and case_stack:

@@ -65,8 +65,23 @@ const vendorManifestPath = "vendor/manifest.yaml"
 // root is `qs` — so the whole subtree is one import namespace, and a file
 // added under it is a file that changes what upstream's components see.
 var vendoredRoots = map[string]bool{
-	"modules":  true,
-	"services": true,
+	"modules":      true,
+	"services":     true,
+	"Services":     true,
+	"Ui":           true,
+	"components":   true,
+	"Barkit":       true,
+	"FrameBars":    true,
+	"PluginKit":    true,
+	"plugins":      true,
+	"hub":          true,
+	"shot":         true,
+	"pin":          true,
+	"welcome":      true,
+	"reload-cover": true,
+	"store":        true,
+	"vm":           true,
+	"wallpaper-ui": true,
 }
 
 // overlayFiles are the files Zenith supplies at upstream's paths.
@@ -499,7 +514,7 @@ func CheckVendored(env Env) VendorReport {
 // shell's own directory.
 func vendoredFiles(env Env) []string {
 	var files []string
-	for _, root := range []string{"modules", "services"} {
+	for _, root := range []string{"modules/common", "modules/ii", "services"} {
 		base := env.path(root)
 		err := filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -707,7 +722,7 @@ func imageModules() map[string]bool {
 // the fix is a package in the image rather than an edit of a file that is
 // not ours to edit.
 func vendoredModuleReport(env Env, files []string) (needed, carried []string, packages bool) {
-	inImage := imageModules()
+	_ = imageModules()
 	declared, packages := declaredQMLModules(env.Root)
 
 	seen := map[string]bool{}
@@ -736,9 +751,6 @@ func vendoredModuleReport(env Env, files []string) (needed, carried []string, pa
 				continue
 			}
 			if module == "Quickshell" || strings.HasPrefix(module, "Quickshell.") {
-				continue
-			}
-			if inImage[module] {
 				continue
 			}
 

@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs
 import qs.FrameBars
 
 // live shell appearance config, read-only here: the look knobs Zenith
@@ -66,7 +67,7 @@ Singleton {
             property real frameOpacity: 1
             property real shadowStrength: 0.63
             property real shadowSize: 12
-            property color surfaceColor: "#0f1115"
+            property color surfaceColor: Theme.canvas
             property real islandWidth: 109
             property real islandHeight: 34
             property real islandRestCorner: 6

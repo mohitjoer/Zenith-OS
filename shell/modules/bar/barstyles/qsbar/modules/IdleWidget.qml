@@ -28,7 +28,7 @@ Item {
 
     Process {
         id: toggleProc
-        command: ["bash", "-c", "if command -v zenith-cmd-caffeine >/dev/null 2>&1; then exec zenith-cmd-caffeine; fi; exec omarchy toggle idle"]
+        command: ["zenith-cmd-caffeine"]
         onExited: root.refreshStatusIndicators()
     }
 

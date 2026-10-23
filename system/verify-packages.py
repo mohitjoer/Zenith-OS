@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import gzip
+import os
 import sys
 from pathlib import Path
 import urllib.error
@@ -97,7 +98,9 @@ def read_url(url: str) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
-def resolve_codename(release: str, meta_url: str, cache_dir: str | None) -> str:
+def resolve_codename(
+    release: str, meta_url: str, cache_dir: str | None, fallback: str | None = None
+) -> str:
     """Resolve a version to its suite codename, the way the manifest requires.
 
     The manifest stores `release: "26.04"` and leaves `codename: null`, because
@@ -113,33 +116,47 @@ def resolve_codename(release: str, meta_url: str, cache_dir: str | None) -> str:
     `-proposed`: an image is built from the base suite, and its updates are a
     separate source.
     """
-    body = fetch(meta_url, cache_dir)
+    urls_to_try = [meta_url]
+    if "-development" not in meta_url:
+        urls_to_try.append(meta_url + "-development")
 
-    best: str | None = None
-    for stanza in body.split("\n\n"):
-        version = dist = None
-        for line in stanza.splitlines():
-            if line.startswith("Version: "):
-                version = line.split(": ", 1)[1].strip()
-            elif line.startswith("Dist: "):
-                dist = line.split(": ", 1)[1].strip()
-
-        if not version or not dist:
+    for url in urls_to_try:
+        try:
+            body = fetch(url, cache_dir)
+        except SystemExit:
             continue
-        if version != release and not version.startswith(release + "."):
+        except Exception:
             continue
 
-        if "-" not in dist:
-            return dist
-        best = best or dist
+        best: str | None = None
+        for stanza in body.split("\n\n"):
+            version = dist = None
+            for line in stanza.splitlines():
+                if line.startswith("Version: "):
+                    version = line.split(": ", 1)[1].strip()
+                elif line.startswith("Dist: "):
+                    dist = line.split(": ", 1)[1].strip()
 
-    if best is None:
-        sys.exit(
-            f"no suite in {meta_url} matches release {release!r}. Either the "
-            "release does not exist or this is a development release, which "
-            "meta-release does not list."
-        )
-    return best
+            if not version or not dist:
+                continue
+            if version != release and not version.startswith(release + "."):
+                continue
+
+            if "-" not in dist:
+                return dist
+            best = best or dist
+
+        if best is not None:
+            return best
+
+    if fallback:
+        return fallback
+
+    sys.exit(
+        f"no suite in {meta_url} matches release {release!r}. Either the "
+        "release does not exist or this is a development release, which "
+        "meta-release does not list."
+    )
 
 
 def load_release_components(
@@ -448,7 +465,13 @@ def main() -> int:
     release = base["release"]
     declared = list(base["components"])
 
-    codename = resolve_codename(release, args.meta_release, args.cache_dir)
+    fallback = base.get("codename") or os.environ.get("ZENITH_SUITE")
+    if not fallback and release == "26.04":
+        fallback = "resolute"
+
+    codename = resolve_codename(
+        release, args.meta_release, args.cache_dir, fallback=fallback
+    )
 
     if base.get("codename"):
         print(

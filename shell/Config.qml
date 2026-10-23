@@ -40,15 +40,6 @@ Singleton {
     readonly property var desktop: values["org.zenith.desktop"] || ({})
 
     readonly property int colorScheme: desktop.colorScheme ?? 0
-
-    // Idle policy. Seconds, and 0 means never — not "now". A timeout of 0 that
-    // means "immediately" is a key whose default locks the machine the moment
-    // it is installed, and every "0 means never" key in a desktop exists
-    // because somebody got that backwards once.
-    //
-    // lock-on-suspend is deliberately not here. It was a key the shell could
-    // not honour: Quickshell exposes no way to observe a suspend, so the shell
-    // would have carried a setting that looked like it worked and did not.
     readonly property int idleDimSeconds: desktop.idleDimSeconds ?? 0
     readonly property int idleBlankSeconds: desktop.idleBlankSeconds ?? 0
     readonly property int idleLockSeconds: desktop.idleLockSeconds ?? 0
@@ -125,12 +116,4 @@ Singleton {
     // So the shell never draws a lock surface. It runs the timers and execs a
     // locker that actually authenticates.
     property string locker: "/usr/bin/hyprlock"
-
-    function lock() {
-        // The lockers take a --locker command so a compositor-native session
-        // can be used instead of the greeter on unlock. Unchanged here: hyprlock
-        // restores the session it locked, and a wrong command here is how a
-        // machine ends up at the greeter after unlocking.
-        exec.lock()
-    }
 }

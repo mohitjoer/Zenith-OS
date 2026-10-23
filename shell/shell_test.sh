@@ -41,7 +41,8 @@ fi
 
 # The Wayland display. Quickshell needs the Wayland platform plugin: the
 # offscreen platform has no window system, and these are windows.
-if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+wayland_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/${WAYLAND_DISPLAY:-}"
+if [ -z "${WAYLAND_DISPLAY:-}" ] || ! [ -S "$wayland_socket" ]; then
     echo "skip  — there is no Wayland display, and the windows cannot be created without one"
     exit 0
 fi

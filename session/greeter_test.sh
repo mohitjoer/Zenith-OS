@@ -163,7 +163,7 @@ check "the theme asks for the Qt6 greeter" $rc
 
 # qmllint cannot see the names SDDM injects (sddm, userModel, sessionModel), so
 # it warns about them; only a real error fails.
-QMLLINT=$(command -v qmllint6 || command -v qmllint || echo /usr/lib/qt6/bin/qmllint)
+QMLLINT=$(command -v qmllint6 || ( [ -x /usr/lib/qt6/bin/qmllint ] && echo /usr/lib/qt6/bin/qmllint ) || command -v qmllint || echo /usr/lib/qt6/bin/qmllint)
 if [ -x "$QMLLINT" ]; then
     rc=0; lint=$("$QMLLINT" "$THEME/Main.qml" "$THEME/Chip.qml" 2>&1) || { rc=1; echo "$lint"; }
     check "the theme's QML parses" $rc
@@ -173,7 +173,7 @@ fi
 
 # The theme cannot run without a display manager, so it runs here against
 # stand-ins for what SDDM injects, on Qt's offscreen platform.
-QMLTEST=$(command -v qmltestrunner6 || command -v qmltestrunner || echo /usr/lib/qt6/bin/qmltestrunner)
+QMLTEST=$(command -v qmltestrunner6 || ( [ -x /usr/lib/qt6/bin/qmltestrunner ] && echo /usr/lib/qt6/bin/qmltestrunner ) || command -v qmltestrunner || echo /usr/lib/qt6/bin/qmltestrunner)
 if [ -x "$QMLTEST" ]; then
     rc=0
     lint=$(QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$QMLTEST" \

@@ -18,15 +18,15 @@ Nothing reaches up to touch it. That is the standard the project holds itself to
 why the base layer is treated as substrate and never as identity — see
 [the base-layer boundary](docs/architecture.md#the-base-layer-boundary).
 
-Zenith is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS. Everything above that
-line is Zenith's own — its compositor configuration, its shell drawn in Quickshell, its control
-tools, its hardware matrix, its updater.
+Zenith is a Linux distribution. Its **base layer** is Ubuntu Server 26.04 LTS. Everything above
+that line is Zenith's own — its compositor configuration, its shell drawn in Quickshell, its
+control tools, its hardware matrix, its updater.
 
 Zenith is not an Ubuntu flavour. Ubuntu supplies the substrate and nothing else. Zenith is the
 distribution; Ubuntu is what Zenith is built on top of.
 
 > **Status: pre-alpha.** There is no ISO and no installer, so nothing here boots on its own.
-> What runs is the Zenith session on a stock Ubuntu 26.04 install, from the `zenith` package
+> What runs is the Zenith session on a stock Ubuntu Server 26.04 install, from the `zenith` package
 > this repository builds; `zenith adopt --check` is the preflight, and switching a machine
 > over is not implemented yet. Do not install this on anything you care about.
 
@@ -40,7 +40,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 
 | Layer | Choice |
 |---|---|
-| Base layer | Ubuntu 26.04 LTS — the substrate only |
+| Base layer | Ubuntu Server 26.04 LTS — the substrate only |
 | Compositor | Hyprland |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's design language |
 | Control tools | Go — `zenith`, `zenith-shell` (the shell daemon, run as `zenithd.service`), `zenith-hubd` (the Hub's data plane), and the wallpaper, agent, store and VM tools |
