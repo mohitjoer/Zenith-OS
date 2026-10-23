@@ -121,7 +121,6 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--parent-mirror-chroot "$MIRROR" \
 		--parent-mirror-binary "$MIRROR" \
 		--binary-images iso-hybrid \
-		--debian-installer live \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
