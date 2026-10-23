@@ -44,10 +44,11 @@ if [ -z "$DEB" ]; then
 	exit 1
 fi
 
-mkdir -p "$BUILD_DIR/config/package-lists" "$BUILD_DIR/config/packages.chroot" \
+mkdir -p "$BUILD_DIR/config/package-lists" "$BUILD_DIR/config/hooks/normal" \
 	"$BUILD_DIR/config/includes.chroot/etc" \
+	"$BUILD_DIR/config/includes.chroot/tmp" \
 	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding"
-cp "$DEB" "$BUILD_DIR/config/packages.chroot/"
+cp "$DEB" "$BUILD_DIR/config/includes.chroot/tmp/zenith.deb"
 cp "$REPO_ROOT/public/zenith-logo.svg" \
 	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding/"
 cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" \
@@ -101,6 +102,14 @@ packages.append("gnupg")
 out = sorted(dict.fromkeys(str(package) for package in packages))
 Path(sys.argv[2]).write_text("\n".join(out) + "\n")
 PY
+
+cat >"$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot" <<'EOF'
+#!/bin/sh
+set -eu
+DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/zenith.deb
+rm -f /tmp/zenith.deb
+EOF
+chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 
 (
 	cd "$BUILD_DIR"
