@@ -104,9 +104,31 @@ cp "$STAGE/usr/share/zenith/units/"*.service \
 # ------------------------------------------------------------------- the shell
 # The Quickshell configuration. This is the directory `quickshell -p` is pointed
 # at, so it is the difference between a shell and an empty window.
-mkdir -p "$STAGE/usr/share/zenith/shell/Widgets"
-cp "$REPO_ROOT/shell/"*.qml "$STAGE/usr/share/zenith/shell/"
-cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
+# The tree ships whole, and deliberately. The shell's own code long outgrew the
+# roots a copy by enumeration had to name: Services/, Ui/, components/,
+# FrameBars/, Barkit/, PluginKit/, scripts/, assets/, matugen/, utils/ and
+# Blobs/ are directories the entry point and the bar styles import by name —
+# `qs.Services`, `qs.Ui.Singletons`, `qs.Barkit` resolve through qmldir files a
+# level or two inside them — and Quickshell resolves a module by the name its
+# qmldir declares, not by where a copy writer thought to look. Copying
+# directories by hand is exactly how the 2026-10-23 gap happened: a new entry
+# point laid onto a tree still missing the directories it imports logs two
+# module errors into the journal and renders nothing. The tree is one tree to
+# Quickshell, so the package copies it as one tree.
+mkdir -p "$STAGE/usr/share/zenith/shell"
+cp -R "$REPO_ROOT/shell/." "$STAGE/usr/share/zenith/shell/"
+
+# What is checkout-only, and stays there. `vendor.sh` is the tool that syncs
+# the vendored tree from upstream — the reasoning below, and it has not
+# changed: it clones over the network, needs git, and writes into a checkout,
+# none of which an installed machine has. `shell_test.sh` names checkout
+# paths. `i18n/` is a Go module the control tools compile from, not content
+# the shell reads from disk; shipping it would put a language pack in a
+# package nothing opens.
+rm -f  "$STAGE/usr/share/zenith/shell/vendor/vendor.sh" \
+       "$STAGE/usr/share/zenith/shell/vendor/README.md" \
+       "$STAGE/usr/share/zenith/shell/shell_test.sh"
+rm -rf "$STAGE/usr/share/zenith/shell/i18n"
 
 # The vendored upstream tree.
 #
@@ -125,11 +147,10 @@ cp "$REPO_ROOT/shell/Widgets/"*.qml "$STAGE/usr/share/zenith/shell/Widgets/"
 # are told to, and not one vendored file is changed to do it. They are copied
 # with everything else, which is the only way they can be — upstream names them
 # by path, so they have to be at it.
-mkdir -p "$STAGE/usr/share/zenith/shell/modules" \
-         "$STAGE/usr/share/zenith/shell/services" \
-         "$STAGE/usr/share/zenith/shell/vendor"
-cp -R "$REPO_ROOT/shell/modules/." "$STAGE/usr/share/zenith/shell/modules/"
-cp -R "$REPO_ROOT/shell/services/." "$STAGE/usr/share/zenith/shell/services/"
+# None of the three needs its own enumeration any more: the lay above copied
+# `modules/`, `services/` and `vendor/` together with every other root, and the
+# tree owns one copy of itself — so there is no second list to drift the next
+# time the shell grows a directory.
 
 # The manifest, and the licences.
 #
@@ -182,7 +203,7 @@ cp "$REPO_ROOT/shell/vendor/notices.md" \
 # `qs.modules.*`, and those imports name nothing from a root of `shell/hub/`. The
 # entry file therefore ships with the shell's other root files, above, and only
 # the directory below is copied here.
-cp -R "$REPO_ROOT/shell/hub" "$STAGE/usr/share/zenith/shell/"
+cp -R -T "$REPO_ROOT/shell/hub" "$STAGE/usr/share/zenith/shell/hub"
 cp "$REPO_ROOT/session/zenith-hub" "$STAGE/usr/bin/zenith-hub"
 chmod 0755 "$STAGE/usr/bin/zenith-hub"
 
@@ -242,7 +263,11 @@ cp "$REPO_ROOT/system/hardware/profiles/"*.yaml \
 # package that ships two different GPL-3 texts is shipping a licence nobody
 # has read.
 mkdir -p "$STAGE/usr/share/doc/$PKG"
-cp "$REPO_ROOT/release/mkdeb/copyright" "$STAGE/usr/share/doc/$PKG/copyright"
+# The copyright is emitted, not copied: its vendored stanzas are the manifest's
+# own file list, and a copy kept by hand is a copy that diverges the moment the
+# tree grows a directory the manifest does not recognize. `gen-copyright.sh`
+# carries the reasoning; `release_test.sh` re-runs it and fails on drift.
+"$REPO_ROOT/release/mkdeb/gen-copyright.sh" > "$STAGE/usr/share/doc/$PKG/copyright"
 cp "$REPO_ROOT/shell/vendor/COPYING" "$STAGE/usr/share/doc/$PKG/GPL-3"
 cp "$REPO_ROOT/shell/vendor/LICENSE.apache-2.0" \
    "$STAGE/usr/share/doc/$PKG/Apache-2.0"
@@ -306,12 +331,14 @@ chmod 0644 "$STAGE/DEBIAN/zenith.list"
 # exactly as silent.
 #
 # The vendor directory is not in this list because `vendor.sh` is not
-# installed; asking the checkout about a file the package does not ship would
+# installed; `shell_test.sh` and `i18n/` are checkout-side for the same class
+# of reason. Asking the checkout about a file the package does not ship would
 # be asking the package about a file it does not have.
 while IFS= read -r program; do
   chmod 0755 "$STAGE/usr/share/zenith/shell/$program"
 done <<EOF
-$(cd "$REPO_ROOT/shell" && find modules services -type f -perm -u+x | sort)
+$(cd "$REPO_ROOT/shell" && find . -type f -perm -u+x \
+    ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)
 EOF
 
 find "$STAGE" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +

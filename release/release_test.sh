@@ -67,11 +67,14 @@ fi
 # ----------------------------------------------------------- the vendored tree
 echo "checking the vendored tree"
 
-# The shell's configuration is a vendored upstream tree, and all of it has to
-# ship: the vendored components import each other through the shell root's own
-# modules/ and services/ directories, so a package that installed only the
-# files at the shell's root would install a shell whose every import fails to
-# resolve — a shell that comes up and then renders nothing.
+# The shell's configuration is the vendored upstream tree plus the tree's own
+# roots, and all of it has to ship: the components import each other through
+# qmldir files a level or two inside modules/, services/, Services/, Ui/,
+# components/, FrameBars/, Barkit/ and the rest, and Quickshell resolves
+# `import qs.X` by the name that qmldir declares — so a package that installed
+# only the files at the shell's root, or that enumerated directories and
+# missed one, installs a shell whose every import fails to resolve — a shell
+# that comes up and then renders nothing.
 #
 # The check is against the repository, file by file, rather than against a
 # count. A count says the package shipped some of the tree; it does not say
@@ -84,7 +87,7 @@ while read -r file; do
         rc=1
     fi
 done <<EOF
-$(cd "$REPO_ROOT/shell" && find modules services -type f | sort)
+$(cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)
 EOF
 check "every file of the vendored tree is installed" $rc
 
@@ -103,7 +106,7 @@ while read -r file; do
         rc=1
     }
 done <<EOF
-$(cd "$REPO_ROOT/shell" && find modules services -type f | sort)
+$(cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)
 EOF
 check "every vendored file is byte-identical to the repository" $rc
 
@@ -292,6 +295,15 @@ if ! diff -u "$EXPECTED" "$WORK/actual-licences" > "$WORK/licences.diff" 2>&1; t
 fi
 check "the copyright file claims every installed file under the right licence" $rc
 
+# The copy in the repository is the generator's output, not a fork of it. The
+# claims check above already guards the installed file against the manifest;
+# this one guards the checkout copy against the generator, so a hand edit of
+# the checked-in copyright is visible the day it happens, not release day.
+rc=0
+"$REPO_ROOT/release/mkdeb/gen-copyright.sh" > "$WORK/gen-copyright" || rc=$?
+cmp -s "$WORK/gen-copyright" "$REPO_ROOT/release/mkdeb/copyright" || rc=1
+check "the repository's copyright file is the generator's output" $rc
+
 # Every licence group, and no others. The package is under three: Zenith's
 # own GPL-3.0-or-later, the vendored GPL-3.0-only component, and the vendored
 # Apache-2.0 component. A copyright file that names one licence for a package
@@ -406,7 +418,9 @@ while read -r program; do
         rc=1
     }
 done <<EOF
-$(find "$REPO_ROOT/shell/modules" "$REPO_ROOT/shell/services" -type f -perm -u+x 2>/dev/null \
+$(find "$REPO_ROOT/shell" -type f -perm -u+x 2>/dev/null \
+    ! -path "$REPO_ROOT/shell/vendor/*" ! -path "$REPO_ROOT/shell/i18n/*" \
+    ! -name shell_test.sh \
     | sed "s|^$REPO_ROOT/shell/||" | sort)
 EOF
 check "every executable file in the shell's tree ships executable" $rc
