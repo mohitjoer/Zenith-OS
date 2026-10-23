@@ -105,16 +105,16 @@ PY
 		--architectures "$ARCH" \
 		--distribution "$SUITE" \
 		--archive-areas "main universe multiverse" \
-		--parent-mirror "$MIRROR" \
+		--parent-mirror-bootstrap "$MIRROR" \
+		--parent-mirror-chroot "$MIRROR" \
+		--parent-mirror-binary "$MIRROR" \
 		--binary-images iso-hybrid \
 		--debian-installer live \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
 		--apt-recommends false \
-		--security false \
-		--updates false \
-		--backports false
+		--security false
 	lb build
 )
 
