@@ -66,6 +66,7 @@ base:
   # 26.04 specifically because the HWE kernel is the hardware reach the whole
   # distribution exists for.
   release: "26.04"
+  flavor: ubuntu-server
   # Resolved from the suite at ISO build time. Do not hard-code a codename in a
   # manifest that has to outlive a release cycle.
   codename: null
@@ -106,9 +107,13 @@ base:
 
 essential:
   packages:
+    # Start from Ubuntu Server's minimal seed. It supplies the server base
+    # without a desktop metapackage; Zenith adds the graphical stack below.
+    - ubuntu-server-minimal
+
     # The base layer's minimal floor: apt, dpkg, libc, login, PAM, baseutils.
-    # Not ubuntu-standard and not ubuntu-desktop — both are desktop
-    # metapackages and both pull GNOME.
+    # ubuntu-server-minimal depends on this; it remains explicit so the
+    # manifest records the substrate Zenith relies on.
     - ubuntu-minimal
 
     # The kernel. The fleet (system/kernel/fleet.yaml) picks the flavour per

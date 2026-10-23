@@ -496,3 +496,87 @@ jobs:
         run: sh release/update_test.sh
         env:
           ZENITH_M2_ALLOW_INSTALL: "1"
+
+  # --------------------------------------------------------------------------
+  # The M4 image builder. This is separate from `package`: an ISO build needs
+  # root, live-build and several hundred MB of archive data.
+  # --------------------------------------------------------------------------
+  iso:
+    name: Zenith OS ISO
+    needs: unit
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: system/hardware/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+
+      - name: Install ISO build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            live-build mmdebstrap debootstrap xorriso squashfs-tools \
+            isolinux grub-pc-bin grub-efi-amd64-bin limine \
+            sbsigntool openssl mokutil dpkg-dev fakeroot python3-yaml
+
+      - name: Validate ISO builder
+        run: installation/build-iso_test.sh
+
+      - name: Build Zenith OS ISO
+        env:
+          ZENITH_SUITE: resolute
+          ZENITH_ARCH: amd64
+        run: sudo -E installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
+
+      - name: Verify ISO output
+        run: |
+          set -eu
+          iso="$(find "$RUNNER_TEMP/zenith-iso" -maxdepth 1 -type f \
+            \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          if [ -z "$iso" ]; then
+            echo "::error::live-build completed without producing an ISO"
+            find "$RUNNER_TEMP/zenith-iso" -maxdepth 2 -type f -print
+            exit 1
+          fi
+          test "$iso" = "$RUNNER_TEMP/zenith-iso/zenith-os-beta-001.iso"
+          xorriso -indev "$iso" -toc >/dev/null
+          test -s "$iso"
+          echo "ISO: $iso ($(du -h "$iso" | cut -f1))"
+          sha256sum "$iso" | tee "$iso.sha256"
+          xorriso -indev "$iso" -pvd_info | grep -Fq 'Zenith OS'
+
+      - name: Check Secure Boot signing tools
+        run: |
+          set -eu
+          limine --version
+          mokutil --version
+          work="$RUNNER_TEMP/secure-boot"
+          mkdir -p "$work"
+          openssl req -new -x509 -newkey rsa:2048 -nodes \
+            -keyout "$work/mok.key" -out "$work/mok.crt" \
+            -subj "/CN=Zenith CI MOK/" -days 1
+          openssl x509 -outform DER -in "$work/mok.crt" -out "$work/mok.der"
+          shim="$(find /usr/lib -type f -name 'shimx64.efi.signed' -print -quit)"
+          if [ -z "$shim" ]; then
+            echo "::error::Ubuntu signed shim was not installed"
+            exit 1
+          fi
+          sbsign --key "$work/mok.key" --cert "$work/mok.crt" \
+            --output "$work/shim-signed.efi" "$shim"
+          sbverify --cert "$work/mok.crt" "$work/shim-signed.efi"
+          echo "Secure Boot signing and MOK certificate checks passed"
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenith-os-beta-001
+          path: |
+            ${{ runner.temp }}/zenith-iso/zenith-os-beta-001.iso
+            ${{ runner.temp }}/zenith-iso/zenith-os-beta-001.iso.sha256
+          if-no-files-found: error
+          retention-days: 7
