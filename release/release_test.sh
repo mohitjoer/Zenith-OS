@@ -560,7 +560,8 @@ fi
 check "the session target wants the default-on units and not the agent" $rc
 
 # Every unit parses, and what each one runs is installed by a build line.
-rc=0; sh "$REPO_ROOT/tests/contract/units.sh" >/dev/null 2>&1 || rc=$?
+rc=0; sh "$REPO_ROOT/tests/contract/units.sh" >"$WORK/units.out" 2>&1 || rc=$?
+[ "$rc" -eq 0 ] || cat "$WORK/units.out" >&2
 check "every unit verifies and runs something the package installs" $rc
 
 # The WirePlumber drop-in is machine-wide tuning; the hardware profile owns that.

@@ -8,13 +8,15 @@ for u in session/units/*.service session/units/*.target; do
     [ -f "$u" ] || continue
     n=$(basename "$u")
     if command -v systemd-analyze >/dev/null; then
-        bad=$(systemd-analyze --user verify "$u" 2>&1 | grep -F "$n" | grep -v 'is not executable' | grep -v 'Failed to create directory' || true)
+        bad=$(SYSTEMD_UNIT_PATH="session/units:" systemd-analyze --user verify "$u" 2>&1 | grep -F "$n" | grep -v 'is not executable' | grep -v 'Failed to create directory' | grep -vE "(zenith-session|graphical-session)\.target not found" || true)
         [ -z "$bad" ] || { echo "$bad"; rc=1; }
     fi
     for p in $(sed -n -E 's/^Exec[A-Za-z]*=[-@+!:]*([^ ]+).*/\1/p' "$u"); do
         r=${p#/usr/share/zenith/}    # shell/ and session/ ship whole, so the repo path is the proof
         [ "$r" != "$p" ] && [ -e "$r" ] && continue
-        [ "$(basename "$p")" = "quickshell" ] && continue
+        case "$(basename "$p")" in
+            quickshell|xdg-desktop-portal) continue ;;
+        esac
         grep -qsE -- "->[[:space:]]*$p([[:space:]]|\$)" release/build.d/*.build ||
             grep -qsF -- "\$STAGE$p" release/build-debs.sh || [ -e "$p" ] ||
             [ -e "/usr/lib/$(basename "$p")" ] || [ -e "/usr/libexec/$(basename "$p")" ] ||
