@@ -99,6 +99,12 @@ for group, body in manifest.items():
 # live-build verifies the chroot's APT metadata with gpg during package
 # installation; installing it only on the host does not provide it here.
 packages.append("gnupg")
+# Bootloaders for UEFI and BIOS hybrid media, plus zenith runtime dependencies.
+packages.extend([
+    "grub-pc-bin", "grub-efi-amd64-bin",
+    "curl", "file", "imagemagick", "jq", "libnotify-bin",
+    "openssh-client", "pkexec", "procps", "qml6-module-qtmultimedia", "util-linux",
+])
 out = sorted(dict.fromkeys(str(package) for package in packages))
 Path(sys.argv[2]).write_text("\n".join(out) + "\n")
 PY
@@ -106,6 +112,10 @@ PY
 cat >"$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot" <<'EOF'
 #!/bin/sh
 set -eu
+if [ ! -s /etc/resolv.conf ] || grep -q '127.0.0.53' /etc/resolv.conf; then
+	printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' >/etc/resolv.conf
+fi
+DEBIAN_FRONTEND=noninteractive apt-get update || true
 DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic /tmp/zenith.deb
 rm -f /tmp/zenith.deb
 EOF
@@ -123,6 +133,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--linux-packages linux-image \
 		--linux-flavours generic \
 		--binary-images iso-hybrid \
+		--bootloaders "grub-pc,grub-efi" \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
