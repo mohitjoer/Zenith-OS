@@ -95,6 +95,9 @@ for group, body in manifest.items():
             if isinstance(values, list):
                 packages.extend(values)
 
+# live-build verifies the chroot's APT metadata with gpg during package
+# installation; installing it only on the host does not provide it here.
+packages.append("gnupg")
 out = sorted(dict.fromkeys(str(package) for package in packages))
 Path(sys.argv[2]).write_text("\n".join(out) + "\n")
 PY
