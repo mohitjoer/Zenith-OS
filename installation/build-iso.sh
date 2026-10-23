@@ -127,7 +127,8 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
 		--apt-recommends false \
-		--security false
+		--security false \
+		--memtest none
 	lb build
 )
 

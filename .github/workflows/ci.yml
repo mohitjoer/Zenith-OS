@@ -531,7 +531,7 @@ jobs:
           sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" update
           sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" install -y --no-install-recommends \
             live-build mmdebstrap debootstrap xorriso squashfs-tools \
-            isolinux grub-pc-bin grub-efi-amd64-bin \
+            isolinux grub-pc-bin grub-efi-amd64-bin shim-signed \
             sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
 
       - name: Validate ISO builder
