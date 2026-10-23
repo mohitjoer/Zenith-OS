@@ -1,0 +1,13 @@
+recommends fastfetch  # the Fastfetch page previews and writes its config
+recommends libglib2.0-bin  # gsettings: the GTK theme and accent switches under `desktop`
+recommends pkexec  # privileged half of `gpu tune set|reset`
+recommends imagemagick  # fastfetch logo conversion, reload-cover stills
+suggests librsvg2-bin  # rsvg-convert: SVG logo import for fastfetch
+suggests ffmpeg  # reload-cover video import
+suggests openrgb  # the Lighting page's RGB provider (the ASUS Aura provider needs asusd, not packaged)
+suggests hyprland-plugin-hyprbars  # Plugins page: window title bars
+suggests hyprland-plugin-hyprfocus  # Plugins page: focus flash
+suggests hyprland-plugin-hyprscrolling  # Plugins page and the scrolling layout
+# unavailable: voxtype (dictation engine; `voxtype` answers "unavailable")
+# unavailable: qmk_hid (QMK keyboard lighting provider dropped)
+# unavailable: looking-glass, kvmfr (GPU passthrough setup dropped: `gpu apply|hook|vm|mux` answer "unavailable")

@@ -1,0 +1,4 @@
+recommends grim  # the editor's frozen-frame fallback and the capture card's shots
+recommends wl-clipboard  # copying a shot when the shell daemon is not running
+recommends imagemagick  # the eyedropper, the redaction palette and shots that span monitors
+suggests zenity  # the save-folder chooser in the editor's settings

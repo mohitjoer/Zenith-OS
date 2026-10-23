@@ -1,0 +1,9 @@
+# W20: the store. zenith-store is the command line tool and data plane (the Hub's Browse buttons and
+# the launcher entry call it); the window itself (shell/store.qml, shell/store/) ships with the shell
+# tree. The window's wrapper cannot take the /usr/bin/zenith-store name, so it lands beside the
+# session scripts and `zenith-store open` starts it from there.
+zenith-store -> /usr/bin/zenith-store
+system/helpers/pkg/zenith-pkg-add -> /usr/bin/zenith-pkg-add
+system/helpers/pkg/zenith-pkg-remove -> /usr/bin/zenith-pkg-remove
+session/zenith-store -> /usr/share/zenith/session/zenith-store
+session/applications/zenith-store.desktop -> /usr/share/applications/zenith-store.desktop

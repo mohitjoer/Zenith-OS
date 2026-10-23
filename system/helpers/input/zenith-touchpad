@@ -1,0 +1,50 @@
+#!/bin/sh
+# zenith-touchpad on|off|toggle|status|restore
+#
+# Hyprland cannot say whether a device is enabled, and it enables every pad again
+# when it rereads its config. So the intent lives in a flag file in the runtime
+# directory, and `restore` (the conf runs it on every reload) pushes it back. The
+# flag goes with the login session: a new login starts with the pad on.
+flag="${XDG_RUNTIME_DIR:-/tmp}/zenith/touchpad-off"
+
+toast() { command -v notify-send >/dev/null 2>&1 && notify-send -a Zenith Touchpad "$1"; return 0; }
+
+# Flip every touchpad. Returns 1 when there is none, 2 when Hyprland cannot be
+# asked and 3 when it refuses the change: it prints the reason and still exits 0,
+# so "ok" is the only answer that means the pad moved. Only the pointer devices
+# are looked at, as a keyboard half of a touchpad must not be switched off with
+# it, and Hyprland names a device in lower case with dashes, so a name never
+# contains a space.
+set_pads() {
+	devices=$(hyprctl devices -j 2>/dev/null) || return 2
+	pads=$(printf '%s\n' "$devices" | sed -n '/"mice"/,/^\]/p' | grep -io '"name": *"[^"]*touchpad[^"]*"' | sed -e 's/^"name": *"//' -e 's/"$//')
+	[ -n "$pads" ] || return 1
+	set -f
+	for pad in $pads; do
+		[ "$(hyprctl -r keyword "device[$pad]:enabled" "$1" 2>&1)" = ok ] || return 3
+	done
+}
+
+# Succeeds when the pads were flipped. A machine with no touchpad says so instead
+# of claiming a state.
+flip() {
+	set_pads "$1"
+	case $? in
+	0) toast "$2" ;;
+	1) toast "No touchpad found"; return 1 ;;
+	2) echo "zenith-touchpad: cannot reach Hyprland (hyprctl devices failed)" >&2; exit 1 ;;
+	*) echo "zenith-touchpad: Hyprland refused device[...]:enabled $1" >&2; exit 1 ;;
+	esac
+}
+
+on() { flip true On; rm -f "$flag"; }
+off() { flip false Off && { mkdir -p "${flag%/*}" && : >"$flag"; }; return 0; }
+
+case "${1:-toggle}" in
+on) on ;;
+off) off ;;
+toggle) if [ -e "$flag" ]; then on; else off; fi ;;
+status) if [ -e "$flag" ]; then echo off; else echo on; fi ;;
+restore) if [ -e "$flag" ]; then set_pads false; fi; exit 0 ;;
+*) echo "usage: zenith-touchpad on|off|toggle|status|restore" >&2; exit 2 ;;
+esac

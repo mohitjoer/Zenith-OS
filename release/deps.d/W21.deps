@@ -1,0 +1,11 @@
+suggests quickemu  # the engine: quickemu runs the machines and quickget downloads and checks the installer images (it pulls in qemu-system-x86, qemu-utils, swtpm, spicy and genisoimage: over a hundred megabytes, so the window offers it through `zenith-vm setup` instead of every install carrying it)
+suggests qemu-utils  # qemu-img: the engine creates, resizes and snapshots disks with it (quickemu depends on it)
+suggests ovmf  # the UEFI firmware quickemu boots guests with; `zenith-vm setup` installs it with quickemu
+depends openssh-client  # ssh and ssh-keygen: the Remotes plate and `zenith-vm ssh`
+suggests genisoimage  # builds the cloud-init seed ISO for Instant machines (quickemu pulls it in as well)
+suggests qemu-system-gui  # the Window display mode (QEMU's own GTK window)
+suggests qemu-system-modules-spice  # the SPICE display and console
+recommends libsecret-tools  # secret-tool: saved passwords for remote hosts (the Remotes plate)
+suggests xorriso  # builds the seed ISO when genisoimage is absent
+# unavailable: zenith-vm-fetch (Ryoku's parallel downloader is not built; create takes quickget's own checked download)
+# unavailable: mkisofs (cdrtools is not in the archive; genisoimage or xorriso build the seed ISO)

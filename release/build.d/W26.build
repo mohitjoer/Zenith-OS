@@ -1,0 +1,6 @@
+apps/ -> /usr/share/zenith/apps/
+# The XDG mime-apps lookup reads <desktop>-mimeapps.list from the data directories, so this one is a
+# registration (sanctioned in check-boundary.sh). It is named for the desktop, so only Zenith sessions see it.
+apps/mimeapps/zenith-mimeapps.list -> /usr/share/applications/zenith-mimeapps.list
+# apps/wireplumber/ (the Bluetooth codec and headset-profile tuning) is not shipped, here or in the apps tree
+# above: it is machine-wide tuning, which belongs to the hardware profile, and build-debs.sh prunes it.

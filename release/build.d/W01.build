@@ -1,0 +1,7 @@
+session/scripts/zenith-workspace -> /usr/bin/zenith-workspace
+session/scripts/zenith-monitor -> /usr/bin/zenith-monitor
+session/hyprland/shaders/bone.glsl -> /usr/share/zenith/hyprland/shaders/bone.glsl
+session/hyprland/shaders/grain.glsl -> /usr/share/zenith/hyprland/shaders/grain.glsl
+session/hyprland/shaders/halftone.glsl -> /usr/share/zenith/hyprland/shaders/halftone.glsl
+session/hyprland/shaders/onebit.glsl -> /usr/share/zenith/hyprland/shaders/onebit.glsl
+session/hyprland/shaders/vignette.glsl -> /usr/share/zenith/hyprland/shaders/vignette.glsl

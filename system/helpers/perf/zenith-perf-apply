@@ -1,0 +1,83 @@
+#!/bin/sh
+# Applies the Performance page's compositor switches to the running Hyprland.
+#
+# Blur and shadows are the heaviest present-time GPU cost, so Low power mode, the
+# individual "Disable blur" and "Disable shadows" switches, and Power Saver all
+# strip them. The switches are saved as JSON by the Settings window and by the
+# shell, and Hyprland's own configuration language cannot read JSON, so this is
+# the one place the two meet. hyprland.conf runs it with `exec`, which runs on
+# every reload as well as at login: a reload that clears a live change brings it
+# straight back, and turning a switch off is a reload away from taking effect.
+#
+# It only ever switches an effect off. With every switch off it changes nothing,
+# so the blur and shadow settings the user chose in Settings > Window Manager are
+# the ones in force.
+#
+#   zenith-perf-apply            apply what the files say
+#   zenith-perf-apply --dry-run  print the hyprctl calls instead of making them
+set -eu
+
+dry=0
+case "${1:-}" in
+"") ;;
+--dry-run) dry=1 ;;
+-h | --help)
+	sed -n '2,/^set -eu/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'
+	exit 0
+	;;
+*)
+	echo "zenith-perf-apply: unknown argument: $1" >&2
+	exit 2
+	;;
+esac
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/zenith/performance.json"
+saver="${XDG_CACHE_HOME:-$HOME/.cache}/zenith/hypr-perf.json"
+
+# flag KEY FILE: whether the flat JSON file has KEY set to true. The files are
+# written by Quickshell's JsonAdapter, one level deep, so a pattern match is as
+# exact as a parser and needs nothing installed. A missing file or key reads false.
+flag() {
+	[ -r "$2" ] && grep -Eq "\"$1\"[[:space:]]*:[[:space:]]*true" "$2"
+}
+
+low=0
+flag lowPowerMode "$config" && low=1
+saving=0
+flag saver "$saver" && saving=1
+
+no_blur=0
+no_shadow=0
+if [ "$low" = 1 ] || [ "$saving" = 1 ]; then
+	no_blur=1
+	no_shadow=1
+fi
+flag disableBlur "$config" && no_blur=1
+flag disableShadows "$config" && no_shadow=1
+
+[ "$no_blur" = 1 ] || [ "$no_shadow" = 1 ] || exit 0
+
+if [ "$dry" = 0 ]; then
+	if ! command -v hyprctl >/dev/null 2>&1; then
+		echo "zenith-perf-apply: hyprctl is not installed" >&2
+		exit 127
+	fi
+	# A session that is not Hyprland has nothing to apply to. Say so and stop
+	# rather than let hyprctl print its own complaint for each call.
+	if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+		echo "zenith-perf-apply: not running under Hyprland" >&2
+		exit 0
+	fi
+fi
+
+set_key() {
+	if [ "$dry" = 1 ]; then
+		echo "hyprctl keyword $1 $2"
+	else
+		hyprctl keyword "$1" "$2" >/dev/null
+	fi
+}
+
+[ "$no_blur" = 1 ] && set_key decoration:blur:enabled false
+[ "$no_shadow" = 1 ] && set_key decoration:shadow:enabled false
+exit 0

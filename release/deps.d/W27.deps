@@ -1,0 +1,10 @@
+recommends cava  # the audio visualizer, the voice bars and the bar's spectrum read cava's raw output; they hide without it
+recommends pipewire-bin  # pw-dump, pw-cli and pw-metadata: zenith-eq builds and routes the equalizer node with them
+recommends rfkill  # the Wi-Fi, Bluetooth and airplane toggles unblock radios with it
+recommends iw  # signal and link details in the network panel
+recommends fontconfig  # fc-list: the font pickers on the Hub's Global and Widgets pages
+recommends pulseaudio-utils  # pactl: per-application streams and the sink fallbacks in the audio panel
+suggests lm-sensors  # sensors: the live temperatures on the Hub's system pages
+suggests trash-cli  # trash-put: the media browser's delete moves to the trash when it is there
+recommends desktop-file-utils  # update-desktop-database: stash-install.sh registers an app it installs, and the package's own postinst refreshes the MIME cache with it
+recommends gtk-update-icon-cache  # zenith-cmd-folders rebuilds the folder icon cache with it after a palette change

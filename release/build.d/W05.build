@@ -1,0 +1,6 @@
+# W05: the wallpaper daemon, the picker's launcher and the stage cut-out engine.
+# The picker's QML (shell/wallpaper-ui.qml, shell/wallpaper-ui/) ships with the shell tree, and
+# session/units/zenith-wallpaper.service is picked up with the other units.
+zenith-wallpaper -> /usr/bin/zenith-wallpaper
+session/zenith-wallpaper-ui -> /usr/bin/zenith-wallpaper-ui
+shell/scripts/zenith-stage -> /usr/bin/zenith-stage

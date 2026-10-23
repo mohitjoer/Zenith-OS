@@ -1,0 +1,12 @@
+depends qml6-module-qtmultimedia  # in-shell video wallpapers: Backdrop.qml imports QtMultimedia (MediaPlayer, VideoOutput)
+depends ffmpeg  # video thumbnails and stills, the in-shell clip transcode, the media optimiser (ffprobe too)
+depends imagemagick  # `magick`: thumbnails, colour grade, effects in webp, image optimise
+depends curl  # the picker's Browse sources (Wallhaven, moewalls, motionbgs, GitHub repos)
+depends jq  # the Browse surface's GitHub repository listing
+depends file  # the Wallhaven download checks the mime type of what it fetched
+suggests python3-numpy  # zenith-stage inpaint (Parallax backdrop)
+suggests python3-scipy  # zenith-stage inpaint
+suggests python3-venv  # zenith-stage install: the rembg environment for the Depth/Parallax cut
+# unavailable: waifu2x-ncnn-vulkan (the picker's Upscale tab and `zenith-wallpaper upscale` are not built)
+# unavailable: zenith-wallpaper-live, the C video player (clips play in the shell through QtMultimedia instead)
+# unavailable: mpvpaper, swww/awww (not used; the shell draws the wallpaper)

@@ -1,0 +1,2 @@
+recommends libnotify-bin  # zenith-pin tells the user (notify-send) when it cannot draw a pin
+recommends qml6-module-qtmultimedia  # a video chosen as the reload cover on the Hub's Reload cover page

@@ -1,0 +1,11 @@
+recommends hyprlock  # `zenith-shell lock` runs it; without it lock answers "hyprlock is not installed"
+recommends wl-clipboard  # clipboard history capture (wl-paste --watch) and clip-copy; without it the clipboard topic stays empty
+recommends gammastep  # night light backend (hyprsunset is not in the archive); without it the night-light control is hidden
+recommends yaru-theme-sound  # the shutter, volume, plug and battery cues; sound-theme-freedesktop is the fallback
+recommends sound-theme-freedesktop  # fallback event cues when the Yaru theme is absent
+recommends gnome-keyring  # the keyring prompter answers its prompts through the island (standalone daemon)
+recommends polkitd  # the PolicyKit agent talks to it and runs its polkit-agent-helper-1
+recommends power-profiles-daemon  # the powerprofiles topic; the control is hidden without it
+recommends network-manager  # the network topic (Wi-Fi, WireGuard, DNS)
+# unavailable: voxtype (voice dictation; the voice key shows the "off" note)
+# unavailable: hyprsunset (night light; gammastep is the backend)

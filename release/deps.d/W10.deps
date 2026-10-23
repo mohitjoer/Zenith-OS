@@ -1,0 +1,4 @@
+depends hyprlock  # the locker: zenith-shell lock runs it with session/hyprland/hyprlock.conf
+depends hypridle  # the idle clock zenith-idle.service runs (0.1.7; zenith-idle works around its -c abort)
+recommends playerctl  # the now-playing line on the lock screen; it prints nothing without it
+recommends fonts-space-grotesk  # the lock screen's font; Pango falls back to the default sans without it

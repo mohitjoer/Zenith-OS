@@ -27,6 +27,18 @@ if command -v glib-compile-schemas >/dev/null 2>&1; then
     }
 fi
 
+# ---------------------------------------------------------- desktop entries
+#
+# The package installs desktop entries into /usr/share/applications (the
+# settings, the store, the VM manager), and the MIME cache beside them is what
+# a file chooser and `xdg-open` consult. Refreshing it is the convention for
+# any package that installs an entry, and it costs nothing when the entries
+# declare no MIME type. gtk-update-icon-cache is not run, for the opposite
+# reason: the package installs no icons.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+
 # ------------------------------------------------------------------ units
 #
 # The user manager reads the unit files when it starts, and a package that
@@ -41,6 +53,10 @@ fi
 #
 # A manager that is not running is not an error: the units are read again
 # when it next starts, which is the behaviour we want anyway.
+#
+# dpkg runs this as root, and root has no session bus to reach a user's manager
+# on, so this call mostly finds nothing to reload. The user's own manager is
+# reloaded by the `systemctl --user daemon-reload` the message below asks for.
 if command -v systemctl >/dev/null 2>&1; then
     systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
@@ -48,6 +64,8 @@ fi
 case "$1" in
     configure)
         echo "zenith $2 installed."
+        echo "  zenith materialize — lay the base into ~/.config/zenith (once, as your own user)"
+        echo "  systemctl --user daemon-reload, then log out and back in — the session starts the daemons"
         echo "  zenith doctor    — what differs between the base and your config"
         echo "  zenith status    — current revision and drift"
         echo "  zenith hardware report --profile — contribute this machine's profile"

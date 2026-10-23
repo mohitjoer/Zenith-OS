@@ -1,0 +1,2 @@
+session/sddm/themes/zenith -> /usr/share/zenith/session/sddm/themes/zenith
+session/sddm/zenith.conf -> /usr/share/zenith/session/sddm/zenith.conf

@@ -79,6 +79,14 @@ echo "checking the vendored tree"
 # The check is against the repository, file by file, rather than against a
 # count. A count says the package shipped some of the tree; it does not say
 # which, and a tree that lost a directory still has files in it.
+#
+# The tree is the whole of shell/ except what is checkout-only: the vendored
+# sync tool and its notes, the shell test, the translation sources (installed
+# at /usr/share/zenith/i18n by W16.build) and the Hub's two model tests.
+shell_files() {
+    ( cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' \
+        ! -name shell_test.sh ! -regex './hub/[^/]*\.test\.mjs' | sort )
+}
 rc=0
 while read -r file; do
     [ -n "$file" ] || continue
@@ -87,7 +95,7 @@ while read -r file; do
         rc=1
     fi
 done <<EOF
-$(cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)
+$(shell_files)
 EOF
 check "every file of the vendored tree is installed" $rc
 
@@ -106,7 +114,7 @@ while read -r file; do
         rc=1
     }
 done <<EOF
-$(cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)
+$(shell_files)
 EOF
 check "every vendored file is byte-identical to the repository" $rc
 
@@ -382,27 +390,93 @@ check "every path in the build's executable list ships executable" $rc
 # executable in the package. A new program is executable in the checkout by
 # being executable in the checkout, and this asks the package to agree.
 #
-# Only the session tree, because only the session tree is installed under the
-# names it has in the repository. The build scripts are executable and are not
-# installed at all, and a check that asked the package about them would be
-# asking about files the package does not have. The test scripts are the same:
-# they run from a checkout and are not installed either, and they are named
-# for it.
+# The session's programs are not installed under the names they have in the
+# repository any more: each lane says where its programs go in
+# release/build.d, and the build installs what the lines say. So the question
+# is asked of the lines — a Go program is always executable, a script is when
+# its source is — and, separately below, of the session directory, to catch the
+# wrapper that was written and never listed.
+BUILD_LINES="$WORK/build-lines"
+cat "$REPO_ROOT"/release/build.d/*.build |
+    sed -e 's/[[:space:]]*#.*$//' -e 's/[[:space:]]*$//' -e '/^$/d' > "$BUILD_LINES"
+
+EXPECT_EXEC="$WORK/expect-exec"
+: > "$EXPECT_EXEC"
+while IFS= read -r line; do
+    src=${line%% -> *}
+    dst=${line#* -> }
+    dst=${dst%/}
+    if [ -d "$REPO_ROOT/desktop/cmd/$src" ]; then
+        echo "$dst" >> "$EXPECT_EXEC"
+    elif [ -d "$REPO_ROOT/$src" ]; then
+        ( cd "$REPO_ROOT/$src" && find . -type f -perm -u+x ) |
+            sed "s|^\\.|$dst|" >> "$EXPECT_EXEC"
+    elif [ -x "$REPO_ROOT/$src" ]; then
+        echo "$dst" >> "$EXPECT_EXEC"
+    fi
+done < "$BUILD_LINES"
+
+rc=0
+while IFS= read -r dst; do
+    echo "$MODES" | grep -q "^-rwxr-xr-x .*\\.$dst\$" || {
+        echo "    not executable in the package: $dst" >&2
+        rc=1
+    }
+done < "$EXPECT_EXEC"
+check "every program a build line installs ships executable ($(wc -l < "$EXPECT_EXEC") of them)" $rc
+
+# Every executable in session/ has to be installed by something, under its own
+# name: the wrapper that is written, gets a keybind, and is never listed is a
+# key that does nothing.
 rc=0
 while read -r program; do
     case "$program" in
         \#*|"") continue ;;
         *_test.sh) continue ;;
     esac
-    echo "$MODES" | grep -q "^-rwxr-xr-x .*/$program\$" || {
-        echo "    not executable in the package: $program" >&2
+    echo "$MODES" | grep -q "^-rwxr-xr-x .*/$(basename "$program")\$" || {
+        echo "    not in the package, or not executable: session/$program" >&2
         rc=1
     }
 done <<EOF
-$(find "$REPO_ROOT/session" -type f -perm -u+x 2>/dev/null \
-    | sed "s|^$REPO_ROOT/session/||" | sort)
+$(cd "$REPO_ROOT/session" && find . -type f -perm -u+x | sed 's|^\./||' | sort)
 EOF
-check "every executable file in the repository ships executable" $rc
+check "every executable file in session/ ships executable" $rc
+
+# The same for programs: a main package under desktop/cmd with no build line is
+# a binary that builds in CI and is not on the machine. The packages are found by
+# what they are rather than by where they sit, so zenith-vm's two helpers, which
+# are one directory down, are covered along with the top-level programs.
+rc=0
+for dir in $(grep -rl '^package main' "$REPO_ROOT/desktop/cmd" --include='*.go' |
+        grep -v '_test\.go$' | xargs -n1 dirname | sort -u); do
+    name=${dir#"$REPO_ROOT"/desktop/cmd/}
+    grep -qE "^(desktop/cmd/)?$name -> " "$BUILD_LINES" || {
+        echo "    desktop/cmd/$name has no line in release/build.d" >&2
+        rc=1
+    }
+done
+check "every program under desktop/cmd has a build line" $rc
+
+# Every unit and every desktop entry in the repository is in the package, the
+# units in both places: the registration systemd reads and the content it
+# points at, which is what the doctor compares.
+rc=0
+for unit in "$REPO_ROOT"/session/units/*; do
+    for dir in usr/lib/systemd/user usr/share/zenith/units; do
+        [ -f "$STAGE/$dir/$(basename "$unit")" ] || {
+            echo "    missing: $dir/$(basename "$unit")" >&2
+            rc=1
+        }
+    done
+done
+for entry in "$REPO_ROOT"/session/applications/*.desktop; do
+    [ -f "$STAGE/usr/share/applications/$(basename "$entry")" ] || {
+        echo "    missing: usr/share/applications/$(basename "$entry")" >&2
+        rc=1
+    }
+done
+check "every unit and desktop entry in the repository is installed" $rc
 
 # The shell's tree is installed under the names it has in the repository, so
 # the same rule applies to it. A vendored script upstream ships executable and
@@ -424,6 +498,98 @@ $(find "$REPO_ROOT/shell" -type f -perm -u+x 2>/dev/null \
     | sed "s|^$REPO_ROOT/shell/||" | sort)
 EOF
 check "every executable file in the shell's tree ships executable" $rc
+
+# ----------------------------------------------------------------- the session
+echo "checking the session"
+
+# The package's relations come from release/deps.d, and two of them are policy.
+# Hyprland is pinned to the series the configuration was written for: window and
+# layer rule syntax changed between 0.53 and 0.54, so a newer one is a deliberate
+# bump here and in session/hyprland/, not an apt upgrade that breaks the desktop.
+# Quickshell is not named anywhere: it is not in the archive, so a relation on it
+# would make the package uninstallable.
+DEB_A=$(ls "$WORK"/a/*.deb)
+rc=0
+case $(dpkg-deb -f "$DEB_A" Depends) in
+    *"hyprland (>= 0.53.3)"*"hyprland (<< 0.54)"*) ;;
+    *) rc=1 ;;
+esac
+check "Hyprland is pinned to the series the configuration was written for" $rc
+
+rc=0
+if dpkg-deb -f "$DEB_A" Depends Recommends Suggests | grep -qiw quickshell; then rc=1; fi
+check "no relation names quickshell, which the archive does not carry" $rc
+
+# What is on the Recommends line is installed by every `apt install zenith`, and
+# these are the ones that are not for every machine: a login manager (installing
+# one next to gdm3 asks which is the default), the VM engine and a second icon
+# theme. They are suggestions.
+rc=0
+for heavy in sddm weston quickemu qemu-system-gui papirus-icon-theme; do
+    if dpkg-deb -f "$DEB_A" Depends Recommends | grep -qiw "$heavy"; then
+        echo "    $heavy is a dependency or a recommendation" >&2
+        rc=1
+    fi
+done
+check "the login manager, the VM engine and a second icon theme are only suggested" $rc
+
+# The ordering that makes the shell's panels fill: the shell starts after the
+# daemon, wants it, and the daemon is not "started" until its socket exists.
+UNITS="$STAGE/usr/lib/systemd/user"
+rc=0
+grep -qE '^After=.*\bzenithd\.service\b' "$UNITS/zenith-shell.service" || rc=1
+grep -qE '^Wants=.*\bzenithd\.service\b' "$UNITS/zenith-shell.service" || rc=1
+grep -q '^ExecStartPost=.*zenith-shell\.sock' "$UNITS/zenithd.service" || rc=1
+check "the shell is ordered after the daemon, and the daemon is ready when its socket is" $rc
+
+# The default-on set is what the session target wants: the daemon, the
+# wallpaper engine, the idle clock and the usage timer. The agent is installed
+# and not started.
+rc=0
+for unit in zenith-portal zenith-shell zenithd zenith-wallpaper zenith-idle; do
+    grep -qE "^Wants=.*\\b$unit\\.service\\b" "$UNITS/zenith-session.target" || {
+        echo "    zenith-session.target does not want $unit.service" >&2
+        rc=1
+    }
+done
+grep -qE '^Wants=.*\bzenith-ai-usage\.timer\b' "$UNITS/zenith-session.target" || rc=1
+if grep -qE '^(Wants|Requires|Requisite|BindsTo)=.*zenith-agent' "$UNITS/zenith-session.target" "$UNITS/zenith-shell.service"; then
+    echo "    the agent is wanted by the session; it is installed, not started" >&2
+    rc=1
+fi
+check "the session target wants the default-on units and not the agent" $rc
+
+# Every unit parses, and what each one runs is installed by a build line.
+rc=0; sh "$REPO_ROOT/tests/contract/units.sh" >/dev/null 2>&1 || rc=$?
+check "every unit verifies and runs something the package installs" $rc
+
+# The WirePlumber drop-in is machine-wide tuning; the hardware profile owns that.
+rc=0
+if dpkg-deb -c "$DEB_A" | grep -qi wireplumber; then rc=1; fi
+check "no WirePlumber tuning is shipped" $rc
+
+# The compositor's configuration, as installed, parsed by Hyprland itself. The
+# home and the runtime directory are empty ones, so the optional files under
+# ~/.config/zenith/hyprland do not exist and the user's own cannot be what is
+# being judged. `source` globbing errors for those optional files are expected.
+if command -v Hyprland >/dev/null 2>&1; then
+    mkdir -p "$WORK/hypr-home/run"
+    chmod 700 "$WORK/hypr-home/run"
+    rc=0
+    HOME="$WORK/hypr-home" XDG_RUNTIME_DIR="$WORK/hypr-home/run" \
+        Hyprland --verify-config -c "$STAGE/usr/share/zenith/hyprland/hyprland.conf" 2>&1 |
+        grep -q 'config ok' || rc=$?
+    check "Hyprland parses the configuration the package installs" $rc
+else
+    echo "skip  — Hyprland is not installed"
+fi
+
+# The shell tree as installed, loaded by Quickshell in a sandbox with no display
+# and no bus (tests/contract/load.sh). It is the check for the empty bar: a tree
+# that imports qs.Services and does not ship Services/ fails here in a second.
+rc=0; sh "$REPO_ROOT/tests/contract/load.sh" "$STAGE/usr/share/zenith/shell" >"$WORK/load.out" 2>&1 || rc=$?
+[ "$rc" -eq 0 ] || cat "$WORK/load.out" >&2
+check "the installed shell tree resolves every module it imports" $rc
 
 # ---------------------------------------------------------------- repository
 echo "building the repository"

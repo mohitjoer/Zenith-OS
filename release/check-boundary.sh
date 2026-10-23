@@ -16,39 +16,53 @@ set -eu
 STAGE=${1:?usage: check-boundary.sh <staged-root> [package-name]}
 PKG=${2:-zenith}
 
-# The closed list, as path prefixes relative to the staging root. /usr/bin/$PKG is
-# on the sanctioned list because PATH resolution looks nowhere else.
+# The closed list, as shell patterns over paths relative to the staging root.
 # Everything outside /usr/share/zenith/ and /etc/zenith/ must be on the closed
-# sanctioned list in docs/architecture.md. Each entry is a registration: a file
-# in a fixed directory that a third-party binary scans and nowhere else.
-ALLOWED="usr/share/zenith/
-etc/zenith/
-# /etc/sddm.conf.d/10-zenith.conf is sanctioned but not installed yet; it lands
-# with zenith-greeter, which does not exist yet.
-usr/share/doc/$PKG/
+# sanctioned list in docs/architecture.md. Each entry is a registration or a
+# name PATH resolves: a file in a fixed directory that a third-party binary
+# scans and nowhere else.
+#
+# /etc/sddm.conf.d/10-zenith.conf is sanctioned but never installed by the
+# package: `zenith greeter enable` prints the command that copies it, because a
+# login screen that fails to come up leaves nobody able to log in.
+#
+# The last three are the shell's helpers that its QML starts by bare name
+# (Stash.qml runs `bash stash-install.sh`) and that therefore have to be in
+# /usr/bin, under the names the code asks for.
+ALLOWED="usr/share/zenith/*
+etc/zenith/*
+usr/share/doc/$PKG/*
 usr/share/wayland-sessions/zenith.desktop
 usr/share/xdg-desktop-portal/zenith-portals.conf
-usr/bin/$PKG
-usr/bin/$PKG-hub
 usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml
 usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml
-usr/lib/systemd/user/$PKG-shell.service
-usr/lib/systemd/user/$PKG-portal.service
-usr/lib/systemd/user/$PKG-session.target"
+usr/lib/systemd/user/$PKG-*.service
+usr/lib/systemd/user/$PKG-*.timer
+usr/lib/systemd/user/$PKG-session.target
+usr/lib/systemd/user/${PKG}d.service
+usr/share/applications/$PKG-*.desktop
+usr/share/applications/$PKG-mimeapps.list
+usr/bin/$PKG
+usr/bin/$PKG-*
+usr/bin/cliphist-thumbs.sh
+usr/bin/localsend.sh
+usr/bin/stash-*.sh"
 
 LIST=$(mktemp)
 VIOLATIONS=$(mktemp)
 trap 'rm -f "$LIST" "$VIOLATIONS"' EXIT
 
 # DEBIAN/ is the package's own control metadata, not something it installs.
-find "$STAGE" -type f -printf '%P\n' | grep -v '^DEBIAN/' > "$LIST" || true
+# Everything that is not a directory counts, symlinks included: a link into
+# /etc is as much a write there as a file.
+find "$STAGE" ! -type d -printf '%P\n' | grep -v '^DEBIAN/' > "$LIST" || true
 
 while read -r path; do
     [ -n "$path" ] || continue
     permitted=0
-    while read -r prefix; do
+    while read -r pattern; do
         case "$path" in
-            "$prefix"*) permitted=1; break ;;
+            $pattern) permitted=1; break ;;
         esac
     done <<ALLOWED
 $ALLOWED
@@ -56,9 +70,9 @@ ALLOWED
     if [ "$permitted" -eq 0 ]; then
         {
             echo "BOUNDARY VIOLATION: $PKG installs '$path', which is outside"
-            echo "  /usr/share/zenith/, /etc/zenith/, /usr/share/doc/$PKG/ and"
-            echo "  /usr/bin/$PKG. Either move it, or add the path to the sanctioned"
-            echo "  list in docs/architecture.md with a reason."
+            echo "  /usr/share/zenith/ and /etc/zenith/ and not on the closed list"
+            echo "  in this script. Either move it, or add the path to the sanctioned"
+            echo "  list in docs/architecture.md with a reason, and to ALLOWED here."
         } >&2
         echo "$path" >> "$VIOLATIONS"
     fi

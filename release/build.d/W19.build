@@ -1,0 +1,3 @@
+# W19: Zenith Agent. session/units/zenith-agent.service is picked up with the other units;
+# the skills under shell/agent/skills ship with the shell tree.
+zenith-agent -> /usr/bin/zenith-agent

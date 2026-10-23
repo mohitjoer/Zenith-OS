@@ -1,0 +1,5 @@
+recommends imagemagick  # chat image attachments are downscaled with magick; without it the original is sent
+recommends wl-clipboard  # the copy chips and "copy agent snippet"
+recommends pciutils  # lspci feeds the GPU line of the vault's system map
+suggests rsync  # the vault's config mirror uses it when present, else a Go copy
+# unavailable: prowl (code index; search_code answers "prowl is not installed" and the dashboard card hides)

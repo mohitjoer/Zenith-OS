@@ -1,0 +1,2 @@
+# W03: the shell daemon and its CLI. session/units/zenithd.service is picked up with the other units.
+zenith-shell -> /usr/bin/zenith-shell

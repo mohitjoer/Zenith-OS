@@ -1,0 +1,30 @@
+depends jq  # zenith-app reads the Default Apps store; summon, sysinfo and screenrecord parse hyprctl JSON
+depends libnotify-bin  # every script reports a missing tool or a result through notify-send
+depends xdg-utils  # xdg-open / xdg-settings: zenith-app's browser, the QR and Lens actions
+recommends wf-recorder  # the screen recorder on Ubuntu (zenith-cmd-screenrecord)
+recommends grim  # region grab for OCR, QR and Lens
+recommends slurp  # region picker for recording, OCR, QR and Lens
+recommends wl-clipboard  # wl-copy for the colour picker, OCR, QR and SongRec results
+recommends hyprpicker  # zenith-cmd-color-picker
+recommends tesseract-ocr  # zenith-cmd-ocr
+recommends tesseract-ocr-eng  # the language data tesseract needs by default
+recommends zbar-tools  # zenith-cmd-qr-scan (zbarimg)
+recommends ffmpeg  # recording duration, discord-compress, stash-compress, stash-cobalt remux
+recommends mpv  # zenith-cmd-radio player
+recommends mpv-mpris  # puts the radio on the MPRIS bus so now-playing sees it
+recommends yt-dlp  # radio YouTube stations, stash downloads
+recommends qalc  # launcher calculator (zenith-cmd-calc has a python fallback)
+suggests papirus-icon-theme  # zenith-cmd-folders tints its folder icons; it says so when the theme is missing. A suggestion because system/packages.yaml keeps a second icon theme off the image
+recommends imagemagick  # stash-compress png/bmp, cliphist-thumbs.sh (magick)
+recommends cliphist  # cliphist-thumbs.sh
+recommends libgtk-3-bin  # gtk-launch: zenith-app opens the default browser through it
+recommends pciutils  # lspci: GPU names in zenith-sysinfo
+recommends power-profiles-daemon  # zenith-cmd-game-mode asks for the performance profile
+recommends pkexec  # stash-install.sh installs a .deb through apt-get under pkexec
+suggests libarchive-tools  # bsdtar: stash-install.sh unpacks a .rpm
+suggests libfuse2t64  # AppImages installed through the stash need FUSE 2 to start
+suggests flatpak  # stash-install.sh installs a .flatpak bundle
+suggests docker.io  # the stash cobalt engine; yt-dlp is the fallback without it
+# unavailable: gpu-screen-recorder (wf-recorder is the backend; gsr is used when the user installs it)
+# unavailable: songrec (ppa:marin-m/songrec; zenith-cmd-songrec says so when it is missing)
+# unavailable: ryomotion (the Edit / Studio hand-off says so; the clip is saved either way)

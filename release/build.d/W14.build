@@ -1,0 +1,3 @@
+session/zenith-welcome -> /usr/bin/zenith-welcome
+session/zenith-pin -> /usr/bin/zenith-pin
+session/zenith-reload-cover -> /usr/bin/zenith-reload-cover

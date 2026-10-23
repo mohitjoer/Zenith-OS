@@ -1,0 +1,2 @@
+depends pkexec  # zenith-pkg-add and zenith-pkg-remove escalate through it; the polkit agent is zenith-shell's
+depends procps  # zenith-pkg-add finds out with pgrep whether dpkg is running before it honours a cancel

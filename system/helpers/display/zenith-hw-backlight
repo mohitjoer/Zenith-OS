@@ -1,0 +1,5 @@
+#!/bin/sh
+# Print the backlight that drives the laptop's own screen. The daemon's OSD and
+# the sliders ask for it by this name; the choice is made once, in
+# `zenith brightness`, so the keys and the readers cannot disagree about it.
+exec zenith brightness name

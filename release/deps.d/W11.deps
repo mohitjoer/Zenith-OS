@@ -1,0 +1,4 @@
+suggests sddm  # the login manager the Zenith greeter theme is for (0.21, resolute/universe). Not a recommendation: installing it next to gdm3 asks which one is the default, and the theme is not active until `zenith greeter` is run
+suggests weston  # hosts the greeter as a kiosk compositor (14.0.2, resolute/universe)
+recommends qt6-wayland  # the Wayland platform plugin sddm's Qt6 greeter loads; sddm does not depend on it
+suggests libdrm-tests  # modetest, so zenith-greeter can pick the panel's top mode; it starts without it

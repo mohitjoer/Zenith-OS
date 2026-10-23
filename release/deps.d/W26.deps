@@ -1,0 +1,6 @@
+depends zsh  # ghostty's `command` is /usr/bin/zsh; a terminal that cannot start its shell is worse than a missing recommends
+recommends starship  # the prompt (apps/starship)
+recommends zsh-autosuggestions  # apps/zsh/zenith.zsh sources it when present
+recommends zsh-syntax-highlighting  # same
+recommends fonts-jetbrains-mono  # ghostty's font; without it fontconfig substitutes the system monospace
+recommends xdg-terminal-exec  # the shell starts terminal apps through it; `zenith apps defaults` points it at ghostty

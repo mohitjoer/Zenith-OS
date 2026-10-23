@@ -1,0 +1,5 @@
+depends wireplumber  # wpctl: zenith-volume and the volume keys drive the default sink through it
+depends jq  # zenith-volume reads the Boost key (qsbar.audioBoost) out of shell.json
+recommends playerctl  # the play/pause/next/previous media keys call it; it is not installed today
+suggests usbutils  # zenith-restart-audio resets a wedged USB audio device with usbreset
+recommends gammastep  # night light: zenith wm act nightlight.on starts it; hyprsunset is not in the archive

@@ -407,23 +407,32 @@ desktop:
     # The locker.
     #
     # This is the one surface the shell does not draw, and the reason is the
-    # only reason that matters for a lock screen: it is the one surface where a
-    # hand-rolled implementation is not a worse version of the real thing but a
-    # security hole. A QML lock screen cannot authenticate against PAM — there
-    # is no QML PAM API and calling one over D-Bus is how you end up shipping a
-    # lock screen that accepts any password.
+    # one that matters for a lock screen: a hand-rolled implementation is not a
+    # worse version of the real thing but a security hole, and a lock screen
+    # that does not lock is worse than none because it teaches the user the
+    # machine is locked. The shell does have a PAM binding here (Quickshell
+    # 0.3.2 links libpam and ships Quickshell.Services.Pam), so this is a
+    # decision and not a platform limit: hyprlock is mature, it is in the
+    # archive, and it runs as a process of its own, so a bug in the shell cannot
+    # take the lock down with it.
     #
     # hyprlock is in the archive (resolute-universe, 0.9.2, depends on
     # libpam0g), which under rule 2 in the header settles it: the base layer
     # carries it, so Zenith does not repackage it. It authenticates through PAM,
     # which is the thing that makes a lock screen a lock screen.
     #
-    # The shell still owns *when* locking happens — see org.zenith.desktop's
-    # idle-* keys and Idle.qml. hypridle is deliberately not installed: the
-    # shell is already the idle implementation, and two idle daemons both
-    # deciding when to lock is a machine that locks at a time neither of them
-    # was asked for.
+    # `zenith-shell lock` runs it, with the configuration under
+    # /usr/share/zenith/hyprland/hyprlock.conf.
     - hyprlock
+
+    # The idle clock. hypridle is the one idle daemon: zenith-idle.service runs
+    # it with the three timeouts the Hub writes to org.zenith.desktop (dim,
+    # blank, lock), and hyprlock does the locking when the last one fires. The
+    # shell does not run a second idle clock, so two never decide when to lock:
+    # its part is to draw the dim scrim when hypridle says `dim`, and to keep
+    # the lock's wallpaper link current. Verified in the archive: universe,
+    # 0.1.7.
+    - hypridle
 
     # The Wayland clipboard tool. There is no xclip in this image, and both the
     # shell and Hyprland's keybind scripts need a clipboard owner that speaks
@@ -435,7 +444,8 @@ desktop:
   #
   # The shell. QML, compositor-agnostic, and the surface the entire desktop is
   # drawn in: bar, dock, launcher, popouts, widget catalogue, notification
-  # server, lock, idle, quick settings, status icons, and the Hub window. This is
+  # server, quick settings, status icons, and the Hub window. (The lock screen
+  # is hyprlock's and the idle clock is hypridle's; see desktop.) This is
   # not a bar and it is not a panel, which is why the panels the archive does
   # carry — waybar, yambar, tint2, polybar — cannot stand in for it.
   #
@@ -527,7 +537,7 @@ desktop:
       A screen saver and locker with its own X11 dependencies. The shell draws
       the desktop; this would be a second desktop behind it.
     gnome-screensaver: >-
-      The GNOME locker and idler. The shell owns idle, and a GNOME idler runs
+      The GNOME locker and idler. hypridle owns idle, and a GNOME idler runs
       its own timers alongside it.
     xdg-desktop-portal-gnome: >-
       It reads GDK_BACKEND to decide whether it is on a real GNOME session and
@@ -851,8 +861,16 @@ graphics-and-media:
     - wireplumber
 
     # The video player. There is no video player daemon and no codec bundle
-    # beyond what mpv links; the transcoder CLI is in `optional`.
+    # beyond what mpv links.
     - mpv
+
+    # The transcoder CLI, and the reason it moved out of `optional`. The wallpaper
+    # engine runs ffmpeg and ffprobe for video thumbnails and stills, the clip
+    # transcode and the media optimiser, so a picker without it shows empty
+    # tiles; the zenith package depends on it for that. The size objection the
+    # old exclusion recorded was real and is paid on purpose: most of the
+    # libraries are mpv's already, and what is added is the program.
+    - ffmpeg
 
     # The sidebar's audio control is `wpctl`, which ships in the wireplumber
     # package above — verified against the Ubuntu package file list rather than
@@ -905,10 +923,6 @@ graphics-and-media:
       The base layer's codec plugin sets, including the bad and ugly tiers.
       Nothing on the desktop needs them, mpv links what it needs, and an image
       whose codec inventory is audited by package name is worth auditing.
-    ffmpeg: >-
-      A transcoder of several hundred megabytes. It lives in `optional`; mpv
-      links the libraries, and the command-line tool belongs to users who
-      transcode.
     pavucontrol: >-
       A mixer GUI, in `optional`. PipeWire's own tools and the shell's surfaces
       cover the machines anyone has actually tested.
@@ -1331,10 +1345,6 @@ optional:
         is excluded above.
 
     media:
-      ffmpeg: >-
-        A transcoder of several hundred megabytes. mpv links the libraries it
-        needs; the command-line tool is for users who transcode, and they know
-        which one they want.
       pavucontrol: >-
         A mixer GUI. PipeWire's own tools and the shell's surfaces cover the
         machines anyone has actually tested.

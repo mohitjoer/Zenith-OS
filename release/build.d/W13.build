@@ -1,0 +1,32 @@
+# W13: the helper scripts the shell and the conf call by bare name. Each lands in /usr/bin because
+# the shell runs under systemd --user, whose PATH does not contain ~/.local/bin. The collectors in
+# shell/bin/ are not listed: the shell tree ships whole, and zenith-ai-usage.service runs them
+# from /usr/share/zenith/shell/bin/.
+shell/scripts/cliphist-thumbs.sh -> /usr/bin/cliphist-thumbs.sh
+shell/scripts/localsend.sh -> /usr/bin/localsend.sh
+shell/scripts/stash-cobalt-server.sh -> /usr/bin/stash-cobalt-server.sh
+shell/scripts/stash-cobalt.sh -> /usr/bin/stash-cobalt.sh
+shell/scripts/stash-compress.sh -> /usr/bin/stash-compress.sh
+shell/scripts/stash-download.sh -> /usr/bin/stash-download.sh
+shell/scripts/stash-install.sh -> /usr/bin/stash-install.sh
+shell/scripts/zenith-app -> /usr/bin/zenith-app
+shell/scripts/zenith-cmd-caffeine -> /usr/bin/zenith-cmd-caffeine
+shell/scripts/zenith-cmd-calc -> /usr/bin/zenith-cmd-calc
+shell/scripts/zenith-cmd-color-picker -> /usr/bin/zenith-cmd-color-picker
+shell/scripts/zenith-cmd-discord-compress -> /usr/bin/zenith-cmd-discord-compress
+shell/scripts/zenith-cmd-edit-recording -> /usr/bin/zenith-cmd-edit-recording
+shell/scripts/zenith-cmd-folders -> /usr/bin/zenith-cmd-folders
+shell/scripts/zenith-cmd-game-mode -> /usr/bin/zenith-cmd-game-mode
+shell/scripts/zenith-cmd-google-lens -> /usr/bin/zenith-cmd-google-lens
+shell/scripts/zenith-cmd-ocr -> /usr/bin/zenith-cmd-ocr
+shell/scripts/zenith-cmd-qr-scan -> /usr/bin/zenith-cmd-qr-scan
+shell/scripts/zenith-cmd-radio -> /usr/bin/zenith-cmd-radio
+shell/scripts/zenith-cmd-recording-saved -> /usr/bin/zenith-cmd-recording-saved
+shell/scripts/zenith-cmd-screenrecord -> /usr/bin/zenith-cmd-screenrecord
+shell/scripts/zenith-cmd-songrec -> /usr/bin/zenith-cmd-songrec
+shell/scripts/zenith-cmd-studiorecord -> /usr/bin/zenith-cmd-studiorecord
+shell/scripts/zenith-profile-stats -> /usr/bin/zenith-profile-stats
+shell/scripts/zenith-summon -> /usr/bin/zenith-summon
+shell/scripts/zenith-sysinfo -> /usr/bin/zenith-sysinfo
+# zenith-ai-usage.service and .timer ship with the other units (every file in session/units/ does) and
+# zenith-session.target wants the timer, so there is no line for them here.

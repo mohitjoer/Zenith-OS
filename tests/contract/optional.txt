@@ -1,0 +1,6 @@
+# Commands the tree calls that are allowed to be absent, one per line:
+#
+#   name  # how the caller is gated (command -v, a hidden control, "install X" message)
+#
+# A command belongs here only when the caller really degrades visibly without it.
+# A command that is simply needed belongs in release/deps.d/<lane>.deps instead.

@@ -1,0 +1,4 @@
+# W27: the control tool and the Hub's launcher, which every other lane assumes. They are in a list like any
+# other program so the contract checks (tests/contract) see /usr/bin/zenith and /usr/bin/zenith-hub as installed.
+zenith -> /usr/bin/zenith
+session/zenith-hub -> /usr/bin/zenith-hub

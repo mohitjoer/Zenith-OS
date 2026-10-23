@@ -1,0 +1,3 @@
+shell/scripts/zenith-cmd-brightness -> /usr/bin/zenith-cmd-brightness
+system/helpers/display/zenith-hw-backlight -> /usr/bin/zenith-hw-backlight
+system/helpers/input/zenith-touchpad -> /usr/bin/zenith-touchpad

@@ -1,0 +1,81 @@
+#!/bin/sh
+# Install or remove apt packages with polkit's authority.
+#
+#   zenith-pkg-add [--status] PACKAGE...
+#   zenith-pkg-add [--status] --remove PACKAGE...    (zenith-pkg-remove does this)
+#
+# Run as an ordinary user it asks pkexec to run this same file as root, so the
+# shell's polkit agent shows the prompt and no terminal or sudo is involved.
+# (Ryoku's ryoku-pkg-add ran `sudo pacman -S` and needed a terminal for it.)
+#
+# --status is for zenith-store: apt's machine status goes to stdout, and a line
+# reading "cancel" on stdin stops apt-get. The caller cannot signal a root
+# process, so stdin is the only way to reach it. It is honoured only while apt-get
+# is downloading: killing it with dpkg running would leave a half-done transaction.
+set -eu
+
+self=$(readlink -f "$0")
+status=0
+remove=0
+for arg; do
+    case $arg in
+        --status) status=1; shift ;;
+        --remove) remove=1; shift ;;
+        *) break ;;
+    esac
+done
+[ $# -gt 0 ] || { echo "zenith-pkg-add: no packages given" >&2; exit 2; }
+
+# The names become apt-get arguments, as root: only Debian package names pass.
+for p; do
+    case $p in
+        -*|*[!a-z0-9+.-]*) echo "zenith-pkg-add: '$p' is not a package name" >&2; exit 2 ;;
+    esac
+done
+
+verb=install
+[ $remove -eq 0 ] || verb=remove
+
+if [ "$(id -u)" -ne 0 ]; then
+    # These are rails for the store's flow, not a boundary: they run before the
+    # password prompt so a refusal costs no authentication, and an administrator
+    # can still call apt-get directly. apt-get would remove whatever depends on a
+    # removed package, or conflicts with an installed one, and -y says yes to it;
+    # pacman refused, and so does this. Ubuntu's firefox, chromium and
+    # thunderbird packages only install a snap, which Zenith does not use.
+    plan=$(apt-get -s "$verb" -- "$@")
+    others=$(printf '%s\n' "$plan" | sed -n 's/^Remv \([^ ]*\).*/\1/p' | grep -vxF "$(printf '%s\n' "$@")" || true)
+    if [ -n "$others" ]; then
+        echo "zenith-pkg-add: this would also remove: $(echo $others)" >&2
+        exit 13
+    fi
+    if [ $remove -eq 0 ]; then
+        stubs=$(apt-cache show --no-all-versions -- "$@" | awk '/^Package:/ { p = $2 } /^(Pre-)?Depends:/ && /(^|[ ,|])snapd([ ,(|]|$)/ { print p }')
+        if [ -n "$stubs" ]; then
+            echo "zenith-pkg-add: $(echo $stubs) only installs a snap, and Zenith does not use snap packages" >&2
+            exit 12
+        fi
+    fi
+    flags=""
+    [ $status -eq 0 ] || flags="$flags --status"
+    [ $remove -eq 0 ] || flags="$flags --remove"
+    exec pkexec "$self" $flags "$@"
+fi
+
+export DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none NEEDRESTART_MODE=l
+set -- -y -o Dpkg::Options::=--force-confold "$verb" -- "$@"
+[ $status -eq 1 ] || exec apt-get "$@"
+
+# A caller that went away must not take apt down with it.
+trap '' PIPE HUP
+exec 3<&0
+apt-get -q -o APT::Status-Fd=1 "$@" </dev/null &
+apt=$!
+(while read -r line <&3; do
+    [ "$line" = cancel ] && ! pgrep -P "$apt" -x dpkg >/dev/null && kill "$apt" 2>/dev/null
+done) &
+reader=$!
+rc=0
+wait "$apt" || rc=$?
+kill "$reader" 2>/dev/null || true
+exit "$rc"

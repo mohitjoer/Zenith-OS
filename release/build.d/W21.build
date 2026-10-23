@@ -1,0 +1,10 @@
+# W21: the VM manager. zenith-vmd is the engine (a bash script over quickemu and quickget);
+# zenith-vm is what the keybind, the .desktop file and the QML all call, and it passes engine verbs
+# on to zenith-vmd. zenith-vm-mon is live control of a running guest, zenith-vm-ssh the Remotes
+# plate's engine. The window's QML (shell/vm.qml, shell/vm/) ships with the shell tree.
+# zenith-vm-fetch, Ryoku's parallel downloader, is deliberately not built: see docs/vm.md.
+zenith-vm/mon -> /usr/bin/zenith-vm-mon
+zenith-vm/remote -> /usr/bin/zenith-vm-ssh
+desktop/cmd/zenith-vm/zenith-vmd -> /usr/bin/zenith-vmd
+session/zenith-vm -> /usr/bin/zenith-vm
+session/applications/zenith-vm.desktop -> /usr/share/applications/zenith-vm.desktop

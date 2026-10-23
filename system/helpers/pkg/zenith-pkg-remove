@@ -1,0 +1,3 @@
+#!/bin/sh
+# Remove apt packages with polkit's authority; see zenith-pkg-add.
+exec zenith-pkg-add --remove "$@"

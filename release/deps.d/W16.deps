@@ -1,0 +1,2 @@
+recommends fonts-noto-core  # glyphs for the Arabic, Hebrew, Devanagari, Bengali, Tamil, Telugu, Malayalam, Thai, Greek and Cyrillic translations
+recommends fonts-noto-cjk  # glyphs for the Chinese, Japanese and Korean translations

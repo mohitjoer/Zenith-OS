@@ -1,0 +1,2 @@
+# W06: the Hub's data plane. Calls zenith-power (not built) and zenith-gpu (W18) only when present.
+zenith-hubd -> /usr/bin/zenith-hubd

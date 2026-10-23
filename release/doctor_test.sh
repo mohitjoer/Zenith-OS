@@ -53,8 +53,12 @@ dpkg-deb -x "$DEB" "$STAGE"
 
 # Modes are checked here as well as in the release suite, because a program that
 # is not executable fails at login rather than at test time, and this is the
-# first place the installed tree is exercised end to end.
-for program in usr/bin/zenith usr/bin/zenith-hub usr/share/zenith/session/zenith-greeter; do
+# first place the installed tree is exercised end to end. The three daemons are
+# the ones the session starts: a unit whose binary is not executable fails once
+# per login with a code nobody reads.
+for program in usr/bin/zenith usr/bin/zenith-hub usr/bin/zenith-shell \
+		usr/bin/zenith-hubd usr/bin/zenith-wallpaper \
+		usr/share/zenith/session/zenith-greeter; do
 	if [ ! -x "$STAGE/$program" ]; then
 		echo "doctor_test: $program is not executable in the installed tree" >&2
 		exit 1
@@ -71,6 +75,17 @@ done
 for entry in usr/share/zenith/shell/shell.qml usr/share/zenith/shell/hub.qml; do
 	if [ ! -f "$STAGE/$entry" ]; then
 		echo "doctor_test: $entry is not in the installed tree" >&2
+		exit 1
+	fi
+done
+
+# The same for every other window. Each has a launcher that names its entry file,
+# and the launchers are what is read here rather than a list of windows, so a
+# window added next month is covered by being added.
+for entry in $(grep -ho '/usr/share/zenith/shell/[A-Za-z0-9_.-]*\.qml' \
+		"$STAGE"/usr/bin/zenith-* "$STAGE"/usr/share/zenith/session/zenith-* 2>/dev/null | sort -u); do
+	if [ ! -f "$STAGE$entry" ]; then
+		echo "doctor_test: a launcher starts $entry, which is not in the installed tree" >&2
 		exit 1
 	fi
 done
@@ -99,6 +114,15 @@ must_contain() {
 	fi
 }
 
+# For a line whose numbers change whenever a lane adds a setting, a page or a
+# command: the sentence is the claim, the count is not.
+must_match() {
+	if ! grep -Eq "$1" "$OUTPUT"; then
+		echo "doctor_test: expected to find a line matching: $1" >&2
+		fail=1
+	fi
+}
+
 must_not_contain() {
 	if grep -Fq "$1" "$OUTPUT"; then
 		echo "doctor_test: should not have found: $1" >&2
@@ -122,8 +146,13 @@ must_not_contain "contains no .gschema.xml"
 must_not_contain "no surface can reach it"
 
 # Every setting has a page, every page a command, every type a control.
-must_contain "all 14 setting(s) have a page, and all 5 page(s) have commands"
+must_match 'all [0-9]+ setting\(s\) have a page'
 must_not_contain "no control is mapped to this setting type"
+
+# Every zenith command the compositor's configuration runs is in the package. A
+# bind that calls a script nobody installed runs, fails and says nothing, and
+# this is the section of the doctor that reads the installed tree for it.
+must_match 'all [0-9]+ zenith command\(s\) the compositor runs are installed'
 
 # The overlay materializes into the extracted tree rather than reporting a tree
 # full of files that are missing from it.

@@ -1,0 +1,2 @@
+suggests wtype  # Dictation: Voxtype types the recognised text into the focused Wayland app with it
+# unavailable: voxtype (not in the Ubuntu archive; the Dictation page says so and links voxtype.io for the upstream .deb)

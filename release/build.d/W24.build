@@ -1,0 +1,4 @@
+system/helpers/audio/zenith-volume -> /usr/bin/zenith-volume
+system/helpers/audio/zenith-restart-audio -> /usr/bin/zenith-restart-audio
+shell/scripts/zenith-cmd-nightlight -> /usr/bin/zenith-cmd-nightlight
+shell/scripts/zenith-eq -> /usr/bin/zenith-eq
