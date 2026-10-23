@@ -1,0 +1,27 @@
+# Zenith palette for ghostty: the ink ramp from shell/Theme.qml. Red and amber are the
+# design system's error and warning exceptions; green and blue are ink, because only
+# weight carries a meaning other than those two.
+
+background = #101010
+foreground = #F2F2F2
+cursor-color = #F2F2F2
+cursor-text = #101010
+selection-background = #373737
+selection-foreground = #F2F2F2
+
+palette = 0=#242424
+palette = 1=#E5484D
+palette = 2=#CCCCCC
+palette = 3=#F5A524
+palette = 4=#A1A1A1
+palette = 5=#CCCCCC
+palette = 6=#8A8A8A
+palette = 7=#CCCCCC
+palette = 8=#8A8A8A
+palette = 9=#F98080
+palette = 10=#F2F2F2
+palette = 11=#F5A524
+palette = 12=#CCCCCC
+palette = 13=#F2F2F2
+palette = 14=#A1A1A1
+palette = 15=#F2F2F2

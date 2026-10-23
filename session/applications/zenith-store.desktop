@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Zenith Store
+GenericName=Software
+Comment=Find and install software
+Exec=zenith-store open discover
+Terminal=false
+Icon=system-software-install
+Categories=System;PackageManager;
+Keywords=store;software;apps;install;apt;packages;plugins;zenith;

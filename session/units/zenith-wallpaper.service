@@ -1,0 +1,31 @@
+# Zenith wallpaper daemon.
+#
+# It owns the wallpaper: the catalogue, the choice per output, playlists and the
+# day/night schedule, and the `wallpaper` topic the shell subscribes to on
+# zenith-wallpaper.sock. It also keeps the picker window resident and flips it.
+# It shares the shell's session target and is not ordered against the shell: the
+# shell retries its subscription, so either may start first.
+[Unit]
+Description=Zenith wallpaper daemon
+Documentation=https://github.com/mohitjoer/Zenith-OS
+PartOf=zenith-session.target
+After=zenith-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+# A config that cannot load would otherwise restart forever; stop and let
+# `zenith doctor` report it instead (start-rate keys belong in [Unit]).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/zenith-wallpaper daemon
+Restart=always
+RestartSec=2
+Slice=app.slice
+# The picker is Quickshell, which links jemalloc. Its tree is built and torn
+# down on every open; without a decay schedule the freed pages stay mapped
+# (measured on Ryoku: ~128 MB stranded after a single open/close).
+Environment=MALLOC_CONF=narenas:2,background_thread:true,dirty_decay_ms:5000,muzzy_decay_ms:5000
+
+[Install]
+WantedBy=zenith-session.target

@@ -12,8 +12,9 @@
 # refuses to start.
 #
 # The target goes second, and only once the environment is right: starting it
-# starts the portal dispatcher and the shell, and both of them check the
-# display before they do anything.
+# starts everything it wants (the portal dispatcher, the state daemon, the shell,
+# the wallpaper engine, the idle clock), and the ones that draw check the display
+# before they do anything.
 #
 # The compositor's configuration runs this once at start-up, which is the
 # first moment the display exists. Nothing here waits for the display, because

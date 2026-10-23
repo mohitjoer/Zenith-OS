@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Zenith VM
+GenericName=Virtual Machines
+Comment=Create and run virtual machines, and open SSH connections to servers
+Exec=zenith-vm
+Terminal=false
+Icon=computer
+Categories=System;Utility;
+Keywords=vm;virtual machine;qemu;quickemu;kvm;vps;ssh;remote;server;

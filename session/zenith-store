@@ -1,0 +1,25 @@
+#!/bin/sh
+# The store window.
+#
+# A wrapper for the same reason zenith-hub is one: `quickshell -p` on the entry
+# file is the whole program, and the entry file sits at the shell's root so the
+# `qs.*` imports resolve. It is installed with the session scripts and not on
+# PATH, because /usr/bin/zenith-store is the command line tool, and that tool
+# (`zenith-store open`) is what starts this and then steers the window by IPC.
+#
+# The lock keeps a second start (a Browse button in Settings, the launcher) to
+# the one window; the second start exits at the lock and the IPC call reaches the
+# first.
+set -eu
+
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=/usr/share/zenith/shell/store.qml
+LOCK="${XDG_RUNTIME_DIR:-/tmp}/zenith-store.lock"
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-store: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-store: the store window is drawn by Quickshell, which Zenith builds." >&2
+    exit 1
+fi
+
+exec flock -n -o "$LOCK" "$QUICKSHELL_BIN" -p "$ENTRY"

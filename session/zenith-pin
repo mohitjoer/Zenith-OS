@@ -1,0 +1,20 @@
+#!/bin/sh
+# Pinned screenshots: floating, always-on-top cards.
+#
+# zenith-shot drops a PNG in $XDG_RUNTIME_DIR/zenith/pins, touches .poke there,
+# and runs this. The host is one process for all pins, so the lock is here and
+# not in the caller: a second run while the host is up exits 0 (the host already
+# saw the poke), and the host quits by itself when the last pin is closed.
+# A wrapper for the same reason zenith-hub is one.
+set -eu
+
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=/usr/share/zenith/shell/pin.qml
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-pin: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-pin: pins are drawn by Quickshell, which Zenith builds." >&2
+    exit 1
+fi
+
+exec flock -n -E 0 -o "${XDG_RUNTIME_DIR:-/tmp}/zenith-pin.lock" "$QUICKSHELL_BIN" -p "$ENTRY"

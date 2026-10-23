@@ -1,0 +1,15 @@
+[Unit]
+# refreshes the ~/.cache/{claude,codex,opencode}-usage.json caches the qsbar
+# AI pill reads; driven by zenith-ai-usage.timer, and started by hand by the
+# pill's refresh button.
+Description=Zenith AI usage collectors
+
+[Service]
+Type=oneshot
+# every line is '-' prefixed: a missing tool (no codex, no opencode store, no
+# claude credentials) is the normal case and must never fail the unit or the
+# timer. claude-usage is the only one that touches the network, and only when
+# ~/.claude/.credentials.json exists. The collectors ship inside the shell tree.
+ExecStart=-/usr/share/zenith/shell/bin/claude-usage
+ExecStart=-/usr/share/zenith/shell/bin/codex-usage
+ExecStart=-/usr/share/zenith/shell/bin/opencode-usage

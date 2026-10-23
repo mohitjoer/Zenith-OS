@@ -1,0 +1,11 @@
+[SddmGreeterTheme]
+Name=Zenith
+Description=The Zenith login screen
+Author=Zenith
+License=GPL-3.0-or-later
+Type=sddm-theme
+Version=0.1
+MainScript=Main.qml
+Theme-Id=zenith
+Theme-API=2.0
+QtVersion=6

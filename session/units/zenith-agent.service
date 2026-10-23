@@ -1,0 +1,15 @@
+[Unit]
+Description=Zenith Agent: local assistant daemon and dashboard
+# Never let a transient start-loop (a stale flock, a busy port) trip systemd's
+# default start-limit and park the unit in `failed` for good: keep retrying so
+# the daemon self-heals instead of turning off and staying off.
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/zenith-agent serve --if-enabled
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

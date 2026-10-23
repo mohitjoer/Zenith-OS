@@ -1,0 +1,10 @@
+[Unit]
+Description=Zenith AI usage collector schedule
+
+[Timer]
+OnBootSec=45sec
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

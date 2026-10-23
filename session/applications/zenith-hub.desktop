@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Zenith Settings
+GenericName=Settings
+Comment=Configure the Zenith desktop: appearance, bar, inputs, keybinds and more
+Exec=zenith-shell hub open
+Terminal=false
+Icon=preferences-system
+Categories=Settings;DesktopSettings;
+Keywords=hub;settings;preferences;zenith;configure;appearance;keybinds;bar;input;

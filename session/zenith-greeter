@@ -41,6 +41,23 @@ locker=false
 locker=false
 EOF
 
+# Weston reads no X11 keyboard config, so without this the password field is on
+# Weston's built-in US map and a password with a non-US key cannot be typed.
+# Ubuntu records the layout in /etc/default/keyboard. A missing file or an empty
+# layout leaves Weston on its default, which still logs in.
+KEYBOARD=${ZENITH_KEYBOARD:-/etc/default/keyboard}
+xkb() { sed -n "s/^XKB$1=\"\(.*\)\"/\1/p" "$KEYBOARD" 2>/dev/null | head -n 1; }
+layout=$(xkb LAYOUT)
+if [ -n "$layout" ]; then
+    variant=$(xkb VARIANT)
+    options=$(xkb OPTIONS)
+    {
+        printf '[keyboard]\nkeymap_layout=%s\n' "$layout"
+        [ -z "$variant" ] || printf 'keymap_variant=%s\n' "$variant"
+        [ -z "$options" ] || printf 'keymap_options=%s\n' "$options"
+    } >> "$INI"
+fi
+
 # Pick the first mode modetest reports for the first connected connector.
 #
 # modetest reads the connectors' modes without taking DRM master, so it is safe

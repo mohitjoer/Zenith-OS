@@ -1,0 +1,26 @@
+# Zenith idle policy (hypridle).
+#
+# The stages, the timeouts and why hypridle is wrapped are in
+# session/hyprland/hypridle.conf and session/zenith-idle. Without hypridle
+# installed the condition below skips the unit instead of letting it fail in a
+# restart loop; the Lockscreen page says so.
+[Unit]
+Description=Zenith idle policy (hypridle)
+Documentation=https://github.com/mohitjoer/Zenith-OS
+PartOf=graphical-session.target
+After=zenith-session.target
+Requires=zenith-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+ConditionFileIsExecutable=/usr/bin/hypridle
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/zenith-idle start
+Restart=on-failure
+RestartSec=1
+Slice=app.slice
+
+[Install]
+WantedBy=zenith-session.target

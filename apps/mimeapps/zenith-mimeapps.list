@@ -1,0 +1,35 @@
+# Adapted from Ryoku's apps/mimeapps.list (GPL-3.0).
+[Default Applications]
+text/plain=nvim.desktop
+text/markdown=nvim.desktop
+application/json=nvim.desktop
+text/xml=nvim.desktop
+application/xml=nvim.desktop
+text/x-shellscript=nvim.desktop
+application/x-shellscript=nvim.desktop
+text/x-python=nvim.desktop
+text/x-lua=nvim.desktop
+text/css=nvim.desktop
+text/html=nvim.desktop
+text/x-csrc=nvim.desktop
+text/x-chdr=nvim.desktop
+text/x-c++src=nvim.desktop
+text/x-go=nvim.desktop
+application/toml=nvim.desktop
+text/x-toml=nvim.desktop
+application/x-yaml=nvim.desktop
+text/yaml=nvim.desktop
+video/mp4=mpv.desktop
+video/x-matroska=mpv.desktop
+video/webm=mpv.desktop
+video/quicktime=mpv.desktop
+video/x-msvideo=mpv.desktop
+video/x-m4v=mpv.desktop
+audio/mpeg=mpv.desktop
+audio/flac=mpv.desktop
+audio/x-wav=mpv.desktop
+audio/ogg=mpv.desktop
+audio/mp4=mpv.desktop
+inode/directory=org.gnome.Nautilus.desktop
+x-scheme-handler/http=firefox.desktop;brave-browser.desktop;google-chrome.desktop;chromium.desktop
+x-scheme-handler/https=firefox.desktop;brave-browser.desktop;google-chrome.desktop;chromium.desktop

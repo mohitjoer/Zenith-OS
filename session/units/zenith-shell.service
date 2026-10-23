@@ -11,11 +11,22 @@
 # Requires=zenith-session.target, not just After=: without it the shell is
 # merely ordered, so pulling the compositor target down leaves the shell running
 # against a display that is no longer there.
+#
+# After=zenithd.service (with Wants=) is the other ordering that matters, and
+# the reason is a Quickshell fact: a Socket whose first connect fails fires no
+# state-change signal, so the dozen services in the shell that connect to the
+# daemon once at load never try again, and every panel they feed stays empty for
+# the rest of the session. zenithd.service does not count as started until its
+# socket exists (see the ExecStartPost there), so ordering after it is ordering
+# after the socket. Wants= and not Requires=: a daemon that cannot start is a
+# degraded desktop, and a shell that refuses to start because of it is no
+# desktop at all.
 [Unit]
 Description=Zenith shell (Quickshell)
 Documentation=https://github.com/mohitjoer/Zenith-OS
 PartOf=graphical-session.target
-After=zenith-session.target zenith-portal.service wireplumber.service
+After=zenith-session.target zenith-portal.service zenithd.service wireplumber.service
+Wants=zenithd.service
 Requires=zenith-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 # A shell that has to be killed nine times in thirty seconds is a shell that

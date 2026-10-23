@@ -309,6 +309,26 @@ if [ -z "$hub_schema" ] || [ "$hub_schema" != "$tool_schema" ]; then
 fi
 check "the hub exports the schema directory zenith reads" $rc
 
+# ------------------------------------------------------- the compositor's files
+# The configuration is several files that hyprland.conf sources. Hyprland's own
+# parser is the only judge of a rule's syntax, so it is asked, with an empty home
+# so none of the optional state files under ~/.config/zenith/hyprland exist.
+if command -v Hyprland >/dev/null 2>&1; then
+    rc=0
+    HOME="$WORK/empty-home" mkdir -p "$WORK/empty-home"
+    HOME="$WORK/empty-home" Hyprland --verify-config -c "$REPO_ROOT/session/hyprland/hyprland.conf" 2>&1 \
+        | grep -q 'config ok' || rc=$?
+    check "the compositor's configuration parses" $rc
+else
+    echo "skip  — Hyprland is not installed"
+fi
+
+# The helper scripts hyprland.conf binds, tested against stubs and fixtures.
+for t in workspace_test.sh monitor_test.sh; do
+    rc=0; bash "$REPO_ROOT/session/scripts/$t" >/dev/null 2>&1 || rc=$?
+    check "session/scripts/$t passes" $rc
+done
+
 echo
 if [ "$fail" -eq 0 ]; then
     echo "all session checks passed"

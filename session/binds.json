@@ -1,10 +1,37 @@
 {
   "categories": [
-    { "id": "desktop", "label": "Desktop" },
-    { "id": "windows", "label": "Windows" },
-    { "id": "workspaces", "label": "Workspaces" },
-    { "id": "media", "label": "Media" },
-    { "id": "display", "label": "Display" }
+    {
+      "id": "desktop",
+      "label": "Desktop"
+    },
+    {
+      "id": "apps",
+      "label": "Apps"
+    },
+    {
+      "id": "windows",
+      "label": "Windows"
+    },
+    {
+      "id": "workspaces",
+      "label": "Workspaces"
+    },
+    {
+      "id": "monitors",
+      "label": "Monitors"
+    },
+    {
+      "id": "tools",
+      "label": "Tools"
+    },
+    {
+      "id": "media",
+      "label": "Media"
+    },
+    {
+      "id": "display",
+      "label": "Display"
+    }
   ],
   "binds": [
     {
@@ -20,19 +47,28 @@
       "id": "quick-settings",
       "category": "desktop",
       "label": "Open the quick settings",
-      "chord": "SUPER + S",
+      "chord": "SUPER + Escape",
       "kind": "shell",
       "action": "togglePopover",
       "argument": "quick"
     },
     {
-      "id": "switcher",
+      "id": "stash",
       "category": "desktop",
-      "label": "Switch to another window",
-      "chord": "SUPER + Tab",
+      "label": "Open the sidebar: screen time and downloads",
+      "chord": "SUPER + S",
       "kind": "shell",
-      "action": "advanceSwitcher",
-      "releaseAction": "closeSwitcher"
+      "action": "toggleSurface",
+      "argument": "stash"
+    },
+    {
+      "id": "clipboard",
+      "category": "desktop",
+      "label": "Open the clipboard history",
+      "chord": "SUPER + V",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "clipboard"
     },
     {
       "id": "cheatsheet",
@@ -43,20 +79,170 @@
       "action": "toggleCheatsheet"
     },
     {
-      "id": "terminal",
-      "category": "desktop",
-      "label": "Open a terminal",
-      "chord": "SUPER + T",
-      "kind": "app",
-      "action": "ghostty"
-    },
-    {
       "id": "lock",
       "category": "desktop",
       "label": "Lock the screen",
       "chord": "SUPER + L",
       "kind": "app",
-      "action": "hyprlock"
+      "action": "zenith-shell",
+      "argument": "lock"
+    },
+    {
+      "id": "settings",
+      "category": "desktop",
+      "label": "Open Zenith Settings",
+      "chord": "SUPER + comma",
+      "kind": "app",
+      "action": "zenith-shell",
+      "argument": "hub open"
+    },
+    {
+      "id": "voice",
+      "category": "desktop",
+      "label": "Voice typing (press again to stop)",
+      "chord": "SUPER + grave",
+      "kind": "app",
+      "action": "zenith-shell",
+      "argument": "voice"
+    },
+    {
+      "id": "wallpaper",
+      "category": "desktop",
+      "label": "Choose a wallpaper",
+      "chord": "SUPER + W",
+      "kind": "app",
+      "action": "zenith-wallpaper",
+      "argument": "wallpaper ui"
+    },
+    {
+      "id": "wallpaper-random",
+      "category": "desktop",
+      "label": "Random wallpaper",
+      "chord": "SUPER + SHIFT + W",
+      "kind": "app",
+      "action": "zenith-wallpaper",
+      "argument": "wallpaper random"
+    },
+    {
+      "id": "visualizer",
+      "category": "desktop",
+      "label": "Toggle the desktop audio visualiser",
+      "chord": "SUPER + M",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "visualizer"
+    },
+    {
+      "id": "visualizer-overlay",
+      "category": "desktop",
+      "label": "Raise the visualiser over windows",
+      "chord": "SUPER + SHIFT + M",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "visualizer-overlay"
+    },
+    {
+      "id": "visualizer-place",
+      "category": "desktop",
+      "label": "Move the visualiser",
+      "chord": "SUPER + ALT + M",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "visualizer-place"
+    },
+    {
+      "id": "overview",
+      "category": "desktop",
+      "label": "Show every workspace and window",
+      "chord": "SUPER + Tab",
+      "kind": "shell",
+      "action": "toggleOverview"
+    },
+    {
+      "id": "overview-desktop",
+      "category": "desktop",
+      "label": "Step to the next desktop in the overview",
+      "chord": "SUPER + ALT + Tab",
+      "kind": "shell",
+      "action": "overviewDesktop",
+      "argument": "1"
+    },
+    {
+      "id": "switcher",
+      "category": "desktop",
+      "label": "Switch to another window",
+      "chord": "ALT + Tab",
+      "kind": "shell",
+      "action": "advanceSwitcher",
+      "releaseAction": "closeSwitcher"
+    },
+    {
+      "id": "switcher-reverse",
+      "category": "desktop",
+      "label": "Switch to the previous window",
+      "chord": "ALT + SHIFT + Tab",
+      "kind": "shell",
+      "action": "reverseSwitcher",
+      "releaseAction": "closeSwitcher"
+    },
+    {
+      "id": "terminal",
+      "category": "apps",
+      "label": "Open a terminal",
+      "chord": "SUPER + T",
+      "kind": "app",
+      "action": "zenith-app",
+      "argument": "terminal",
+      "also": [
+        {
+          "chord": "SUPER + Return"
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "category": "apps",
+      "label": "Open the file manager",
+      "chord": "SUPER + E",
+      "kind": "app",
+      "action": "zenith-app",
+      "argument": "files"
+    },
+    {
+      "id": "browser",
+      "category": "apps",
+      "label": "Open the browser",
+      "chord": "SUPER + B",
+      "kind": "app",
+      "action": "zenith-app",
+      "argument": "browser"
+    },
+    {
+      "id": "editor",
+      "category": "apps",
+      "label": "Open the editor",
+      "chord": "SUPER + N",
+      "kind": "app",
+      "action": "zenith-app",
+      "argument": "editor"
+    },
+    {
+      "id": "notes",
+      "category": "apps",
+      "label": "Open the notes",
+      "chord": "SUPER + O",
+      "kind": "app",
+      "action": "zenith-app",
+      "argument": "notes"
+    },
+    {
+      "id": "vm",
+      "category": "apps",
+      "label": "Open the virtual machine manager",
+      "chord": "SUPER + SHIFT + V",
+      "kind": "app",
+      "action": "zenith-summon",
+      "argument": "zenith-vm flock -n -o /tmp/zenith-vm.lock zenith-vm"
     },
     {
       "id": "close",
@@ -65,15 +251,6 @@
       "chord": "SUPER + Q",
       "kind": "wm",
       "action": "killactive"
-    },
-    {
-      "id": "maximise",
-      "category": "windows",
-      "label": "Maximise the window",
-      "chord": "SUPER + D",
-      "kind": "wm",
-      "action": "fullscreen",
-      "argument": "1"
     },
     {
       "id": "fullscreen",
@@ -85,102 +262,357 @@
       "argument": "0"
     },
     {
-      "id": "floating",
+      "id": "maximise",
       "category": "windows",
-      "label": "Float the window",
-      "chord": "SUPER + A",
+      "label": "Maximise the window",
+      "chord": "SUPER + D",
       "kind": "wm",
-      "action": "togglefloating"
+      "action": "fullscreen",
+      "argument": "1"
     },
     {
-      "id": "focus-left",
+      "id": "centre",
       "category": "windows",
-      "label": "Focus the window to the left",
+      "label": "Centre the window",
+      "chord": "SUPER + C",
+      "kind": "wm",
+      "action": "centerwindow"
+    },
+    {
+      "id": "pin",
+      "category": "windows",
+      "label": "Pin the floating window to every workspace",
+      "chord": "SUPER + SHIFT + P",
+      "kind": "wm",
+      "action": "pin"
+    },
+    {
+      "id": "group",
+      "category": "windows",
+      "label": "Group the window into tabs",
+      "chord": "SUPER + G",
+      "kind": "wm",
+      "action": "togglegroup"
+    },
+    {
+      "id": "floating",
+      "category": "windows",
+      "label": "Float the window at 1000x660, or tile it back",
+      "chord": "SUPER + A",
+      "kind": "app",
+      "action": "hyprctl",
+      "argument": "--batch \"dispatch togglefloating ; dispatch resizeactive exact 1000 660 ; dispatch centerwindow\""
+    },
+    {
+      "id": "resize-mode",
+      "category": "windows",
+      "label": "Resize mode: arrows or hjkl, Esc exits",
+      "chord": "SUPER + R",
+      "kind": "app",
+      "action": "hyprctl",
+      "argument": "dispatch submap resize && hyprctl notify -1 2200 0 \"Resize mode: arrows or hjkl resize. Esc exits\""
+    },
+    {
+      "id": "focus",
+      "category": "windows",
+      "label": "Focus the window in that direction",
       "chord": "SUPER + Left",
       "kind": "wm",
       "action": "movefocus",
-      "argument": "l"
+      "argument": "l",
+      "also": [
+        {
+          "chord": "SUPER + Right",
+          "argument": "r"
+        },
+        {
+          "chord": "SUPER + Up",
+          "argument": "u"
+        },
+        {
+          "chord": "SUPER + Down",
+          "argument": "d"
+        }
+      ]
     },
     {
-      "id": "focus-right",
+      "id": "move",
       "category": "windows",
-      "label": "Focus the window to the right",
-      "chord": "SUPER + Right",
-      "kind": "wm",
-      "action": "movefocus",
-      "argument": "r"
-    },
-    {
-      "id": "focus-up",
-      "category": "windows",
-      "label": "Focus the window above",
-      "chord": "SUPER + Up",
-      "kind": "wm",
-      "action": "movefocus",
-      "argument": "u"
-    },
-    {
-      "id": "focus-down",
-      "category": "windows",
-      "label": "Focus the window below",
-      "chord": "SUPER + Down",
-      "kind": "wm",
-      "action": "movefocus",
-      "argument": "d"
-    },
-    {
-      "id": "move-left",
-      "category": "windows",
-      "label": "Move the window left",
+      "label": "Move the window in that direction",
       "chord": "SUPER + SHIFT + Left",
       "kind": "wm",
       "action": "movewindow",
-      "argument": "l"
+      "argument": "l",
+      "also": [
+        {
+          "chord": "SUPER + SHIFT + Right",
+          "argument": "r"
+        },
+        {
+          "chord": "SUPER + SHIFT + Up",
+          "argument": "u"
+        },
+        {
+          "chord": "SUPER + SHIFT + Down",
+          "argument": "d"
+        }
+      ]
     },
     {
-      "id": "move-right",
+      "id": "resize",
       "category": "windows",
-      "label": "Move the window right",
-      "chord": "SUPER + SHIFT + Right",
+      "label": "Resize the window in that direction",
+      "chord": "SUPER + CTRL + Left",
       "kind": "wm",
-      "action": "movewindow",
-      "argument": "r"
+      "action": "resizeactive",
+      "argument": "-40 0",
+      "also": [
+        {
+          "chord": "SUPER + CTRL + Right",
+          "argument": "40 0"
+        },
+        {
+          "chord": "SUPER + CTRL + Up",
+          "argument": "0 -40"
+        },
+        {
+          "chord": "SUPER + CTRL + Down",
+          "argument": "0 40"
+        }
+      ]
     },
     {
-      "id": "move-up",
+      "id": "merge",
       "category": "windows",
-      "label": "Move the window up",
-      "chord": "SUPER + SHIFT + Up",
+      "label": "Move the window into the group on that side",
+      "chord": "SUPER + bracketleft",
       "kind": "wm",
-      "action": "movewindow",
-      "argument": "u"
+      "action": "movewindoworgroup",
+      "argument": "l",
+      "also": [
+        {
+          "chord": "SUPER + bracketright",
+          "argument": "r"
+        }
+      ]
     },
     {
-      "id": "move-down",
+      "id": "drag",
       "category": "windows",
-      "label": "Move the window down",
-      "chord": "SUPER + SHIFT + Down",
+      "label": "Drag the window",
+      "chord": "SUPER + mouse:272",
       "kind": "wm",
-      "action": "movewindow",
-      "argument": "d"
+      "action": "movewindow"
+    },
+    {
+      "id": "drag-resize",
+      "category": "windows",
+      "label": "Resize the window by dragging",
+      "chord": "SUPER + mouse:273",
+      "kind": "wm",
+      "action": "resizewindow"
     },
     {
       "id": "workspace",
       "category": "workspaces",
-      "label": "Switch to a workspace",
+      "label": "Switch to a workspace of this desktop",
       "chord": "SUPER + {n}",
-      "kind": "wm",
-      "action": "workspace",
-      "argument": "{n}"
+      "kind": "app",
+      "action": "zenith-workspace",
+      "argument": "focus {n}"
     },
     {
       "id": "workspace-move",
       "category": "workspaces",
-      "label": "Move the window to a workspace",
+      "label": "Send the window to a workspace and follow it",
+      "chord": "SUPER + ALT + {n}",
+      "kind": "app",
+      "action": "zenith-workspace",
+      "argument": "move {n}"
+    },
+    {
+      "id": "workspace-movesilent",
+      "category": "workspaces",
+      "label": "Send the window to a workspace",
       "chord": "SUPER + SHIFT + {n}",
+      "kind": "app",
+      "action": "zenith-workspace",
+      "argument": "movesilent {n}"
+    },
+    {
+      "id": "workspace-previous",
+      "category": "workspaces",
+      "label": "Previous workspace",
+      "chord": "SUPER + Prior",
+      "kind": "wm",
+      "action": "workspace",
+      "argument": "r-1",
+      "also": [
+        {
+          "chord": "SUPER + mouse_up"
+        }
+      ]
+    },
+    {
+      "id": "workspace-next",
+      "category": "workspaces",
+      "label": "Next workspace",
+      "chord": "SUPER + Next",
+      "kind": "wm",
+      "action": "workspace",
+      "argument": "r+1",
+      "also": [
+        {
+          "chord": "SUPER + mouse_down"
+        }
+      ]
+    },
+    {
+      "id": "workspace-send-previous",
+      "category": "workspaces",
+      "label": "Send the window to the previous workspace",
+      "chord": "SUPER + SHIFT + Prior",
       "kind": "wm",
       "action": "movetoworkspace",
-      "argument": "{n}"
+      "argument": "r-1"
+    },
+    {
+      "id": "workspace-send-next",
+      "category": "workspaces",
+      "label": "Send the window to the next workspace",
+      "chord": "SUPER + SHIFT + Next",
+      "kind": "wm",
+      "action": "movetoworkspace",
+      "argument": "r+1"
+    },
+    {
+      "id": "scratchpad-hide",
+      "category": "workspaces",
+      "label": "Hide the window in the scratchpad, or bring it back",
+      "chord": "SUPER + H",
+      "kind": "app",
+      "action": "zenith-workspace",
+      "argument": "hide"
+    },
+    {
+      "id": "scratchpad",
+      "category": "workspaces",
+      "label": "Show or hide the scratchpad",
+      "chord": "SUPER + ALT + H",
+      "kind": "app",
+      "action": "zenith-workspace",
+      "argument": "scratch"
+    },
+    {
+      "id": "monitor-focus",
+      "category": "monitors",
+      "label": "Focus the screen in that direction",
+      "chord": "SUPER + ALT + Left",
+      "kind": "wm",
+      "action": "focusmonitor",
+      "argument": "l",
+      "also": [
+        {
+          "chord": "SUPER + ALT + Right",
+          "argument": "r"
+        },
+        {
+          "chord": "SUPER + ALT + Up",
+          "argument": "u"
+        },
+        {
+          "chord": "SUPER + ALT + Down",
+          "argument": "d"
+        }
+      ]
+    },
+    {
+      "id": "monitor-send",
+      "category": "monitors",
+      "label": "Send the window to the screen in that direction",
+      "chord": "SUPER + ALT + SHIFT + Left",
+      "kind": "wm",
+      "action": "movewindow",
+      "argument": "mon:l",
+      "also": [
+        {
+          "chord": "SUPER + ALT + SHIFT + Right",
+          "argument": "mon:r"
+        },
+        {
+          "chord": "SUPER + ALT + SHIFT + Up",
+          "argument": "mon:u"
+        },
+        {
+          "chord": "SUPER + ALT + SHIFT + Down",
+          "argument": "mon:d"
+        }
+      ]
+    },
+    {
+      "id": "monitor-send-workspace",
+      "category": "monitors",
+      "label": "Send the workspace to the screen in that direction",
+      "chord": "SUPER + CTRL + ALT + Left",
+      "kind": "wm",
+      "action": "movecurrentworkspacetomonitor",
+      "argument": "l",
+      "also": [
+        {
+          "chord": "SUPER + CTRL + ALT + Right",
+          "argument": "r"
+        },
+        {
+          "chord": "SUPER + CTRL + ALT + Up",
+          "argument": "u"
+        },
+        {
+          "chord": "SUPER + CTRL + ALT + Down",
+          "argument": "d"
+        }
+      ]
+    },
+    {
+      "id": "mirror",
+      "category": "monitors",
+      "label": "Mirror or extend the displays",
+      "chord": "SUPER + P",
+      "kind": "app",
+      "action": "zenith-monitor",
+      "argument": "toggle"
+    },
+    {
+      "id": "screenshot",
+      "category": "tools",
+      "label": "Capture, annotate and beautify a screenshot",
+      "chord": "Print",
+      "kind": "app",
+      "action": "zenith-shot",
+      "also": [
+        {
+          "chord": "XF86Print"
+        },
+        {
+          "chord": "SUPER + SHIFT + S"
+        }
+      ]
+    },
+    {
+      "id": "screenshot-monitor",
+      "category": "tools",
+      "label": "Capture the whole screen",
+      "chord": "SHIFT + Print",
+      "kind": "app",
+      "action": "env",
+      "argument": "ZENITH_SHOT_MODE=monitor zenith-shot"
+    },
+    {
+      "id": "color-picker",
+      "category": "tools",
+      "label": "Pick a colour from the screen",
+      "chord": "SUPER + SHIFT + C",
+      "kind": "app",
+      "action": "zenith-cmd-color-picker"
     },
     {
       "id": "volume-up",
@@ -188,8 +620,8 @@
       "label": "Raise the volume",
       "chord": "XF86AudioRaiseVolume",
       "kind": "app",
-      "action": "wpctl",
-      "argument": "set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"
+      "action": "zenith-volume",
+      "argument": "up"
     },
     {
       "id": "volume-down",
@@ -197,8 +629,8 @@
       "label": "Lower the volume",
       "chord": "XF86AudioLowerVolume",
       "kind": "app",
-      "action": "wpctl",
-      "argument": "set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+      "action": "zenith-volume",
+      "argument": "down"
     },
     {
       "id": "volume-mute",
@@ -212,20 +644,16 @@
     {
       "id": "media-play",
       "category": "media",
-      "label": "Play",
+      "label": "Play or pause",
       "chord": "XF86AudioPlay",
       "kind": "app",
       "action": "playerctl",
-      "argument": "play-pause"
-    },
-    {
-      "id": "media-pause",
-      "category": "media",
-      "label": "Pause",
-      "chord": "XF86AudioPause",
-      "kind": "app",
-      "action": "playerctl",
-      "argument": "play-pause"
+      "argument": "play-pause",
+      "also": [
+        {
+          "chord": "XF86AudioPause"
+        }
+      ]
     },
     {
       "id": "media-next",
@@ -246,13 +674,21 @@
       "argument": "previous"
     },
     {
+      "id": "restart-audio",
+      "category": "media",
+      "label": "Recover the audio when sound stops",
+      "chord": "SUPER + SHIFT + A",
+      "kind": "app",
+      "action": "zenith-restart-audio"
+    },
+    {
       "id": "brightness-up",
       "category": "display",
       "label": "Brighten the screen",
       "chord": "XF86MonBrightnessUp",
       "kind": "app",
-      "action": "brightnessctl",
-      "argument": "-e4 -n2 set 5%+"
+      "action": "zenith-cmd-brightness",
+      "argument": "+5"
     },
     {
       "id": "brightness-down",
@@ -260,24 +696,45 @@
       "label": "Dim the screen",
       "chord": "XF86MonBrightnessDown",
       "kind": "app",
-      "action": "brightnessctl",
-      "argument": "-e4 -n2 set 5%-"
+      "action": "zenith-cmd-brightness",
+      "argument": "-5"
     },
     {
-      "id": "screenshot",
+      "id": "kbd-brightness-up",
       "category": "display",
-      "label": "Take a screenshot",
-      "chord": "Print",
-      "kind": "shell",
-      "action": "toggleScreenshot"
+      "label": "Brighten the keyboard backlight",
+      "chord": "XF86KbdBrightnessUp",
+      "kind": "app",
+      "action": "zenith",
+      "argument": "brightness up --device kbd"
     },
     {
-      "id": "screenshot-xf86",
+      "id": "kbd-brightness-down",
       "category": "display",
-      "label": "Take a screenshot (XF86)",
-      "chord": "XF86Print",
-      "kind": "shell",
-      "action": "toggleScreenshot"
+      "label": "Dim the keyboard backlight",
+      "chord": "XF86KbdBrightnessDown",
+      "kind": "app",
+      "action": "zenith",
+      "argument": "brightness down --device kbd"
+    },
+    {
+      "id": "touchpad",
+      "category": "display",
+      "label": "Toggle the touchpad",
+      "chord": "XF86TouchpadToggle",
+      "kind": "app",
+      "action": "zenith-touchpad",
+      "argument": "toggle",
+      "also": [
+        {
+          "chord": "XF86TouchpadOn",
+          "argument": "on"
+        },
+        {
+          "chord": "XF86TouchpadOff",
+          "argument": "off"
+        }
+      ]
     }
   ]
 }

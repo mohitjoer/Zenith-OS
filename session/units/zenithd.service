@@ -1,0 +1,53 @@
+# Zenith shell daemon: the state the shell's services read (tray, network, power
+# profiles, clipboard, weather, ...), the PolicyKit authentication agent and the
+# keyring prompter. Quickshell is not its child: zenith-shell.service runs the
+# shell, and the daemon only talks to it.
+#
+# No ConditionEnvironment=WAYLAND_DISPLAY, unlike the shell and the portal. The
+# daemon probes NetworkManager, power-profiles-daemon, logind and the audio stack,
+# and none of those is a Wayland client, so it can be up before the compositor's
+# display is in the manager's environment; the one piece that needs the display
+# (the compositor watcher) retries until it appears.
+#
+# Type=exec rather than Type=dbus: the daemon takes bus names from several
+# services (the polkit agent, the keyring prompter, the tray watcher), so there is
+# no single name for "started" to wait on.
+[Unit]
+Description=Zenith shell daemon
+Documentation=https://github.com/mohitjoer/Zenith-OS
+PartOf=graphical-session.target
+After=zenith-session.target
+Requires=zenith-session.target
+
+# One polkit agent may hold a session, and this daemon is it. The base layer's
+# Hyprland packaging ships one of its own; stop it rather than race it for the
+# slot, which the loser reports as an error and leaves the user with no prompt.
+Conflicts=hyprpolkitagent.service
+
+# A daemon that cannot start four times in thirty seconds is not going to; give
+# up and let `zenith doctor` say so. These live in [Unit], not [Service].
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/zenith-shell daemon
+# "Started" has to mean "listening". Type=exec says the daemon was exec'd, not
+# that it has bound zenith-shell.sock, and zenith-shell.service is ordered after
+# this unit precisely so the shell's one-shot connects find the socket. The daemon
+# binds it before anything else it does; this holds the unit in "activating"
+# until the file exists. A daemon that never makes it in ten seconds fails the
+# unit, and Restart= tries again, which is louder and better than a shell that
+# starts against nothing.
+ExecStartPost=/usr/bin/timeout 10 /bin/sh -c 'until [ -S %t/zenith-shell.sock ]; do sleep 0.05; done'
+# The daemon registers the polkit agent only when told to: the code is cautious
+# about taking the session's slot, and the unit is where Zenith says it should.
+# Set here and not only in the session environment, so an import that did not
+# land cannot silently leave the desktop with no agent.
+Environment=ZENITH_POLKIT_AGENT=1
+Restart=on-failure
+RestartSec=1
+Slice=session.slice
+
+[Install]
+WantedBy=zenith-session.target

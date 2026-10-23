@@ -1,0 +1,55 @@
+#!/bin/sh
+# Runs hypridle with the idle timeouts from org.zenith.desktop.
+#
+# hypridle cannot read GSettings. The timeouts go in as environment variables
+# that hypridle.conf tests with `# hyprlang if`: a timeout of 0 (never) leaves
+# its variable unset, and its listener is skipped.
+#
+#   zenith-idle start    what zenith-idle.service runs
+#   zenith-idle apply    restart the service if the timeouts changed since it
+#                        started; zenith-shell calls this when a setting is written
+set -eu
+
+RUN=${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is not set}
+
+# The materialized copy wins, so a user edit does; the packaged one covers a
+# session that has not been materialized yet.
+conf=$HOME/.config/zenith/hyprland/hypridle.conf
+[ -r "$conf" ] || conf=/usr/share/zenith/hyprland/hypridle.conf
+
+# secs KEY DEFAULT: the key's value, or DEFAULT when gsettings cannot answer.
+secs() {
+    v=$(gsettings get org.zenith.desktop "$1" 2>/dev/null) || v=$2
+    v=${v##* }
+    case $v in '' | *[!0-9]*) v=$2 ;; esac
+    echo "$v"
+}
+# The defaults are the schema's.
+timeouts() {
+    echo "$(secs idle-dim-seconds 0) $(secs idle-blank-seconds 0) $(secs idle-lock-seconds 300)"
+}
+
+case ${1:-start} in
+start)
+    set -- $(timeouts)
+    echo "$*" > "$RUN/zenith-idle.args"
+    : > "$RUN/zenith-idle"
+    if [ "$1" -gt 0 ]; then export ZENITH_IDLE_DIM=$1; fi
+    if [ "$2" -gt 0 ]; then export ZENITH_IDLE_BLANK=$2; fi
+    if [ "$3" -gt 0 ]; then export ZENITH_IDLE_LOCK=$3; fi
+    # hypridle 0.1.7 aborts when given -c unless a config also exists on its
+    # default search path (fixed in 0.1.8). XDG_CONFIG_DIRS gives it one to find.
+    mkdir -p "$RUN/zenith-idle.d/hypr"
+    ln -sf "$conf" "$RUN/zenith-idle.d/hypr/hypridle.conf"
+    export XDG_CONFIG_DIRS="$RUN/zenith-idle.d:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    exec hypridle -c "$conf"
+    ;;
+apply)
+    [ "$(timeouts)" = "$(cat "$RUN/zenith-idle.args" 2>/dev/null)" ] ||
+        systemctl --user try-restart zenith-idle.service
+    ;;
+*)
+    echo "usage: zenith-idle [start|apply]" >&2
+    exit 2
+    ;;
+esac

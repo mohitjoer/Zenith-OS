@@ -1,0 +1,40 @@
+#!/bin/sh
+# The first-run welcome tour.
+#
+# A wrapper for the same reason zenith-hub is one: `quickshell -p` on the entry
+# file is the whole program, and the entry file sits at the shell's root so the
+# `qs.*` imports resolve.
+#
+#	zenith-welcome                  open the tour, any time
+#	zenith-welcome --if-first-run   open it only if it was never finished; the
+#	                                compositor's autostart runs this every login
+#
+# The marker is written after the window has closed, and only if it closed
+# cleanly, so a first login where the tour could not start offers it again at
+# the next one instead of recording it as seen. The lock keeps a double start
+# (two autostarts, or the Hub's button while the tour is up) to one window.
+set -eu
+
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=/usr/share/zenith/shell/welcome.qml
+MARKER="${XDG_STATE_HOME:-$HOME/.local/state}/zenith/welcome-done"
+LOCK="${XDG_RUNTIME_DIR:-/tmp}/zenith-welcome.lock"
+
+if [ "${1:-}" = "--if-first-run" ] && [ -e "$MARKER" ]; then
+    exit 0
+fi
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-welcome: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-welcome: the tour is drawn by Quickshell, which Zenith builds." >&2
+    exit 1
+fi
+
+# No exec: the marker is written once the window is gone.
+if flock -n -o "$LOCK" "$QUICKSHELL_BIN" -p "$ENTRY"; then
+    mkdir -p "$(dirname "$MARKER")"
+    : > "$MARKER"
+else
+    echo "zenith-welcome: the tour did not finish (or is already open); it is offered again next login." >&2
+    exit 1
+fi

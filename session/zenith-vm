@@ -1,0 +1,44 @@
+#!/bin/sh
+# The VM manager.
+#
+#   zenith-vm              open the window (also: zenith-vm ui)
+#   zenith-vm <verb> ...   any other word is an engine verb, handed to zenith-vmd
+#
+# One name for both because the QML is ported with its calls to the engine
+# spelled `zenith-vm list`, `zenith-vm launch ...`, and a launcher that answered
+# only to the window would have meant rewriting every one of them. The engine
+# itself, zenith-vmd, is a script over quickemu and quickget: the window never
+# talks to QEMU.
+#
+# A wrapper rather than a binary for the reason zenith-hub is one: `quickshell -p`
+# on the entry file is the whole program. The entry is at the shell root because
+# a Quickshell configuration's root is the directory of the file it is started
+# on, and qs.Ui resolves only from there.
+#
+# The lock is what makes it single-instance: a second launch finds it held and
+# exits, and the keybind raises the window that is already open through
+# zenith-summon before it comes here.
+set -eu
+
+case "${1:-ui}" in
+    ui) ;;
+    *) exec zenith-vmd "$@" ;;
+esac
+
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+VM_ENTRY=/usr/share/zenith/shell/vm.qml
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-vm: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-vm: the window is drawn by Quickshell, which Zenith builds; see" >&2
+    echo "zenith-vm: the shell group in system/packages.yaml." >&2
+    exit 1
+fi
+
+# A Quickshell that crashed once leaves the memfd of the config it came back from
+# in the environment of everything it starts, and Quickshell reads that before it
+# parses arguments: this window would come up as a second desktop.
+unset __QUICKSHELL_CRASH_INFO_FD __QUICKSHELL_CRASH_DUMP_PID \
+    __QUICKSHELL_CRASH_DUMP_FD __QUICKSHELL_CRASH_LOG_FD __QUICKSHELL_CRASH_SIGNAL
+
+exec flock -n -o "${XDG_RUNTIME_DIR:-/tmp}/zenith-vm.lock" "$QUICKSHELL_BIN" -p "$VM_ENTRY"

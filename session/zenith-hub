@@ -42,4 +42,10 @@ fi
 # Keep this equal to settingsDir in desktop/cmd/zenith/config.go.
 export ZENITH_SCHEMA_DIR="${ZENITH_SCHEMA_DIR:-/usr/share/glib-2.0/schemas}"
 
+# `zenith-hub PAGE` opens on that page. The window reads it from the environment
+# (hub.qml), because Quickshell takes no arguments of its own for a configuration.
+if [ -n "${1:-}" ]; then
+    export ZENITH_HUB_PAGE="$1"
+fi
+
 exec "$QUICKSHELL_BIN" -p "$HUB_ENTRY"

@@ -33,7 +33,14 @@ After=graphical-session.target
 # ordered after the dispatcher, so ordering the target after the dispatcher
 # as well would be the target waiting for something it wants: a cycle, and
 # systemd resolves a cycle by dropping a job.
-Wants=zenith-portal.service zenith-shell.service
+#
+# The rest of the default-on set is the state daemon (the shell's panels read
+# it), the wallpaper engine, the idle clock and the AI usage timer. Wanting
+# them here is what turns them on: the package cannot write the .wants
+# symlinks `systemctl --user enable` would, because those live under $HOME or
+# /etc. The agent, the store and the VM manager are installed and not wanted;
+# the user starts what they use.
+Wants=zenith-portal.service zenith-shell.service zenithd.service zenith-wallpaper.service zenith-idle.service zenith-ai-usage.timer
 
 # The base layer's wallpaper daemon, stopped.
 #

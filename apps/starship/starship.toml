@@ -1,0 +1,41 @@
+# Adapted from Ryoku's apps/starship/starship.toml (GPL-3.0).
+add_newline = false
+palette = "zenith"
+
+format = """
+$directory$git_branch$cmd_duration
+$character"""
+
+# The ink ramp from shell/Theme.qml; red is the design system's error colour.
+[palettes.zenith]
+ink = "#F2F2F2"
+ink_dim = "#CCCCCC"
+ink_faint = "#A1A1A1"
+error = "#E5484D"
+
+[directory]
+style = "bold fg:ink"
+truncation_length = 3
+truncation_symbol = "…/"
+# The base has no Nerd Font, so no icon glyphs anywhere in this prompt.
+read_only = " ro"
+read_only_style = "bold fg:error"
+format = "[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+symbol = ""
+style = "fg:ink_dim"
+format = "[on $symbol$branch]($style) "
+
+[cmd_duration]
+min_time = 500
+style = "fg:ink_faint"
+format = "[took $duration]($style) "
+
+[character]
+# lambda, not a chevron
+success_symbol = "[λ](bold fg:ink)"
+error_symbol = "[λ](bold fg:error)"
+
+[package]
+disabled = true

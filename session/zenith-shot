@@ -1,0 +1,22 @@
+#!/bin/sh
+# The screenshot tool: capture, annotate, copy or save.
+#
+# A wrapper for the same reason zenith-hub is one: `quickshell -p` on the entry
+# file is the whole program, and the entry file is at the shell's root so the
+# `qs.*` imports resolve. The flock keeps one instance, so a second press of the
+# key while the overlay is up does nothing instead of stacking a second overlay.
+#
+#	zenith-shot                          region, or the window under the pointer
+#	ZENITH_SHOT_MODE=monitor zenith-shot  a whole monitor
+set -eu
+
+QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=/usr/share/zenith/shell/shot.qml
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "zenith-shot: $QUICKSHELL_BIN is not installed." >&2
+    echo "zenith-shot: the editor is drawn by Quickshell, which Zenith builds." >&2
+    exit 1
+fi
+
+exec flock -n -o /tmp/zenith-shot.lock "$QUICKSHELL_BIN" -p "$ENTRY"

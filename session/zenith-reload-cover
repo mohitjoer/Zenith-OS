@@ -1,0 +1,23 @@
+#!/bin/sh
+# The reload cover, by the name PATH knows it.
+#
+# The shell runs under `systemd --user`, whose PATH does not contain
+# ~/.local/bin, and shell.qml asks for `zenith-reload-cover` by bare name when
+# it is not running from a checkout. This is that name. The launcher itself is
+# `scripts/zenith-reload-cover` in the shell's tree, because it starts the
+# cover on `reload-cover.qml` at that tree's root and finds the entry from its
+# own location; copying it into /usr/bin would leave it with no tree beside it.
+#
+# ZENITH_SHELL_DIR names a checkout's `shell/` directory, for running the
+# desktop from source. Unset, the packaged tree is the one.
+set -eu
+
+SHELL_DIR="${ZENITH_SHELL_DIR:-/usr/share/zenith/shell}"
+SCRIPT="$SHELL_DIR/scripts/zenith-reload-cover"
+
+if [ ! -x "$SCRIPT" ]; then
+    echo "zenith-reload-cover: $SCRIPT is not installed." >&2
+    exit 1
+fi
+
+exec "$SCRIPT" "$@"

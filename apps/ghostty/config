@@ -1,0 +1,34 @@
+# Zenith's ghostty base. ghostty reads ~/.config/ghostty/config, which includes this
+# file; `zenith apps defaults` prints the one line to add. Included files load after
+# the file that includes them, so put overrides in a later include (user.conf), not
+# in ~/.config/ghostty/config itself.
+
+config-file = colors
+
+font-family = "JetBrains Mono"
+font-size = 12
+
+# The 4px grid.
+window-padding-x = 12
+window-padding-y = 8
+window-padding-balance = true
+
+cursor-style = bar
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# Hyprland draws the border and the rounding; libadwaita's own titlebar would not
+# follow the radius scale.
+gtk-titlebar = false
+window-theme = ghostty
+
+# zsh is the login shell and the zenith package depends on it. A known shell here is
+# also what lets shell-integration = detect inject itself.
+command = /usr/bin/zsh
+shell-integration = detect
+
+# Copy when text is selected, interrupt otherwise (kitty's copy_or_interrupt in Ryoku).
+keybind = performable:ctrl+c=copy_to_clipboard:mixed
+keybind = ctrl+kp_add=increase_font_size:1
+keybind = ctrl+kp_subtract=decrease_font_size:1
+keybind = ctrl+kp_0=reset_font_size
