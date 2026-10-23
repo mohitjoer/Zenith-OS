@@ -899,8 +899,8 @@ every row here is a row in the verification checklist.
 |---|---|---|---|
 | Notification server | `org.freedesktop.Notifications` on the session bus, implemented inside gnome-shell | The shell hosts the server itself. No backend implements the Notifications portal, so if the shell is not up, **nothing** is notified and there is no fallback. | The [Notify probe](#the-probes) |
 | Global shortcuts | `org.gnome.Shell` accelerators, plus GNOME's own keybindings | Compositor bindings for compositor-level keys; the shell owns everything else directly, which is both simpler and faster than a portal round-trip | `hyprctl binds` |
-| Screen lock | The GNOME screen shield and lock dialog | `zenith-shell` hosts the lock surface and speaks PAM itself — `pam_start` / `pam_authenticate` / `pam_acquire_authtok` — so no GNOME process is involved | `systemctl --user lock-session` |
-| Idle | `gnome-settings-daemon` idle monitor | `systemd-logind`'s idle actions for blanking and suspend; the shell draws the idle screen and locks at `org.zenith.desktop lock-delay` | `systemctl status` after an idle timeout |
+| Screen lock | The GNOME screen shield and lock dialog | `hyprlock` locks and talks to PAM itself, as a process of its own; `zenith-shell lock` is the one command every trigger runs, so no GNOME process is involved | `systemctl --user lock-session` |
+| Idle | `gnome-settings-daemon` idle monitor | `hypridle`, run by `zenith-idle.service` with the timeouts of `org.zenith.desktop`'s `idle-*` keys, for the dim, the screen-off and the lock; there is no suspend stage | `systemctl --user status zenith-idle.service` after an idle timeout |
 | Power policy | `gnome-settings-daemon` power profiles | `power-profiles-daemon`, which adoption enables at step 8 because GNOME was providing it and would stop on the next prune | `powerprofilesctl get` |
 | Wallpaper | The shell's own background | The shell's, sourced from `org.zenith.shell wallpaper-path`, imported from `org.gnome.desktop.background` | `hyprctl` wallpaper, visually |
 | Quick settings | The GNOME quick-settings menu | The shell's — Bluetooth, Wi-Fi, power mode, volume, brightness, night light | visually |
@@ -908,7 +908,7 @@ every row here is a row in the verification checklist.
 | Screen capture and share | The GNOME portal backend | `xdg-desktop-portal-hyprland`, plus `grim` and `slurp` bound to keys | the browser call test |
 | File chooser | The GNOME portal backend | `xdg-desktop-portal-gtk` | The [FileChooser probe](#the-probes) |
 | Colour management | `colord` | Unchanged — `colord` is a base-layer service, not GNOME | `colord` probe |
-| Window switching | gnome-shell's own | Hyprland's, `Super+Tab` | visually |
+| Window switching | gnome-shell's own | The shell's most-recently-used switcher on `Alt+Tab`; `Super+Tab` opens the workspace overview | visually |
 | Night light | `gnome-settings-daemon` | Hyprland's night light, driven over its IPC socket with the `v0`, `v1`, `gamma` and `enabled` properties | visually |
 | Clipboard | gnome-shell's | The shell's | visually |
 | Login and logout | GDM | GDM, unchanged | the login screen |
@@ -1320,7 +1320,7 @@ If the repository is not yet configured, `zenith adopt --check` will report it a
 | `zenith-hub` | Settings application (Go) | No settings UI; `zenith-hub` command missing |
 | `zenith-session` | Session entry point + `zenith-activate` | Zenith session doesn't appear in greeter or fails to start |
 | `quickshell` | QML runtime engine (built by Zenith) | Shell cannot start; `zenith-shell.service` fails immediately |
-| `zenithd` | State daemon (socket at `$XDG_RUNTIME_DIR/zenith/shell.sock`) | Sidebar sections (audio, network, bluetooth, display, media) show stale data or nothing; no live updates |
+| `zenithd` | State daemon (socket at `$XDG_RUNTIME_DIR/zenith-shell.sock`) | Sidebar sections (audio, network, bluetooth, display, media) show stale data or nothing; no live updates |
 
 ### One-line restore for the common missing set
 

@@ -5,6 +5,8 @@ on a developer machine is finished — and none of them depends on work that has
 The order is deliberate: hardware reach comes early because it decides whether Zenith is
 usable by anyone but its author.
 
+The ISO (M4), the Limine/UKI boot chain and Btrfs rollback are deferred: the product today is the Zenith session on a stock Ubuntu 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
+
 ---
 
 ## M1 — Foundations
@@ -232,7 +234,8 @@ has a price: the bridges into the tree are a contract that nothing checks.*
   [adopting-zenith.md](adopting-zenith.md) already uses
 - [x] The bar, the dock, the launcher and the popover surfaces, taken from a
   vendored upstream component at a pinned commit and re-themed, rather than
-  written from nothing
+  written from nothing. Since the Ryoku port the running shell draws Ryoku's
+  components for these, adapted in place (see [`NOTICE.md`](../NOTICE.md))
 - [x] The widget catalogue, Zenith's own, driven by `org.zenith.shell`
 - [x] The vendored tree itself, held byte-identical to its upstream commit.
   `sh shell/vendor/vendor.sh verify` hashes every vendored file against the
@@ -241,7 +244,8 @@ has a price: the bridges into the tree are a contract that nothing checks.*
 - [x] The monochrome re-theme, carried into the vendored components by three
   overlay files at upstream's own paths — the palette bridge, the settings bridge
   and the shell's own state — with no vendored file modified
-- [x] `zenithd` and `zenith-hub` as the only writers of those schemas
+- [x] `zenith config set` as the only writer of those schemas; the shell's look in
+  `shell.json` has its own, the `zenith-shell` daemon
 - [x] `zenith doctor` checks the shell's source: the widget catalogue naming a
   file that is not there, a surface reading a property the settings wrapper does
   not declare, a `schemaId` with no schema file, a path outside the boundary, an
@@ -271,11 +275,11 @@ has a price: the bridges into the tree are a contract that nothing checks.*
   because there is no notification centre yet and a client that believes it need
   not show its own reminder is a client with no reminder and no history
 - [x] Idle policy in `org.zenith.desktop` — dim, blank and lock timeouts, each
-  independent, 0 meaning never — and `Idle.qml`, which owns the timers and
-  re-arms the lock after an unlock
-- [x] The lock itself, by `hyprlock` rather than by the shell. A shell-drawn lock
-  screen cannot authenticate against PAM, and the usual D-Bus workaround is a
-  lock screen that accepts any password. `hyprlock` is in the archive
+  independent, 0 meaning never — run by hypridle through `zenith-idle.service`;
+  `Idle.qml` draws the dim scrim
+- [x] The lock itself, by `hyprlock` rather than by the shell. That is a decision,
+  not a platform limit: Quickshell here links libpam and has `Quickshell.Services.Pam`.
+  `hyprlock` is mature, runs as a process of its own, and is in the archive
   (resolute-universe, depends on `libpam0g`), so rule 2 settles it; every
   competing locker is now excluded, so the image has exactly one
 - [x] The idle screen, as a scrim. It answers the question rather than deferring
@@ -295,8 +299,9 @@ has a price: the bridges into the tree are a contract that nothing checks.*
 
 *Status: the settings catalogue and the page registry exist, and the invariant
 between them is checked by `zenith doctor` rather than asserted. The Hub's window
-is written, and it is drawn with the vendored component kit from the same tree the
-desktop shell is built from.*
+is Ryoku's Hub, ported (a grouped rail, a global search and a page per area of the
+desktop), drawn with the shell's own component kit, and the settings catalogue is its
+**Zenith** group; `zenith-hubd` is its data plane for the compositor and the machine.*
 
 - `zenith config` — `list`, `get`, `set`, `reset`, `pages`. Values are validated
   against the key's type, range and enum *before* the write, because a value that
@@ -314,7 +319,7 @@ desktop shell is built from.*
   system on the desktop, not two. It draws pages it did not write: `zenith config
   export` hands it the navigation, the keys, their types, their permitted values,
   their ranges and their current values
-- [x] The Hub's chrome built from the vendored kit — its navigation rail, its content
+- [x] The Hub's chrome built from the shell's component kit — its navigation rail, its content
   page, its grouped rows and its text — with the window's own code at the shell's
   root rather than in a configuration root of its own, because the kit's files reach
   each other through imports that only resolve from there. A change to the kit's look
@@ -342,8 +347,9 @@ still never run against this repository.*
 - [x] `release/check-boundary.sh`, which refuses a package that installs a path outside
   `/usr/share/zenith/` and `/etc/zenith/` other than the sanctioned ones — checked on the
   staged tree, so it sees what `dpkg-deb` will emit rather than what the script appears to copy
-- [ ] The other packages the stack names — `zenith-terminal`, `zenith-shell`, `zenith-hub`,
-  and the session and portal packages — none of which has anything to package yet
+- [ ] The other packages the stack names — `zenith-terminal` and the session and portal
+  packages. Everything built so far ships in the one `zenith` package, and `zenith-shell`
+  and `zenith-hub` are a binary and a launcher inside it, not packages of their own
 - [ ] Published, and `zenith update` verified against a machine that installed from it
 
 The boundary check exists because a package that quietly gains a file another package owns is
@@ -468,27 +474,21 @@ it is the answer.
   patched is a finding against vendoring it, not a reason to grant it an exception.
   An exception for one component is how a desktop ends up with two design systems,
   one of which is a coincidence.
-- [x] **The shell daemon.** `zenithd` replaces the shell's two-second poll of
-  `zenith state` with a subscription to a streaming Go daemon speaking
-  `zenith-shell/1` over a Unix socket. The decision is where the parsing lives: it
+- [x] **The shell daemon.** `zenith-shell daemon` (unit `zenithd.service`) replaces the
+  shell's two-second poll of `zenith state` with a subscription to a streaming Go daemon
+  speaking `zenith-shell/1` over a Unix socket. The decision is where the parsing lives: it
   stays in Go, where it is tested against real captured output of tools that do not
-  behave, and the shell reads a document rather than interpreting a tool's output
-  itself. `zenith state` survives as the CLI over the same collectors, so a
-  terminal, a script and anything that is not Quickshell keep a way in — and the two
-  paths cannot drift, because they are one implementation.
-- [x] **Theming.** A wallpaper that recolours the desktop. `zenith theme generate
-  IMAGE` writes `$XDG_CACHE_HOME/zenith/colors.json` and the shell reads it, so
-  picking a wallpaper repaints the system and nothing restarts. Every colour in
-  the shell now comes from the design system's token set — `canvas`, `surface`,
-  `inkPrimary`, `inkSecondary`, `indicator`, `lineHairline`, `lineDivider`,
-  `focusRing`, `stateLayer` and the three permitted exceptions — and from nothing
-  else. The wallpaper palette is namespaced under `palette*` and kept, because the
-  generator produces it and `zenith theme check` reports on it, but the desktop
-  does not draw with it: the token set is canonical, and a colour that follows the
-  wallpaper is a colour nobody chose. The palette is *checked*, not just emitted:
-  every foreground/background pair is walked until it passes WCAG AA, and a palette
-  that cannot is refused rather than written. All seven shipped wallpapers pass, and
-  that is a test
+  behave, and the shell reads a frame rather than interpreting a tool's output
+  itself. `zenith state` survives as a CLI of its own, so a terminal, a script and
+  anything that is not Quickshell keep a way in; it probes its tools through
+  `desktop/internal/desktopstate`, which the daemon, a port of Ryoku's, does not use.
+- [x] **Theming.** A wallpaper that recolours the desktop, with no matugen on the machine:
+  `zenith theme generate` makes the scheme and `zenith theme render` fills the app
+  templates, both in Go (`desktop/internal/theme`). The daemon runs them on every wallpaper
+  change and writes `colors.json` and `tones.json` under `$XDG_CACHE_HOME/zenith/`, and the
+  shell reads them, so picking a wallpaper repaints the system and nothing restarts. The
+  default scheme is `scheme-monochrome`: the wallpaper drives tone and not hue, unless a
+  person picks a coloured scheme. See [`theming.md`](theming.md)
 - [x] **The sidebar.** A slide-in panel for audio, network, bluetooth, display
   and media, on the right edge. Quick settings are a popover; this is the surface
   that belongs to the edge rather than to a keybinding. `zenith state` probes all
@@ -511,7 +511,7 @@ it is the answer.
   installed on any machine this project can test on. Guessing at an API that cannot
   be checked is the one thing here that is worse than shipping late
 - [x] **Window switching.** A most-recently-used switcher over Hyprland, on
-  Super+Tab, the binding the project this shell was inspired by uses. `zenith windows`
+  Alt+Tab (Super+Tab opens the workspace overview instead). `zenith windows`
   reads
   `hyprctl -j clients`, drops unmapped and scratchpad windows, and sorts by
   `focusHistoryID` — which is *inverted* from what it looks like: Hyprland's
@@ -521,26 +521,27 @@ it is the answer.
   sorted in Go with tests rather than in QML. Also gotcha-shaped and worth
   writing down: scratchpad workspaces are `-99..-2`, so `id < 0` is *wrong* — it
   also catches name-based normal workspaces, which start at -1337
-- [ ] **The Super+Tab bind itself.** The switcher is built and unreachable, for
-  the same reason the sidebar is: Zenith owns no Hyprland configuration. There
-  is no `hyprland.conf` in this repository, and `/etc/hypr` is not on the
-  sanctioned list. The line is
-  `bind = SUPER, Tab, exec, <ipc call to Switcher.advance>` on Hyprland 0.53.3,
-  which is what 26.04 ships — pre-Lua, so hyprlang syntax and a bare
-  `hyprctl dispatch focuswindow address:0x…`. Writing the compositor config is a
-  separate piece of work and it was not started here
-- [ ] **Plugins.** A mechanism for shell plugins. An open question in
-  `architecture.md`, and the thing that makes desktop widgets addable by anyone
+- [x] **The binds.** The compositor configuration is in the repository now
+  (`session/hyprland/`, hyprlang, for Hyprland 0.53.3). Alt+Tab advances the switcher
+  and its release, a `bindr`, closes it; Alt+Shift+Tab walks back; Super+Tab opens the
+  workspace overview and Super+Alt+Tab steps its desktops. The first version put the
+  switcher on Super+Tab and closed it with `bindl`, which is Hyprland's *locked* flag and
+  not release, so the card flashed for about 50 ms (`journal/2026-10-23.md`)
+- [x] **Plugins.** A mechanism for shell plugins, and the thing that makes desktop
+  widgets addable by anyone: `zenith plugin`, the plugin runtime in `shell/plugins/` and
+  the `qs.PluginKit` kit. See [`plugins.md`](plugins.md)
 - [ ] **Rollback.** Btrfs snapshots around every update. Zenith's overlay
   rollback is configuration only — it restores files this project wrote and
   cannot restore a package database
 - [ ] **The agent.** M10: a local knowledge vault, an index over the machine, and
-  a dashboard
+  a dashboard. The daemon, the vault and the dashboard are built as Zenith Agent
+  (`zenith-agent`, off until the user switches it on; [`agent.md`](agent.md)), but no
+  engine ships, so this stays open until one is wired to its `engine.command` seam
 - [ ] **The installer.** Blocked on M4 and on root. Recorded here so the scope is
   visible, not because it is reachable
 
 ## Later, unsequenced
 
-- Plugin mechanism and a package index for the shell
+- A package index for the shell's plugins (the plugin mechanism itself is built)
 - `zenith benchmark` so performance regressions are visible rather than anecdotal
 - A second base release, once hardware profiles justify it

@@ -56,8 +56,8 @@ Thumbs.db
 # it points at. Keep this list anchored to the repository root: a bare
 # `AGENTS.md` would also hide `system/agents.md` and `agents/agents.md`'s
 # siblings in any subtree, which is how a real source file goes missing.
-AGENTS.md
-CLAUDE.md
+/AGENTS.md
+/CLAUDE.md
 GEMINI.md
 
 # Generated diagram output. The HTML is a build artifact of the archify tool,
@@ -75,3 +75,13 @@ GEMINI.md
 .continue/
 .codex/
 .ampproject/
+
+# Binaries written by `go build` inside a cmd directory
+desktop/cmd/*/zenith-agent
+desktop/cmd/*/zenith-hubd
+desktop/cmd/*/zenith-shell
+desktop/cmd/*/zenith-wallpaper
+desktop/cmd/*/zenith-store
+desktop/cmd/*/zenith-vm
+desktop/cmd/zenith/zenith
+/→/

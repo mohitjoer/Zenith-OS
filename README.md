@@ -25,10 +25,10 @@ tools, its hardware matrix, its updater.
 Zenith is not an Ubuntu flavour. Ubuntu supplies the substrate and nothing else. Zenith is the
 distribution; Ubuntu is what Zenith is built on top of.
 
-> **Status: pre-alpha.** Nothing here is bootable. This repository currently holds the
-> design, the licensing, the hardware support framework, and the pinned package and kernel
-> manifests. There is no ISO, no installer, and no working control tool. Do not install this
-> on anything you care about.
+> **Status: pre-alpha.** There is no ISO and no installer, so nothing here boots on its own.
+> What runs is the Zenith session on a stock Ubuntu 26.04 install, from the `zenith` package
+> this repository builds; `zenith adopt --check` is the preflight, and switching a machine
+> over is not implemented yet. Do not install this on anything you care about.
 
 ---
 
@@ -43,7 +43,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Base layer | Ubuntu 26.04 LTS — the substrate only |
 | Compositor | Hyprland |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's design language |
-| Control tools | Go — `zenith`, `zenithd`, `zenith-hub` |
+| Control tools | Go — `zenith`, `zenith-shell` (the shell daemon, run as `zenithd.service`), `zenith-hubd` (the Hub's data plane), and the wallpaper, agent, store and VM tools |
 | Settings store | GSettings schemas + dconf, one writer per setting |
 | Terminal | Ghostty, from the base layer's archive — configured by Zenith, never rebuilt |
 | User shell | zsh + starship |
@@ -51,7 +51,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Boot chain | Limine |
 | Login manager | SDDM, in Wayland greeter mode |
 | Desktop services | pipewire + wireplumber, power-profiles-daemon, iwd, NetworkManager, fprintd |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`. **The Secret interface is unsolved** — no backend in the stack implements it |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for the Secret interface |
 | Package manager | APT, with a signed first-party repository |
 | Agent layer | resident OS agent with a local knowledge vault |
 
@@ -134,6 +134,7 @@ session/             the session entry point, its registration and portal config
 docs/                guides and architecture notes
 agents/              the agent contract and the design system
 tests/               CI checks
+tools/               maintenance scripts; port.py re-ports code from its upstream (see NOTICE.md)
 ```
 
 The desktop source lives under `desktop/`, never in a directory named after one of the

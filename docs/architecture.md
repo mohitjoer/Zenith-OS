@@ -6,6 +6,8 @@ This document records **decisions, not aspirations**. Where a decision is settle
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
 closed question or assumes an open one is closed.
 
+The ISO, the Limine/UKI boot chain and Btrfs rollback below are decided but deferred, not shipped: the product today is the Zenith session on a stock Ubuntu 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
+
 ---
 
 ## Settled decisions
@@ -15,15 +17,15 @@ closed question or assumes an open one is closed.
 | Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
 | Filesystem & Rollback | Btrfs subvolumes with automated pre-APT snapshot hooks | Enables atomic updates and instant rollback without wasting space on full system copies. |
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, lockscreen, greeter. The **engine** is built by Zenith because the base layer carries no such shell; the **surfaces** are a vendored open-source Quickshell configuration, re-themed to Zenith's design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's, and that split is what makes a re-theme possible without a fork. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
-| Control plane & State | Go — `zenith`, `zenithd` (typed state daemon, zero-CGo), `zenith-hub` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets; the lock screen is `hyprlock` and the login screen an SDDM theme. The **engine** is built by Zenith because the base layer carries no such shell; the **surfaces** are a ported Quickshell shell tree (Ryoku's, see [`NOTICE.md`](../NOTICE.md)) beside a vendored open-source Quickshell configuration, re-themed to Zenith's design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's, and that split is what makes a re-theme possible without a fork. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
+| Control plane & State | Go — `zenith`; `zenith-shell` (the shell's state daemon and its CLI, run as `zenithd.service`; zero-CGo); `zenith-hubd` (the Hub's data plane); and one tool each for the wallpaper, the agent, the store and the VM manager | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
 | Terminal | Ghostty, installed from the base layer's archive and configured by Zenith, never rebuilt | GPU-accelerated and client-side rendered. The archive's version is behind upstream and Zenith accepts that rather than owning a source pin, a rebuild and a release. See [terminal: Ghostty](#terminal-ghostty). |
 | User shell | zsh + starship | fish ships alongside as an alternative. blesh does not — see [user shell: zsh](#user-shell-zsh). |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
 | Boot chain | Limine + Unified Kernel Images (UKI) | Limine is small, modern, and proven; UKIs reduce boot complexity and improve security. |
 | Login manager | `sddm` in Wayland greeter mode, with the login surface drawn by Zenith | The base layer's login manager, run as shipped, with a greeter Zenith owns. See [what draws the login screen](#what-draws-the-login-screen). |
 | Desktop services | pipewire + wireplumber, tuned-ppd, iwd + NetworkManager, fprintd | Integrated audio/video, platform daemons, wireless/ wired networking, and fingerprint support. |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, plus interfaces Zenith owns itself | Hyprland-native portal backend with GTK fallback. `gnome-keyring` is installed as a daemon, but it does **not** satisfy the Secret interface — that is an open question, not a settled decision. See [the portal seam](#the-portal-seam). |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, `-lxqt` for the Secret interface, plus interfaces Zenith owns itself | Hyprland-native portal backend with GTK fallback. `gnome-keyring` is installed as a daemon, but it does **not** satisfy the Secret interface; `xdg-desktop-portal-lxqt` does, and `zenith-portals.conf` names it. See [the portal seam](#the-portal-seam). |
 | Package manager | APT, backed by Zenith's signed first-party repository | Familiar, robust, and cryptographically signed for trustworthy updates. |
 | Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
@@ -114,33 +116,37 @@ violation until it is added:
 | Path | What it is | Why it cannot live under `/usr/share/zenith/` |
 |---|---|---|
 | `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
+| `/usr/share/doc/zenith/` | The copyright file and the licence texts | Debian policy: a package's copyright file is read from `/usr/share/doc/<package>/` and nowhere else |
 | `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
-| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service`, `zenithd.service`, `zenith-wallpaper.service`, `zenith-idle.service`, `zenith-agent.service`, `zenith-ai-usage.service`, `zenith-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
 | `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
-| `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
-| `/usr/share/sddm/themes/zenith/` | Login screen theme | The login manager reads themes from a fixed directory |
-| `/boot/limine.conf` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
-| `/usr/bin/zenith`, `/usr/bin/zenithd`, `/usr/bin/zenith-hub` | The executables | `PATH` resolution looks nowhere else. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
+| `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences, opt-in: no package installs it, and `zenith greeter enable` prints the command that does | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
+| `/boot/limine.conf` | Boot configuration, deferred with the boot chain | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+| `/usr/bin/zenith`, `/usr/bin/zenith-*`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`zenith`, `zenith-shell`, `zenith-hubd`, `zenith-wallpaper`, `zenith-agent`, `zenith-store`, `zenith-vm`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under `systemd --user`, whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
+| `/usr/share/applications/zenith-hub.desktop`, `zenith-store.desktop`, `zenith-vm.desktop` | Desktop entries for the windows Zenith adds | The launcher and every other desktop-entry reader scan `XDG_DATA_DIRS/applications` and nowhere else |
+| `/usr/share/applications/zenith-mimeapps.list` | Default applications for Zenith sessions | The XDG mime-apps lookup reads `<desktop>-mimeapps.list` from the data directories. Named for the desktop, it applies to Zenith sessions only, and the user's own `mimeapps.list` still wins |
 
 Content stays inside the two directories: the login surface's own files belong at
-`/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. A
-registration is a pointer, never a place to put content — a file that grows past a few lines of
-pointer belongs under `/usr/share/zenith/` with a registration pointing at it.
+`/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. The
+login theme is exactly that: it lives at `/usr/share/zenith/session/sddm/themes/zenith` and the
+opt-in drop-in reaches it through `ThemeDir`, so nothing is placed in SDDM's own theme
+directory. A registration is a pointer, never a place to put content — a file that grows past a
+few lines of pointer belongs under `/usr/share/zenith/` with a registration pointing at it.
 
-The list used to carry `/usr/bin/zenith-shell`, and that entry was wrong on two counts. There
-is no such executable: the shell is a QML configuration read by Quickshell, started by
+The list used to carry `/usr/bin/zenith-shell` and dropped it, because no such executable
+existed: the shell is a QML configuration read by Quickshell, started by
 `zenith-shell.service` as `quickshell -p /usr/share/zenith/shell`, and the binary that runs
-it is Quickshell's, shipped by the package that builds Quickshell. And the shell's own Go
-daemon is `zenithd`, which is what replaced the name in the row above. The name `zenith-shell`
-belongs to the *package* that builds the engine, and the two must not be confused: see
-[the shell](#the-shell).
+it is Quickshell's. The name has since been given to something real. `/usr/bin/zenith-shell` is
+the shell's Go daemon and its command line, covered by the `zenith-*` entry above; it is not
+the executable that runs the QML. See [the shell](#the-shell).
 
 **Runtime state is not a package file.** The daemon's socket lives at
-`$XDG_STATE_HOME/zenith/shell.sock`, under the user's own state directory. It is not on the
-list because it is not a file a package installs: the daemon creates it at run time, in the
-one place a package must never write to, and it goes away when the session ends. A path that
-exists only while the session does cannot be a registration, and a registration is by
+`$XDG_RUNTIME_DIR/zenith-shell.sock`, and the wallpaper daemon's and the agent's sit beside it
+(`zenith-wallpaper.sock`, `zenith-agent.sock`), in the per-user runtime directory. They are not
+on the list because they are not files a package installs: each daemon creates its socket at
+run time, in a directory no package writes to, and it goes away when the session ends. A path
+that exists only while the session does cannot be a registration, and a registration is by
 definition a path that exists on every boot.
 
 `zenith doctor` reports drift between the registrations and the content they point at, the same
@@ -158,10 +164,10 @@ Zenith's layers, from bottom up.
 | Base system | Ubuntu packages | Unmodified; Zenith adds only what it needs |
 | Desktop services | Zenith + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
 | Display | Hyprland | Behind a `zenith wm` seam so it can be swapped |
-| Shell surfaces | Quickshell, over a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The components are upstream's, at a pinned commit; the theme and the settings binding are Zenith's. See [vendored upstream components](#vendored-upstream-components) |
-| Shell state | `zenithd` | The typed state daemon. One socket, one protocol, one writer of the state document |
-| Settings store | GSettings / dconf | One writer per setting |
-| Control tools | `zenith`, `zenithd`, `zenith-hub` | The only writers |
+| Shell surfaces | Quickshell, over a ported shell tree and a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The ported components are Ryoku's ([`NOTICE.md`](../NOTICE.md)); the vendored ones are upstream's, at a pinned commit; the theme and the settings binding are Zenith's. See [vendored upstream components](#vendored-upstream-components) |
+| Shell state | `zenith-shell daemon` (`zenithd.service`) | The state daemon. One socket, one protocol, one writer of `shell.json` |
+| Settings store | GSettings / dconf, and `shell.json` | One writer per setting |
+| Control tools | `zenith`, `zenith-shell`, `zenith-hubd` | The only writers |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk` | See below |
 | Updates | `zenith update` · `rollback` · `doctor` | Overlay model |
 
@@ -288,15 +294,27 @@ This is the discipline that makes the rest of the system safe to automate.
 
 ## Settings
 
-Every desktop setting lives in **GSettings schemas**, which give typed values, validation,
-per-user scoping, atomic apply through dconf, and `gsettings list-recursively` for
-introspection — which is exactly what a widget catalogue needs.
+Settings live in two stores, and each has one writer.
 
-- `org.zenith.desktop` — desktop-level behaviour
-- `org.zenith.shell` — bar layout, dock, widgets, launcher
+**GSettings schemas** give typed values, validation, per-user scoping, atomic apply through
+dconf, and `gsettings list-recursively` for introspection — which is exactly what a widget
+catalogue needs.
 
-The shell daemon (`zenithd`) and `zenith-hub` are the only writers. Hand-editing dconf
-directly causes drift and `zenith doctor` reports it.
+- `org.zenith.desktop` — desktop-level behaviour; the idle timeouts are the keys the running
+  desktop reads
+- `org.zenith.shell` — the keys adoption imports into, among them the wallpaper paths and the
+  favourites. The ported shell takes its look from `shell.json` instead, so every key of this
+  schema is on the list of unread settings in `desktop/internal/hub`; `zenith-wallpaper` reads
+  the wallpaper paths once, to choose a fresh account's first wallpaper
+
+`zenith config set` is their only writer, and it validates a value against the key's type,
+range and enum before it reaches dconf. Hand-editing dconf directly causes drift and
+`zenith doctor` reports it.
+
+**`~/.config/zenith/shell.json`** is the ported shell's look: the bar style, the dock, the
+interface scale, the language and the wallpaper options. The `zenith-shell` daemon owns it, and
+the Hub's pages and the welcome tour change it by asking the daemon (`settings.patch`) rather
+than by writing the file.
 
 ---
 
@@ -334,18 +352,18 @@ same way. The separator is the compositor's constraint and not a style choice.
 
 ### The shell
 
-> **The lock screen is not drawn by the shell, and that is a deliberate
-> correction to the rule below.** Everything else the shell owns is drawn in
-> Quickshell. The locker is not, because there is no QML PAM API: a shell-drawn
-> lock screen cannot authenticate, and the usual workaround — calling something
-> over D-Bus — produces a lock screen that accepts any password. A lock screen
-> that does not lock is worse than no lock screen, because it teaches the user
-> the machine is locked.
+> **The lock screen is not drawn by the shell, and that is a decision, not a limit of the
+> platform.** Everything else the shell owns is drawn in Quickshell. The locker is
+> `hyprlock`: it is mature, it is in the archive, and it runs as a process of its own,
+> apart from the shell. Quickshell as built here could draw a lock itself — it links libpam
+> and has `Quickshell.Services.Pam` — so an earlier version of this box, which said there is
+> no QML PAM API and that a shell-drawn lock would accept any password, was wrong.
 >
-> So the division is: the shell owns **when** locking happens (`org.zenith.desktop`'s
-> `idle-*` keys, and `Idle.qml`), and `hyprlock` does the locking. hyprlock is in
-> the archive, which under the base-layer rule settles it — the base layer carries
-> it, so Zenith does not repackage it. Every competing locker is excluded, so the
+> So the division is: **when** locking happens is `hypridle`'s, run by `zenith-idle.service`
+> from `org.zenith.desktop`'s `idle-*` keys, and `zenith-shell lock` is the one command every
+> trigger runs; `hyprlock` does the locking; the shell only draws the dim scrim (`Idle.qml`).
+> hyprlock is in the archive, which under the base-layer rule settles it — the base layer
+> carries it, so Zenith does not repackage it. Every competing locker is excluded, so the
 > image has exactly one and which one is in front never depends on start order.
 
 Quickshell, and Zenith builds it. The base layer carries no compositor-agnostic
@@ -360,8 +378,9 @@ so that the desktop has one UI toolkit and one design system rather than two.
 **The engine is what Zenith builds; the surfaces are what Zenith has adopted.** Those are
 two different statements, and the licence depends on the difference, so they are kept apart
 here as well. The engine is Quickshell: the binary, built by Zenith, shipped unmodified,
-**LGPL-3.0-only**. The surfaces are the QML — some of it Zenith's own, and a good part of it
-a vendored upstream component under **GPL-3.0**. The composed shell is GPL-3.0. See
+**LGPL-3.0-only**. The surfaces are the QML — some of it Zenith's own, a ported tree from
+Ryoku (**GPL-3.0**, with the MIT portions [`NOTICE.md`](../NOTICE.md) records) and a vendored
+upstream component under **GPL-3.0**. The composed shell is GPL-3.0. See
 [vendored upstream components](#vendored-upstream-components) for the component, the pin and
 the three overlay files, and [`LICENSING.md`](../LICENSING.md) for the obligations.
 
@@ -387,15 +406,17 @@ taken rather than a fork Zenith has made. The two departures from the base-layer
 now of different kinds and are recorded separately: one is a binary Zenith compiles, the
 other is source Zenith adopts.
 
-**`zenith-shell` is the build package; `zenithd` is the daemon.** Two things in this project
-were called `zenith-shell`, and they were not the same thing, which is the kind of collision
-that produces a bug report rather than a fix. The name `zenith-shell` belongs to the package
-that builds Quickshell — build-only, and none of those names enter the runtime image; they
-are what the build needs to produce a package the image installs. The shell's own Go daemon
-is `zenithd`, and the shell's own configuration is `/usr/share/zenith/shell/`, read by
-`quickshell -p /usr/share/zenith/shell` from `zenith-shell.service`. From here on the two
-names do not overlap: `zenith-shell` builds an engine, and `zenithd` serves the shell's
-state. The manifest's `zenith_built:` key exists so the departure from its own rule is
+**`zenith-shell` is the daemon, and `zenithd` is the unit that runs it.** Two things in this
+project were called `zenith-shell`, and they were not the same thing, which is the kind of
+collision that produces a bug report rather than a fix. The name was once the package that
+builds Quickshell; it now belongs to the shell's Go daemon. `/usr/bin/zenith-shell` is that
+binary: `zenith-shell daemon` is what `zenithd.service` runs, and every other
+`zenith-shell <verb>` (`lock`, `hub open`, `reload`, `icons`) is a client that sends one line
+to it. The unit that runs the QML keeps its name, `zenith-shell.service`, and the shell's own
+configuration is `/usr/share/zenith/shell/`, read by `quickshell -p /usr/share/zenith/shell`
+from that unit. So `zenith-shell` serves the shell's state and Quickshell is the engine that
+draws it; where this document says `zenithd`, it means the daemon. The manifest's
+`zenith_built:` key exists so the departure from its own rule is
 visible in one place rather than implied by a comment, and
 `system/verify-packages.py` checks it in the inverse direction: a `zenith_built:`
 entry that turns up in the archive is a warning, because rebuilding a package the
@@ -404,7 +425,9 @@ base layer now maintains is exactly the fork the rule prevents.
 The wire protocol the daemon speaks keeps the name `zenith-shell/1`, after the shell it
 serves rather than after the process that implements it. A protocol name that changed with
 its implementation would break every client that had already learned it, and the shell is
-the thing that will still be there when the daemon is replaced.
+the thing that will still be there when the daemon is replaced. Its framing is the topic
+stream and the `call` of `desktop/cmd/zenith-shell/CONTRACT.md`, over
+`$XDG_RUNTIME_DIR/zenith-shell.sock`; [`shell-daemon.md`](shell-daemon.md) says how it runs.
 
 The test matrix question stays open — see [open questions](#open-questions) — and the
 re-vendoring cost has joined it. A shell Zenith builds is a shell Zenith has to rebuild when
@@ -672,8 +695,8 @@ org.zenith.shell  →  the settings bridge  →  upstream's Config.options.*  �
   shape from the store, so a vendored component asks for a setting the way upstream taught it
   to and gets Zenith's value.
 - The **surface** binds to the property and redraws. It never writes.
-- The **writer** is `zenithd` or `zenith-hub`, and only those two. A vendored component
-  binds; it does not write. A write goes through `zenith config set`, which validates the
+- The **writer** is `zenith config set`, which the Hub calls, and nothing else. A vendored
+  component binds; it does not write. `zenith config set` validates the
   value against the schema's type, range and enum before it is stored — because a value that
   is well-formed GVariant and outside a declared range is accepted by GSettings, committed to
   dconf, and then read by a surface that does something nobody asked for.
@@ -731,20 +754,24 @@ against.
 | Capability | Owner | Why |
 |---|---|---|
 | The notification server | **Zenith** | `org.freedesktop.Notifications` is a session-scoped bus name and no daemon in the image holds it, so the shell draws it and hosts the server |
-| The lock screen | **Zenith** owns when; `hyprlock` does the locking | The shell owns *when* locking happens — `org.zenith.desktop`'s `idle-*` keys — and the locker owns the surface and the PAM conversation. A shell-drawn lock screen cannot authenticate against PAM |
-| The idle policy | **Zenith** | The timeouts live in `org.zenith.desktop`, and `zenithd` and `zenith-hub` are their only writers |
+| The lock screen | **Zenith** owns when; `hyprlock` does the locking | `hypridle`, run by `zenith-idle.service` from the `org.zenith.desktop` `idle-*` keys, decides *when*, and `zenith-shell lock` is the one command every trigger runs; the locker owns the surface and the PAM conversation. `hyprlock` is a decision (mature, in the archive, a process of its own), not a platform limit: Quickshell here has `Quickshell.Services.Pam` |
+| The idle policy | **Zenith** | The timeouts live in `org.zenith.desktop`, `zenith config set` is their only writer, and `zenith-idle.service` hands them to hypridle |
 | The keybind catalogue | **Zenith** | `session/binds.json`, installed at `/usr/share/zenith/session/binds.json`, checked in both directions against the compositor's configuration by `zenith doctor` |
-| The Hub | **Zenith** | The settings application: a navigation rail and a page per page in the registry. It draws pages it did not write — `zenith config export` hands it the navigation, the keys, their types, their permitted values, their ranges and their current values — and every control writes through `zenith config set`, never through GSettings. Its chrome is the vendored kit's, from the same tree the desktop shell is built from, so both windows are one design system |
-| The wallpaper | **Zenith** | `org.zenith.shell`'s `wallpaper-path` and `wallpaper-path-dark`, drawn by the shell's own surface |
+| The Hub | **Zenith** | The settings application: Ryoku's Hub, ported (`shell/hub/`) — a grouped navigation rail, a global search and a page per area of the desktop. The look pages change `shell.json` by asking the `zenith-shell` daemon, the compositor and machine pages go through `zenith-hubd`, and the **Zenith** group draws what `zenith config export` hands it (the pages, the keys, their types, their permitted values, their ranges and their current values) and writes only through `zenith config set`, never through GSettings. Its chrome is the shell's own component kit, so both windows are one design system |
+| The wallpaper | **Zenith** | `zenith-wallpaper` chooses it (the catalogue, the choice per output, playlists, the day/night schedule) and the shell's own surface draws what the daemon publishes. `org.zenith.shell`'s `wallpaper-path` and `wallpaper-path-dark` only seed a fresh account's first wallpaper |
 | The palette, the settings binding, the shell's own state | **Zenith** | The three overlays, at upstream's paths |
 | The bar, the dock, the launcher and the popover surfaces | **upstream** | The components, byte-identical to the pinned commit |
 | The overview, the media controls, the on-screen display, the cheatsheet | **upstream** | The components, byte-identical to the pinned commit |
 | The vertical bar, the background, the rounded-polygon widget kit | **upstream** | The components, byte-identical to the pinned commit |
 | The service graph — audio, network, bluetooth, battery, media, tray | **upstream** | The components, byte-identical to the pinned commit |
 
-A row says who owns the *capability*, not who draws the pixels. Zenith's own shell root hosts
-the vendored components and wires them together; upstream wrote the components, and Zenith
-owns the desktop they appear on.
+A row says who owns the *capability*, not who draws the pixels. The rows that say *upstream*
+describe the vendored end-4 tree, which stays byte-identical to its pinned commit. The
+surfaces the running shell draws — the bar, the dock, the launcher, the overview, the
+on-screen display, the notifications and the wallpaper — and its service graph
+(`shell/Services/`) are Ryoku's ported components, adapted in place and recorded in
+[`NOTICE.md`](../NOTICE.md). The shell root (`shell/shell.qml`) hosts them and wires them
+together, and Zenith owns the desktop they appear on.
 
 ---
 
@@ -799,6 +826,13 @@ Every item here is a real support ticket someone will file:
 | Displays | `ddcutil` for external-monitor brightness, docks, multi-GPU output routing |
 | Handhelds | Steam Deck, ROG Ally, Legion Go — gamescope session, gyro, controller mapping |
 | Secure Boot | shim + MOK, signed. Non-optional or nothing installs on a locked laptop |
+
+**Ryoku's machine tuning is deliberately not ported.** The desktop was ported from a distribution
+that tunes each machine under its own `system/hardware/` — udev rules, NetworkManager and
+Bluetooth settings, GPU and power setup. None of it came across. Machine-specific tuning is the
+hardware profile system's job, and the base-layer boundary forbids a package writing those
+paths. Whether some of it should return as profile content is an open question for the user; see
+[open questions](#open-questions).
 
 ### The offline problem
 
@@ -1057,29 +1091,24 @@ the SVG.
 
 ## Writing a backlight
 
-The sidebar needs to dim the screen, and on a stock Ubuntu image it cannot.
+The sidebar needs to dim the screen, and a user who is not in the `video` group cannot write
+the panel's backlight.
 
-`/sys/class/backlight/*/brightness` is mode `0644` owned by `root:root`, and the
-base layer ships no udev rule granting write access to any group. So
-`brightnessctl set` fails with `Can't modify brightness: Permission denied` for
-every non-root user on every laptop with an internal panel. Measured on real
-hardware, not inferred: reading works unprivileged, writing does not.
+`/sys/class/backlight/*/brightness` is `root:video`, mode `0664` (measured on the development
+laptop: `-rw-rw-r-- 1 root video`), and Ubuntu's `brightnessctl` is built without logind
+support, so `brightnessctl set` fails with `Can't modify brightness: Permission denied` for
+every user outside `video`. Reading works unprivileged, writing does not.
 
-This is not a Zenith bug and no CLI flag works around it. Both approaches other
-desktops take are available and both are decisions rather than code:
-
-| Approach | Cost |
-|---|---|
-| A udev rule under `/etc/zenith` making the `backlight` sysfs nodes group-writable for `plugdev` | One rule. It is a **registration** — `/etc/udev/rules.d` is a fixed directory a third-party binary scans — and it does not appear on the sanctioned list |
-| Elevation through `zenith-hub` and polkit, which the manifest already carries | No new registration. More machinery, and an authentication prompt on every brightness change, which is worse than a prompt never |
-
-The udev rule is the obvious answer and it is deliberately **not** taken here,
-because adding a path outside `/usr/share/zenith/` and `/etc/zenith/` is a change
-to the boundary rather than a change inside it, and the boundary is the thing this
-project is built on. It is recorded rather than done.
-
-Until then the sidebar's display section shows the current brightness and does not
-offer a slider. A control that fails on every laptop is worse than no control.
+**This is settled, and the answer is neither of the two this section used to weigh.**
+systemd-logind writes it: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
+sets the value, as root, for the owner of the active session, for both `backlight` and `leds`.
+`zenith brightness` makes that call, then tries `brightnessctl`, then the sysfs file if it is
+writable (`desktop/internal/backlight`), and the keys, the daemon and the sliders all go
+through it as `zenith-cmd-brightness`. It needs no group, no udev rule and no authentication
+prompt. A udev rule would have been a registration outside `/usr/share/zenith/` and
+`/etc/zenith/`, which is a change to the boundary rather than a change inside it, and polkit
+elevation would have put a prompt on every brightness change. Neither is needed, and the
+boundary did not move. See [`hardware-keys.md`](hardware-keys.md).
 
 ## Window switching is the shell's job here, not Hyprland's
 
@@ -1115,6 +1144,14 @@ just in is `0` and **lower is more recent**. Sorting descending — the obvious
 thing — is least-recently-used, and looks correct until you press it twice. `-1`
 means never focused and is pushed to the end rather than the front.
 
+**The keys.** Alt+Tab is the switcher: a press moves to the next window and focuses it,
+Alt+Shift+Tab walks the list the other way, and the release closes it through `bindr`, with
+the card kept up for 450 ms after the last press. Super+Tab is not the switcher; it opens the
+workspace overview, and Super+Alt+Tab steps the overview's desktops
+(`session/hyprland/binds.conf`). The switcher used to sit on Super+Tab and close on `bindl`,
+and `l` is Hyprland's *locked* flag and not "release", so the card opened and closed on the
+same press ([the journal](journal/2026-10-23.md)).
+
 ## Why the shell subscribes to a daemon
 
 `zenith state` probes five command-line tools and the sidebar redraws from its JSON.
@@ -1124,11 +1161,12 @@ Every other widget in the shell reads a Quickshell service singleton instead —
 event-driven and they push changes; this pulled and re-ran five subprocesses every
 two seconds.
 
-It does not any more. `zenithd` is a streaming Go daemon that speaks `zenith-shell/1` —
-newline-delimited JSON over a Unix socket at `$XDG_STATE_HOME/zenith/shell.sock` — and the
-shell subscribes to it. The daemon runs the same collectors the sidebar used to run, on a
-schedule the daemon owns, and pushes a state document when something changes. The two-second
-timer is gone, and so is the shape of the problem it was papering over.
+It does not any more. The daemon is `zenith-shell daemon`, run as `zenithd.service`: a streaming
+Go daemon that speaks `zenith-shell/1` — line-framed JSON over a Unix socket at
+`$XDG_RUNTIME_DIR/zenith-shell.sock` — and the shell subscribes to the topics it publishes.
+The daemon runs its collectors on a schedule it owns and pushes a frame when something
+changes. The live shell no longer polls: the two-second timer is in the old sidebar
+(`shell/Sidebar.qml`), which `shell/shell.qml` does not load.
 
 The argument underneath the change is the one that was already true and is still true:
 
@@ -1139,11 +1177,12 @@ The argument underneath the change is the one that was already true and is still
    `bluetoothd` is down. Those are tests over real captured output, and they
    would have to be written again against an unverified API.
 2. **The parsing stays in Go.** A daemon is not a licence to move the parsers into QML. The
-   collectors and their fixtures are the same code the CLI uses, and the shell reads a
-   document rather than interpreting a tool's output.
-3. **`zenith state` survives as the CLI** over the same collectors. It is a command, it is
-   useful at a terminal, in a script, and to anything that is not Quickshell, and it is now
-   a query against the daemon's own code rather than a second implementation of it.
+   collectors and their fixtures are the daemon's, and the shell reads a frame rather than
+   interpreting a tool's output.
+3. **`zenith state` survives as a CLI.** It is a command, it is useful at a terminal, in a
+   script, and to anything that is not Quickshell. It still probes its five tools through
+   `desktop/internal/desktopstate`, which the daemon does not use: the daemon is a port of
+   Ryoku's and has collectors of its own, so the two are separate implementations.
 
 What should not happen is the other migration — hand-written QML parsing to avoid running a
 tested binary, in either direction. The daemon is where the tested code lives; the shell is
@@ -1158,8 +1197,9 @@ where the document is drawn.
 | ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
 | ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and Zenith does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
 | Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
-| Plugin mechanism | Zenith's shell has surfaces no stock desktop has. What a Zenith plugin looks like is undefined. |
+| ~~**Plugin mechanism**~~ | **Settled** — a plugin is a folder with a `manifest.json`, a `service/Main.qml` for the logic and a `content/Widget.qml` for the one view, drawn through the `qs.PluginKit` kit. `zenith plugin new`, `audit`, `install`, `enable`, `disable`, `remove` and `list` scaffold, check and place it, the plugin runtime in `shell/plugins/` loads it, and it lives in `~/.local/share/zenith/plugins/`. See [`plugins.md`](plugins.md). A package index for plugins is not built. |
 | Hardware report scope | What `zenith hardware report` captures, and how aggressively it strips PII before emitting. |
+| Ryoku's hardware tuning | Zenith ports none of the per-machine tuning (udev, NetworkManager, Bluetooth, GPU, power) that the desktop it was ported from ships under `system/hardware/`; the hardware profiles own that job. Whether some of it should return as profile content is the user's decision. See [the hard list](#the-hard-list). |
 | ISO firmware policy | Whether one ISO carries firmware or firmware is fetched at install time. See [firmware and free software](#firmware-and-free-software). |
 | live-build and Limine | live-build cannot emit a Limine ISO. A custom hook, or `mmdebstrap` plus a hand-built boot chain. |
 | Test matrix | Which Hyprland, Quickshell and kernel versions CI must pass before a release. |
