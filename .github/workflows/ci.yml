@@ -515,10 +515,21 @@ jobs:
             system/hardware/go.mod
             desktop/go.mod
 
+      - name: Cache ISO build packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/apt-archives
+            ${{ runner.temp }}/zenith-iso/cache
+          key: zenith-iso-${{ runner.os }}-${{ hashFiles('system/packages.yaml', 'installation/build-iso.sh') }}
+          restore-keys: |
+            zenith-iso-${{ runner.os }}-
+
       - name: Install ISO build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          mkdir -p "$RUNNER_TEMP/apt-archives" "$RUNNER_TEMP/zenith-iso/cache"
+          sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" update
+          sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" install -y --no-install-recommends \
             live-build mmdebstrap debootstrap xorriso squashfs-tools \
             isolinux grub-pc-bin grub-efi-amd64-bin \
             sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
@@ -531,6 +542,13 @@ jobs:
           ZENITH_SUITE: resolute
           ZENITH_ARCH: amd64
         run: sudo --preserve-env=ZENITH_SUITE,ZENITH_ARCH env "PATH=$PATH" installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
+
+      - name: Make ISO cache writable
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/zenith-iso/cache" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/zenith-iso/cache"
+          fi
 
       - name: Verify ISO output
         run: |
