@@ -503,7 +503,6 @@ jobs:
   # --------------------------------------------------------------------------
   iso:
     name: Zenith OS ISO
-    needs: unit
     timeout-minutes: 60
     runs-on: ubuntu-24.04
     steps:
