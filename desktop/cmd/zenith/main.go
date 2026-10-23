@@ -78,6 +78,9 @@ func run(args []string) int {
 
 	command, known := commands[args[0]]
 	if !known {
+		if extra, registered := extraCommands[args[0]]; registered {
+			return extra.run(args[1:])
+		}
 		fmt.Fprintf(os.Stderr, "zenith: unknown command %q\n\n", args[0])
 		usage(os.Stderr)
 		return exitUsage
@@ -108,9 +111,9 @@ Commands:
   state         live desktop state as JSON, for the sidebar
   windows       switchable windows, most recently focused first
   version       print the version
-
-Run "zenith <command>" with no arguments for that command's own usage.
 `, version)
+	printExtraUsage(w)
+	fmt.Fprint(w, "\nRun \"zenith <command>\" with no arguments for that command's own usage.\n")
 }
 
 func runVersion(_ []string) int {

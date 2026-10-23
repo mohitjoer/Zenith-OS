@@ -151,7 +151,22 @@ func quickshellPathArg(fields []string) (string, bool) {
 // is more than one the one whose tree is named after the desktop itself is
 // the one the key was pressed on, and what is left is an ambiguity to report
 // rather than a coin to toss.
+//
+// Only an instance started on a directory is the shell. The unit runs
+// `quickshell -p /usr/share/zenith/shell`; every other window the desktop
+// opens (the Hub, the screenshot tool, the wallpaper picker ...) is a
+// quickshell of its own started on one entry file, `-p .../hub.qml`, and has
+// no `zenith` IPC target. Counting those made one open window look like a
+// second shell, so every keybind refused to fire until it was closed.
 func pickShellInstance(paths []string) (string, error) {
+	shells := make([]string, 0, len(paths))
+	for _, path := range paths {
+		if !strings.HasSuffix(strings.ToLower(path), ".qml") {
+			shells = append(shells, path)
+		}
+	}
+	paths = shells
+
 	switch len(paths) {
 	case 0:
 		return "", fmt.Errorf("no instance of the shell is running; the call " +

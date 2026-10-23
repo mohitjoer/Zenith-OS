@@ -168,7 +168,46 @@ func CheckRegistrations(env RegistrationEnv) []RegistrationFinding {
 		}
 	}
 
+	// A unit the package ships beyond the closed list (the daemon, the wallpaper
+	// engine) is registered the same way and fails the same way when it is not.
+	for _, name := range shippedUnits(env) {
+		if _, err := os.Stat(env.path(unitRegistrationDir + name)); err != nil {
+			findings = append(findings, RegistrationFinding{
+				Name:   name,
+				Path:   unitRegistrationDir + name,
+				Reason: "not installed; the package that should write it did not",
+			})
+		}
+	}
+
 	return findings
+}
+
+// unitRegistrationDir is where systemd --user loads units from.
+const unitRegistrationDir = "/usr/lib/systemd/user/"
+
+// shippedUnits lists the unit files the package ships under
+// /usr/share/zenith/units beyond the ones the closed list above names. A later
+// lane adding a unit is then checked without this file being edited for it.
+func shippedUnits(env RegistrationEnv) []string {
+	known := map[string]bool{}
+	for _, registration := range registrations {
+		if registration.Target != "" {
+			known[filepath.Base(registration.Target)] = true
+		}
+	}
+	entries, err := os.ReadDir(env.path("/usr/share/zenith/units"))
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if (strings.HasSuffix(name, ".service") || strings.HasSuffix(name, ".target")) && !known[name] {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 // Registrations returns the registrations, for a report that wants to show what
@@ -196,10 +235,11 @@ func ExecStartTarget(root, unitPath string) (string, bool) {
 			continue
 		}
 		// A prefixed ExecStart= carries an argument character; the executable is
-		// still the first field.
+		// still the first field. systemd.exec(5) allows @ - : + ! in front of
+		// the path, and a unit that says -/usr/bin/x runs /usr/bin/x.
 		value = strings.TrimSpace(value)
 		if fields := strings.Fields(value); len(fields) > 0 {
-			return fields[0], true
+			return strings.TrimLeft(fields[0], "@-:+!"), true
 		}
 	}
 	return "", false
@@ -218,6 +258,11 @@ func CheckUnits(env RegistrationEnv) []RegistrationFinding {
 	units := []struct{ name, path string }{
 		{"zenith-shell.service", "/usr/share/zenith/units/zenith-shell.service"},
 		{"zenith-portal.service", "/usr/share/zenith/units/zenith-portal.service"},
+	}
+	for _, name := range shippedUnits(env) {
+		if strings.HasSuffix(name, ".service") {
+			units = append(units, struct{ name, path string }{name, "/usr/share/zenith/units/" + name})
+		}
 	}
 
 	for _, unit := range units {

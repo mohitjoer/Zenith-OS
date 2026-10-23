@@ -8,6 +8,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -134,6 +135,71 @@ func TestPickShellInstance(t *testing.T) {
 				t.Errorf("%s: the error %q does not mention %q",
 					test.name, err.Error(), test.wantErr)
 			}
+		case got != test.want:
+			t.Errorf("%s: picks %q; want %q", test.name, got, test.want)
+		}
+	}
+}
+
+// TestPickShellInstanceIgnoresSecondaryWindows pins the fault that took every
+// keybind down while any window was open. The Hub, the screenshot tool and the
+// wallpaper picker are each their own quickshell, started on one entry file,
+// and used to be counted as extra shells: "several Zenith trees are running".
+// The shell is the instance started on the directory.
+//
+// It goes through a fake process table, so the command lines are the ones the
+// units and wrappers really produce, and it covers the two cases the keybinds
+// depend on besides: the shell alone still works, and with no shell at all the
+// answer is the plain "not running" error even when a window is open.
+func TestPickShellInstanceIgnoresSecondaryWindows(t *testing.T) {
+	const shell = "/usr/share/zenith/shell"
+	cases := []struct {
+		name    string
+		running []string
+		want    string
+		wantErr string
+	}{
+		{
+			name: "the shell and two windows",
+			running: []string{
+				"/usr/bin/quickshell -p " + shell,
+				"/usr/bin/quickshell -p " + shell + "/hub.qml",
+				"/usr/bin/quickshell --path=" + shell + "/wallpaper-ui.qml",
+			},
+			want: shell,
+		},
+		{
+			name:    "the shell alone",
+			running: []string{"/usr/bin/quickshell -p " + shell},
+			want:    shell,
+		},
+		{
+			name:    "no shell, no window",
+			wantErr: "no instance of the shell is running",
+		},
+		{
+			name: "a window open and the shell down",
+			running: []string{
+				"/usr/bin/quickshell -p " + shell + "/hub.qml",
+				"/usr/bin/quickshell -p " + shell + "/screenshot.qml",
+			},
+			wantErr: "no instance of the shell is running",
+		},
+	}
+
+	for _, test := range cases {
+		root := t.TempDir()
+		for i, line := range test.running {
+			writeCmdline(t, root, strconv.Itoa(1000+i), line)
+		}
+		got, err := pickShellInstance(scanShellInstances(root))
+		switch {
+		case test.wantErr != "":
+			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
+				t.Errorf("%s: got %q, %v; want the error %q", test.name, got, err, test.wantErr)
+			}
+		case err != nil:
+			t.Errorf("%s: an error it did not expect: %v", test.name, err)
 		case got != test.want:
 			t.Errorf("%s: picks %q; want %q", test.name, got, test.want)
 		}

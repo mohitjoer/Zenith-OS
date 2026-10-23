@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -68,8 +69,20 @@ type Bind struct {
 	// ReleaseAction is what the chord does when the key comes back up, for
 	// the bindings that do something else on the release. The window
 	// switcher is the one: it advances on the press and closes on the
-	// release.
+	// release. The compositor's flag for it is `r` (`bindr`); `bindl` is the
+	// lock-screen flag and fires on the press.
 	ReleaseAction string `json:"releaseAction,omitempty"`
+	// Also lists other chords that do the same thing, so the cheat sheet
+	// draws one row for a thing and the check still accounts for every key:
+	// the other arrow keys, the scroll wheel, the second media key.
+	Also []Alternate `json:"also,omitempty"`
+}
+
+// Alternate is another chord for a catalogue entry. Its argument replaces the
+// entry's when it has one: the other three arrow keys name other directions.
+type Alternate struct {
+	Chord    string `json:"chord"`
+	Argument string `json:"argument,omitempty"`
 }
 
 // Category is a group of bindings.
@@ -124,26 +137,43 @@ const separator = " + "
 // files still agree.
 var modifierOrder = []string{"SUPER", "CTRL", "ALT", "SHIFT"}
 
-// Family is the placeholder that stands for the ten keys of the number row.
+// Family is the placeholder that stands for the number keys.
 //
-// A family of ten keys is one entry in the catalogue and ten binds in the
-// compositor's configuration, and this is the one thing that says so.
+// A family is one entry in the catalogue and thirty binds in the compositor's
+// configuration, and this is the one thing that says so.
 const Family = "{n}"
 
-// familyKeys is the number row, and the number each of its keys stands for.
+type familyKey struct {
+	Key     string
+	Ordinal string
+}
+
+// familyKeys is the number row and the number pad, and the number each key
+// stands for.
 //
 // The tenth is the 0 key, which is the tenth workspace rather than a
 // workspace called zero: the number row has no room for a tenth digit, so
 // the tenth of something is spelled 0. That is Hyprland's own convention and
 // the one its default configuration uses, and the placeholder therefore takes
 // the number of the position rather than the key.
-var familyKeys = []struct {
-	Key     string
-	Ordinal string
-}{
-	{"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"},
-	{"6", "6"}, {"7", "7"}, {"8", "8"}, {"9", "9"}, {"0", "10"},
-}
+//
+// The pad is there twice: as KP_<n>, the keysym with NumLock on, and as the
+// navigation keysym the same key sends with NumLock off, so a shortcut fires
+// either way.
+var familyKeys = func() []familyKey {
+	pad := []string{"KP_End", "KP_Down", "KP_Next", "KP_Left", "KP_Begin",
+		"KP_Right", "KP_Home", "KP_Up", "KP_Prior", "KP_Insert"}
+	var keys []familyKey
+	for _, prefix := range []string{"", "KP_"} {
+		for i := 1; i <= 10; i++ {
+			keys = append(keys, familyKey{prefix + strconv.Itoa(i%10), strconv.Itoa(i)})
+		}
+	}
+	for i, key := range pad {
+		keys = append(keys, familyKey{key, strconv.Itoa(i + 1)})
+	}
+	return keys
+}()
 
 // Chord is a key and the modifiers that go with it.
 type Chord struct {
@@ -234,30 +264,50 @@ func sameOrder(a, b []string) bool {
 // Expanded is one binding of a catalogue entry: a chord, and the action that
 // chord performs.
 //
-// A family of ten keys is one entry in the catalogue and ten of these.
+// A family of keys is one entry in the catalogue and thirty of these.
 type Expanded struct {
 	Chord    string
 	Action   string
 	Argument string
 }
 
-// Expand returns the bindings a catalogue entry covers.
+// Expand returns the bindings a catalogue entry covers, its alternates
+// included.
 //
 // The argument is expanded along with the chord, because a family of
 // workspaces is ten chords and ten different workspaces: "SUPER + {n}" with
 // the argument "{n}" is the tenth workspace on the 0 key and the first on the
 // 1 key, and the two are not the same binding.
 func (b Bind) Expand() ([]Expanded, error) {
-	chord, err := ParseChord(b.Chord)
+	expanded, err := expandChord(b.Chord, b.Action, b.Argument)
+	if err != nil {
+		return nil, err
+	}
+	for _, alternate := range b.Also {
+		argument := b.Argument
+		if alternate.Argument != "" {
+			argument = alternate.Argument
+		}
+		more, err := expandChord(alternate.Chord, b.Action, argument)
+		if err != nil {
+			return nil, err
+		}
+		expanded = append(expanded, more...)
+	}
+	return expanded, nil
+}
+
+func expandChord(text, action, argument string) ([]Expanded, error) {
+	chord, err := ParseChord(text)
 	if err != nil {
 		return nil, err
 	}
 
-	if !strings.Contains(b.Chord, Family) {
+	if !strings.Contains(text, Family) {
 		return []Expanded{{
 			Chord:    chord.String(),
-			Action:   b.Action,
-			Argument: b.Argument,
+			Action:   action,
+			Argument: argument,
 		}}, nil
 	}
 
@@ -268,8 +318,8 @@ func (b Bind) Expand() ([]Expanded, error) {
 				Modifiers: chord.Modifiers,
 				Key:       strings.ReplaceAll(chord.Key, Family, family.Key),
 			}.String(),
-			Action:   b.Action,
-			Argument: strings.ReplaceAll(b.Argument, Family, family.Ordinal),
+			Action:   action,
+			Argument: strings.ReplaceAll(argument, Family, family.Ordinal),
 		})
 	}
 	return expanded, nil
@@ -277,8 +327,9 @@ func (b Bind) Expand() ([]Expanded, error) {
 
 // compositorBind is one bind in the compositor's configuration.
 type compositorBind struct {
-	// Directive is which of Hyprland's forms this is. The ones that matter
-	// here are "bind", for a press, and "bindl", for a release.
+	// Directive is which of Hyprland's forms this is: "bind" plus flags, in
+	// any order. "r" makes it fire on the release; "l" (locked) only lets it
+	// work over the lock screen and does not change when it fires.
 	Directive string
 	// Chord is the key and its modifiers, in the catalogue's spelling.
 	Chord string
@@ -291,22 +342,39 @@ type compositorBind struct {
 	Line int
 }
 
-// bindDirective matches a bind line in the compositor's configuration.
-//
-// The directives are the ones Hyprland has. They are matched longest first,
-// so that "bindel" is not read as "bind" with an "el" left over.
+// bindDirective matches a bind line in the compositor's configuration: "bind"
+// and any of the flags Hyprland defines (l r c g o e n m t i s d p u), so
+// "bindrl" and "bindre" are read as well as "bindr".
 var bindDirective = regexp.MustCompile(
-	`^\s*(bindel|bindem|bindm|bindl|binde|bind)\s*=\s*(.+?)\s*$`)
+	`^\s*(bind[lrcgonmtisdpue]*)\s*=\s*(.+?)\s*$`)
+
+// submapDirective matches the line that opens a submap, and "submap = reset"
+// the one that closes it.
+var submapDirective = regexp.MustCompile(`^\s*submap\s*=\s*([^,\s]+)`)
 
 // parseBinds reads the binds out of the compositor's configuration.
 //
 // Only the bind lines are read. The rest of the file is the compositor's own
-// business — monitors, rules, environment — and none of it is a key.
+// business — monitors, rules, environment — and none of it is a key. Two kinds
+// of bind line are not chords the catalogue lists: the keys inside a submap
+// (resize mode's bare arrows), which only exist while the mode is on, and the
+// lid switch, which is a device.
 func parseBinds(body string) []compositorBind {
 	var binds []compositorBind
+	submap := ""
 	for number, line := range strings.Split(body, "\n") {
+		if match := submapDirective.FindStringSubmatch(line); match != nil {
+			submap = match[1]
+			if submap == "reset" {
+				submap = ""
+			}
+			continue
+		}
 		match := bindDirective.FindStringSubmatch(line)
 		if match == nil {
+			continue
+		}
+		if submap != "" && !strings.Contains(match[1], "u") {
 			continue
 		}
 
@@ -320,7 +388,7 @@ func parseBinds(body string) []compositorBind {
 			continue
 		}
 		key := strings.TrimSpace(fields[1])
-		if key == "" {
+		if key == "" || strings.HasPrefix(key, "switch:") {
 			continue
 		}
 
@@ -376,9 +444,11 @@ func (b compositorBind) describe() string {
 	return action + " " + argument
 }
 
-// isRelease says whether a bind fires when the key comes up.
+// isRelease says whether a bind fires when the key comes up: the `r` flag.
+// `bindl` is the lock-screen flag, and a bind/bindl pair fires both on the
+// press, which is how a switcher once opened and closed in the same instant.
 func (b compositorBind) isRelease() bool {
-	return b.Directive == "bindl" || b.Directive == "bindel"
+	return strings.Contains(strings.TrimPrefix(b.Directive, "bind"), "r")
 }
 
 // covered is a chord the catalogue accounts for, and what it says about it.
@@ -408,7 +478,7 @@ func checkBinds(env Env) []Finding {
 	}
 
 	configPath := filepath.Join(env.Root, env.HyprlandConfig)
-	body, err := os.ReadFile(configPath)
+	body, err := readCompositorConfig(configPath)
 	if err != nil {
 		// A tree with no compositor configuration is not a fault here. The
 		// check is about two files disagreeing, and a tree with one of them
@@ -417,6 +487,28 @@ func checkBinds(env Env) []Finding {
 	}
 
 	return compareBinds(catalogue, cataloguePath, configPath, string(body))
+}
+
+// readCompositorConfig returns the compositor's configuration as one text: the
+// file Hyprland is started with, and every other .conf beside it. The binds are
+// in files the first one sources, and a source line is not worth parsing for
+// the one directory they all live in.
+func readCompositorConfig(path string) ([]byte, error) {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	siblings, _ := filepath.Glob(filepath.Join(filepath.Dir(path), "*.conf"))
+	sort.Strings(siblings)
+	for _, sibling := range siblings {
+		if sibling == path {
+			continue
+		}
+		if more, err := os.ReadFile(sibling); err == nil {
+			body = append(append(body, '\n'), more...)
+		}
+	}
+	return body, nil
 }
 
 // compareBinds reports where the catalogue and the configuration disagree.

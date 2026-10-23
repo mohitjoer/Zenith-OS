@@ -242,14 +242,13 @@ func TestASmallImageIsReadInFull(t *testing.T) {
 
 // TestWriteAndLoadRoundTrip covers the file the shell actually reads.
 func TestWriteAndLoadRoundTrip(t *testing.T) {
-	palette := Palette{
-		Source:     "rain-radio.png",
-		Background: Colour{0.1, 0.1, 0.11},
-		Accent:     Colour{0.9, 0.68, 0.19},
+	roles := map[string]Colour{
+		"surface": {0.1, 0.1, 0.11},
+		"primary": {0.9, 0.68, 0.19},
 	}
 
 	path := filepath.Join(t.TempDir(), "nested", "colors.json")
-	if err := Write(path, palette); err != nil {
+	if err := Write(path, roles); err != nil {
 		t.Fatal(err)
 	}
 
@@ -257,12 +256,11 @@ func TestWriteAndLoadRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Accent.Hex() != palette.Accent.Hex() {
-		t.Errorf("accent %s did not survive the round trip as %s",
-			loaded.Accent.Hex(), palette.Accent.Hex())
-	}
-	if loaded.Source != palette.Source {
-		t.Errorf("source = %q, want %q", loaded.Source, palette.Source)
+	for name, want := range roles {
+		if loaded[name].Hex() != want.Hex() {
+			t.Errorf("%s %s did not survive the round trip as %s",
+				name, loaded[name].Hex(), want.Hex())
+		}
 	}
 }
 

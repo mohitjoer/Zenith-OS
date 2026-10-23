@@ -3,6 +3,7 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -55,7 +56,7 @@ func TestTheRepositorysCatalogueMatchesItsConfiguration(t *testing.T) {
 func TestTheRepositorysCatalogueAndConfigurationUseTheSameSpelling(t *testing.T) {
 	env := repositoryEnv()
 
-	body, err := os.ReadFile(filepath.Join(env.Root, env.HyprlandConfig))
+	body, err := readCompositorConfig(filepath.Join(env.Root, env.HyprlandConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,11 +215,16 @@ func TestAFamilyOfTenKeysIsTenBinds(t *testing.T) {
 }`
 
 	var config strings.Builder
-	for _, key := range []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"} {
-		config.WriteString("bind = SUPER, " + key + ", workspace, " + key + "\n")
+	for i := 1; i <= 10; i++ {
+		ordinal := strconv.Itoa(i)
+		// The last key is 0, and it is the tenth workspace; the pad has the
+		// same ten keys twice, with NumLock on and off.
+		for _, key := range []string{strconv.Itoa(i % 10), "KP_" + strconv.Itoa(i%10),
+			[]string{"KP_End", "KP_Down", "KP_Next", "KP_Left", "KP_Begin",
+				"KP_Right", "KP_Home", "KP_Up", "KP_Prior", "KP_Insert"}[i-1]} {
+			config.WriteString("bind = SUPER, " + key + ", workspace, " + ordinal + "\n")
+		}
 	}
-	// The last key is 0, and it is the tenth workspace.
-	config.WriteString("bind = SUPER, 0, workspace, 10\n")
 
 	env := bindsTree(t, catalogue, config.String())
 	findings := checkBinds(env)
@@ -241,8 +247,19 @@ func TestTheTenthKeyIsTheTenthOne(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(expanded) != 10 {
-		t.Fatalf("a family of ten keys expanded to %d", len(expanded))
+	if len(expanded) != 30 {
+		t.Fatalf("the number row and the pad expanded to %d, want 30", len(expanded))
+	}
+	for _, want := range []string{"SUPER + KP_0", "SUPER + KP_Insert"} {
+		found := false
+		for _, item := range expanded {
+			if item.Chord == want && item.Argument == "10" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%q is not the tenth workspace", want)
+		}
 	}
 	if expanded[9].Chord != "SUPER + 0" {
 		t.Errorf("the tenth key is %q, want %q", expanded[9].Chord, "SUPER + 0")
@@ -394,7 +411,9 @@ func TestACatalogueEntryMustHaveAKindTheRulesKnow(t *testing.T) {
 //
 // The catalogue says the press advances and the release closes, and a
 // configuration with only the press is a switcher that keeps its overlay up
-// after the user let go of the key.
+// after the user let go of the key. The release is `bindr`: `bindl` is the
+// lock-screen flag and fires on the press, so a press/bindl pair opens and
+// closes the card in the same instant.
 func TestAReleaseBindingIsChecked(t *testing.T) {
 	const catalogue = `{
   "categories": [{ "id": "desktop", "label": "Desktop" }],
@@ -403,7 +422,7 @@ func TestAReleaseBindingIsChecked(t *testing.T) {
       "id": "switcher",
       "category": "desktop",
       "label": "Switch to another window",
-      "chord": "SUPER + Tab",
+      "chord": "ALT + Tab",
       "kind": "shell",
       "action": "advanceSwitcher",
       "releaseAction": "closeSwitcher"
@@ -411,18 +430,22 @@ func TestAReleaseBindingIsChecked(t *testing.T) {
   ]
 }`
 
-	press := "bind = SUPER, Tab, exec, quickshell ipc --path /usr/share/zenith/shell call zenith advanceSwitcher\n"
-	release := "bindl = SUPER, Tab, exec, quickshell ipc --path /usr/share/zenith/shell call zenith closeSwitcher\n"
+	press := "bind = ALT, Tab, exec, zenith ipc call zenith advanceSwitcher\n"
+	release := "bindr = ALT, Tab, exec, zenith ipc call zenith closeSwitcher\n"
 
-	env := bindsTree(t, catalogue, press+release)
-	for _, finding := range checkBinds(env) {
-		if finding.Rule == "keybind" {
-			t.Errorf("a switcher with both bindings reported a finding: %s",
-				finding.Detail)
+	// Every spelling of a release Hyprland allows counts.
+	for _, directive := range []string{"bindr", "bindrl", "bindlr", "bindre"} {
+		env := bindsTree(t, catalogue, press+
+			strings.Replace(release, "bindr", directive, 1))
+		for _, finding := range checkBinds(env) {
+			if finding.Rule == "keybind" {
+				t.Errorf("%s as the release reported a finding: %s",
+					directive, finding.Detail)
+			}
 		}
 	}
 
-	env = bindsTree(t, catalogue, press)
+	env := bindsTree(t, catalogue, press)
 	found := false
 	for _, finding := range checkBinds(env) {
 		if finding.Rule == "keybind" &&
@@ -432,5 +455,63 @@ func TestAReleaseBindingIsChecked(t *testing.T) {
 	}
 	if !found {
 		t.Error("a switcher with no release binding was not found")
+	}
+
+	// bindl is not a release: it fires on the press.
+	env = bindsTree(t, catalogue, press+strings.Replace(release, "bindr", "bindl", 1))
+	found = false
+	for _, finding := range checkBinds(env) {
+		if finding.Rule == "keybind" &&
+			strings.Contains(finding.Detail, "closeSwitcher") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("a switcher closed by bindl, which fires on the press, was accepted")
+	}
+}
+
+// TestAlternatesSubmapsAndTheLidAreRead covers what the repository's real
+// configuration leans on: an entry's other chords, binds inside a submap
+// (resize mode's bare arrows), the lid switch, and binds in a second file.
+func TestAlternatesSubmapsAndTheLidAreRead(t *testing.T) {
+	const catalogue = `{
+  "categories": [{ "id": "windows", "label": "Windows" }],
+  "binds": [
+    {
+      "id": "focus",
+      "category": "windows",
+      "label": "Focus the window in that direction",
+      "chord": "SUPER + Left",
+      "kind": "wm",
+      "action": "movefocus",
+      "argument": "l",
+      "also": [{ "chord": "SUPER + Right", "argument": "r" }]
+    }
+  ]
+}`
+	env := bindsTree(t, catalogue, "source = binds.conf\n")
+	writeTreeFile(t, env, "session/hyprland/binds.conf",
+		"bind = SUPER, Left, movefocus, l\n"+
+			"bind = SUPER, Right, movefocus, r\n"+
+			"bindl = , switch:on:Lid Switch, exec, zenith-clamshell lid close\n"+
+			"submap = resize\n"+
+			"binde = , Left, resizeactive, -40 0\n"+
+			"submap = reset\n")
+	if findings := checkBinds(env); len(findings) != 0 {
+		t.Errorf("alternates, a submap and the lid reported findings: %v", findings)
+	}
+
+	// The alternate is accounted for: dropping its bind is a finding.
+	writeTreeFile(t, env, "session/hyprland/binds.conf",
+		"bind = SUPER, Left, movefocus, l\n")
+	found := false
+	for _, finding := range checkBinds(env) {
+		if strings.Contains(finding.Detail, "SUPER + Right") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("an alternate chord with no bind was not found")
 	}
 }

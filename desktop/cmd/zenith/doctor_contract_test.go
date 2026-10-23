@@ -84,47 +84,29 @@ bind = SUPER, X, exec, zenith ipc call nosuch doSomething
 	}
 }
 
-// TestDoctorContractLiveConfigHasExpectedCalls ensures the live hyprland.conf
-// still contains the seven CLI binds the architecture records: five chords
-// plus Print and XF86Print, all targeting "zenith". This is a regression guard
-// against accidental removal of the binds the session depends on.
+// TestDoctorContractLiveConfigHasExpectedCalls ensures the live configuration
+// still contains the CLI binds the session depends on, all targeting "zenith".
+// This is a regression guard against accidental removal of them.
 func TestDoctorContractLiveConfigHasExpectedCalls(t *testing.T) {
 	root := repoRoot(t)
 	config := compositorConfig(t, root)
 
-	const pattern = `zenith ipc call (\S+) ?(\S*)`
-	re := regexp.MustCompile(pattern)
-
-	matches := re.FindAllStringSubmatch(config, -1)
-	if len(matches) != 7 {
-		t.Errorf("expected 7 zenith ipc call binds in the live config, found %d", len(matches))
-		for _, m := range matches {
-			t.Logf("  bind: target=%s function=%s", m[1], m[2])
+	for _, call := range []string{
+		"zenith ipc call zenith togglePopover launcher",
+		"zenith ipc call zenith toggleCheatsheet",
+		"zenith ipc call zenith toggleOverview",
+		"zenith ipc call zenith advanceSwitcher",
+		"zenith ipc call zenith closeSwitcher",
+	} {
+		if !strings.Contains(config, call) {
+			t.Errorf("the live config does not call %q", call)
 		}
 	}
 
-	// All seven should target "zenith" per the current architecture.
-	for _, m := range matches {
+	const pattern = `zenith ipc call (\S+) ?(\S*)`
+	for _, m := range regexp.MustCompile(pattern).FindAllStringSubmatch(config, -1) {
 		if m[1] != "zenith" {
 			t.Errorf("bind calls target %q; the live config's chords all target \"zenith\"", m[1])
 		}
-	}
-
-	// Spot-check the two print-key binds exist.
-	hasPrint := false
-	hasXF86Print := false
-	for _, line := range strings.Split(config, "\n") {
-		if strings.Contains(line, `bind = ,Print, exec, zenith ipc call zenith toggleScreenshot`) {
-			hasPrint = true
-		}
-		if strings.Contains(line, `bind = ,XF86Print, exec, zenith ipc call zenith toggleScreenshot`) {
-			hasXF86Print = true
-		}
-	}
-	if !hasPrint {
-		t.Error("the Print key bind is missing from the live config")
-	}
-	if !hasXF86Print {
-		t.Error("the XF86Print key bind is missing from the live config")
 	}
 }

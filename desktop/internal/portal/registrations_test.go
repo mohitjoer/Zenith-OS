@@ -222,3 +222,35 @@ func TestUnitsPassWhenTheirBinariesExist(t *testing.T) {
 		t.Errorf("a complete unit tree reported findings: %v", findings)
 	}
 }
+
+// A unit another lane adds is checked without this package being edited for
+// it: it has to be registered, and what it runs has to exist. The prefix
+// systemd allows in front of the path is not part of the path.
+func TestShippedUnitsBeyondTheClosedListAreChecked(t *testing.T) {
+	env := installedTree(t)
+	writeFile(t, filepath.Join(env.Root, "/usr/share/zenith/units/zenithd.service"),
+		"[Service]\nExecStart=-/usr/bin/zenith-shell daemon\n")
+
+	reasons := map[string]string{}
+	for _, finding := range append(CheckRegistrations(env), CheckUnits(env)...) {
+		reasons[finding.Name] += finding.Reason + ";"
+	}
+	got := reasons["zenithd.service"]
+	if !strings.Contains(got, "not installed") || !strings.Contains(got, "/usr/bin/zenith-shell, which does not exist") {
+		t.Fatalf("the new unit was not checked in both ways: %q", got)
+	}
+
+	writeFile(t, filepath.Join(env.Root, "/usr/lib/systemd/user/zenithd.service"), "[Unit]\n")
+	mkdirAll(t, filepath.Join(env.Root, "/usr/bin"))
+	writeFile(t, filepath.Join(env.Root, "/usr/bin/zenith-shell"), "#!/bin/sh\n")
+	for _, finding := range CheckRegistrations(env) {
+		if finding.Name == "zenithd.service" {
+			t.Errorf("a registered unit is still reported: %+v", finding)
+		}
+	}
+	for _, finding := range CheckUnits(env) {
+		if finding.Name == "zenithd.service" {
+			t.Errorf("a unit whose binary exists is still reported: %+v", finding)
+		}
+	}
+}

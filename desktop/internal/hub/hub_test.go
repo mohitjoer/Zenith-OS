@@ -151,6 +151,35 @@ func TestTwoPagesOwningOneSettingIsFound(t *testing.T) {
 	}
 }
 
+// TestUnreadListStaysTrue keeps the exception to the invariant honest.
+//
+// A setting on the Unread list has no page on purpose. If it is also on a page
+// the list is wrong, and if no schema declares it the entry is a leftover; either
+// way the list would go on excusing settings it no longer describes.
+func TestUnreadListStaysTrue(t *testing.T) {
+	savedPages, savedUnread := Pages, Unread
+	defer func() { Pages, Unread = savedPages, savedUnread }()
+
+	Pages = []Page{{Slug: "one", Title: "One",
+		Keys: []string{"org.zenith.desktop.idle-dim-seconds"}}}
+	Unread = map[string]string{
+		"org.zenith.desktop.idle-dim-seconds": "on a page as well",
+		"org.zenith.shell.no-such-key":        "declared by no schema",
+	}
+
+	var onBoth, leftover bool
+	for _, f := range Check(realCatalogue(t)) {
+		onBoth = onBoth || strings.Contains(f.Reason, "on the Unread list; a setting")
+		leftover = leftover || strings.Contains(f.Reason, "no schema declares it; delete")
+	}
+	if !onBoth {
+		t.Error("a setting on a page and on the Unread list was not reported")
+	}
+	if !leftover {
+		t.Error("an Unread entry that no schema declares was not reported")
+	}
+}
+
 // TestQualifiedRefSplitsOnTheLastDot covers the parse.
 //
 // Schema ids contain dots and key names cannot, so the last dot is the separator.

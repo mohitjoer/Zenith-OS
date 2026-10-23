@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,14 +13,38 @@ import (
 const themeUsage = `zenith theme — take the desktop's colours from one image
 
 Usage:
-  zenith theme generate IMAGE   write a palette from IMAGE
+  zenith theme generate [flags] IMAGE   write the shell's palette from IMAGE
+  zenith theme render --config CONFIG --palette CARRIER
+                                fill the templates CONFIG names from CARRIER
   zenith theme current          print the palette in use
   zenith theme list IMAGEDIR    what each image in a directory would produce
   zenith theme check            assert the palette in use is readable
 
-The palette is written to $XDG_CACHE_HOME/zenith/colors.json. The shell reads
-that file rather than deriving colours itself, so picking a wallpaper repaints
-the system and nothing has to restart.
+generate flags (matugen's names; the daemon passes them):
+  --image PATH             the image, instead of the argument
+  --mode dark|light|smart  smart (default) follows the image's brightness
+  --scheme NAME            monochrome (default), tonal-spot, neutral, vibrant,
+                           expressive, fruit-salad, rainbow, fidelity, content
+  --contrast N             -1 to 1
+  --lightness-dark N       --lightness-light N
+  --source-color-index N   which wallpaper colour seeds the scheme, 0 is the best
+  --json                   print matugen's JSON on stdout and write nothing
+  --prefer, --dry-run      accepted and ignored: an explicit index wins, as in
+                           matugen, and --json already writes nothing
+
+The palette is written to $XDG_CACHE_HOME/zenith/colors.json, with the tonal
+ramps beside it in tones.json. The shell reads those files rather than deriving
+colours itself, so picking a wallpaper repaints the system and nothing has to
+restart. docs/theming.md has the keys and who writes them.
+`
+
+const renderUsage = `Usage: zenith theme render --config CONFIG --palette CARRIER
+
+Fills every [templates.NAME] block in CONFIG (matugen's file format) from the
+colours in CARRIER, a JSON file shaped {"colors": {NAME: {"default": {"hex":
+"#rrggbb", ...}, "dark": ..., "light": ...}}}, and writes each output_path.
+A file that is not ours, or that has a user edit, is reported and left alone.
+matugen's own spelling, -c CONFIG [json] CARRIER, is accepted too.
 `
 
 func zenithTheme(args []string) int {
@@ -31,6 +56,8 @@ func zenithTheme(args []string) int {
 	switch args[0] {
 	case "generate":
 		return themeGenerate(args[1:])
+	case "render":
+		return themeRender(args[1:])
 	case "current":
 		return themeCurrent()
 	case "list":
@@ -60,64 +87,159 @@ func themeOutputPath() string {
 }
 
 func themeGenerate(args []string) int {
-	if len(args) != 1 {
+	set := newFlags("theme generate", themeUsage)
+	var (
+		image      = set.String("image", "", "")
+		mode       = set.String("mode", "smart", "")
+		scheme     = set.String("scheme", theme.DefaultScheme, "")
+		contrast   = set.Float64("contrast", 0, "")
+		lightDark  = set.Float64("lightness-dark", 0, "")
+		lightLight = set.Float64("lightness-light", 0, "")
+		index      = set.Int("source-color-index", 0, "")
+		asJSON     = set.Bool("json", false, "")
+	)
+	set.String("prefer", "", "")
+	set.Bool("dry-run", false, "")
+	positional, err := parseFlags(set, args)
+	if err != nil {
+		return exitUsage
+	}
+	path := *image
+	if path == "" && len(positional) == 1 {
+		path, positional = positional[0], nil
+	}
+	if path == "" || len(positional) > 0 {
 		fmt.Fprintln(os.Stderr, "zenith theme generate: needs one image")
 		return exitUsage
 	}
-	path := args[0]
 
 	palette, err := theme.Extract(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "zenith theme:", err)
 		return exitFail
 	}
+	var dark bool
+	switch *mode {
+	case "dark", "light":
+		dark = *mode == "dark"
+	case "smart":
+		dark = palette.Dark()
+	default:
+		fmt.Fprintf(os.Stderr, "zenith theme generate: --mode is dark, light or smart, not %q\n", *mode)
+		return exitUsage
+	}
 
-	// Checked before the write, not after. A palette that is written and then
-	// found unreadable has already been adopted by whatever watches the file.
-	if problems := palette.Check(); len(problems) != 0 {
-		fmt.Fprintf(os.Stderr,
-			"zenith theme: refusing to write a palette that is not readable:\n")
-		for _, problem := range problems {
-			fmt.Fprintf(os.Stderr, "  %s\n", problem)
+	seed := palette.Ranked[max(0, min(*index, len(palette.Ranked)-1))]
+	generated, err := theme.Generate(seed, theme.Options{
+		Scheme: *scheme, Contrast: *contrast, LightnessDark: *lightDark, LightnessLight: *lightLight,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "zenith theme generate:", err)
+		return exitUsage
+	}
+
+	if *asJSON {
+		body, err := json.MarshalIndent(generated.Matugen(dark), "", "  ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "zenith theme:", err)
+			return exitFail
 		}
-		return exitFail
+		fmt.Println(string(body))
+		return exitOK
 	}
 
 	out := themeOutputPath()
-	if err := theme.Write(out, palette); err != nil {
+	if err := theme.Write(out, theme.ShellColors(generated.Flat(dark))); err != nil {
+		fmt.Fprintln(os.Stderr, "zenith theme:", err)
+		return exitFail
+	}
+	if err := theme.Write(filepath.Join(filepath.Dir(out), "tones.json"), generated.Tones()); err != nil {
 		fmt.Fprintln(os.Stderr, "zenith theme:", err)
 		return exitFail
 	}
 
-	printPalette(palette)
+	modeName := "light"
+	if dark {
+		modeName = "dark"
+	}
+	fmt.Printf("from      %s  (%s, %s, seed %s)\n", palette.Source, modeName, generated.Name, seed.Hex())
+	if roles, err := theme.Load(out); err == nil {
+		printRoles(roles)
+	}
 	fmt.Printf("\nwritten to %s\n", out)
+	return exitOK
+}
+
+// themeRender is matugen's templating pass. The daemon calls it with --config and
+// --palette; matugen's own `-c CONFIG json CARRIER` works too, so a script written
+// for matugen needs only the executable swapped.
+func themeRender(args []string) int {
+	set := newFlags("theme render", renderUsage)
+	config := set.String("c", "", "")
+	set.StringVar(config, "config", "", "")
+	palette := set.String("palette", "", "")
+	positional, err := parseFlags(set, args)
+	if err != nil {
+		return exitUsage
+	}
+	if len(positional) > 0 && positional[0] == "json" {
+		positional = positional[1:]
+	}
+	carrierPath := *palette
+	if carrierPath == "" && len(positional) == 1 {
+		carrierPath, positional = positional[0], nil
+	}
+	if *config == "" || carrierPath == "" || len(positional) > 0 {
+		fmt.Fprint(os.Stderr, renderUsage)
+		return exitUsage
+	}
+
+	body, err := os.ReadFile(carrierPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "zenith theme render:", err)
+		return exitFail
+	}
+	var carrier map[string]any
+	if err := json.Unmarshal(body, &carrier); err != nil {
+		fmt.Fprintf(os.Stderr, "zenith theme render: %s: %v\n", carrierPath, err)
+		return exitFail
+	}
+
+	done, err := theme.Render(*config, carrier)
+	for _, r := range done {
+		fmt.Printf("%-14s %-22s %s\n", r.Block, r.Status, r.Dest)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "zenith theme render:", err)
+		return exitFail
+	}
 	return exitOK
 }
 
 func themeCurrent() int {
 	path := themeOutputPath()
-	palette, err := theme.Load(path)
+	roles, err := theme.Load(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "zenith theme current:", err)
 		fmt.Fprintf(os.Stderr,
 			"  no palette has been generated yet; run `zenith theme generate IMAGE`\n")
 		return exitFail
 	}
-	printPalette(palette)
+	printRoles(roles)
 	return exitOK
 }
 
 // themeCheck exists so the shell check can call the same assertion the generator
-// does, rather than reimplementing the thresholds.
+// is built to satisfy, rather than reimplementing the thresholds.
 func themeCheck() int {
 	path := themeOutputPath()
-	palette, err := theme.Load(path)
+	roles, err := theme.Load(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "zenith theme check:", err)
 		return exitFail
 	}
 
-	if problems := palette.Check(); len(problems) != 0 {
+	if problems := theme.CheckRoles(roles); len(problems) != 0 {
 		fmt.Fprintf(os.Stderr, "zenith theme check: %d problem(s):\n", len(problems))
 		for _, problem := range problems {
 			fmt.Fprintf(os.Stderr, "  %s\n", problem)
@@ -125,7 +247,7 @@ func themeCheck() int {
 		return exitFail
 	}
 
-	fmt.Printf("palette from %s is readable at every pair\n", palette.Source)
+	fmt.Printf("palette in %s is readable at every pair\n", path)
 	return exitOK
 }
 
@@ -185,23 +307,11 @@ func themeList(args []string) int {
 	return exitOK
 }
 
-func printPalette(palette theme.Palette) {
-	dark := "dark"
-	if palette.Luminance >= 0.35 {
-		dark = "light"
-	}
-	fmt.Printf("from      %s  (%s, mean luminance %.3f)\n",
-		palette.Source, dark, palette.Luminance)
-	rows := []struct{ name, value string }{
-		{"background", palette.Background.Hex()},
-		{"surface", palette.Surface.Hex()},
-		{"text", palette.Text.Hex()},
-		{"dim text", palette.TextDim.Hex()},
-		{"border", palette.Border.Hex()},
-		{"accent", palette.Accent.Hex()},
-		{"on accent", palette.OnAccent.Hex()},
-	}
-	for _, row := range rows {
-		fmt.Printf("%-10s %s\n", row.name, row.value)
+func printRoles(roles map[string]theme.Colour) {
+	for _, name := range []string{
+		"surface", "onSurface", "onSurfaceVariant", "primary", "onPrimary",
+		"secondary", "tertiary", "outline", "error",
+	} {
+		fmt.Printf("%-18s %s\n", name, roles[name].Hex())
 	}
 }

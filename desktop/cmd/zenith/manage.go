@@ -6,10 +6,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"zenith/desktop/internal/hub"
 	"zenith/desktop/internal/overlay"
 	"zenith/desktop/internal/portal"
+	"zenith/desktop/internal/runner"
 	"zenith/desktop/internal/shell"
 )
 
@@ -84,6 +86,15 @@ func zenithUpdate(args []string) int {
 	fmt.Printf("updated to revision %s\n", status.Revision)
 	fmt.Printf("config materialized; %d user edit(s), %d stale, %d missing\n",
 		status.Edits, status.Stale, status.Missing)
+
+	// materialize never rewrites a user's shell.json, so the one value Zenith
+	// renamed is fixed here. It is reported and never fails the update: the
+	// packages are already in.
+	if msg, err := reconcileShellConfig(filepath.Join(paths.Config, "shell.json"), true); err != nil {
+		fmt.Fprintln(os.Stderr, "zenith update:", err)
+	} else if msg != "" {
+		fmt.Println(msg)
+	}
 	return exitOK
 }
 
@@ -166,11 +177,16 @@ func zenithReset(args []string) int {
 
 // zenithDoctor reports drift between base and overlay.
 //
-// It changes nothing. A diagnostic that repairs is not a diagnostic, and the
-// moment it repairs, a user cannot tell what was wrong before they changed it.
+// It changes nothing, unless it is asked to with --fix, and then only what the
+// config section below names. A diagnostic that repairs on its own is not a
+// diagnostic, and the moment it repairs, a user cannot tell what was wrong
+// before they changed it.
 func zenithDoctor(args []string) int {
 	set := newFlags("doctor", doctorUsage)
-	var root = set.String("root", "", "operate on a tree under this directory")
+	var (
+		root = set.String("root", "", "operate on a tree under this directory")
+		fix  = set.Bool("fix", false, "apply the fixes the config section offers")
+	)
 	if err := set.Parse(args); err != nil {
 		return exitUsage
 	}
@@ -192,7 +208,7 @@ func zenithDoctor(args []string) int {
 	// configuration would go unnoticed.
 	if len(findings) == 0 {
 		fmt.Println("no drift: the config tree matches the base")
-		return reportSessionChecks(*root)
+		return reportSessionChecks(*root, paths, *fix)
 	}
 
 	counts := map[string]int{}
@@ -225,7 +241,7 @@ func zenithDoctor(args []string) int {
 	// is a dispatcher trying to activate a backend that is not installed. Nothing
 	// is printed and nothing fails, and the symptom is a file chooser that is
 	// wrong.
-	return reportSessionChecks(*root)
+	return reportSessionChecks(*root, paths, *fix)
 }
 
 // reportSessionChecks runs the checks that are not about drift between the base
@@ -238,7 +254,7 @@ func zenithDoctor(args []string) int {
 // where nothing else has gone wrong, which is the machine where a silently
 // misread portal configuration or a registration pointing at nothing would go
 // unnoticed.
-func reportSessionChecks(root string) int {
+func reportSessionChecks(root string, paths overlay.Paths, fix bool) int {
 	code := reportPortals(root)
 	if registrationCode := reportRegistrations(root); registrationCode != exitOK {
 		code = registrationCode
@@ -252,7 +268,36 @@ func reportSessionChecks(root string) int {
 	if hubCode := reportHub(root); hubCode != exitOK {
 		code = hubCode
 	}
+	if configCode := reportConfig(paths, fix); configCode != exitOK {
+		code = configCode
+	}
+	if commandsCode := reportCommands(root); commandsCode != exitOK {
+		code = commandsCode
+	}
+	reportDeps(root, runner.Exec(10*time.Second))
 	return code
+}
+
+// reportConfig names what the user's own config carries that Zenith has since
+// renamed, and with --fix renames it. See reconcile.go.
+//
+// A value left to be renamed is not a failure: the next `zenith update` renames
+// it too, and a doctor that exited non-zero over it would train people to stop
+// reading the exit code.
+func reportConfig(paths overlay.Paths, fix bool) int {
+	fmt.Println()
+	fmt.Println("Config")
+	msg, err := reconcileShellConfig(filepath.Join(paths.Config, "shell.json"), fix)
+	switch {
+	case err != nil:
+		fmt.Printf("  unreadable        %v\n", err)
+		return exitFail
+	case msg == "":
+		fmt.Println("  shell.json        nothing renamed since it was written")
+	default:
+		fmt.Printf("  %s\n", msg)
+	}
+	return exitOK
 }
 
 // reportHub checks the claim that every setting has a Hub page and every page
@@ -413,6 +458,28 @@ func reportShell(root string) int {
 	return exitFail
 }
 
+// installedCompositorConfig is the compositor's entry file and every .conf
+// beside it. The binds and the autostart live in files the entry sources, and a
+// check that only asks whether something is said anywhere is not worth a
+// parser for source lines: reading the directory is what the shell's own bind
+// checks do too.
+func installedCompositorConfig(root, entry string) (string, error) {
+	body, err := os.ReadFile(filepath.Join(root, entry))
+	if err != nil {
+		return "", err
+	}
+	siblings, _ := filepath.Glob(filepath.Join(root, filepath.Dir(entry), "*.conf"))
+	for _, sibling := range siblings {
+		if filepath.Base(sibling) == filepath.Base(entry) {
+			continue
+		}
+		if more, err := os.ReadFile(sibling); err == nil {
+			body = append(append(body, '\n'), more...)
+		}
+	}
+	return string(body), nil
+}
+
 // reportSession asserts that the session can actually reach the shell.
 //
 // Everything checked here is one link in a chain that ends with a grey screen
@@ -458,11 +525,11 @@ func reportSession(root string) int {
 	// not mention the script is a session that starts a compositor and
 	// nothing else.
 	const compositorConfig = "/usr/share/zenith/hyprland/hyprland.conf"
-	config, err := os.ReadFile(filepath.Join(root, compositorConfig))
+	config, err := installedCompositorConfig(root, compositorConfig)
 	if err != nil {
 		fmt.Printf("  %-22s %s is not installed\n", "compositor", compositorConfig)
 		problems++
-	} else if !strings.Contains(string(config), "exec-once = "+activate) {
+	} else if !strings.Contains(config, "exec-once = "+activate) {
 		fmt.Printf("  %-22s %s does not start the session; the shell will "+
 			"not come up\n", "compositor", compositorConfig)
 		problems++
@@ -482,13 +549,13 @@ func reportSession(root string) int {
 		fmt.Printf("  %-22s %s is not installed\n", "keybinds", shellDir)
 		problems++
 	} else {
-		ipc, err := os.ReadFile(filepath.Join(root, compositorConfig))
+		ipc, err := installedCompositorConfig(root, compositorConfig)
 		if err != nil {
 			fmt.Printf("  %-22s the compositor's configuration is not installed\n",
 				"keybinds")
 			problems++
 		} else {
-			body := string(ipc)
+			body := ipc
 			switch {
 			case strings.Contains(body, "zenith ipc call"):
 				fmt.Printf("  %-22s call the shell through the zenith CLI, which "+
@@ -606,9 +673,19 @@ func homeDir() string {
 // zenithStatus is the one-glance answer.
 func zenithStatus(args []string) int {
 	set := newFlags("status", statusUsage)
-	var root = set.String("root", "", "operate on a tree under this directory")
+	var (
+		root   = set.String("root", "", "operate on a tree under this directory")
+		asJSON = set.Bool("json", false, "print the update report the shell reads, as one JSON line")
+	)
 	if err := set.Parse(args); err != nil {
 		return exitUsage
+	}
+
+	// The daemon calls this on a timer and publishes the line unread. It is
+	// answered before the overlay is touched: the report is about packages, and
+	// an update check that failed because of the config tree would be silent.
+	if *asJSON {
+		return statusJSON(*root, os.Stdout, runner.Exec(2*time.Minute))
 	}
 
 	paths, err := overlayPaths(*root)
@@ -630,6 +707,12 @@ func zenithStatus(args []string) int {
 	fmt.Printf("overlay:   %s\n", paths.Edits)
 	fmt.Printf("edits:     %d\n", status.Edits)
 	fmt.Printf("drift:     %d stale, %d missing\n", status.Stale, status.Missing)
+
+	// The running machine is not part of a --root tree, so a fixture is not
+	// asked about it: the answer would be about the wrong system.
+	if *root == "" {
+		printLiveStatus(os.Stdout, runner.Exec(5*time.Second))
+	}
 	return exitOK
 }
 

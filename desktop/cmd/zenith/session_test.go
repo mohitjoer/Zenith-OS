@@ -34,13 +34,23 @@ func repoRoot(t *testing.T) string {
 }
 
 // compositorConfig is the compositor's configuration: the file that says what
-// the keyboard does and what the session starts.
+// the session starts, then every other .conf beside it, which is where the
+// keyboard is described.
 func compositorConfig(t *testing.T, root string) string {
 	t.Helper()
-	path := filepath.Join(root, "session", "hyprland", "hyprland.conf")
-	body, err := os.ReadFile(path)
+	dir := filepath.Join(root, "session", "hyprland")
+	body, err := os.ReadFile(filepath.Join(dir, "hyprland.conf"))
 	if err != nil {
 		t.Skipf("the compositor's configuration is not in the checkout: %v", err)
+	}
+	siblings, _ := filepath.Glob(filepath.Join(dir, "*.conf"))
+	for _, sibling := range siblings {
+		if filepath.Base(sibling) == "hyprland.conf" {
+			continue
+		}
+		if more, err := os.ReadFile(sibling); err == nil {
+			body = append(append(body, '\n'), more...)
+		}
 	}
 	return string(body)
 }

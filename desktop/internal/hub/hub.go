@@ -14,6 +14,9 @@
 //
 // The second is the worse one, because the first at least leaves a trace in the
 // tool's help.
+//
+// The one exception is a setting nothing reads (Unread): it has no page on
+// purpose, because a page for it would be the second fault.
 package hub
 
 import (
@@ -45,45 +48,6 @@ type Page struct {
 // shell's widget catalogue, and it is listed explicitly for the same reason.
 var Pages = []Page{
 	{
-		Slug:    "appearance",
-		Title:   "Appearance",
-		Summary: "Colour scheme and wallpaper",
-		Keys: []string{
-			"org.zenith.desktop.color-scheme",
-			"org.zenith.shell.wallpaper-path",
-			"org.zenith.shell.wallpaper-path-dark",
-		},
-	},
-	{
-		Slug:    "bar",
-		Title:   "Bar",
-		Summary: "Position, height and which widgets are on it",
-		Keys: []string{
-			"org.zenith.shell.bar-position",
-			"org.zenith.shell.bar-height",
-			"org.zenith.shell.bar-widgets",
-		},
-	},
-	{
-		Slug:    "dock",
-		Title:   "Dock",
-		Summary: "Position, auto-hide and pinned applications",
-		Keys: []string{
-			"org.zenith.shell.dock-position",
-			"org.zenith.shell.dock-autohide",
-			"org.zenith.shell.favorites",
-		},
-	},
-	{
-		Slug:    "launcher",
-		Title:   "Launcher",
-		Summary: "Which applications it offers and how it lays out",
-		Keys: []string{
-			"org.zenith.shell.launcher-apps",
-			"org.zenith.shell.launcher-columns",
-		},
-	},
-	{
 		Slug:    "idle",
 		Title:   "Idle and Locking",
 		Summary: "When the screen dims, blanks and locks",
@@ -93,6 +57,30 @@ var Pages = []Page{
 			"org.zenith.desktop.idle-lock-seconds",
 		},
 	},
+}
+
+// Unread lists the settings that have a command and no page, because nothing in
+// the running desktop reads them. A control for one is a control wired to
+// nothing, which is the second fault above in another form: the user changes it
+// and the desktop stays as it was. Each reason is what was found when the key was
+// put here. The day something reads the key it comes off this list and onto a
+// page, and Check reports a key that is on both.
+//
+// The schemas still declare them: the legacy shell (legacy-shell.qml and the
+// files at the shell's root) reads them, and the importer in internal/adopt
+// writes some of them.
+var Unread = map[string]string{
+	"org.zenith.desktop.color-scheme":      "read once by zenith-wallpaper to pick a fresh account's starting wallpaper, never again",
+	"org.zenith.shell.wallpaper-path":      "read once by zenith-wallpaper for a fresh account's starting wallpaper, never again",
+	"org.zenith.shell.wallpaper-path-dark": "read once by zenith-wallpaper for a fresh account's starting wallpaper, never again",
+	"org.zenith.shell.bar-position":        "no reader",
+	"org.zenith.shell.bar-height":          "no reader",
+	"org.zenith.shell.bar-widgets":         "read only by the legacy shell's Bar.qml",
+	"org.zenith.shell.dock-position":       "no reader",
+	"org.zenith.shell.dock-autohide":       "read only by the legacy shell's Dock.qml",
+	"org.zenith.shell.favorites":           "read only by the legacy shell's Dock.qml",
+	"org.zenith.shell.launcher-apps":       "read only by the legacy shell's Launcher.qml",
+	"org.zenith.shell.launcher-columns":    "no reader",
 }
 
 // Control is the widget a setting is edited with.
@@ -245,12 +233,32 @@ func Check(catalogue *settings.Catalogue) []Finding {
 	// Direction one: a setting with a command and no page.
 	for _, ref := range catalogue.Refs() {
 		qualified := ref.Schema + "." + ref.Key
-		if _, ok := owned[qualified]; !ok {
+		_, unread := Unread[qualified]
+		if _, ok := owned[qualified]; !ok && !unread {
 			findings = append(findings, Finding{
 				Ref: qualified,
 				Reason: "can be changed with `zenith config set` but no Hub " +
 					"page shows it, so the only way to change it is to " +
 					"remember a command line",
+			})
+		}
+	}
+
+	for qualified := range Unread {
+		if page, ok := owned[qualified]; ok {
+			findings = append(findings, Finding{
+				Page: page,
+				Ref:  qualified,
+				Reason: "is on this page and on the Unread list; a setting " +
+					"with a reader belongs on a page, one without belongs on " +
+					"the list",
+			})
+		}
+		if !catalogue.Has(qualifiedRef(qualified)) {
+			findings = append(findings, Finding{
+				Ref: qualified,
+				Reason: "is on the Unread list and no schema declares it; " +
+					"delete the entry",
 			})
 		}
 	}

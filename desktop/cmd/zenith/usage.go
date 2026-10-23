@@ -83,16 +83,20 @@ command that destroys a change you made, so it takes exactly one path.
 
 const doctorUsage = `Usage: zenith doctor [flags]
 
-Reports drift between the base and the config tree. It changes nothing.
+Reports drift between the base and the config tree. It changes nothing unless
+asked to: --fix renames the values Zenith has renamed in your shell.json.
 
   --root DIR   operate on a tree under this directory
+  --fix        apply the renames the Config section offers
 `
 
 const statusUsage = `Usage: zenith status [flags]
 
-The current revision, the paths in use, and how much drift there is.
+The current revision, the paths in use, how much drift there is, and whether
+the shell and the daemon are up.
 
   --root DIR   operate on a tree under this directory
+  --json       the update report the shell reads, as one line of JSON
 `
 
 const bindsUsage = `Usage: zenith binds [flags]

@@ -432,7 +432,7 @@ func checkIPCTargets(env Env, files []string) []Finding {
 	}
 
 	configPath := filepath.Join(env.Root, env.HyprlandConfig)
-	data, err := os.ReadFile(configPath)
+	data, err := readCompositorConfig(configPath)
 	if err != nil {
 		// A tree with no compositor configuration is not a fault here. The
 		// check is about two files disagreeing, and a tree with one of them
@@ -523,7 +523,7 @@ func checkIPCFunctions(env Env, files []string) []Finding {
 	}
 
 	configPath := filepath.Join(env.Root, env.HyprlandConfig)
-	data, err := os.ReadFile(configPath)
+	data, err := readCompositorConfig(configPath)
 	if err != nil {
 		// As above: a tree with no compositor configuration has nothing to
 		// disagree with.

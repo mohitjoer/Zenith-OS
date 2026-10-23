@@ -1,0 +1,135 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"os/exec"
+	"strings"
+	"zenith/desktop/cmd/zenith-hubd/internal/wm"
+)
+
+// Default Apps: the swappable roles the Default Apps page offers, each with a
+// short list of common candidates. `zenith-hubd apps` reports which candidates are
+// installed (a binary on PATH) so the page can show them as chips; the field
+// still accepts any command. The chosen command is stored in hypr.json "apps"
+// and launched by the zenith-app resolver (and exported as env by genApps).
+
+type appCandidate struct {
+	Label     string `json:"label"`
+	Cmd       string `json:"cmd"`
+	Installed bool   `json:"installed"`
+}
+
+type appRole struct {
+	Role       string         `json:"role"`
+	Label      string         `json:"label"`
+	Fallback   string         `json:"fallback"`        // the shipped default when unset
+	Combo      string         `json:"combo,omitempty"` // shipped combo bound to `zenith-app <role>`
+	Candidates []appCandidate `json:"candidates"`
+}
+
+// role -> {label, fallback, candidates}. Candidates are {label, cmd}; the cmd's
+// meaningful binary (the app after `-e`, else the first word) is probed on PATH.
+var appRoleDefs = []struct {
+	Role, Label, Fallback string
+	Cands                 [][2]string
+}{
+	{"browser", "Browser", "chromium", [][2]string{
+		{"Firefox", "firefox"}, {"Chromium", "chromium"}, {"Chrome", "google-chrome-stable"},
+		{"Brave", "brave"}, {"Vivaldi", "vivaldi-stable"}, {"Zen", "zen|zen-browser"},
+		{"LibreWolf", "librewolf"}, {"Qutebrowser", "qutebrowser"},
+	}},
+	{"terminal", "Terminal", "kitty", [][2]string{
+		{"Kitty", "kitty"}, {"Alacritty", "alacritty"}, {"Foot", "foot"},
+		{"WezTerm", "wezterm"}, {"Ghostty", "ghostty"}, {"Konsole", "konsole"},
+	}},
+	{"editor", "Editor", "kitty -e nvim", [][2]string{
+		{"Neovim", "kitty -e nvim"}, {"Helix", "kitty -e hx"}, {"Vim", "kitty -e vim"},
+		{"VS Code", "code"}, {"VSCodium", "codium"}, {"Zed", "zed"}, {"Sublime Text", "subl"},
+	}},
+	{"files", "File manager", "nautilus", [][2]string{
+		{"Files (Nautilus)", "nautilus"}, {"Thunar", "thunar"}, {"Dolphin", "dolphin"},
+		{"Nemo", "nemo"}, {"PCManFM", "pcmanfm-qt"}, {"Yazi", "kitty -e yazi"},
+	}},
+	{"notes", "Notes", "", [][2]string{
+		{"Obsidian", "obsidian"}, {"Logseq", "logseq"}, {"Joplin", "joplin-desktop"},
+		{"Standard Notes", "standard-notes"}, {"Zettlr", "zettlr"},
+	}},
+}
+
+// binOf returns the binary a launch command actually depends on: the token after
+// `-e` for a terminal-wrapped app (kitty -e nvim -> nvim), else the first word.
+func binOf(cmd string) string {
+	f := strings.Fields(cmd)
+	for i, t := range f {
+		if t == "-e" && i+1 < len(f) {
+			return f[i+1]
+		}
+	}
+	if len(f) > 0 {
+		return f[0]
+	}
+	return ""
+}
+
+// resolveCandidate picks the concrete command for a candidate whose spec may
+// list pipe-separated alternative binaries (e.g. "zen|zen-browser", the tarball
+// name and the AUR package name): the first alternative whose binary is on PATH,
+// else the first. installed reports whether any alternative was found.
+func resolveCandidate(spec string) (cmd string, installed bool) {
+	alts := strings.Split(spec, "|")
+	for _, alt := range alts {
+		if _, err := exec.LookPath(binOf(alt)); err == nil {
+			return alt, true
+		}
+	}
+	return alts[0], false
+}
+
+func appRoles() []appRole {
+	out := make([]appRole, 0, len(appRoleDefs))
+	combos := roleCombos()
+	for _, d := range appRoleDefs {
+		fallback := d.Fallback
+		// Browser default follows zenith-app: Zen when installed (under either the
+		// tarball name `zen` or the AUR `zen-browser`), else the shipped Chromium.
+		if d.Role == "browser" {
+			if cmd, ok := resolveCandidate("zen|zen-browser"); ok {
+				fallback = cmd
+			}
+		}
+		r := appRole{Role: d.Role, Label: d.Label, Fallback: fallback, Combo: combos[d.Role]}
+		for _, c := range d.Cands {
+			cmd, installed := resolveCandidate(c[1])
+			r.Candidates = append(r.Candidates, appCandidate{Label: c[0], Cmd: cmd, Installed: installed})
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+// roleCombos maps each app role to the shipped combo its `zenith-app <role>`
+// launch is bound to in the bind catalogue, so the Keybinds page can show and
+// rebind the key beside the app. A role with no shipped bind is absent.
+func roleCombos() map[string]string {
+	out := map[string]string{}
+	cat, err := wm.LoadCatalogue()
+	if err != nil {
+		return out
+	}
+	for _, c := range cat {
+		if role, ok := strings.CutPrefix(strings.TrimSpace(c.Action), "zenith-app "); ok && c.Kind == wm.BindApp {
+			out[strings.TrimSpace(role)] = c.Chord
+		}
+	}
+	return out
+}
+
+func printApps() error {
+	b, err := json.Marshal(appRoles())
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(b)
+	return err
+}
