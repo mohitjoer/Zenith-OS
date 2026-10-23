@@ -346,17 +346,17 @@ check "installed files carry 0644, 0755 or directories at 0755" $rc
 # non-executable one fails on every login rather than at build time.
 MODES=$(dpkg-deb -c "$WORK"/a/*.deb)
 
-rc=0; echo "$MODES" | grep -q '^-rwxr-xr-x .*zenith-session$' || rc=$?
+rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*zenith-session$' || rc=$?
 check "the session entry point is executable" $rc
 
-rc=0; echo "$MODES" | grep -q '^-rwxr-xr-x .*/zenith$' || rc=$?
+rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*/zenith$' || rc=$?
 check "the control tool is executable" $rc
 
 # The two that shipped broken. The generic mode check above passes on 0644, and
 # a file that is non-executable in the .deb is executable in the checkout, so
 # nothing else in this suite notices.
 for program in zenith-hub zenith-greeter; do
-    rc=0; echo "$MODES" | grep -q "^-rwxr-xr-x .*/$program\$" || rc=$?
+    rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/$program\$" || rc=$?
     check "$program is executable" $rc
 done
 
@@ -368,7 +368,7 @@ while read -r program; do
     case "$program" in
         \#*|"") continue ;;
     esac
-    echo "$MODES" | grep -q "^-rwxr-xr-x .*$program\$" || {
+    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*$program\$" || {
         echo "    not executable: $program" >&2
         rc=1
     }
@@ -418,7 +418,7 @@ done < "$BUILD_LINES"
 
 rc=0
 while IFS= read -r dst; do
-    echo "$MODES" | grep -q "^-rwxr-xr-x .*\\.$dst\$" || {
+    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*\\.$dst\$" || {
         echo "    not executable in the package: $dst" >&2
         rc=1
     }
@@ -434,7 +434,7 @@ while read -r program; do
         \#*|"") continue ;;
         *_test.sh) continue ;;
     esac
-    echo "$MODES" | grep -q "^-rwxr-xr-x .*/$(basename "$program")\$" || {
+    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/$(basename "$program")\$" || {
         echo "    not in the package, or not executable: session/$program" >&2
         rc=1
     }
@@ -487,7 +487,7 @@ while read -r program; do
     case "$program" in
         \#*|"") continue ;;
     esac
-    echo "$MODES" | grep -q "^-rwxr-xr-x .*/usr/share/zenith/shell/$program\$" || {
+    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/usr/share/zenith/shell/$program\$" || {
         echo "    not executable in the package: $program" >&2
         rc=1
     }
