@@ -521,7 +521,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             live-build mmdebstrap debootstrap xorriso squashfs-tools \
             isolinux grub-pc-bin grub-efi-amd64-bin \
-            sbsigntool openssl mokutil dpkg-dev fakeroot python3-yaml
+            sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
 
       - name: Validate ISO builder
         run: installation/build-iso_test.sh
