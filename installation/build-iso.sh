@@ -106,7 +106,7 @@ PY
 cat >"$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot" <<'EOF'
 #!/bin/sh
 set -eu
-DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/zenith.deb
+DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic /tmp/zenith.deb
 rm -f /tmp/zenith.deb
 EOF
 chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
