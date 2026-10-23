@@ -2,22 +2,27 @@ pragma ComponentBehavior: Bound
 
 // The window switcher.
 //
-// Bound to Super+Tab, the way every desktop with a window switcher binds it.
-// Each press moves to the next window in most-recently-used order and the
-// overlay shows what happened.
+// Bound to Alt+Tab (Super+Tab is the workspace overview), and Alt+Shift+Tab
+// walks the list the other way. Each press moves to the next window in
+// most-recently-used order and the overlay shows what happened.
 //
 // The MRU order comes from `zenith windows`, never from here. Hyprland already
 // tracks it in `focusHistoryID`, and the id is inverted from what it looks like
 // — lower is more recent — so it is parsed and sorted in Go where there are
 // tests. A sort in QML that is one line and backwards is the worst kind.
 //
-// It focuses on press rather than on Super's release, which is the deviation
-// from macOS and it is deliberate. Releasing a modifier after a Tab press does
-// not reliably deliver a keybind in Hyprland, and every third-party switcher
-// works around it with raw keyboard-event or key-state polling. Committing on
-// press needs one bind and no polling. What is given up is picking from the
-// whole list before committing, which needs a release the compositor does not
-// reliably send.
+// It focuses on press rather than on the modifier's release, which is the
+// deviation from macOS and it is deliberate. Releasing a modifier after a Tab
+// press does not reliably deliver a keybind in Hyprland, and every third-party
+// switcher works around it with raw keyboard-event or key-state polling.
+// Committing on press needs one bind and no polling. What is given up is
+// picking from the whole list before committing, which needs a release the
+// compositor does not reliably send.
+//
+// The release only starts a dwell. The compositor reports the press and the
+// release a few milliseconds apart, and an overlay hidden on the release was on
+// screen for one frame; every press and release restarts the timer, so the card
+// outlives the last of them by `dwell` and a lost release still ends it.
 //
 // The list is snapshotted once, on the press that opens the overlay. Re-reading
 // each press would reshuffle it under the user, because focusing a window
@@ -41,7 +46,8 @@ PanelWindow {
 
     // Not the most recent window. focusHistoryID 0 is the window you are already
     // in, so starting there would mean the first press appears to do nothing,
-    // which is the one case that reads as "the overlay is broken".
+    // which is the one case that reads as "the overlay is broken". Reverse starts
+    // at -1, "the last window", which is only known once the list has arrived.
     property int selected: 1
 
     property var windows: []
@@ -63,15 +69,19 @@ PanelWindow {
                 // behind it.
                 var t = text.trim()
                 if (t === "" || t === "null" || t === "[]") {
-                    switcher.close()
+                    switcher.dismiss()
                     return
                 }
                 try {
                     switcher.windows = JSON.parse(text)
                 } catch (error) {
-                    switcher.close()
+                    switcher.dismiss()
                     return
                 }
+                var last = switcher.windows.length - 1
+                switcher.selected = switcher.selected < 0 ? last : Math.min(switcher.selected, last)
+                // The dwell counts from the card having something to show.
+                dwell.restart()
                 switcher.focusToken = Date.now()
             }
         }
@@ -92,25 +102,44 @@ PanelWindow {
         running: switcher.focusToken !== ""
     }
 
-    // advance is what the keybind calls. It loads on the press that opens the
-    // overlay — and focuses once the list arrives, since the target cannot be
-    // known before then — then walks the frozen snapshot on every press after.
-    function advance() {
-        if (!visible) {
-            windows = []
-            selected = 1
-            token = Date.now()
-            visible = true
+    Timer {
+        id: dwell
+        interval: 450
+        onTriggered: switcher.visible = false
+    }
+
+    // advance and reverse are what the keybinds call. A press loads the list on
+    // the press that opens the overlay — and focuses once the list arrives, since
+    // the target cannot be known before then — then walks the frozen snapshot on
+    // every press after, forwards or backwards.
+    function advance() { press(1) }
+    function reverse() { press(-1) }
+
+    function press(direction) {
+        dwell.restart()
+        if (!switcher.visible) {
+            switcher.windows = []
+            switcher.selected = direction > 0 ? 1 : -1
+            switcher.token = Date.now()
+            switcher.visible = true
             return
         }
-        if (windows.length > 1) {
-            selected = (selected + 1) % windows.length
-            focusToken = Date.now()
+        if (switcher.windows.length > 1) {
+            switcher.selected = (switcher.selected + direction + switcher.windows.length) % switcher.windows.length
+            switcher.focusToken = Date.now()
         }
     }
 
+    // The key came up: the card stays for the dwell, see the header.
     function close() {
-        visible = false
+        if (switcher.visible)
+            dwell.restart()
+    }
+
+    // Escape and click-away leave at once.
+    function dismiss() {
+        dwell.stop()
+        switcher.visible = false
     }
 
     Rectangle {
@@ -183,10 +212,10 @@ PanelWindow {
     // window's content, which is where a key press lands anyway.
     Shortcut {
         sequence: "Escape"
-        onActivated: switcher.close()
+        onActivated: switcher.dismiss()
     }
 
     TapHandler {
-        onTapped: switcher.close()
+        onTapped: switcher.dismiss()
     }
 }

@@ -12,6 +12,12 @@ if [ -z "$url" ]; then
   exit 2
 fi
 
+command -v yt-dlp >/dev/null 2>&1 || {
+  notify-send "Stash" "yt-dlp is not installed (sudo apt install yt-dlp)" -i dialog-error
+  echo "yt-dlp is not installed (sudo apt install yt-dlp)" >&2
+  exit 127
+}
+
 mkdir -p "$STASH"
 echo "Downloading $url"
 

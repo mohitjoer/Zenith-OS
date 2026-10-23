@@ -177,7 +177,7 @@ Singleton {
         return inkOn(bg, onSurface, minRatio === undefined ? 4.5 : minRatio);
     }
 
-    // --- flame identity (the RASHIN mark; a fixed Zenith accent) ---------------
+    // --- ember identity (the Zenith mark; a fixed accent) ---------------
     readonly property color flameGlow: "#ff9e64"
     readonly property color flameCore: "#ffd2bf"
 

@@ -4,9 +4,10 @@ import Quickshell
 import Quickshell.Io
 import "lib/weather.js" as Model
 
-// QML view of the daemon `weather` topic. The Open-Meteo fetch, geocoding, IP
-// fallback, retry ladder, WMO-code and icon mapping and unit conversion all live
-// in zenith-shell (weather.go), so QML makes no HTTP call: `subscribe weather`
+// QML view of the daemon `weather` topic. The Open-Meteo fetch, geocoding, the
+// IP lookup (only for the location "auto"), retry ladder, WMO-code and icon
+// mapping and unit conversion all live in zenith-shell (weather.go), so QML
+// makes no HTTP call: `subscribe weather`
 // streams a full frame on every change, and location/unit intent rides back over
 // a second connection. The daemon ships every display string ready to bind; this
 // singleton just parses the frame and re-exposes it, deriving the compact glyph
@@ -21,6 +22,10 @@ Singleton {
     readonly property string status: frame.status || "loading"
     readonly property string errorKind: frame.errorKind || ""
     readonly property string errorText: frame.error || ""
+    // No location is set (Settings > General > Location): not an error, the
+    // daemon fetches nothing until one is chosen, and surfaces show a quiet
+    // "set a location" note instead of an error or a retry.
+    readonly property bool noLocation: root.status === "noLocation"
     readonly property string location: frame.location || ""
     readonly property bool hasData: frame.hasData === true
     readonly property var current: frame.current || null

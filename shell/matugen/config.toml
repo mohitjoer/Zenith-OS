@@ -1,46 +1,25 @@
 [config]
 
-# colors.json (the shell's own palette) is authored by the Go control plane;
-# matugen fans that same palette into the core desktop surface below. These
-# templates always render: the terminal, the Hyprland frame, the system
-# monitor, and the Qt toolkit the shell itself is built on. The GTK / GUI-app
-# fan-out lives in apps.toml, gated by the "Theme apps" toggle (theme.json
-# themeApps), so a user can keep third-party apps stock while the shell tracks
-# the palette.
+# The blocks `zenith theme render -c` fills from the palette the daemon hands it.
+# colors.json, the shell's own palette, is not a block: the daemon writes it.
+# These always render; apps.toml renders only while "Theme apps" is on.
+#
+# input_path is the materialised overlay (~/.config/zenith/shell/matugen/...), so a
+# user edit wins; before `zenith materialize` has run, the packaged copy under
+# /usr/share/zenith is read instead. Only apps Zenith ships have a block here.
 
-[templates.kitty]
-input_path = "~/.config/matugen/templates/kitty-colors.conf"
-output_path = "~/.config/kitty/current-theme.conf"
+# The terminal. The file lives in Zenith's own directory and apps/ghostty/config
+# includes it with `config-file = colors`.
+[templates.ghostty]
+input_path = "~/.config/zenith/shell/matugen/templates/ghostty.conf"
+output_path = "~/.config/zenith/apps/ghostty/colors"
 
-[templates.hypr]
-input_path = "~/.config/matugen/templates/hypr-colors.lua"
-output_path = "~/.cache/ryoku/hypr-colors.lua"
-
+# apps/btop sets `color_theme = "zenith"`.
 [templates.btop]
-input_path = "~/.config/matugen/templates/btop.theme"
-output_path = "~/.config/btop/themes/ryoku.theme"
+input_path = "~/.config/zenith/shell/matugen/templates/btop.theme"
+output_path = "~/.config/btop/themes/zenith.theme"
 
-# The screen-share source chooser xdph launches. A core desktop surface, not a
-# third-party app: it renders here so the chooser follows the wallpaper even
-# with "Theme apps" off, instead of opening stock-grey in a themed session.
-[templates.sharepicker]
-input_path = "~/.config/matugen/templates/share-picker.css"
-output_path = "~/.cache/ryoku/share-picker.css"
-
+# qt6ct's color_scheme_path must name this file.
 [templates.qt6ct]
-input_path = "~/.config/matugen/templates/qt6ct-colors.conf"
-output_path = "~/.config/qt6ct/colors/ryoku.conf"
-    # Once the palette is fanned out, retint the file-manager folder icons to the
-    # same accent (ryoku-cmd-folders), then recolour the Material Bibata pointer
-    # to the same primary (ryoku-cursor-material-recolor, a no-op unless that
-    # cursor is selected). Riding matugen's post_hook fires both on every palette
-    # change from either path (follow-wallpaper and fixed schemes), so they need
-    # no wiring in the Go daemon.
-    post_hook = "command -v ryoku-cmd-folders >/dev/null && ryoku-cmd-folders; command -v ryoku-cursor-material-recolor >/dev/null && ryoku-cursor-material-recolor; true"
-
-# KDE apps resolve their colours through KColorScheme and ~/.config/kdeglobals,
-# which the qt6ct palette never reaches. This renders the same roles in KDE's
-# format; the daemon merges them so the rest of kdeglobals stays the user's.
-[templates.kde]
-input_path = "~/.config/matugen/templates/kdeglobals"
-output_path = "~/.cache/ryoku/kdeglobals-colors.conf"
+input_path = "~/.config/zenith/shell/matugen/templates/qt6ct-colors.conf"
+output_path = "~/.config/qt6ct/colors/zenith.conf"

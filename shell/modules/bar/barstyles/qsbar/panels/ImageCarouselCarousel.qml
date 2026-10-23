@@ -222,7 +222,7 @@ PanelWindow {
             applyThemeProc.command = ["env", "ZENITH_PATH=" + root.omarchyInstallRoot, "true", name]
             applyThemeProc.running = false; applyThemeProc.running = true
         } else {
-            applyBgProc.command = ["ryogami", "wallpaper", "set", path]
+            applyBgProc.command = ["zenith-wallpaper", "wallpaper", "set", path]
             applyBgProc.running = false; applyBgProc.running = true
         }
         root.imagePickerVisible = false

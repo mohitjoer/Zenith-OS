@@ -1,6 +1,6 @@
 #!/bin/bash
 # Local cobalt instance lifecycle for the stash download engine toggle.
-# cobalt ships only as a Docker image (no Arch package, no public API), so the
+# cobalt ships only as a Docker image (no distro package, no public API), so the
 # "Cobalt engine" switch in the stash Tools section drives a single container
 # named zenith-cobalt, bound to loopback. Kept between runs so on/off is instant
 # after the first pull.

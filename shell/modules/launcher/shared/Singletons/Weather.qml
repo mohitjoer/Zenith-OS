@@ -4,9 +4,10 @@ import Quickshell
 import Quickshell.Io
 import "../lib/weather.js" as Model
 
-// Live weather for HeroShutter. Open-Meteo needs no API key; location resolves
-// once via a keyless IP lookup and is cached at
-// ~/.local/state/zenith/weather-loc.json so a restart skips the coord round-trip.
+// Live weather for HeroShutter. Open-Meteo needs no API key; the location is the
+// one the user chose in Settings, read from ~/.local/state/zenith/weather-loc.json
+// (the place picker writes it). There is no IP lookup: with no location chosen
+// the launcher shows no weather and makes no request.
 // replaced the old wttr.in scrape (rate-limited, re-located on every poll).
 // public contract = temp / condition / glyph / available, unchanged. hourly /
 // daily / humidity / city for richer panes. all parsing + the WMO-code ->
@@ -45,7 +46,7 @@ Singleton {
     property real lon: 0
     property bool located: false
     // set true once construction finishes; the cache FileView's initial
-    // blockLoading load fires before ipProc/wxProc exist, so loadLoc must wait.
+    // blockLoading load fires before wxProc exists, so loadLoc must wait.
     property bool ready: false
 
     function fetchWeather() {
@@ -115,11 +116,6 @@ Singleton {
         if (w && w.length > 0)
             root.applyForecast(w);
         root.loadLoc();
-        // No cache yet (fresh profile): locate by IP for this session. The shell
-        // owns the shared cache, so the launcher never
-        // clobbers the explicit-location resolution.
-        if (!root.located)
-            ipProc.running = true;
     }
 
     // fresh profile may not have the state dir; mkdir before the forecast cache is written.
@@ -146,23 +142,6 @@ Singleton {
     }
 
     Process {
-        id: ipProc
-        command: ["curl", "-s", "--max-time", "8", "http://ip-api.com/json/?fields=status,city,lat,lon"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var loc = Model.parseLoc(Model.parseJson(this.text));
-                if (loc) {
-                    root.city = loc.city;
-                    root.lat = loc.lat;
-                    root.lon = loc.lon;
-                    root.located = true;
-                    root.fetchWeather();
-                }
-            }
-        }
-    }
-
-    Process {
         id: wxProc
         stdout: StdioCollector {
             onStreamFinished: root.applyForecast(this.text)
@@ -173,15 +152,7 @@ Singleton {
         interval: 900000
         running: true
         repeat: true
-        // a failed first geolocate (offline boot, DNS hiccup) used to leave
-        // weather dead until restart; retry the IP lookup on the same cadence.
-        onTriggered: {
-            if (!root.located) {
-                if (!ipProc.running)
-                    ipProc.running = true;
-                return;
-            }
-            root.fetchWeather();
-        }
+        // nothing to refresh until a location has been chosen.
+        onTriggered: root.fetchWeather()
     }
 }

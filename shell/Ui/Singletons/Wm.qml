@@ -38,8 +38,9 @@ Singleton {
 
     readonly property bool ready: root._ready
 
-    // Every capability key is always present as a boolean, so read Wm.caps.<name>
-    // directly with no undefined guard.
+    // The daemon's frame carries every capability key as a boolean, but until its
+    // first frame lands (and for good while the daemon is down) the map is empty,
+    // so compare a key with `=== true` rather than assigning it to a bool.
     readonly property var caps: root._caps
     readonly property string workspaceModel: root._workspaceModel
 

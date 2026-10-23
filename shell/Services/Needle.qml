@@ -7,8 +7,8 @@ import qs.Ui.Singletons
 
 // Needle: resident state of the Super+S chat, held in a singleton (not the
 // sidebar body) so the thread and any in-flight answer survive a close/reopen;
-// a new chat starts only after idleResetMs away. Turns run `zenith-rashin chat`,
-// streaming the shared hermes session as JSONL.
+// a new chat starts only after idleResetMs away. Turns run `zenith-agent chat`,
+// streaming the shared engine session as JSONL.
 Singleton {
     id: root
 
@@ -21,19 +21,21 @@ Singleton {
     property int liveIdx: -1
     // Wall-clock ms of the last open/close/turn; drives the idle reset.
     property double lastSeen: 0
-    // Session model picker: the models hermes offers, and the current one.
+    // Session model picker: the models the engine offers, and the current one.
     property var models: []
     property string currentModel: ""
-    // The active chat backend's display name (Hermes, Oh My Pi, ...), shown on
-    // the chip when the agent advertises no model, so it never shows a stale one.
+    // The engine's display name, shown on the chip when the engine advertises
+    // no model, so it never shows a stale one.
     property string currentAgent: ""
-    // All chat-capable agents (id, name, available, recommended, active) for the
-    // "what's answering" picker; switching agent is a live backend change.
+    // The configured engine (id, name, available, recommended, active): one
+    // entry, or none when engine.command is unset.
     property var backends: []
-    // Whether the needle can actually answer (agent configured or a direct
-    // provider resolves). Starts true so a working box never flashes the
-    // first-run setup prompt while status loads.
+    // Whether the needle can actually answer (the engine is configured and
+    // found). Starts true so a working box never flashes the first-run setup
+    // prompt while status loads.
     property bool ready: true
+    // Why it cannot answer, in the daemon's own words (status --json engine.reason).
+    property string readyReason: ""
 
     // Emitted whenever the transcript changes so the view can scroll to end.
     signal touched()
@@ -51,12 +53,12 @@ Singleton {
         root.lastSeen = Date.now();
     }
 
-    // A new chat clears the transcript AND resets the hermes session, so the
+    // A new chat clears the transcript AND resets the engine session, so the
     // next turn starts with no memory of the last one.
     function newChat() {
         if (root.busy)
             root.cancel();
-        Quickshell.execDetached(["zenith-rashin", "chat", "--new"]);
+        Quickshell.execDetached(["zenith-agent", "chat", "--new"]);
         messages.clear();
         root.liveIdx = -1;
         root.lastSeen = Date.now();
@@ -100,7 +102,7 @@ Singleton {
         root.liveIdx = messages.count - 1;
         root.busy = true;
         root.lastSeen = Date.now();
-        var cmd = ["zenith-rashin", "chat"];
+        var cmd = ["zenith-agent", "chat"];
         for (var i = 0; i < imgs.length; i++) {
             cmd.push("--image");
             cmd.push(String(imgs[i]));
@@ -114,7 +116,7 @@ Singleton {
 
     function cancel() {
         chatProc.running = false;
-        Quickshell.execDetached(["zenith-rashin", "chat", "--cancel"]);
+        Quickshell.execDetached(["zenith-agent", "chat", "--cancel"]);
         if (root.liveIdx >= 0 && root.liveIdx < messages.count && messages.get(root.liveIdx).streaming) {
             messages.setProperty(root.liveIdx, "working", "");
             messages.setProperty(root.liveIdx, "streaming", false);
@@ -151,7 +153,7 @@ Singleton {
                 root.currentAgent = String(root.backends[i].name || id);
         root.currentModel = "";
         root.models = [];
-        Quickshell.execDetached(["zenith-rashin", "agent", "use", String(id)]);
+        Quickshell.execDetached(["zenith-agent", "agent", "use", String(id)]);
         backendsReload.restart();
     }
 
@@ -159,10 +161,10 @@ Singleton {
         if (!id || id === root.currentModel)
             return;
         root.currentModel = String(id);
-        Quickshell.execDetached(["zenith-rashin", "chat", "--set-model", String(id)]);
+        Quickshell.execDetached(["zenith-agent", "chat", "--set-model", String(id)]);
     }
 
-    // Answer the approval hermes is waiting on; an empty option declines it.
+    // Answer the approval the engine is waiting on; an empty option declines it.
     function answerPermission(optionId) {
         var i = root.liveIdx;
         if (i < 0 || i >= messages.count || messages.get(i).permJson.length === 0)
@@ -171,7 +173,7 @@ Singleton {
         try { req = JSON.parse(messages.get(i).permJson); } catch (e) { return; }
         messages.setProperty(i, "permJson", "");
         messages.setProperty(i, "working", optionId ? I18n.tr("approved, continuing") : I18n.tr("declined"));
-        Quickshell.execDetached(["zenith-rashin", "chat", "--perm", String(req.id), String(optionId || "")]);
+        Quickshell.execDetached(["zenith-agent", "chat", "--perm", String(req.id), String(optionId || "")]);
     }
 
     // Append or update (tools are keyed by id) an activity item on message i.
@@ -309,7 +311,7 @@ Singleton {
 
     Process {
         id: modelsProc
-        command: ["zenith-rashin", "chat", "--models"]
+        command: ["zenith-agent", "chat", "--models"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -326,7 +328,7 @@ Singleton {
 
     Process {
         id: readyProc
-        command: ["zenith-rashin", "status", "--json"]
+        command: ["zenith-agent", "status", "--json"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -334,13 +336,15 @@ Singleton {
                 try { f = JSON.parse(String(line)); } catch (e) { return; }
                 if (f && typeof f.ready === "boolean")
                     root.ready = f.ready;
+                if (f && f.engine)
+                    root.readyReason = f.engine.reason || "";
             }
         }
     }
 
     Process {
         id: backendsProc
-        command: ["zenith-rashin", "agent", "--json"]
+        command: ["zenith-agent", "agent", "--json"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -365,7 +369,7 @@ Singleton {
     // carry full activity. Only runs while the transcript is still empty.
     Process {
         id: historyProc
-        command: ["zenith-rashin", "chat", "--history"]
+        command: ["zenith-agent", "chat", "--history"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -389,7 +393,7 @@ Singleton {
     property var sessions: []
     Process {
         id: sessionsProc
-        command: ["zenith-rashin", "chat", "--sessions"]
+        command: ["zenith-agent", "chat", "--sessions"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -415,7 +419,7 @@ Singleton {
             root.cancel();
         messages.clear();
         root.liveIdx = -1;
-        loadProc.command = ["zenith-rashin", "chat", "--load", String(id)];
+        loadProc.command = ["zenith-agent", "chat", "--load", String(id)];
         loadProc.running = true;
         root.lastSeen = Date.now();
         root.touched();

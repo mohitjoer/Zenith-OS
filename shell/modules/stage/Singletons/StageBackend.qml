@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 
-// The single door to the daemon `stage` topic and the `ryostage` engine
+// The single door to the daemon `stage` topic and the `zenith-stage` engine
 // (docs/stage.md): it subscribes to the per-wallpaper frame, turns editor
 // gestures into `zenith-shell stage` intents, and reads the engine directly.
 Singleton {
@@ -13,7 +13,7 @@ Singleton {
 
     readonly property string bin: {
         const d = Quickshell.env("ZENITH_SHELL_DIR");
-        return (d && d.length > 0) ? d + "/scripts/ryostage" : "ryostage";
+        return (d && d.length > 0) ? d + "/scripts/zenith-stage" : "zenith-stage";
     }
     property bool available: false
     property bool checked: false

@@ -42,7 +42,7 @@ Scope {
     // backdrop's player: muted by default, volume 0-100.
     property bool videoMuted: true
     property int videoVolume: 100
-    // The ryogami-live yield flag (default "ryogami" engine): hide the painter
+    // The zenith-wallpaper-live yield flag (the external-player engine): hide the painter
     // while the C player owns the background layer.
     property bool wallpaperLive: false
 
@@ -298,15 +298,11 @@ Scope {
         registryReady: Registry.ready
     }
 
-    // Resolve the placement helper the way Registry resolves discover.sh: in a
-    // dev run ZENITH_SHELL_DIR points at the shell tree and the tool is NOT on
-    // PATH, so a bare "zenith-plugins-place" Process silently no-ops and every
-    // drag / resize / lock / hide / settings write is lost. Packaged installs
-    // (no ZENITH_SHELL_DIR) ship it to /usr/bin, where the bare name resolves.
-    readonly property string _shellDir: Quickshell.env("ZENITH_SHELL_DIR")
-    readonly property string placeTool: (root._shellDir && root._shellDir.length > 0)
-        ? root._shellDir + "/quickshell/plugins/zenith-plugins-place"
-        : "zenith-plugins-place"
+    // The placement helper ships inside the shell tree, so it resolves from
+    // wherever the shell was loaded and needs nothing on PATH (the user manager's
+    // PATH has no ~/.local/bin, and a bare name that does not resolve silently
+    // loses every drag / resize / lock / hide / settings write).
+    readonly property string placeTool: Quickshell.shellPath("scripts/zenith-plugins-place")
 
     // hand the keyboard back after a widget text field releases its grab. the
     // widget layer never unmaps, and dropping an exclusive grab on a mapped
@@ -433,7 +429,7 @@ Scope {
             anchors.fill: parent
             // The base wallpaper draws under the stage (Parallax's StageBackdrop
             // covers its baked subject, Depth locks the still cut over it), and
-            // yields to the ryogami-live player on its own `live` rule: forcing
+            // yields to the zenith-wallpaper-live player on its own `live` rule: forcing
             // it visible painted the still over every video wallpaper.
             readonly property real screenDpr: (root.screen && root.screen.devicePixelRatio) ? root.screen.devicePixelRatio : 1
             dpr: screenDpr
@@ -1068,7 +1064,7 @@ Scope {
                         "" + x, "" + y, "" + sc, "" + lk];
                     sizeProc.running = true;
                 }
-                onOpacityChanged: (id, op) => {
+                onOpacityEdited: (id, op) => {
                     const dw = win.placementOf(id);
                     const x = (dw.x !== undefined) ? dw.x : 80;
                     const y = (dw.y !== undefined) ? dw.y : 80;

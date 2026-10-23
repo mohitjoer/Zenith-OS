@@ -5,7 +5,7 @@ import "Singletons"
 // The Parallax backdrop, drawn inside the desktop surface just above the base
 // wallpaper (docs/stage.md): the inpainted background.png sized with the
 // wallpaper's own fit and drifting with the cursor, so it covers the
-// wallpaper's baked subject and can never misalign with ryogami's surface
+// wallpaper's baked subject and can never misalign with zenith-wallpaper's surface
 // underneath. Only Parallax uses it; Depth has no backdrop. This item also owns
 // the per-monitor cursor poll and shares the smoothed value so every StageLayer
 // on the screen drifts in lockstep.

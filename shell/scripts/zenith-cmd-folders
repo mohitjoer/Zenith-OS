@@ -3,51 +3,84 @@
 # inherits Papirus-Dark and overrides only the folder icons with Papirus's
 # matching colour set (root-free, ~300K, never touches the packaged theme). The
 # accent (arg, else the palette's color4, the colour the shell and GTK use) picks the
-# nearest Papirus folder colour.
+# nearest Papirus folder colour. With no accent at all, or one that is grey, the
+# folders are grey: the desktop is monochrome, so the default is the neutral set
+# rather than Papirus's blue.
 #
-# The theme name consumers resolve to is fixed (ryoku-folders); only its content
+# The theme name consumers resolve to is fixed (zenith-folders); only its content
 # changes. Each run builds the new colours in a temp dir and publishes them by
 # renaming a symlink over the old one, so a reader (a GTK app, or the shell
 # resolving a folder icon) atomically sees either the whole old tree or the whole
 # new one, never a theme half-swapped from under it -- the SIGABRT a fresh
-# timestamped name per change caused (issue #47). The previous generation is kept
+# timestamped name per change caused. The previous generation is kept
 # one extra cycle so an in-flight lookup of it still resolves, and
 # gtk-update-icon-cache busts GTK's on-disk cache so apps still pick up the new
 # colours. Run at login and on every palette change.
+#
+# Needs papirus-icon-theme. Without it there is nothing to tint, so this says so
+# once per session (it runs on every palette change, and a wallpaper slideshow
+# makes that often) and exits 127.
 set -u
 
 pap=/usr/share/icons/Papirus
 src=$pap/64x64/places
-[ -d "$src" ] || exit 0
+if [ ! -d "$src" ]; then
+  marker="${XDG_RUNTIME_DIR:-/tmp}/zenith-folders-nopapirus"
+  if [ ! -e "$marker" ]; then
+    : > "$marker" 2>/dev/null
+    echo "zenith-cmd-folders: Papirus icons are not installed (sudo apt install papirus-icon-theme); folder icons keep the system theme" >&2
+  fi
+  exit 127
+fi
 
 # Serialise: a burst of palette changes runs one at a time, so the last wins
 # instead of racing on the shared icon-theme setting.
-exec 9>"${XDG_RUNTIME_DIR:-/tmp}/ryoku-folders.lock" 2>/dev/null && flock 9 2>/dev/null
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/zenith-folders.lock" 2>/dev/null && flock 9 2>/dev/null
 
 accent=${1:-}
 if [ -z "$accent" ]; then
-  cfg=${XDG_CACHE_HOME:-$HOME/.cache}/ryoku/colors.json
-  accent=$(sed -n 's/.*"color4"[^"]*"\(#[0-9A-Fa-f]\{6\}\)".*/\1/p' "$cfg" 2>/dev/null | head -1)
+  cfg=${XDG_CACHE_HOME:-$HOME/.cache}/zenith/colors.json
+  if command -v jq >/dev/null 2>&1; then
+    accent=$(jq -r '.color4 // empty' "$cfg" 2>/dev/null)
+  else
+    accent=$(sed -n 's/.*"color4"[^"]*"\(#[0-9A-Fa-f]\{6\}\)".*/\1/p' "$cfg" 2>/dev/null | head -1)
+  fi
 fi
+# Only a #RRGGBB is an accent; anything else reads as none, which is grey.
+case $accent in
+  "#"[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) ;;
+  *) accent="" ;;
+esac
 
-color=blue
+color=grey
 if [ -n "$accent" ]; then
-  color=$(awk -v c="$accent" 'BEGIN{
-    r=strtonum("0x" substr(c,2,2))/255; g=strtonum("0x" substr(c,4,2))/255; b=strtonum("0x" substr(c,6,2))/255
-    mx=(r>g?(r>b?r:b):(g>b?g:b)); mn=(r<g?(r<b?r:b):(g<b?g:b)); d=mx-mn
-    if(d==0) h=0; else if(mx==r) h=(g-b)/d; else if(mx==g) h=(b-r)/d+2; else h=(r-g)/d+4
-    h*=60; if(h<0) h+=360; s=(mx==0?0:d/mx)
-    # near-greyscale accents (s < 0.10) stay grey; anything with perceptible hue
-    # tints, so a muted (but not colourless) wallpaper still picks a folder colour.
-    print (s<0.10)?"grey":(h<15||h>=345)?"red":(h<45)?"orange":(h<70)?"yellow":(h<165)?"green":(h<195)?"teal":(h<215)?"cyan":(h<255)?"blue":(h<290)?"violet":(h<330)?"magenta":"pink"
-  }')
-  [ -e "$src/folder-$color.svg" ] || color=blue
+  # Written for mawk, Ubuntu's awk: no strtonum, so the hex pairs are read by hand.
+  color=$(awk -v c="$accent" '
+    function hex(s,   i, n, d) {
+      n = 0; s = tolower(s)
+      for (i = 1; i <= length(s); i++) {
+        d = index("0123456789abcdef", substr(s, i, 1)) - 1
+        if (d < 0) return 0
+        n = n * 16 + d
+      }
+      return n
+    }
+    BEGIN {
+      r = hex(substr(c, 2, 2)) / 255; g = hex(substr(c, 4, 2)) / 255; b = hex(substr(c, 6, 2)) / 255
+      mx = (r > g ? (r > b ? r : b) : (g > b ? g : b)); mn = (r < g ? (r < b ? r : b) : (g < b ? g : b)); d = mx - mn
+      if (d == 0) h = 0; else if (mx == r) h = (g - b) / d; else if (mx == g) h = (b - r) / d + 2; else h = (r - g) / d + 4
+      h *= 60; if (h < 0) h += 360; s = (mx == 0 ? 0 : d / mx)
+      # near-greyscale accents (s < 0.10) stay grey; anything with perceptible hue
+      # tints, so a muted (but not colourless) wallpaper still picks a folder colour.
+      print (s < 0.10) ? "grey" : (h < 15 || h >= 345) ? "red" : (h < 45) ? "orange" : (h < 70) ? "yellow" : (h < 165) ? "green" : (h < 195) ? "teal" : (h < 215) ? "cyan" : (h < 255) ? "blue" : (h < 290) ? "violet" : (h < 330) ? "magenta" : "pink"
+    }')
+  [ -e "$src/folder-$color.svg" ] || color=grey
 fi
 
 base=${XDG_DATA_HOME:-$HOME/.local/share}/icons
-name=ryoku-folders                 # fixed theme name consumers resolve to
+name=zenith-folders                # fixed theme name consumers resolve to
 link=$base/$name                   # symlink -> the live generation
-gens=$base/.ryoku-folders          # hidden container: generations + temp builds
+gens=$base/.zenith-folders         # hidden container: generations + temp builds
 
 cur=""
 command -v gsettings >/dev/null 2>&1 && cur=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'")
@@ -68,7 +101,7 @@ for f in "$src/folder-$color.svg" "$src"/folder-"$color"-*.svg "$src"/user-"$col
 done
 cat > "$tmp/index.theme" <<'EOF'
 [Icon Theme]
-Name=Ryoku Folders
+Name=Zenith Folders
 Inherits=Papirus-Dark
 Directories=places
 
@@ -86,8 +119,8 @@ mv -T "$tmp" "$gens/$gen"
 
 # Publish atomically: rename a staging symlink over the live one, so a concurrent
 # reader follows either the whole old tree or the whole new one, never a partial.
-stage=$base/.ryoku-folders.link.$$
-ln -sfn ".ryoku-folders/$gen" "$stage"
+stage=$base/.zenith-folders.link.$$
+ln -sfn ".zenith-folders/$gen" "$stage"
 [ -e "$link" ] && [ ! -L "$link" ] && rm -rf "$link"
 mv -T "$stage" "$link"
 
@@ -95,8 +128,10 @@ mv -T "$stage" "$link"
 # only when it is not already set, so palette changes never churn the setting.
 # Select the theme only over the shipped defaults (or a stale generation name);
 # an icon theme the user picked stays theirs across logins and palette changes.
+# Yaru and Yaru-dark are Ubuntu's own defaults, so a fresh install counts as
+# unpicked; the coloured Yaru variants are a choice and are left alone.
 case $cur in
-  ""|"$name"|Papirus|Papirus-Dark|Papirus-Light|Adwaita|hicolor|ryoku-folders-*)
+  ""|"$name"|Papirus|Papirus-Dark|Papirus-Light|Adwaita|hicolor|Yaru|Yaru-dark|zenith-folders-*)
     if [ "$cur" != "$name" ] && command -v gsettings >/dev/null 2>&1; then
       gsettings set org.gnome.desktop.interface icon-theme "$name"
     fi
@@ -113,11 +148,11 @@ for d in "$gens"/*; do
 done
 
 # Remove the per-change dirs the old scheme leaked, matching only
-# ryoku-folders-<digits> and never the still-active one (dropped next run).
-for d in "$base"/ryoku-folders-*; do
+# zenith-folders-<digits> and never the still-active one (dropped next run).
+for d in "$base"/zenith-folders-*; do
   [ -d "$d" ] || continue
   b=$(basename "$d")
-  case $b in ryoku-folders-*[!0-9]*) continue ;; esac
+  case $b in zenith-folders-*[!0-9]*) continue ;; esac
   [ "$b" = "$cur" ] && continue
   rm -rf "$d"
 done

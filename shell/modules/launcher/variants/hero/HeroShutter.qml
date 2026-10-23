@@ -14,6 +14,8 @@ Item {
     property real s: 1
     property bool shown: false
     property bool compressed: false
+    // IMG and FILE are the file finder's modes; no plocate database, no keys.
+    readonly property bool hasFind: { void Dispatcher.revision; return Dispatcher.registry["find"] !== undefined; }
     property bool shelfOpen: false
     property bool windowRailActive: false
     property bool windowRailFocused: false
@@ -415,12 +417,14 @@ Item {
         HeroVariant.ModeKey {
             s: root.s
             label: I18n.tr("IMG")
+            visible: root.hasFind
             active: root.activeMode === "image"
             onActivated: root.modeRequested("image")
         }
         HeroVariant.ModeKey {
             s: root.s
             label: I18n.tr("FILE")
+            visible: root.hasFind
             active: root.activeMode === "file"
             onActivated: root.modeRequested("file")
         }

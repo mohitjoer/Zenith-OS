@@ -18,7 +18,7 @@ Item {
     signal moduleActivated(string moduleId)
     signal requestClose()
 
-    readonly property int notifCount: Notifs.history.length
+    readonly property int notifCount: (Notifs.history || []).length
 
     implicitWidth: 44
 

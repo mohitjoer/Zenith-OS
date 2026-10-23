@@ -2,25 +2,48 @@
 # Select a screen region, OCR it with tesseract, and copy the recognized text to
 # the clipboard. Self-contained: grim + slurp + tesseract + wl-copy. Optional
 # --file IMAGE skips the region grab and recognizes an existing image.
+# ZENITH_OCR_LANG picks the tesseract language(s), e.g. eng+deu; the default is
+# whatever tesseract itself defaults to (eng).
 set -euo pipefail
 
 app="OCR"
-need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+prog="zenith-cmd-ocr"
+# A missing tool is a notification, because the shell runs this with nowhere to
+# print, plus exit 127 (the shell's "command not found") with the apt package
+# named. notify-send is checked first and on its own: it is the one tool whose
+# absence cannot be reported through itself.
+need() { # command [package]
+  command -v "$1" >/dev/null 2>&1 && return 0
+  echo "$prog: $1 is not installed (sudo apt install ${2:-$1})" >&2
+  command -v notify-send >/dev/null 2>&1 \
+    && notify-send -u normal "$app" "$1 is not installed (sudo apt install ${2:-$1})" 2>/dev/null
+  exit 127
+}
+
+need notify-send libnotify-bin
 
 input_file=""
 if [[ ${1:-} == "--file" ]]; then
   [[ -n ${2:-} ]] || { notify-send -u critical "$app" "Missing image path"; exit 2; }
   input_file="$2"; shift 2
 fi
-(( $# == 0 )) || { notify-send -u critical "$app" "Usage: ryoku-cmd-ocr [--file IMAGE]"; exit 2; }
+(( $# == 0 )) || { notify-send -u critical "$app" "Usage: $prog [--file IMAGE]"; exit 2; }
 
-for c in tesseract wl-copy notify-send; do need "$c"; done
+need tesseract tesseract-ocr
+need wl-copy wl-clipboard
+
+# Only the files made here are removed; a --file image is the caller's.
+shot=""
+err=""
+cleanup() { [[ -z $shot ]] || rm -f "$shot"; [[ -z $err ]] || rm -f "$err"; }
+trap cleanup EXIT
 
 tmp="$input_file"
 if [[ -z $tmp ]]; then
-  for c in grim slurp; do need "$c"; done
-  tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-ocr.XXXXXX.png")"
-  trap 'rm -f "$tmp"' EXIT
+  need grim
+  need slurp
+  shot="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/zenith-ocr.XXXXXX.png")"
+  tmp="$shot"
 fi
 
 if [[ -n $input_file ]]; then
@@ -32,8 +55,22 @@ else
   grim -g "$geometry" "$tmp"
 fi
 
+# A tesseract that cannot find its language data exits non-zero with nothing on
+# stdout, which would otherwise read as "no text in the region" and send the user
+# looking at the screenshot instead of at the package.
+lang_args=()
+[[ -z ${ZENITH_OCR_LANG:-} ]] || lang_args=(-l "$ZENITH_OCR_LANG")
+err="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/zenith-ocr-err.XXXXXX")"
 # Command substitution trims trailing newlines.
-text="$(tesseract "$tmp" - 2>/dev/null || true)"
+if ! text="$(tesseract "$tmp" - "${lang_args[@]}" 2>"$err")"; then
+  if grep -qiE 'failed loading language|error opening data file|tessdata' "$err"; then
+    echo "$prog: tesseract language data is missing (sudo apt install tesseract-ocr-eng)" >&2
+    notify-send -u normal "$app" "Tesseract language data is missing (sudo apt install tesseract-ocr-eng)"
+    exit 127
+  fi
+  notify-send -u normal "$app" "Tesseract could not read the selected region"
+  exit 1
+fi
 if [[ -z ${text//[[:space:]]/} ]]; then
   notify-send -u normal "$app" "No text recognized in the selected region"
   exit 0
@@ -41,10 +78,10 @@ fi
 
 # Prefer the daemon: it owns the selection and ingests the entry into clipboard
 # history, which a bare wl-copy never reaches.
-if command -v ryoku-shell >/dev/null 2>&1 && ryoku-shell ping >/dev/null 2>&1; then
-  out="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-ocr-text.XXXXXX")"
+if command -v zenith-shell >/dev/null 2>&1 && zenith-shell ping >/dev/null 2>&1; then
+  out="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/zenith-ocr-text.XXXXXX")"
   printf '%s' "$text" > "$out"
-  ryoku-shell clip-copy text/plain "$out"
+  zenith-shell clip-copy text/plain "$out"
   rm -f "$out"
 else
   printf '%s' "$text" | wl-copy

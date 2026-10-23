@@ -5,8 +5,8 @@
 # file path ($1) and a type ($2, one of regular|replay|screenshot). It exists
 # because gsr's stop path only learns the final path, size and duration HERE, so
 # this is where the honest "Recording saved" notification belongs instead of
-# ryoku-cmd-screenrecord announcing a save before the file is finalised.
-# wf-recorder has no -sc, so ryoku-cmd-screenrecord invokes this helper itself
+# zenith-cmd-screenrecord announcing a save before the file is finalised.
+# wf-recorder has no -sc, so zenith-cmd-screenrecord invokes this helper itself
 # (same two arguments) after wf exits, keeping one message path for both.
 
 set -euo pipefail
@@ -14,7 +14,7 @@ set -euo pipefail
 path="${1:-}"
 kind="${2:-regular}"
 
-# gsr's own screenshot feature is not part of Ryoku's recorder, so its saves are
+# gsr's own screenshot feature is not part of Zenith's recorder, so its saves are
 # not ours to announce; replay and regular are both finished recordings we own.
 [[ $kind == "screenshot" ]] && exit 0
 [[ -n $path && -s $path ]] || exit 0
@@ -66,7 +66,7 @@ command -v notify-send >/dev/null 2>&1 || exit 0
 # notify-send blocks until the notification is actioned or closed and prints the
 # chosen action id. Bound the wait so an ignored notification cannot leave this
 # helper alive indefinitely; timeout's non-zero exit on expiry is expected.
-action="$(timeout 120 notify-send -a ryoku \
+action="$(timeout 120 notify-send -a zenith \
   --action=open=Open \
   --action=folder='Show in folder' \
   --action=copy='Copy path' \

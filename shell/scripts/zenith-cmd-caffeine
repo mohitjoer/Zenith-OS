@@ -5,27 +5,31 @@
 # (systemd-run --user, setsid fallback) so it survives a shell reload/restart.
 # do it in-shell and the Wayland inhibitor dies on the swap, screen idles. the
 # request is persisted so a fresh login can pick it back up.
+#
+# A bare call toggles: the launcher's Keep Awake action and the qsbar idle widget
+# both run this with no argument, and a usage screen there is a button that does
+# nothing. Ask for --help to read the verbs.
 
 set -euo pipefail
 
-state_dir="${RYOKU_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/ryoku}"
-state_file="${RYOKU_CAFFEINE_STATE_FILE:-$state_dir/caffeine.enabled}"
-lock_file="${RYOKU_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock}"
-unit_name="${RYOKU_CAFFEINE_UNIT_NAME:-ryoku-caffeine-inhibit}"
+state_dir="${ZENITH_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/zenith}"
+state_file="${ZENITH_CAFFEINE_STATE_FILE:-$state_dir/caffeine.enabled}"
+lock_file="${ZENITH_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/zenith-caffeine.lock}"
+unit_name="${ZENITH_CAFFEINE_UNIT_NAME:-zenith-caffeine-inhibit}"
 
-inhibit_pattern="[r]yoku-caffeine-inhibit"
-desired_inhibit_pattern="(^|/)systemd-inhibit --what=idle:sleep --who=Ryoku .*Ryoku caffeine mode"
+inhibit_pattern="[z]enith-caffeine-inhibit"
+desired_inhibit_pattern="(^|/)systemd-inhibit --what=idle:sleep --who=Zenith .*Zenith caffeine mode"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ryoku-cmd-caffeine status    # exit 0 when the inhibitor is active
-  ryoku-cmd-caffeine start     # persist the request and hold the inhibitor
-  ryoku-cmd-caffeine stop      # clear the request and release the inhibitor
-  ryoku-cmd-caffeine restore   # re-hold the inhibitor iff a request is persisted
-  ryoku-cmd-caffeine hold      # temporary hold without changing the request
-  ryoku-cmd-caffeine release   # drop a temporary hold (keeps a persisted request)
-  ryoku-cmd-caffeine toggle
+  zenith-cmd-caffeine status    # exit 0 when the inhibitor is active
+  zenith-cmd-caffeine start     # persist the request and hold the inhibitor
+  zenith-cmd-caffeine stop      # clear the request and release the inhibitor
+  zenith-cmd-caffeine restore   # re-hold the inhibitor iff a request is persisted
+  zenith-cmd-caffeine hold      # temporary hold without changing the request
+  zenith-cmd-caffeine release   # drop a temporary hold (keeps a persisted request)
+  zenith-cmd-caffeine toggle    # flip it; a bare call does the same
 EOF
 }
 
@@ -66,20 +70,20 @@ start_inhibitor_with_systemd() {
   systemd-run \
     --user --quiet --collect \
     --unit="$unit_name" \
-    --description="Ryoku caffeine idle inhibitor" \
+    --description="Zenith caffeine idle inhibitor" \
     systemd-inhibit \
     --what=idle:sleep \
-    --who=Ryoku \
-    --why="Ryoku caffeine mode" \
-    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1
+    --who=Zenith \
+    --why="Zenith caffeine mode" \
+    bash -c 'exec -a zenith-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1
 }
 
 start_inhibitor_with_setsid() {
   setsid systemd-inhibit \
     --what=idle:sleep \
-    --who=Ryoku \
-    --why="Ryoku caffeine mode" \
-    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1 &
+    --who=Zenith \
+    --why="Zenith caffeine mode" \
+    bash -c 'exec -a zenith-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1 &
 }
 
 start_inhibitor() {
@@ -119,7 +123,7 @@ case "${1:-}" in
   restore) with_caffeine_lock restore_caffeine ;;
   hold)    with_caffeine_lock hold_caffeine ;;
   release) with_caffeine_lock release_caffeine ;;
-  toggle)  with_caffeine_lock toggle_caffeine ;;
-  --help|-h|"") usage ;;
-  *) echo "ryoku-cmd-caffeine: unknown action: $1" >&2; usage >&2; exit 2 ;;
+  toggle|"") with_caffeine_lock toggle_caffeine ;;
+  --help|-h) usage ;;
+  *) echo "zenith-cmd-caffeine: unknown action: $1" >&2; usage >&2; exit 2 ;;
 esac

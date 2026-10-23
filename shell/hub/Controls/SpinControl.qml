@@ -30,8 +30,9 @@ Editor {
 
     // Whether the schema declares bounds for this key.
     readonly property bool bounded: control.key.hasRange === true
-    readonly property int minimum: control.bounded ? control.key.minimum : 0
-    readonly property int maximum: control.bounded ? control.key.maximum : 0
+    // The export leaves out a bound that is 0, so an absent one is 0.
+    readonly property int minimum: control.bounded ? (control.key.minimum || 0) : 0
+    readonly property int maximum: control.bounded ? (control.key.maximum || 0) : 0
 
     implicitWidth: 220
 
@@ -138,6 +139,8 @@ Editor {
         // the one it holds.
         Rectangle {
             id: field
+            // The editor reaches its input through the field (`field.input`).
+            property alias input: input
             width: 88
             height: 36
             radius: Theme.radiusField

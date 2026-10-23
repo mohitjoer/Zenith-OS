@@ -96,10 +96,24 @@ Provider {
         return out;
     }
 
-    // the station catalog never changes at runtime; one read at load.
+    // The provider, and the radio's status polling, exist only once the
+    // zenith-cmd-radio helper is found.
+    Process {
+        id: availProc
+        command: ["sh", "-c", "command -v zenith-cmd-radio >/dev/null 2>&1"]
+        onExited: (code) => {
+            if (code !== 0)
+                return;
+            Radio.available = true;
+            Radio.refresh();
+            stationsProc.running = true;
+            Dispatcher.register(tuner);
+        }
+    }
+
+    // the station catalog never changes at runtime; one read once found.
     Process {
         id: stationsProc
-        running: true
         command: ["zenith-cmd-radio", "stations"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -115,5 +129,5 @@ Provider {
         }
     }
 
-    Component.onCompleted: Dispatcher.register(tuner)
+    Component.onCompleted: availProc.running = true
 }

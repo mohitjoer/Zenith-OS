@@ -1,50 +1,120 @@
 #!/usr/bin/env bash
+# The reload cover's launcher and handshake.
+#
+#   zenith-reload-cover begin            raise the cover; prints its token
+#   zenith-reload-cover finish TOKEN     the shell is back: open the cover
+#   zenith-reload-cover fail   TOKEN     the reload failed: say so, then open
+#
+# The cover is a black curtain that hides the shell restarting. The order of
+# events is the whole design:
+#
+#   1. Whoever is about to restart the shell (`zenith-shell reload`) runs
+#      `begin` first. It starts the cover, waits until every output is covered,
+#      and only then returns, so the restart never runs in front of the user.
+#   2. The shell restarts. The new shell reads the token from the state file
+#      below and, once every output has drawn, runs `finish TOKEN` itself
+#      (shell.qml, `reloadHold`). The caller never holds the token.
+#   3. If nothing calls `finish` the cover gives up on its own after sixteen
+#      and a half seconds and shows that the reload failed.
+#
+# The cover is its own Quickshell instance, started on `reload-cover.qml` at the
+# shell's root for the reason `session/zenith-hub` gives: a configuration's root
+# is the directory of the file it is started on, and the `qs.*` imports resolve
+# only from the shell's root. The entry is found from this script's own
+# location, so the same file works from a checkout and from the package, where
+# `session/zenith-reload-cover` is the name it is reached by.
+#
+# The state file belongs to the cover that wrote it. Its pid is stored with the
+# process's start time, because a pid alone is a number the kernel hands to the
+# next process that asks for one, and a stale file naming a recycled pid would
+# otherwise have this script signal a stranger.
 set -euo pipefail
 
-state="${XDG_RUNTIME_DIR:-/tmp}/zenith-reload-cover.json"
-base="${XDG_CONFIG_HOME:-$HOME/.config}"
-dir="${ZENITH_SHELL_DIR:+$ZENITH_SHELL_DIR/shell/reload-cover}"
-dir="${dir:-$base/zenith/reload-cover}"
-[[ -f "$dir/shell.qml" ]] || dir="/usr/share/zenith/shell/reload-cover"
+runtime="${XDG_RUNTIME_DIR:-/tmp}"
+state="$runtime/zenith-reload-cover.json"
+lock="$runtime/zenith-reload-cover.lock"
+errlog="$runtime/zenith-reload-cover.log"
 
-pid_start() {
-    awk '{ print $22 }' "/proc/$1/stat" 2>/dev/null || true
+here="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+root="${ZENITH_SHELL_DIR:-$(dirname "$here")}"
+# A copy of this script outside the shell's tree (in /usr/bin, say) has no
+# tree beside it; the packaged one is where the entry is then.
+[[ -f $root/reload-cover.qml ]] || root=/usr/share/zenith/shell
+entry="$root/reload-cover.qml"
+qs_bin="${ZENITH_QUICKSHELL:-quickshell}"
+
+# Long enough for a cold Quickshell to map a window on every output and for the
+# iris to close; short enough that a broken cover cannot hold a reload for long.
+begin_seconds=4
+
+say() { printf 'zenith-reload-cover: %s\n' "$*" >&2; }
+
+# Quickshell finds the instance an IPC call is for by the display it is running
+# on, and a service that was started before the compositor's environment was
+# imported has no WAYLAND_DISPLAY to say. The compositor's socket is in the
+# runtime directory, so a caller that lacks the name is given it.
+ensure_display() {
+    local sock
+    [[ -n ${WAYLAND_DISPLAY:-} ]] && return 0
+    for sock in "$runtime"/wayland-*; do
+        if [[ -S $sock ]]; then
+            export WAYLAND_DISPLAY="${sock##*/}"
+            return 0
+        fi
+    done
+    return 1
 }
+
+# The process's start time, in clock ticks since boot: field 22 of
+# /proc/PID/stat. The command name is parenthesised and may itself hold spaces
+# and parentheses, so the fields are counted from the last ")" rather than from
+# the start of the line; what follows it begins at field 3.
+pid_start() {
+    local line
+    line=$(cat "/proc/$1/stat" 2>/dev/null) || return 0
+    line=${line##*) }
+    # shellcheck disable=SC2086
+    set -- $line
+    printf '%s' "${20:-}"
+}
+
+# The state file is written by this script in one fixed shape, so a field is
+# read back with sed and no JSON parser is needed (or guaranteed on a bare base
+# layer). The QML side reads the same file with JSON.parse.
+state_field() {
+    { sed -n "s/.*\"$1\":\"\{0,1\}\([^\",}]*\).*/\1/p" "$state" 2>/dev/null | head -n 1; } || true
+}
+state_token() { state_field token; }
+state_pid()   { state_field pid; }
+state_start() { state_field pidStart; }
+
 write_state() {
-    local tmp start
-    umask 077
-    mkdir -p "$(dirname "$state")"
-    start=$(pid_start "$2")
+    local tmp
     tmp=$(mktemp "${state}.XXXXXX")
-    printf '{"token":"%s","pid":%s,"pidStart":"%s"}\n' "$1" "$2" "$start" >"$tmp"
+    printf '{"token":"%s","pid":%s,"pidStart":"%s"}\n' "$1" "$2" "$(pid_start "$2")" >"$tmp"
     chmod 600 "$tmp"
     mv -f "$tmp" "$state"
 }
-claim_state() {
-    umask 077
-    mkdir -p "$(dirname "$state")"
-    (set -C; printf '{"token":"%s","pid":0,"pidStart":""}\n' "$1" >"$state") 2>/dev/null
-}
-state_field() {
-    jq -r ".$1 // empty" "$state" 2>/dev/null || true
-}
-state_token() { state_field token; }
-state_pid() { state_field pid; }
-state_start() { state_field pidStart; }
+
 owns_pid() {
-    [[ $1 =~ ^[0-9]+$ && -n $2 && $(pid_start "$1") == "$2" ]]
+    [[ $1 =~ ^[0-9]+$ && $1 -gt 0 && -n $2 && $(pid_start "$1") == "$2" ]]
 }
+
 state_matches() {
     [[ $(state_token) == "$1" && $(state_pid) == "$2" && $(state_start) == "$3" ]]
 }
+
+# One IPC call on the cover, which is found by the entry it was started on.
 call_bool() {
-    [[ $(qs -p "$dir" ipc call reload-cover "$1" "$2" 2>/dev/null) == true ]]
+    [[ $("$qs_bin" ipc --path "$entry" call reload-cover "$1" "$2" 2>/dev/null) == true ]]
 }
 call_status() {
-    qs -p "$dir" ipc call reload-cover status "$1" 2>/dev/null || true
+    "$qs_bin" ipc --path "$entry" call reload-cover status "$1" 2>/dev/null || true
 }
+
+# End the cover this script started, if it is still the one the state names.
 stop_owned() {
-    local token="$1" pid="$2" start="$3"
+    local token="$1" pid="$2" start="$3" _
     if owns_pid "$pid" "$start"; then
         kill "$pid" 2>/dev/null || true
         for _ in $(seq 1 40); do
@@ -52,22 +122,32 @@ stop_owned() {
             sleep 0.05
         done
     fi
-    state_matches "$token" "$pid" "$start" && rm -f "$state"
+    if state_matches "$token" "$pid" "$start"; then rm -f "$state"; fi
 }
+
+# A cover that ends by itself (its own failsafe, or a crash) leaves the state
+# file behind; this removes it, so the next shell to start does not find a
+# token that no cover is waiting on.
 reap_after_exit() {
     local token="$1" pid="$2" start="$3"
+    # fd 9 closed: this outlives `begin` by up to a minute, and a copy of the
+    # lock held that long would refuse the next begin.
     (
         for _ in $(seq 1 600); do
-            owns_pid "$pid" "$start" || {
-                state_matches "$token" "$pid" "$start" && rm -f "$state"
+            if ! owns_pid "$pid" "$start"; then
+                if state_matches "$token" "$pid" "$start"; then rm -f "$state"; fi
                 exit 0
-            }
+            fi
             sleep 0.1
         done
-    ) >/dev/null 2>&1 &
+    ) >/dev/null 2>&1 9>&- &
 }
+
+# Whether a cover may be started. Returns 0 when the way is clear, 1 when a live
+# cover is already down: two covers over each other would be two curtains the
+# shell can only open one of.
 reclaim_state() {
-    local token pid start phase
+    local token pid start
     [[ -e $state ]] || return 0
     token=$(state_token)
     pid=$(state_pid)
@@ -76,75 +156,126 @@ reclaim_state() {
         rm -f "$state"
         return 0
     fi
-    phase=$(call_status "$token")
-    if [[ $phase == failed ]]; then
+    # A cover that has already failed is on its way out; it can be replaced.
+    if [[ $(call_status "$token") == failed ]]; then
         stop_owned "$token" "$pid" "$start"
         return 0
     fi
     return 1
 }
+
+# The cover quits itself a little after it has opened; this is the net under
+# that, for a cover that did not.
 cleanup_after_open() {
     local token="$1" pid="$2" start="$3"
     (
-        sleep 0.55
+        sleep 1
         state_matches "$token" "$pid" "$start" || exit 0
         stop_owned "$token" "$pid" "$start"
     ) >/dev/null 2>&1 &
 }
 
-case "${1:-}" in
-    begin)
-        reclaim_state || exit 1
-        if [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]]; then
-            token="test-$(date +%s%N)"
-            claim_state "$token" || exit 1
-            write_state "$token" "$$"
+begin() {
+    local token pid start phase
+
+    if ! ensure_display; then
+        say "there is no Wayland display, so there is nothing to cover"
+        return 1
+    fi
+    if ! command -v "$qs_bin" >/dev/null 2>&1; then
+        say "$qs_bin is not installed; the cover is drawn by Quickshell"
+        return 1
+    fi
+    if [[ ! -f $entry ]]; then
+        say "the cover's entry file is missing: $entry"
+        return 1
+    fi
+
+    umask 077
+    mkdir -p "$runtime"
+
+    # Two begins at once would each find the way clear and each start a cover.
+    exec 9>"$lock"
+    if ! flock -n 9; then
+        say "another begin is in progress"
+        return 1
+    fi
+
+    if ! reclaim_state; then
+        say "a cover is already down"
+        return 1
+    fi
+
+    token="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+    printf '{"token":"%s","pid":0,"pidStart":""}\n' "$token" >"$state"
+
+    # setsid so the cover is not in this script's process group, and fd 9 closed
+    # so the cover does not inherit the lock and hold it for as long as it lives.
+    # The caller is the daemon's reload and may be killed on its own deadline;
+    # the cover must outlive it.
+    if command -v setsid >/dev/null 2>&1; then
+        setsid env ZENITH_RELOAD_COVER_TOKEN="$token" "$qs_bin" -p "$entry" \
+            >/dev/null 2>"$errlog" </dev/null 9>&- &
+    else
+        env ZENITH_RELOAD_COVER_TOKEN="$token" "$qs_bin" -p "$entry" \
+            >/dev/null 2>"$errlog" </dev/null 9>&- &
+    fi
+    pid=$!
+    write_state "$token" "$pid"
+    start=$(state_start)
+    reap_after_exit "$token" "$pid" "$start"
+
+    SECONDS=0
+    while ((SECONDS < begin_seconds)); do
+        if ! owns_pid "$pid" "$start"; then
+            say "the cover exited before it was up: $(tail -n 1 "$errlog" 2>/dev/null || true)"
+            if state_matches "$token" "$pid" "$start"; then rm -f "$state"; fi
+            return 1
+        fi
+        # "hold" is the phase after every output is mapped and the iris has
+        # closed, which is the only moment the reload may start.
+        phase=$(call_status "$token")
+        if [[ $phase == hold ]]; then
             printf '%s\n' "$token"
-            exit 0
+            return 0
         fi
-        command -v qs >/dev/null 2>&1 || exit 1
-        # The cover screen's own QML will fail visibly if the path is bad;
-        # no need to pre-check shell.qml existence.
-        token="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
-        claim_state "$token" || exit 1
-        if command -v setsid >/dev/null 2>&1; then
-            setsid env ZENITH_RELOAD_COVER_TOKEN="$token" qs -p "$dir" >/dev/null 2>&1 < /dev/null &
-        else
-            env ZENITH_RELOAD_COVER_TOKEN="$token" qs -p "$dir" >/dev/null 2>&1 < /dev/null &
-        fi
-        pid=$!
-        write_state "$token" "$pid"
-        start=$(state_start)
-        reap_after_exit "$token" "$pid" "$start"
-        mapped=0
-        for _ in $(seq 1 80); do
-            call_bool mapped "$token" && mapped=1
-            if [[ $mapped == 1 ]] && call_bool covered "$token"; then
-                printf '%s\n' "$token"
-                exit 0
-            fi
-            sleep 0.05
-        done
-        stop_owned "$token" "$pid" "$start"
-        exit 1
-        ;;
-    finish)
-        token="${2:-}"
-        [[ -n $token && $(state_token) == "$token" ]] || exit 0
-        if [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]]; then
-            rm -f "$state"
-            exit 0
-        fi
-        call_bool finish "$token" || exit 1
-        cleanup_after_open "$token" "$(state_pid)" "$(state_start)"
-        ;;
-    fail)
-        token="${2:-}"
-        [[ -n $token && $(state_token) == "$token" ]] || exit 0
-        [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]] || call_bool fail "$token"
-        ;;
+        sleep 0.05
+    done
+    say "the cover was not up on every output within ${begin_seconds}s"
+    stop_owned "$token" "$pid" "$start"
+    return 1
+}
+
+finish() {
+    local token="${1:-}"
+    # Not this script's cover (or none at all): nothing to open, and not an
+    # error, since the shell calls this on every start that finds a state file.
+    [[ -n $token && $(state_token) == "$token" ]] || return 0
+    # A state file whose cover is gone (it was killed, or the machine crashed
+    # and the file outlived it) names a curtain nobody is holding. Removing it
+    # is the whole job, and keeps the next shell from finding the same token.
+    if ! owns_pid "$(state_pid)" "$(state_start)"; then
+        rm -f "$state"
+        return 0
+    fi
+    ensure_display || return 1
+    call_bool finish "$token" || return 1
+    cleanup_after_open "$token" "$(state_pid)" "$(state_start)"
+}
+
+fail() {
+    local token="${1:-}"
+    [[ -n $token && $(state_token) == "$token" ]] || return 0
+    ensure_display || return 1
+    call_bool fail "$token"
+}
+
+case "${1:-}" in
+    begin)  begin ;;
+    finish) finish "${2:-}" ;;
+    fail)   fail "${2:-}" ;;
     *)
-        printf 'usage: ryoku-reload-cover begin | finish <token> | fail <token>\n' >&2
+        printf 'usage: zenith-reload-cover begin | finish <token> | fail <token>\n' >&2
         exit 2
         ;;
 esac

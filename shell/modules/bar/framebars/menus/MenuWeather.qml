@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import "../.." as Pill
 import qs.Services
 import "../../../../components"
@@ -72,6 +73,7 @@ Item {
     implicitWidth: 320 * root.s
     implicitHeight: root.status === "loaded" ? loadedBox.implicitHeight
         : root.status === "error" ? errorBox.implicitHeight
+        : root.status === "noLocation" ? placeBox.implicitHeight
         : loadingBox.implicitHeight
     Behavior on implicitHeight { NumberAnimation { duration: Motion.weatherFade; easing.type: Easing.OutCubic } }
 
@@ -124,6 +126,43 @@ Item {
                 id: retryLabel
                 anchors.centerIn: parent
                 text: I18n.tr("Retry")
+                color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+                font.family: Theme.fontPrimary
+                font.pixelSize: Theme.fontSm * root.s
+            }
+        }
+    }
+
+    // --- no location: a quiet note, not an error; nothing is fetched until one is set ---
+    Column {
+        id: placeBox
+        width: root.width
+        spacing: 8 * root.s
+        opacity: root.status === "noLocation" ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: Motion.weatherFade; easing.type: Motion.crossfadeCurve } }
+
+        Text {
+            width: parent.width
+            text: I18n.tr("Set a location to see the weather.")
+            color: root.glyphInk
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            font.family: Theme.fontPrimary
+            font.pixelSize: Theme.fontMd * root.s
+            font.weight: Font.Bold
+        }
+        MenuButton {
+            anchors.horizontalCenter: parent.horizontalCenter
+            minW: placeLabel.implicitWidth + 2 * pad
+            minH: placeLabel.implicitHeight + 2 * pad
+            pad: Theme.paddingMd * root.s
+            radius: Theme.radiusWidget
+            onClicked: Quickshell.execDetached(["zenith-shell", "hub", "open", "global"])
+            Text {
+                id: placeLabel
+                anchors.centerIn: parent
+                text: I18n.tr("Open settings")
                 color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
                 font.family: Theme.fontPrimary
                 font.pixelSize: Theme.fontSm * root.s

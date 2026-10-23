@@ -69,7 +69,7 @@ Scope {
         case "reboot":
         case "shutdown": ShellState.askSessionAction(id, root.modelData ? root.modelData.name : ""); break;
         case "screenshot": Spawn.run(["sh", "-c", "flock -n -o /tmp/ryoshot.lock qs -c ryoshot"]); break;
-        case "wallpaper": Quickshell.execDetached(["ryogami", "wallpaper", "ui"]); break;
+        case "wallpaper": Quickshell.execDetached(["zenith-wallpaper", "wallpaper", "ui"]); break;
         case "color-picker": Quickshell.execDetached(["zenith-cmd-color-picker"]); break;
         case "app-launcher": if (root.state) root.state.launcherOpen = !root.state.launcherOpen; break;
         default: return;
@@ -400,10 +400,10 @@ Scope {
                     function onSurfaceRequested(id, mon, ctx) {
                         if (mon !== "" && mon !== (root.modelData ? root.modelData.name : ""))
                             return;
-                        // The wallpaper + theme picker is the ryogami overlay now
+                        // The wallpaper + theme picker is the zenith-wallpaper overlay now
                         // (Super+W); route its surface request straight there.
                         if (id === "wallpaper") {
-                            Quickshell.execDetached(["ryogami", "wallpaper", "ui"]);
+                            Quickshell.execDetached(["zenith-wallpaper", "wallpaper", "ui"]);
                             return;
                         }
                         frameMenus.openSurface(id, null, mon, ctx);

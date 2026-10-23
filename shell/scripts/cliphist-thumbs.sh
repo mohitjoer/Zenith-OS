@@ -9,6 +9,10 @@ if [ -d "$policy_dir" ]; then
     export MAGICK_CONFIGURE_PATH
 fi
 
+for t in cliphist:cliphist magick:imagemagick; do
+    command -v "${t%%:*}" >/dev/null 2>&1 || { echo "${t%%:*} is not installed (sudo apt install ${t##*:})" >&2; exit 127; }
+done
+
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/cliphist-thumbs"
 mkdir -p "$cache"
 chmod 700 "$cache"

@@ -4,12 +4,11 @@ import Quickshell
 import Quickshell.Io
 import qs.FrameBars
 
-// live shell appearance config. single source of truth for the look knobs
-// Ryoku Settings' Shell section edits, plus the shipped defaults the shell
-// falls back to. JSON at ~/.config/ryoku/shell.json, watched, so a save in
-// Settings retunes the running shell on the next file event (no reload).
-// defaults here are canonical: Settings mirrors them for reset and seeds
-// nothing of its own.
+// live shell appearance config, read-only here: the look knobs Zenith
+// Settings' Shell section edits, plus the defaults the shell falls back to.
+// JSON at ~/.config/zenith/shell.json, watched, so a save in Settings retunes
+// the running shell on the next file event (no reload). The zenith-shell daemon
+// is the only writer of that file, so the kit never seeds or writes it.
 //
 // geometry = unscaled base px at 1080p. island values get multiplied by the
 // per-monitor `s` at the read site; frame radius/border live in Hyprland's
@@ -52,7 +51,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -81,7 +80,4 @@ Singleton {
         }
     }
 
-    // seed only on a real first run (no content to load), so a slow/failed
-    // load can't overwrite a present file from defaults.
-    Component.onCompleted: if (!file.text()) file.writeAdapter();
 }

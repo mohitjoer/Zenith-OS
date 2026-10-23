@@ -41,8 +41,15 @@ encode() {
              -c:v libx264 -crf 24 -preset medium -c:a aac -b:a 128k -movflags +faststart "$out" ;;
     jpg)   ffmpeg -nostdin -hide_banner -loglevel error -y -i "$in" -q:v 3 "$out" ;;
     webp)  ffmpeg -nostdin -hide_banner -loglevel error -y -i "$in" -c:v libwebp -quality 82 "$out" ;;
-    png|bmp) magick "$in" -strip -define png:compression-level=9 "$out" ;;
+    png|bmp) command -v magick >/dev/null 2>&1 || { echo "magick is not installed (sudo apt install imagemagick)" >&2; return 1; }
+             magick "$in" -strip -define png:compression-level=9 "$out" ;;
   esac
+}
+
+command -v ffmpeg >/dev/null 2>&1 || {
+  notify "ffmpeg is not installed (sudo apt install ffmpeg)" dialog-error
+  echo "ffmpeg is not installed (sudo apt install ffmpeg)" >&2
+  exit 127
 }
 
 # targets: explicit paths (from the in-shell picker) use those; no args falls

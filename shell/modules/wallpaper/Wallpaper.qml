@@ -8,20 +8,20 @@ import Quickshell.Io
  * Zenith wallpaper topic bridge, one instance per monitor (the shell root's
  * per-screen scope constructs it with `screen`).
  *
- * Ryogami (the Go wallpaper daemon) publishes one coalesced full-state frame
+ * zenith-wallpaper (the Go wallpaper daemon) publishes one coalesced full-state frame
  * {default: ENTRY, outputs: {connector: ENTRY}} per revision on the `wallpaper`
- * topic of $XDG_RUNTIME_DIR/ryogami.sock. This bridge subscribes and re-exposes
+ * topic of $XDG_RUNTIME_DIR/zenith-wallpaper.sock. This bridge subscribes and re-exposes
  * this output's entry (outputs[screen.name] or, absent an override, default)
  * as the wallpaper/video urls and fit that the desktop's backdrop
  * (modules/desktop -> WallpaperMod.Backdrop) paints: stills with the reveal
- * transition, and live clips yielded to the separate ryogami-live C player via
- * `live` (in-shell QtMultimedia playback is trimmed on systems without the
- * module). Stage
+ * transition and live clips through the in-shell QtMultimedia player (or, when
+ * the external zenith-wallpaper-live player is installed, yielded to it via
+ * `live`). Stage
  * cuts and renders its own subject from the daemon `stage` topic; the frame's
- * `depth` fold stays ryogami's pixel-lock subject, unchanged on the wire
+ * `depth` fold stays zenith-wallpaper's pixel-lock subject, unchanged on the wire
  * (docs/stage.md). Contract 08 sec 1, 2.6, 5, 7.
  *
- * The ryogami wallpaper picker (Super+W) sets wallpapers through ryogami,
+ * The wallpaper picker (Super+W) sets wallpapers through zenith-wallpaper,
  * which feeds this same topic.
  */
 Item {
@@ -48,14 +48,14 @@ Item {
     // default, volume 0-100 (Backdrop scales it to 0..1).
     readonly property bool videoMuted: frame.mute
     readonly property int videoVolume: frame.volume
-    // The ryogami-live yield flag: hide the in-shell painter while the C
+    // The zenith-wallpaper-live yield flag: hide the in-shell painter while the C
     // player owns the background layer; false for the in-shell engine.
     readonly property bool live: frame.live
     // The first topic frame gates readiness, not the in-shell decode: the
     // backdrop itself waits on the Image decode before revealing.
     readonly property bool reloadReady: frame.ready
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryogami.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-wallpaper.sock"
 
     function apply(line: string): void {
         frame.apply(line);
@@ -90,7 +90,7 @@ Item {
         }
     }
 
-    // Ryogami may be down when the shell loads (or restart under it); retry
+    // The daemon may be down when the shell loads (or restart under it); retry
     // quietly so the desktop rebinds once it returns.
     Timer {
         id: retry
@@ -99,7 +99,7 @@ Item {
             sub.connected = true
     }
 
-    // Ryogami may never publish in a session (daemon not installed, or its unit
+    // The daemon may never publish in a session (daemon not installed, or its unit
     // wedged off): without a frame `frame.path` stays empty and the desktop
     // paints a blank surface. Give the backdrop a still image from the local
     // config instead: the current background seed (~/.config/zenith/current/

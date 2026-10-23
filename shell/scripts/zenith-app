@@ -1,79 +1,187 @@
 #!/bin/bash
-# ryoku-app: launch the user's chosen app for a role, or the Ryoku default.
+# zenith-app: launch the user's chosen app for a role, or the Zenith default.
 #
-#	ryoku-app terminal              open the terminal
-#	ryoku-app terminal -- btop      run btop inside it
+#	zenith-app terminal              open the terminal
+#	zenith-app terminal -- btop      run btop inside it
+#	zenith-app --which browser       print what the role would launch, and exit
 #
-# The choice lives in the Hub's store (~/.config/ryoku/desktop.json,
-# "desktop.apps"); the Default Apps page (Ryoku Settings) writes it. Reading it
+# The choice lives in the Hub's store (~/.config/zenith/desktop.json,
+# "desktop.apps"); the Default Apps page (Zenith Settings) writes it. Reading it
 # here means a swap takes effect on the next launch with no reload. The fallbacks
-# match the shipped binds, so an unconfigured system behaves exactly as before.
+# match the shipped binds, so an unconfigured system behaves exactly as before:
+# ghostty and nautilus are the shipped terminal and file manager, and where one
+# is gone the role falls through to whatever else this machine has, so a key
+# never does nothing. Only when nothing at all can serve a role does it say so,
+# in a notification (the keybind has no terminal to print to) and with exit 127.
 set -euo pipefail
 
 # Everything the desktop opens through here inherits this environment, and a
 # Quickshell instance that has crashed once leaves __QUICKSHELL_CRASH_INFO_FD in
 # it: the memfd of the config it came back from. Quickshell reads that variable
-# before it parses arguments, so `qs -c ryovm` run in the terminal we exec
+# before it parses arguments, so `quickshell -p ...` run in the terminal we exec
 # would draw a second desktop instead of the app. Drop the handle once, here.
 unset __QUICKSHELL_CRASH_INFO_FD __QUICKSHELL_CRASH_DUMP_PID \
 	__QUICKSHELL_CRASH_DUMP_FD __QUICKSHELL_CRASH_LOG_FD __QUICKSHELL_CRASH_SIGNAL
 
+usage() {
+	echo "usage: zenith-app <role> [-- <program> [arg...]]" >&2
+	echo "       zenith-app --which <role>" >&2
+	echo "roles: terminal files browser editor notes (or any role the Hub stores)" >&2
+}
+
+which_only=0
+case "${1:-}" in
+-h | --help) usage; exit 0 ;;
+--which) which_only=1; shift ;;
+esac
+
 role="${1:-}"
-[ -n "$role" ] || { echo "usage: ryoku-app <role> [-- <program> [arg...]]" >&2; exit 2; }
+[ -n "$role" ] || { usage; exit 2; }
 shift
 
 inner=()
 if [ "${1:-}" = "--" ]; then
 	shift
 	inner=("$@")
-	[ ${#inner[@]} -gt 0 ] || { echo "ryoku-app: -- needs a program to run" >&2; exit 2; }
+	[ ${#inner[@]} -gt 0 ] || { echo "zenith-app: -- needs a program to run" >&2; exit 2; }
 fi
 
-conf="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku"
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/zenith"
 # The Hub writes the role under desktop.json's desktop.apps.
 store="$conf/desktop.json"
 # The retired store is still honoured so a box the doctor has not migrated yet
 # keeps the role it set there.
 legacy="$conf/hypr.json"
 
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# The first of the arguments that is installed, printed bare.
+first_of() {
+	local c
+	for c in "$@"; do
+		if have "$c"; then
+			printf '%s' "$c"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Debian's alternatives and the XDG default-browser setting are what the user
+# picked system-wide, so they come before a guess from a list of names.
+default_browser() {
+	local id alt
+	if have xdg-settings && have gtk-launch; then
+		id="$(xdg-settings get default-web-browser 2>/dev/null || true)"
+		if [ -n "$id" ]; then
+			printf 'gtk-launch %s' "${id%.desktop}"
+			return 0
+		fi
+	fi
+	alt="$(first_of x-www-browser sensible-browser || true)"
+	if [ -n "$alt" ]; then
+		printf '%s' "$alt"
+		return 0
+	fi
+	first_of firefox chromium chromium-browser google-chrome-stable google-chrome \
+		brave-browser zen zen-browser vivaldi-stable librewolf epiphany
+}
+
+# The terminal the editor fallback runs in. Not the stored terminal role: that is
+# resolved by the same function, so a user's chosen terminal is honoured here too.
+terminal_command() {
+	local t
+	t="$(read_role terminal)"
+	[ -n "$t" ] && { printf '%s' "$t"; return 0; }
+	first_of ghostty x-terminal-emulator kitty foot alacritty wezterm \
+		gnome-terminal ptyxis kgx konsole xterm
+}
+
+cli_editor() {
+	local e
+	if have nvim; then
+		printf 'nvim'
+		return 0
+	fi
+	for e in "${VISUAL:-}" "${EDITOR:-}"; do
+		[ -n "$e" ] && { printf '%s' "$e"; return 0; }
+	done
+	first_of sensible-editor nano vim vi
+}
+
 fallback() {
+	local term ed
 	case "$1" in
-	browser)
-		if command -v zen >/dev/null 2>&1; then echo "zen"
-		elif command -v zen-browser >/dev/null 2>&1; then echo "zen-browser"
-		else echo "chromium"; fi ;;
-	terminal) echo "kitty" ;;
-	editor)   echo "kitty -e nvim" ;;
-	files)    echo "nautilus" ;;
-	*)        echo "" ;;
+	browser) default_browser ;;
+	terminal) terminal_command ;;
+	editor)
+		ed="$(cli_editor || true)"
+		term="$(terminal_command || true)"
+		if [ -n "$ed" ] && [ -n "$term" ]; then
+			printf '%s -e %s' "$term" "$ed"
+		else
+			first_of gnome-text-editor gedit kate mousepad code || true
+		fi
+		;;
+	files)
+		first_of nautilus nemo thunar dolphin pcmanfm-qt pcmanfm caja && return 0
+		have xdg-open && printf 'xdg-open %s' "${HOME:-/}"
+		;;
+	notes)
+		# No editor stands in for a notes app that was never chosen: a blank
+		# text window is the nearest honest thing to one.
+		first_of obsidian logseq joplin-desktop standard-notes zettlr \
+			gnome-text-editor gedit kate mousepad || true
+		;;
+	*) printf '' ;;
 	esac
 }
 
-cmd=""
 read_role() {
-	local file="$1" query="$2"
-	[ -r "$file" ] || return 0
-	command -v jq >/dev/null 2>&1 || return 0
-	jq -r --arg r "$role" "$query" "$file" 2>/dev/null || true
+	local r="$1" out=""
+	have jq || return 0
+	if [ -r "$store" ]; then
+		out="$(jq -r --arg r "$r" '.desktop.apps[$r] // empty' "$store" 2>/dev/null || true)"
+	fi
+	if [ -z "$out" ] && [ -r "$legacy" ]; then
+		out="$(jq -r --arg r "$r" '.apps[$r] // empty' "$legacy" 2>/dev/null || true)"
+	fi
+	printf '%s' "$out"
 }
-cmd="$(read_role "$store" ".desktop.apps[\$r] // empty")"
-[ -n "$cmd" ] || cmd="$(read_role "$legacy" ".apps[\$r] // empty")"
-[ -n "$cmd" ] || cmd="$(fallback "$role")"
+
+cmd="$(read_role "$role")"
+[ -n "$cmd" ] || cmd="$(fallback "$role" || true)"
 
 if [ -z "$cmd" ]; then
-	notify-send "Ryoku" "No app set for \"$role\". Pick one in Settings > Default Apps." 2>/dev/null || true
-	exit 1
+	msg="No app is installed for \"$role\". Pick one in Settings > Default Apps."
+	have notify-send && notify-send -a Zenith "Zenith" "$msg" 2>/dev/null || true
+	echo "zenith-app: $msg" >&2
+	exit 127
+fi
+
+if [ "$which_only" -eq 1 ]; then
+	printf '%s\n' "$cmd"
+	exit 0
 fi
 
 if [ ${#inner[@]} -eq 0 ]; then
 	exec sh -c "$cmd"
 fi
 
-# Handing a program over is per-emulator: kitty and foot take trailing argv.
+# For every role but the terminal, what follows `--` is an argument of the app
+# itself (a file for the editor). The stored command may already carry its own
+# terminal wrapper (`ghostty -e nvim`), so adding another -e here would be wrong.
+if [ "$role" != terminal ]; then
+	exec sh -c "$cmd \"\$@\"" zenith-app "${inner[@]}"
+fi
+
+# Handing a program over is per-emulator: kitty and foot take trailing argv, and
+# the rest need a flag that says "the rest of the line is the command".
 read -r -a argv <<<"$cmd"
 case "${argv[0]##*/}" in
 kitty | foot) ;;
 wezterm) argv+=(start --) ;;
+gnome-terminal | ptyxis) argv+=(--) ;;
 *) argv+=(-e) ;;
 esac
 exec "${argv[@]}" "${inner[@]}"

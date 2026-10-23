@@ -15,6 +15,8 @@ import "../lib/radio.js" as RadioLib
 Singleton {
     id: root
 
+    // set by the "@" provider once zenith-cmd-radio is found; nothing runs before
+    property bool available: false
     property bool on: false
     property string station: ""
     property string label: ""
@@ -84,6 +86,8 @@ Singleton {
     }
 
     function refresh() {
+        if (!root.available)
+            return;
         statusProc.running = false;
         statusProc.running = true;
     }
@@ -134,7 +138,6 @@ Singleton {
                 root._grandfathered = g;
         }
     }
-    Component.onCompleted: refresh()
 
     // ---- collision: new music sets the radio aside --------------------------
     // Bound over the players list so it re-evaluates on any playback change.

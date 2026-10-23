@@ -5,8 +5,8 @@ import Quickshell.Io
 import "Singletons"
 import qs.Ui.Singletons
 
-// Quick-ask body panel for the "\" prefix: a terse question to the Rashin
-// agent (hermes), answered inline. `zenith-rashin ask` streams marker lines;
+// Quick-ask body panel for the "\" prefix: a terse question to the Zenith
+// Agent, answered inline. `zenith-agent ask` streams marker lines;
 // while the agent works a pulsing dot names the step (tool title / thinking /
 // writing) and two live options sit under it: CONTINUE IN DASHBOARD (watch the
 // same turn there while it keeps running) and CANCEL. The finished answer is
@@ -106,7 +106,8 @@ Item {
         askedQuestion = q;
         working = I18n.tr("waking the needle");
         phase = "working";
-        askProc.command = ["zenith-rashin", "ask", q];
+        askProc.command = ["zenith-agent", "ask", q];
+        askProc.didStart = false;
         askProc.running = true;
     }
 
@@ -114,7 +115,7 @@ Item {
         resumeMode = true;
         phase = "idle";
         selectedRecent = 0;
-        recentProc.command = ["zenith-rashin", "ask", "--recent"];
+        recentProc.command = ["zenith-agent", "ask", "--recent"];
         recentProc.running = true;
     }
 
@@ -156,7 +157,7 @@ Item {
 
     function cancel() {
         askProc.running = false;
-        Quickshell.execDetached(["zenith-rashin", "ask", "--cancel"]);
+        Quickshell.execDetached(["zenith-agent", "ask", "--cancel"]);
     }
 
     function fire(chip) {
@@ -164,7 +165,7 @@ Item {
         case "copy":
         case "cmd":
         case "color":
-            Quickshell.execDetached(["sh", "-c", "printf '%s' \"$1\" | wl-copy", "_", String(chip.value)]);
+            Quickshell.clipboardText = String(chip.value);
             root.flash = chip.kind + "\u0000" + chip.value;
             flashTimer.restart();
             return;
@@ -173,7 +174,7 @@ Item {
             root.finished();
             return;
         case "file":
-            Spawn.run(["kitty", "-e", "nvim", String(chip.value)]);
+            Spawn.run(["zenith-app", "terminal", "--", "nvim", String(chip.value)]);
             break;
         case "dir":
         case "url":
@@ -221,6 +222,15 @@ Item {
 
     Process {
         id: askProc
+        property bool didStart: false
+        onStarted: askProc.didStart = true
+        // the helper is not installed: say so instead of waking the needle forever
+        onRunningChanged: {
+            if (!askProc.running && !askProc.didStart && root.phase === "working") {
+                root.errorText = I18n.tr("not available: install zenith-agent");
+                root.phase = "failed";
+            }
+        }
         stdout: SplitParser {
             onRead: (line) => {
                 line = String(line);
@@ -263,7 +273,7 @@ Item {
 
         Text {
             width: parent.width
-            text: root.resumeMode ? I18n.tr("RASHIN \u00b7 RECENT ASKS") : I18n.tr("RASHIN")
+            text: root.resumeMode ? I18n.tr("AGENT \u00b7 RECENT ASKS") : I18n.tr("AGENT")
             color: Theme.faint
             font.family: Theme.mono
             font.pixelSize: Metrics.fontEyebrow * root.s

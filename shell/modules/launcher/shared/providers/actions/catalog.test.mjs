@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { CATALOG, CATEGORIES, validate } = require("./catalog.js");
+const { CATALOG, CATEGORIES, validate, commands } = require("./catalog.js");
 
 let failed = 0;
 function ok(cond, msg) {
@@ -44,29 +44,22 @@ ok(
     "Zenith command helpers resolve through the packaged PATH"
 );
 
-// The catalog fires zenith-cmd-* helpers by bare name, so they must actually
-// reach /usr/bin. The zenith-shell package ships zenith/shell/scripts/zenith-* in
-// one glob loop; assert that loop is present and that every helper the catalog
-// names is a file that glob will pick up. This is the guard the payload audit
-// needed: a helper referenced by bare name but shipped only by the Hyprland
-// variant is dead on a niri box.
-const repoRoot = new URL("../../../../../../../../../", import.meta.url);
-const shellPkgbuild = readFileSync(
-    new URL("release/packages/zenith-shell/PKGBUILD", repoRoot), "utf8");
-ok(
-    /for s in "\$_repo"\/zenith\/shell\/scripts\/zenith-\*/.test(shellPkgbuild),
-    "zenith-shell PKGBUILD installs zenith/shell/scripts/zenith-* by glob"
-);
-const cmdHelpers = [...new Set(
-    CATALOG.map(a => String(a.exec?.[0] || "")).filter(n => n.startsWith("zenith-cmd-"))
-)];
-const missingHelpers = cmdHelpers.filter(
-    name => !existsSync(new URL("zenith/shell/scripts/" + name, repoRoot)));
+// The catalog fires zenith-cmd-* helpers by bare name, so each one must be a
+// script the shell ships (W13 installs them into /usr/bin). Nothing here may
+// still call a Ryoku tool or a `qs -c` config, which do not exist in Zenith.
+const repoRoot = new URL("../../../../../../", import.meta.url);
+const missingHelpers = commands().filter(name => name.startsWith("zenith-cmd-")
+    && !existsSync(new URL("shell/scripts/" + name, repoRoot)));
 ok(
     missingHelpers.length === 0,
-    "every zenith-cmd-* the catalog fires lives in zenith/shell/scripts so the shell glob ships it: "
+    "every zenith-cmd-* the catalog fires is a script in shell/scripts: "
         + (missingHelpers.join(", ") || "all present")
 );
+ok(
+    !JSON.stringify(CATALOG).match(/ryo|qs -c|"qs"/),
+    "no action calls a Ryoku tool or qs -c"
+);
+ok(commands().length === new Set(commands()).size && commands().includes("zenith"), "commands() lists each command once");
 
 const providerSource = readFileSync(new URL("./Actions.qml", import.meta.url), "utf8");
 ok(

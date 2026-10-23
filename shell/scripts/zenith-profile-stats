@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# extended sysread for the Ryoku Hub Profile dossier (stat sheet next to the
+# extended sysread for the Zenith Hub Profile dossier (stat sheet next to the
 # specimen card). one field per line, exact order SysInfo.qml's extended parser
 # wants. each field falls back to "-" or "" if its source is gone, so the panel
-# degrades cleanly. separate from ryoku-sysinfo so the pill's 30s poll stays light.
+# degrades cleanly. separate from zenith-sysinfo so the pill's 30s poll stays light.
 export LC_ALL=C
 
 read -r l1 _ < /proc/loadavg
@@ -24,22 +24,77 @@ for b in /sys/class/power_supply/BAT*; do
     break
 done
 
-# palette, comma-joined, for the swatch strip.
+# palette, comma-joined, for the swatch strip. A key the palette file does not
+# carry is dropped rather than joined as an empty swatch, so a palette without
+# the sixteen terminal colours reads as no strip instead of sixteen blanks.
 palette=""
-cj="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku/colors.json"
+cj="${XDG_CACHE_HOME:-$HOME/.cache}/zenith/colors.json"
 if [ -s "$cj" ] && command -v jq >/dev/null 2>&1; then
-    palette=$(jq -r '[.color0,.color1,.color2,.color3,.color4,.color5,.color6,.color7,.color8,.color9,.color10,.color11,.color12,.color13,.color14,.color15]|join(",")' "$cj" 2>/dev/null)
+    palette=$(jq -r '[.color0,.color1,.color2,.color3,.color4,.color5,.color6,.color7,.color8,.color9,.color10,.color11,.color12,.color13,.color14,.color15]|map(select(. != null))|join(",")' "$cj" 2>/dev/null)
 fi
 
-# compositor version and active-monitor count, both from neutral sources so the
-# dossier reads the same under any window manager. the seam reports the provider
-# version; the kernel's DRM state names every connector a compositor is actively
-# driving, which is set the same way no matter which one is running.
-wm_ver=$(ryoku wm status 2>/dev/null | sed -n 's/^Version: //p' | awk '{print $1; exit}')
-monitors=0
-for e in /sys/class/drm/card*-*/enabled; do
-    [ "$(cat "$e" 2>/dev/null)" = enabled ] && monitors=$((monitors + 1))
-done
+# compositor version and active-monitor count. Hyprland names its own version
+# and the monitors it is driving; the kernel's DRM state names every connector a
+# compositor is actively driving, which is the fallback when it cannot be asked.
+wm_ver=""
+monitors=""
+if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    wm_ver=$(hyprctl version -j 2>/dev/null | jq -r '.version // empty' 2>/dev/null)
+    monitors=$(hyprctl monitors -j 2>/dev/null | jq -r 'length' 2>/dev/null)
+fi
+if [ -z "$monitors" ]; then
+    monitors=0
+    for e in /sys/class/drm/card*-*/enabled; do
+        [ "$(cat "$e" 2>/dev/null)" = enabled ] && monitors=$((monitors + 1))
+    done
+fi
+
+# Packages the user asked for, as opposed to pulled in as dependencies. This is
+# `apt-mark showmanual` without the apt cache: the dpkg status file says what is
+# installed, apt's extended_states says which of those were automatic. An
+# `Architecture: all` package is recorded under the native architecture there,
+# hence the normalisation. 11 ms, against most of a second for apt-mark.
+explicit=$(awk -v native="$(dpkg --print-architecture 2>/dev/null)" '
+    BEGIN { RS = ""; FS = "\n" }
+    FNR == NR {
+        pkg = ""; arch = ""; ok = 0
+        for (i = 1; i <= NF; i++) {
+            if ($i ~ /^Package: /) pkg = substr($i, 10)
+            else if ($i ~ /^Architecture: /) arch = substr($i, 15)
+            else if ($i ~ /^Status: / && $i ~ / installed$/) ok = 1
+        }
+        if (arch == "all") arch = native
+        if (ok) { inst[pkg ":" arch] = 1; n++ }
+        next
+    }
+    {
+        pkg = ""; arch = ""; auto = 0
+        for (i = 1; i <= NF; i++) {
+            if ($i ~ /^Package: /) pkg = substr($i, 10)
+            else if ($i ~ /^Architecture: /) arch = substr($i, 15)
+            else if ($i ~ /^Auto-Installed: 1/) auto = 1
+        }
+        if (auto && ((pkg ":" arch) in inst)) a++
+    }
+    END { print n - a }
+' /var/lib/dpkg/status /var/lib/apt/extended_states 2>/dev/null)
+
+# Packages no configured archive offers: a hand-installed .deb or a PPA that has
+# since been removed, the nearest thing apt has to a foreign package. Finding
+# them needs the apt cache, which costs most of a second, so the count is kept
+# until dpkg's status file changes (install and remove both rewrite it).
+foreign="-"
+stamp=$(stat -c %Y /var/lib/dpkg/status 2>/dev/null)
+fc="${XDG_CACHE_HOME:-$HOME/.cache}/zenith/profile-foreign-pkgs"
+if [ -n "$stamp" ]; then
+    { read -r cstamp ccount < "$fc"; } 2>/dev/null || true
+    if [ "${cstamp:-}" = "$stamp" ] && [ -n "${ccount:-}" ]; then
+        foreign="$ccount"
+    elif command -v apt >/dev/null 2>&1; then
+        foreign=$(apt list --installed 2>/dev/null | grep -c 'local\]')
+        mkdir -p "$(dirname "$fc")" 2>/dev/null && printf '%s %s\n' "$stamp" "$foreign" > "$fc" 2>/dev/null
+    fi
+fi
 
 printf '%s\n' "$l1"
 printf '%s\n' "$temp"
@@ -48,7 +103,7 @@ free --si | awk '/Swap:/{ if ($2 > 0) printf "%d%%\n", $3 / $2 * 100; else print
 printf '%s\n' "$bat"
 printf '%s\n' "$wm_ver"
 printf '%s\n' "$monitors"
-pacman -Qen 2>/dev/null | wc -l
-pacman -Qm 2>/dev/null | wc -l
+printf '%s\n' "${explicit:--}"
+printf '%s\n' "$foreign"
 printf '%s\n' "${XCURSOR_THEME:--}${XCURSOR_SIZE:+ · $XCURSOR_SIZE}"
 printf '%s\n' "$palette"

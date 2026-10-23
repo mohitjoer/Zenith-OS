@@ -7,7 +7,8 @@ import "calc.js" as Calc
 import "../requeststate.js" as RequestState
 import ".."
 
-// Calculator provider: evaluates the query with qalc. Routed by the "=" prefix,
+// Calculator provider: evaluates the query with zenith-cmd-calc (qalc, or its own
+// fallback when qalc is absent). Routed by the "=" prefix,
 // and offered in the default fan-out when the query looks numeric. qalc runs
 // async, so query() returns the cached row for the current text and starts a
 // fresh evaluation (debounced) when the text changes; the cached row repaints via
@@ -134,6 +135,12 @@ Provider {
     }
 
     Process {
+        id: availProc
+        command: ["sh", "-c", "command -v zenith-cmd-calc >/dev/null 2>&1"]
+        onExited: (code) => { if (code === 0) Dispatcher.register(calc); }
+    }
+
+    Process {
         id: proc
         property string expr: ""
         property int requestGeneration: 0
@@ -181,5 +188,5 @@ Provider {
         }
     }
 
-    Component.onCompleted: Dispatcher.register(calc);
+    Component.onCompleted: availProc.running = true
 }

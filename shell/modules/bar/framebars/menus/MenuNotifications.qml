@@ -20,7 +20,7 @@ Item {
     required property bool open
     signal requestClose()
 
-    readonly property var notifs: root.open ? Notifs.history : []
+    readonly property var notifs: root.open ? (Notifs.history || []) : []
 
     implicitWidth: 410 * s
     implicitHeight: 560 * s

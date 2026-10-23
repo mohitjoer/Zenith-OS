@@ -3,15 +3,16 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 import "../../Singletons"
-import "gpk.js" as Gpk
+import "apt.js" as Apt
 import "../requeststate.js" as RequestState
 import ".."
 
-// Package provider backed by GPK (`gpk search --json`), which spans every package
-// manager gpk wraps. Routed by "/" is the actions panel; packages use explicit
-// "install "/"remove "/"search " queries (matching inir) so a plain search never
-// forks gpk. Search is async + cached; installs/removes spawn a terminal because
-// gpk needs a tty for the privilege prompt (see gpk-launcher-backend-notes).
+// Package provider backed by APT: `apt-cache search` for the names and
+// `dpkg-query` for what is installed. Routed by "/" is the actions panel;
+// packages use explicit "install "/"remove "/"search " queries (matching inir)
+// so a plain search never forks apt. Search is async + cached; installs/removes
+// run in a terminal so apt's output and the pkexec prompt are visible. The
+// provider registers only when apt-cache and dpkg-query exist.
 Provider {
     id: packages
 
@@ -23,21 +24,22 @@ Provider {
     onAvailableChanged: {
         packages.cachedQuery = "";
         packages.cachedRows = [];
-        packages.fullFor = "";
         packages.clearRequest();
         Dispatcher.notifyAsync();
     }
     property string cachedQuery: ""
     property var cachedRows: []
+    // { name: version } of what dpkg has installed, read alongside each search.
+    property var installed: ({})
     property string pendingQuery: ""
     property int pendingGeneration: 0
     property bool debounceReady: false
     property var requestState: RequestState.initial()
-    property bool fastFinished: false
-    property bool fullFinished: false
-    property bool fullSucceeded: false
+    property bool installedFinished: false
+    property bool searchFinished: false
 
-    readonly property string terminal: "kitty"
+    // $@ is apt-get's own arguments; the terminal stays open to show the result.
+    readonly property string script: 'pkexec apt-get "$@"; printf "\\nPress Enter to close. "; read -r _'
 
     function setRequestState(next) {
         if (next === packages.requestState)
@@ -51,8 +53,8 @@ Provider {
     }
 
     function cancelProcesses() {
-        if (fastProc.inFlight)
-            fastProc.running = false;
+        if (dpkgProc.inFlight)
+            dpkgProc.running = false;
         if (searchProc.inFlight)
             searchProc.running = false;
     }
@@ -70,7 +72,6 @@ Provider {
     function invalidateSearch() {
         packages.cachedQuery = "";
         packages.cachedRows = [];
-        packages.fullFor = "";
         packages.clearRequest();
     }
 
@@ -99,7 +100,7 @@ Provider {
 
     function startPending() {
         if (!packages.debounceReady
-                || fastProc.inFlight || searchProc.inFlight)
+                || dpkgProc.inFlight || searchProc.inFlight)
             return;
         var next = RequestState.markRunning(
             packages.requestState, packages.pendingQuery,
@@ -108,34 +109,32 @@ Provider {
             return;
         packages.debounceReady = false;
         packages.setRequestState(next);
-        packages.fullFor = "";
-        packages.fastFinished = false;
-        packages.fullFinished = false;
-        packages.fullSucceeded = false;
+        packages.installedFinished = false;
+        packages.searchFinished = false;
 
-        fastProc.term = packages.pendingQuery;
-        fastProc.requestGeneration = packages.pendingGeneration;
-        fastProc.out = "";
-        fastProc.inFlight = true;
-        fastProc.didStart = false;
+        dpkgProc.term = packages.pendingQuery;
+        dpkgProc.requestGeneration = packages.pendingGeneration;
+        dpkgProc.out = "";
+        dpkgProc.inFlight = true;
+        dpkgProc.didStart = false;
         searchProc.term = packages.pendingQuery;
         searchProc.requestGeneration = packages.pendingGeneration;
         searchProc.out = "";
         searchProc.inFlight = true;
         searchProc.didStart = false;
-        fastProc.running = true;
+        dpkgProc.running = true;
         searchProc.running = true;
     }
 
     function finishRequest(key, generation) {
-        if (!packages.fastFinished || !packages.fullFinished)
+        if (!packages.installedFinished || !packages.searchFinished)
             return;
         packages.setRequestState(RequestState.settle(
             packages.requestState, key, generation));
     }
 
     // text after ">": "search x" / "install x" / "remove x", or a bare query that
-    // defaults to search. So ">yay" searches, ">install yay" installs.
+    // defaults to search. So ">htop" searches, ">install htop" installs.
     function parseOp(text) {
         var m = String(text || "").match(/^(install|remove|search)\s+(.+)$/i);
         if (m)
@@ -149,11 +148,12 @@ Provider {
     }
 
     function rowFor(pkg, op) {
-        var verb = op === "remove" ? I18n.tr("Remove") : (pkg.installed ? I18n.tr("Reinstall") : I18n.tr("Install"));
+        var version = packages.installed[pkg.name];
+        var verb = op === "remove" ? I18n.tr("Remove") : (version ? I18n.tr("Reinstall") : I18n.tr("Install"));
         return {
-            id: "pkg:" + pkg.source + ":" + pkg.name,
-            title: pkg.name + "  " + pkg.version,
-            subtitle: pkg.source + (pkg.installed ? "  " + I18n.tr("(installed)") : "") + "  " + pkg.description,
+            id: "pkg:apt:" + pkg.name,
+            title: pkg.name + (version ? "  " + version : ""),
+            subtitle: "apt" + (version ? "  " + I18n.tr("(installed)") : "") + "  " + pkg.description,
             icon: "",
             type: "Package",
             score: 0,
@@ -162,8 +162,9 @@ Provider {
                 name: verb,
                 icon: "",
                 execute: function () {
-                    var gpkOp = op === "remove" ? "remove" : "install";
-                    Spawn.run([packages.terminal, "-e", "gpk", gpkOp, pkg.name]);
+                    var args = op === "remove" ? ["remove", "-y", pkg.name]
+                        : (version ? ["install", "--reinstall", "-y", pkg.name] : ["install", "-y", pkg.name]);
+                    Spawn.run(["zenith-app", "terminal", "--", "sh", "-c", packages.script, "sh"].concat(args));
                     // the install/remove will change what a re-search should
                     // show; drop the cached rows so the next query refetches.
                     packages.invalidateSearch();
@@ -184,7 +185,9 @@ Provider {
         }
         if (p.term === packages.cachedQuery) {
             packages.adoptCached(p.term);
-            return packages.cachedRows.map(function (pkg) { return packages.rowFor(pkg, p.op); });
+            return packages.cachedRows.filter(function (pkg) {
+                return p.op !== "remove" || packages.installed[pkg.name] !== undefined;
+            }).map(function (pkg) { return packages.rowFor(pkg, p.op); });
         }
         packages.schedule(p.term);
         return [];
@@ -200,53 +203,45 @@ Provider {
         }
     }
 
-    // Fast lane: pacman/aur answer from gpk's scan cache in well under a
-    // second, while the full sweep hits live registries (npm, cargo, pip...)
-    // and can take tens of seconds. Local rows show immediately; the full
-    // set replaces them when it lands. fullFor marks a term the full sweep
-    // has already answered so a slow fast-lane result never regresses it.
-    property string fullFor: ""
-
+    // What dpkg has installed (about 3000 lines, a few ms), read with every
+    // search so a package installed in the meantime shows as installed.
     Process {
-        id: fastProc
+        id: dpkgProc
         property string term: ""
         property int requestGeneration: 0
         property bool inFlight: false
         property bool didStart: false
         property string out: ""
-        command: ["gpk", "search", term, "--json", "--limit", "30", "--manager", "pacman,aur"]
+        command: ["dpkg-query", "-W", "-f", "${binary:Package}\t${db:Status-Abbrev}\t${Version}\n"]
         stdout: SplitParser {
-            onRead: data => fastProc.out += data + "\n"
+            onRead: data => dpkgProc.out += data + "\n"
         }
-        onStarted: fastProc.didStart = true
+        onStarted: dpkgProc.didStart = true
         onRunningChanged: {
-            if (!running && fastProc.inFlight && !fastProc.didStart) {
-                var key = fastProc.term;
-                var generation = fastProc.requestGeneration;
-                fastProc.inFlight = false;
+            if (!running && dpkgProc.inFlight && !dpkgProc.didStart) {
+                var key = dpkgProc.term;
+                var generation = dpkgProc.requestGeneration;
+                dpkgProc.inFlight = false;
                 if (packages.requestState.phase === "running"
                         && RequestState.isCurrent(
                             packages.requestState, key, generation)) {
-                    packages.fastFinished = true;
+                    packages.installedFinished = true;
                     packages.finishRequest(key, generation);
                 }
                 packages.startPending();
             }
         }
         onExited: (code, status) => {
-            var key = fastProc.term;
-            var generation = fastProc.requestGeneration;
-            fastProc.inFlight = false;
+            var key = dpkgProc.term;
+            var generation = dpkgProc.requestGeneration;
+            dpkgProc.inFlight = false;
             var current = packages.requestState.phase === "running"
                 && RequestState.isCurrent(
                     packages.requestState, key, generation);
             if (current) {
-                packages.fastFinished = true;
-                var succeeded = status === 0 && code !== 1;
-                if (succeeded && !packages.fullSucceeded
-                        && packages.fullFor !== key) {
-                    packages.cachedQuery = key;
-                    packages.cachedRows = Gpk.parse(fastProc.out);
+                packages.installedFinished = true;
+                if (status === 0 && code === 0) {
+                    packages.installed = Apt.parseInstalled(dpkgProc.out);
                     Dispatcher.notifyAsync();
                 }
                 packages.finishRequest(key, generation);
@@ -257,8 +252,12 @@ Provider {
 
     Process {
         id: availProc
-        command: ["gpk", "search", "--help"]
-        onExited: (code) => { packages.available = (code === 0); }
+        command: ["sh", "-c", "command -v apt-cache >/dev/null 2>&1 && command -v dpkg-query >/dev/null 2>&1"]
+        onExited: (code) => {
+            packages.available = (code === 0);
+            if (packages.available)
+                Dispatcher.register(packages);
+        }
     }
 
     Process {
@@ -268,7 +267,7 @@ Provider {
         property bool inFlight: false
         property bool didStart: false
         property string out: ""
-        command: ["gpk", "search", term, "--json", "--limit", "30"]
+        command: ["apt-cache", "search", "--"].concat(Apt.words(term))
         stdout: SplitParser {
             onRead: data => searchProc.out += data + "\n"
         }
@@ -282,8 +281,7 @@ Provider {
                 if (packages.requestState.phase === "running"
                         && RequestState.isCurrent(
                             packages.requestState, key, generation)) {
-                    packages.fullFinished = true;
-                    packages.fullSucceeded = false;
+                    packages.searchFinished = true;
                     packages.finishRequest(key, generation);
                 }
                 packages.startPending();
@@ -297,12 +295,10 @@ Provider {
                 && RequestState.isCurrent(
                     packages.requestState, key, generation);
             if (current) {
-                packages.fullFinished = true;
-                packages.fullSucceeded = status === 0 && code !== 1;
-                if (packages.fullSucceeded) {
-                    packages.fullFor = key;
+                packages.searchFinished = true;
+                if (status === 0 && code === 0) {
                     packages.cachedQuery = key;
-                    packages.cachedRows = Gpk.parse(searchProc.out);
+                    packages.cachedRows = Apt.rank(Apt.parseSearch(searchProc.out), key, 30);
                     Dispatcher.notifyAsync();
                 }
                 packages.finishRequest(key, generation);
@@ -311,8 +307,5 @@ Provider {
         }
     }
 
-    Component.onCompleted: {
-        availProc.running = true;
-        Dispatcher.register(packages);
-    }
+    Component.onCompleted: availProc.running = true
 }

@@ -37,6 +37,8 @@ Item {
             + (rootMod.weatherDesc ? " / " + rootMod.weatherDesc : "");
         if (rootMod.weatherLoaded)
             return reading;
+        if (Weather.noLocation)
+            return I18n.tr("Set a weather location in Settings");
         return rootMod.weatherUnavailable ? I18n.tr("Weather offline") : I18n.tr("Weather\u2026");
     }
 

@@ -46,6 +46,12 @@ Singleton {
     // every preview cell, which is all the overview needs.
     readonly property bool live: root._clientsOk && root._monitorsOk
 
+    // Super+Alt+Tab, forwarded by shell.qml's overviewDesktop(). An overview that
+    // is up steps its desktop strip on desktopStep; one that is still closed is
+    // opened with pendingStep set and applies it once it has seeded.
+    signal desktopStep(int delta)
+    property int pendingStep: 0
+
     // ---- window boxes, Wm.windows shape ---------------------------------------
     // hyprctl clients keys windows by monitor ID; the module keys on output
     // NAME (matching Quickshell.screens), so resolve the id -> name once per read.

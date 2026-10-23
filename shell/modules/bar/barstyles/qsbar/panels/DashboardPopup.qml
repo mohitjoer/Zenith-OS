@@ -334,7 +334,7 @@ PanelWindow {
                                     font.family: root.mono; font.pixelSize: 44; font.weight: Font.Medium
                                 }
                                 UiText {
-                                    text: dash.wxReady ? Weather.condition : (Weather.status === "loading" ? I18n.tr("Loading\u2026") : I18n.tr("Offline"))
+                                    text: dash.wxReady ? Weather.condition : (Weather.status === "loading" ? I18n.tr("Loading\u2026") : (Weather.noLocation ? I18n.tr("No location") : I18n.tr("Offline")))
                                     color: root.seal
                                     font.family: root.mono; font.pixelSize: 13; font.weight: Font.Medium
                                 }
@@ -400,7 +400,7 @@ PanelWindow {
                     UiText {
                         anchors.centerIn: parent
                         visible: !dash.wxReady
-                        text: Weather.status === "loading" ? I18n.tr("Loading\u2026") : I18n.tr("Weather offline")
+                        text: Weather.status === "loading" ? I18n.tr("Loading\u2026") : (Weather.noLocation ? I18n.tr("Set a location in Settings") : I18n.tr("Weather offline"))
                         color: root.sumiHi; font.family: root.mono; font.pixelSize: 12
                     }
                 }
@@ -530,7 +530,7 @@ PanelWindow {
                     UiText {
                         anchors.centerIn: parent
                         visible: !(dash.wxReady && graphTile.n >= 2)
-                        text: Weather.status === "loading" ? I18n.tr("Loading\u2026") : I18n.tr("Hourly forecast unavailable")
+                        text: Weather.status === "loading" ? I18n.tr("Loading\u2026") : (Weather.noLocation ? I18n.tr("Set a location in Settings") : I18n.tr("Hourly forecast unavailable"))
                         color: root.sumiHi; font.family: root.mono; font.pixelSize: 12
                     }
                 }

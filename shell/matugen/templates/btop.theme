@@ -1,4 +1,4 @@
-# Ryoku palette -> btop. Rendered by matugen; do not edit.
+# Zenith palette -> btop. Rendered by zenith theme; do not edit.
 theme[main_bg]="{{colors.background.default.hex}}"
 theme[main_fg]="{{colors.foreground.default.hex}}"
 theme[title]="{{colors.foreground.default.hex}}"

@@ -13,6 +13,7 @@ import Quickshell
 import qs.Services
 import "modules/visualizer/Singletons" as VizCfg
 import "modules/stage/Singletons" as StageCfg
+import "modules/overview/Singletons" as OverviewCfg
 import "components"
 import "modules/wallpaper"
 import "modules/wallpaper/Singletons" as WallCfg
@@ -68,6 +69,9 @@ ShellRoot {
     ServiceLoader {
         services: [ShellState, ScreenTime, Keypresses, KeyboardLayout]
     }
+
+    // The dim scrim; hypridle owns the idle clock (session/hyprland/hypridle.conf).
+    Idle {}
 
     readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-reload-cover.json"
     readonly property string reloadCoverBin: Quickshell.env("ZENITH_SHELL_DIR")
@@ -128,65 +132,6 @@ ShellRoot {
 
     Process {
         id: reloadFinish
-    }
-
-    // ── QML source hot-reload watcher (mirrors brand.json pattern) ──────────
-    // Watches the shell QML tree for any .qml/.js change and requests a
-    // coordinated reload via the existing reload-cover IPC. This survives
-    // quickshell restarts because it runs *inside* the shell process and
-    // uses Qt's own FileSystemWatcher (not quickshell's qmlscanner).
-    FileView {
-        id: qmlSourceWatcher
-        // Watch the whole shell directory non-recursively; subdirs covered by
-        // additional watchers below. blockLoading:false so we never block boot.
-        path: Quickshell.env("ZENITH_SHELL_DIR")
-            ? Quickshell.env("ZENITH_SHELL_DIR") + "/shell"
-            : "/usr/share/zenith/shell"
-        blockLoading: false
-        printErrors: false
-        watchChanges: true
-        onFileChanged: {
-            // Debounce: quickshell's scanner also debounces; 300 ms is safe.
-            qmlReloadDebounce.restart()
-        }
-    }
-    FileView {
-        id: qmlModulesWatcher
-        path: Quickshell.env("ZENITH_SHELL_DIR")
-            ? Quickshell.env("ZENITH_SHELL_DIR") + "/shell/modules"
-            : "/usr/share/zenith/shell/modules"
-        blockLoading: false
-        printErrors: false
-        watchChanges: true
-        onFileChanged: qmlReloadDebounce.restart()
-    }
-    Timer {
-        id: qmlReloadDebounce
-        interval: 300
-        repeat: false
-        onTriggered: {
-            // Kick off the reload-cover sequence exactly as the daemon does.
-            // The cover screen will wait for all monitors' reloadReady.
-            const statePath = (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-reload-cover.json"
-            reloadCoverBegin.command = [root.reloadCoverBin, "begin"]
-            reloadCoverBegin.running = true
-        }
-    }
-    Process {
-        id: reloadCoverBegin
-        onExited: {
-            if (exitCode === 0 && stdout.trim().length === 32) {
-                root.reloadToken = stdout.trim()
-                root.reloadFinishSent = false
-                root.reloadReleaseArmed = false
-                // Clear per-screen readiness; each Scope will re-report via onReloadReadyChanged
-                root.reloadScreens = ({})
-                for (let i = 0; i < Quickshell.screens.length; i++) {
-                    const name = Quickshell.screens[i]?.name
-                    if (name) root.reloadScreens[name] = false
-                }
-            }
-        }
     }
 
     // Power Saver strips compositor blur and shadow too (the heaviest present-time
@@ -759,13 +704,6 @@ ShellRoot {
         }
     }
 
-    // Stash steps a running task's own surface aside when it needs the auth
-    // island. (pill 332-335)
-    Connections {
-        target: Stash
-        function onAuthStepAside(mon, id) { ShellState.closeSurface(id, mon); }
-    }
-
     // Daemon-facing surface channel (Phase 10 points the daemon here). Target
     // "shell" avoids the live pill's "pill" target; each call maps onto the
     // ShellState surface bus. Ported from pill/shell.qml 341-364; the SocketServer
@@ -820,12 +758,15 @@ ShellRoot {
 
     IpcHandler {
         target: "keypresses"
-        readonly property bool active: Keypresses.active
-        readonly property string status: Keypresses.backendStatus
-        readonly property string lastEvent: Keypresses.lastEventSignature
-        readonly property string theme: Keypresses.theme
-        readonly property string mode: Keypresses.mode
-        readonly property real revision: Keypresses.previewRevision
+        // Read-outs are functions, not properties. A property on an IpcHandler
+        // brings a change signal with it, and Quickshell warns once per signal it
+        // finds on a handler; `ipc call keypresses <name>` returns the same value.
+        function active(): bool { return Keypresses.active; }
+        function status(): string { return Keypresses.backendStatus; }
+        function lastEvent(): string { return Keypresses.lastEventSignature; }
+        function theme(): string { return Keypresses.theme; }
+        function mode(): string { return Keypresses.mode; }
+        function revision(): real { return Keypresses.previewRevision; }
         function activate(theme: string, mode: string, revision: string): void {
             Keypresses.activatePreview(theme, mode, revision);
         }
@@ -918,21 +859,28 @@ ShellRoot {
             }
         }
 
-        // The switcher keeps its two verbs: advance while the key is down,
-        // close when it comes up (bind + bindl on SUPER, Tab).
+        // The switcher: advance (reverse, with Shift) while the key is down, close
+        // when it comes up. The release is `bindr`; `bindl` is the lock-screen
+        // flag and fires on the press, which is what hid the card at once.
         function advanceSwitcher(): void { root.advanceSwitcher(); }
+        function reverseSwitcher(): void { root.reverseSwitcher(); }
         function closeSwitcher(): void { root.closeSwitcher(); }
         function toggleCheatsheet(): void { root.toggleCheatsheet(); }
+
+        // Super+Tab, Super+Alt+Tab, and any surface by its toggleSurface name.
+        function toggleOverview(): void { root.toggleSurface("overview"); }
+        function overviewDesktop(delta: int): void { root.overviewDesktop(delta); }
+        function toggleSurface(name: string): void { root.toggleSurface(name); }
 
         // The print key arrives here as a compositor bind (Print / XF86Print)
         // and opens the capture tab in quick settings, where the shell takes
         // the screenshot itself with the compositor's screencopy.
         function toggleScreenshot(): void { root.toggleSurface("screenshot"); }
 
-        // The old shell re-read its cached settings files on a write; the
-        // ported shell reads GSettings reactively, so the contract's reload
-        // became a no-op rather than a call a Hub write would find missing.
-        function reloadSettings(): void {}
+        // A Hub write to the idle keys lands here: hypridle reads its timeouts
+        // when it starts, so `zenith-idle apply` restarts it only if they changed.
+        // Every other setting is read reactively by the shell itself.
+        function reloadSettings(): void { Quickshell.execDetached(["zenith-idle", "apply"]); }
     }
 
     function toggleCheatsheet() {
@@ -953,6 +901,25 @@ ShellRoot {
     function closeSwitcher() {
         if (zenithSwitcher.item)
             zenithSwitcher.item.close();
+    }
+
+    function reverseSwitcher() {
+        if (zenithSwitcher.item)
+            zenithSwitcher.item.reverse();
+    }
+
+    // Super+Alt+Tab: step the desktop strip of an open overview, or open the
+    // overview already stepped (the overview applies the step once it has seeded).
+    function overviewDesktop(delta) {
+        const st = ShellState.forActive();
+        if (!st)
+            return;
+        if (st.overviewOpen) {
+            OverviewCfg.Hy.desktopStep(delta);
+        } else {
+            OverviewCfg.Hy.pendingStep = delta;
+            st.overviewOpen = true;
+        }
     }
 
     // The switcher and the cheat sheet are Zenith's own parked surfaces from

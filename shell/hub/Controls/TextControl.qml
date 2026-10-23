@@ -85,6 +85,8 @@ Editor {
 
     Rectangle {
         id: field
+        // The editor reaches its input through the field (`field.input`).
+        property alias input: input
         width: parent.width
         height: 36
         radius: Theme.radiusField

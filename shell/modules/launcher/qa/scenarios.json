@@ -1122,7 +1122,7 @@
     },
     {
       "id": "ask-mode-ui",
-      "name": "Backslash enters Rashin ask mode with RASHIN chip",
+      "name": "Backslash enters Zenith Agent ask mode with AGENT chip",
       "covers": "ask mode routing + panel",
       "steps": [
         "show",
@@ -1131,7 +1131,7 @@
       ],
       "asserts": [
         ".askMode == true",
-        ".modeLabel == \"RASHIN\""
+        ".modeLabel == \"AGENT\""
       ],
       "screenshot": true
     },

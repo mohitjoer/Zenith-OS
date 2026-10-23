@@ -5,7 +5,8 @@ import Quickshell.Io
 import "lib/screens.js" as Screens
 
 // screen recording state + control. drives zenith-cmd-screenrecord
-// (gpu-screen-recorder, falling back to wf-recorder on multi-GPU machines) and
+// (wf-recorder, the only recorder in the Ubuntu archive; gpu-screen-recorder when
+// the user has installed it) and
 // reconciles against the live process, so a failed launch or an external stop
 // can't strand the UI. pause is optimistic, gsr only (wf-recorder can't pause).
 // the Super+S capture card and floating record island share this source of truth.
@@ -74,6 +75,7 @@ Singleton {
         root.regionPicking = true;
         Quickshell.execDetached(["sh", "-c",
             "mkdir -p \"$(dirname '" + root.regionFilePath + "')\"; "
+            + "command -v slurp >/dev/null 2>&1 || notify-send 'Region recording' 'slurp is not installed (sudo apt install slurp)'; "
             + "g=$(slurp -f '%wx%h+%x+%y' 2>/dev/null); "
             + "printf '%s' \"$g\" > '" + root.regionFilePath + ".tmp'; "
             + "mv '" + root.regionFilePath + ".tmp' '" + root.regionFilePath + "'"]);

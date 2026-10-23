@@ -13,12 +13,12 @@
 set -euo pipefail
 
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
-state_file="${RYOKU_RADIO_STATE_FILE:-$runtime_dir/ryoku-radio.json}"
-aside_file="${RYOKU_RADIO_ASIDE_FILE:-$runtime_dir/ryoku-radio-aside.json}"
-lock_file="${RYOKU_RADIO_LOCK_FILE:-$runtime_dir/ryoku-radio.lock}"
-mpv_bin="${RYOKU_RADIO_MPV:-mpv}"
-ytdlp_bin="${RYOKU_RADIO_YTDLP:-yt-dlp}"
-resolve_timeout="${RYOKU_RADIO_RESOLVE_TIMEOUT:-25}"
+state_file="${ZENITH_RADIO_STATE_FILE:-$runtime_dir/zenith-radio.json}"
+aside_file="${ZENITH_RADIO_ASIDE_FILE:-$runtime_dir/zenith-radio-aside.json}"
+lock_file="${ZENITH_RADIO_LOCK_FILE:-$runtime_dir/zenith-radio.lock}"
+mpv_bin="${ZENITH_RADIO_MPV:-mpv}"
+ytdlp_bin="${ZENITH_RADIO_YTDLP:-yt-dlp}"
+resolve_timeout="${ZENITH_RADIO_RESOLVE_TIMEOUT:-25}"
 
 # id|label|kind|source|fallback-id|art — kind is youtube (resolve at play
 # time; art is the stream's own thumbnail, fetched alongside the URL) or
@@ -42,12 +42,12 @@ station_field() { # $1 id, $2 field no
 usage() {
 	cat <<'EOF'
 Usage:
-  ryoku-cmd-radio stations          # known stations, one JSON row each
-  ryoku-cmd-radio status            # {"on":…,"station":…,"label":…,"live":…,"fellBack":…,"aside":…}
-  ryoku-cmd-radio start [id]        # tune in (default: lofi); replaces any current station
-  ryoku-cmd-radio stop [--aside]    # tune out; --aside remembers the station for resume
-  ryoku-cmd-radio resume            # restart the station stop --aside remembered
-  ryoku-cmd-radio toggle [id]
+  zenith-cmd-radio stations          # known stations, one JSON row each
+  zenith-cmd-radio status            # {"on":…,"station":…,"label":…,"live":…,"fellBack":…,"aside":…}
+  zenith-cmd-radio start [id]        # tune in (default: lofi); replaces any current station
+  zenith-cmd-radio stop [--aside]    # tune out; --aside remembers the station for resume
+  zenith-cmd-radio resume            # restart the station stop --aside remembered
+  zenith-cmd-radio toggle [id]
 EOF
 }
 
@@ -135,7 +135,12 @@ do_stop() { # [--aside]
 do_start() { # [id]
 	local id="${1:-lofi}" label token
 	label="$(station_field "$id" 2)"
-	[ -n "$label" ] || { echo "ryoku-cmd-radio: unknown station: $id" >&2; exit 2; }
+	[ -n "$label" ] || { echo "zenith-cmd-radio: unknown station: $id" >&2; exit 2; }
+	command -v "$mpv_bin" >/dev/null 2>&1 || {
+		echo "zenith-cmd-radio: mpv is not installed (sudo apt install mpv mpv-mpris)" >&2
+		notify-send "Radio" "mpv is not installed (sudo apt install mpv mpv-mpris)" 2>/dev/null || true
+		exit 127
+	}
 	do_stop >/dev/null 2>&1 || true
 	rm -f "$aside_file"
 	local live=false
@@ -231,5 +236,5 @@ case "${1:-}" in
 	toggle)     with_lock do_toggle "${2:-}" ;;
 	_supervise) cmd_supervise "${2:?station required}" "${3:?token required}" ;;
 	--help | -h | "") usage ;;
-	*) echo "ryoku-cmd-radio: unknown action: $1" >&2; usage >&2; exit 2 ;;
+	*) echo "zenith-cmd-radio: unknown action: $1" >&2; usage >&2; exit 2 ;;
 esac

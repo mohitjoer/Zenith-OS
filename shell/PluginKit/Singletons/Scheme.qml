@@ -4,14 +4,15 @@ import Quickshell
 import Quickshell.Io
 
 // Thin reader of the daemon palette for the plugin kit. The theme daemon is the
-// sole author of colour in Ryoku: a fixed named theme publishes its palette into
+// sole author of colour in Zenith: a fixed named theme publishes its palette into
 // shell.json's themePalette key, and follow-the-wallpaper mode writes the live
-// palette to ~/.cache/ryoku/colors.json. This resolves each role the pill's
+// palette to ~/.cache/zenith/colors.json. This resolves each role the pill's
 // way -- a named scheme wins, then the live wallpaper palette, then the compiled
 // default -- so a plugin's card, ink and accent retint on ANY scheme change
 // (static named theme or wallpaper-follow) with no colour math of its own.
-// base/elevated/deep/line map onto the palette's surface depth ramp; accent is
-// the primary role verbatim.
+// base/elevated/deep/line map onto the palette's surface depth ramp. accent is
+// the on-surface ink, not the primary role: the design system is monochrome, so
+// a plugin's emphasis is ink weight and never a hue.
 Singleton {
     id: root
 
@@ -42,13 +43,13 @@ Singleton {
     }
 
     // --- surface depth ramp (the plugin card sits on these) -------------------
-    readonly property color base:     role("surface", "#16110b")
-    readonly property color elevated: role("surfaceContainer", "#1b150e")
-    readonly property color deep:     role("surfaceContainerLowest", "#0f0c07")
-    readonly property color line:     role("outlineVariant", "#3d484d")
+    readonly property color base:     role("surface", "#1a1a1a")
+    readonly property color elevated: role("surfaceContainer", "#242424")
+    readonly property color deep:     role("surfaceContainerLowest", "#101010")
+    readonly property color line:     role("outlineVariant", "#2b2b2b")
 
-    // --- accent: the primary role, verbatim (the daemon curates it) -----------
-    readonly property color accent: role("primary", "#e2342a")
+    // --- accent: the ink itself ------------------------------------------------
+    readonly property color accent: role("onSurface", "#f2f2f2")
 
     // --- ink, resolved from the palette so text reads on the themed card.
     // Declared plain and set via Binding: QML's signal-handler grammar parses an
@@ -57,8 +58,8 @@ Singleton {
     // element assigns the role by name instead. ---
     property color onSurface
     property color onSurfaceVariant
-    Binding { target: root; property: "onSurface";        value: root.role("onSurface", "#e6dccb") }
-    Binding { target: root; property: "onSurfaceVariant"; value: root.role("onSurfaceVariant", "#8f8770") }
+    Binding { target: root; property: "onSurface";        value: root.role("onSurface", "#f2f2f2") }
+    Binding { target: root; property: "onSurfaceVariant"; value: root.role("onSurfaceVariant", "#a1a1a1") }
 
     function refreshWall() {
         try {
@@ -97,7 +98,7 @@ Singleton {
 
     FileView {
         id: wallFile
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ryoku/colors.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -106,7 +107,7 @@ Singleton {
     }
     FileView {
         id: shellFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -115,7 +116,7 @@ Singleton {
     }
     FileView {
         id: themeFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

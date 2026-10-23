@@ -5,11 +5,11 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  ryoku-cmd-screenrecord [--fullscreen|--region|--monitor <NAME>] [--geometry <WxH+X+Y>] [--with-desktop-audio] [--with-microphone-audio]
-  ryoku-cmd-screenrecord -r|-s|-sr
-  ryoku-cmd-screenrecord --stop|--pause|--status
+  zenith-cmd-screenrecord [--fullscreen|--region|--monitor <NAME>] [--geometry <WxH+X+Y>] [--with-desktop-audio] [--with-microphone-audio]
+  zenith-cmd-screenrecord -r|-s|-sr
+  zenith-cmd-screenrecord --stop|--pause|--status
 
-Starts, stops, or pauses Ryoku's shell recorder.
+Starts, stops, or pauses Zenith's shell recorder.
 
 By default it records the focused monitor with gpu-screen-recorder's KMS capture
 (-w <output>, falling back to -w screen when the focused output can't be named).
@@ -19,37 +19,41 @@ portal instead (PipeWire ScreenCast, still GPU-encoded, and works regardless of
 which card scans out); it only falls back to wf-recorder if gpu-screen-recorder
 is missing.
 
-Override the backend with RYOKU_SCREENRECORD_BACKEND=auto|gsr|portal|wf.
+gpu-screen-recorder is not in the Ubuntu archive, so on a stock install
+wf-recorder (sudo apt install wf-recorder) is the backend; gsr is used when it
+is installed.
+
+Override the backend with ZENITH_SCREENRECORD_BACKEND=auto|gsr|portal|wf.
 Portal capture reuses the last chosen screen; set pickEachTime true in the Hub's
-recording settings (or RYOKU_SCREENRECORD_PICK=1) to be asked which screen every
+recording settings (or ZENITH_SCREENRECORD_PICK=1) to be asked which screen every
 time.
 USAGE
 }
 
 notify() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send -a ryoku-cli "$@" >/dev/null 2>&1 || true
+    notify-send -a zenith-cli "$@" >/dev/null 2>&1 || true
   fi
 }
 
 # The window manager is reached only through the seam, asked by capability and
 # never by name.
-ryoku_bin="${RYOKU_BIN-$(command -v ryoku || true)}"
+zenith_bin="${ZENITH_BIN-$(command -v zenith || true)}"
 
 wm_can() {  # capability -> 0 when the live compositor honours it
-  [[ -n $ryoku_bin && -x $ryoku_bin ]] || return 1
-  case ",$("$ryoku_bin" wm status 2>/dev/null | sed -n 's/^Capabilities: //p' | tr -d '[:space:]')," in
+  [[ -n $zenith_bin && -x $zenith_bin ]] || return 1
+  case ",$("$zenith_bin" wm status 2>/dev/null | sed -n 's/^Capabilities: //p' | tr -d '[:space:]')," in
     *",$1,"*) return 0 ;;
   esac
   return 1
 }
 
-# Hub-owned recording settings (~/.config/ryoku/recording.json), written by the
+# Hub-owned recording settings (~/.config/zenith/recording.json), written by the
 # Recording page. env vars still override, then this file, then the built-in
 # default. only video encode knobs live here (fps, quality, codec, framerate
 # mode, encoder, cursor); capture mode and audio are per-recording flags.
 recording_config_file() {
-  printf '%s/ryoku/recording.json' "${XDG_CONFIG_HOME:-$HOME/.config}"
+  printf '%s/zenith/recording.json' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
 cfg_get() {
@@ -67,14 +71,16 @@ cfg_bool() { # -> yes|no
   if [[ $v == true || $v == yes || $v == 1 ]]; then printf 'yes'; else printf 'no'; fi
 }
 
+# The optional third argument is the apt package that provides the tool; it is
+# left off for gpu-screen-recorder, which the Ubuntu archive does not carry.
 require_command() {
   local command_name="$1"
   local label="$2"
 
   if ! command -v "$command_name" >/dev/null 2>&1; then
-    notify -u critical "Screen recording failed" "$label is not installed"
-    echo "ryoku-cmd-screenrecord: missing command: $command_name" >&2
-    exit 1
+    notify -u critical "Screen recording failed" "$label is not installed${3:+ (sudo apt install $3)}"
+    echo "zenith-cmd-screenrecord: missing command: $command_name" >&2
+    exit 127
   fi
 }
 
@@ -118,15 +124,12 @@ recorder_running() {
   [[ -n "$(recording_gsr_pids)" ]] || proc_running "$wf_pattern"
 }
 
-# A live (video) wallpaper can render two ways: through the C player
-# (ryogami-live, pre-rename ryoku-livewall) on a background layer that is not on
-# the KMS scanout gsr captures, or in-shell inside the wallpaper surface. The C
-# player defeats gsr's grab, so switch to wf-recorder, which grabs the
-# composited output (livewall included). Match both names: a box mid-rename
-# still runs the old binary.
+# A live (video) wallpaper plays through the C player (zenith-wallpaper-live) on
+# a background layer that is not on the KMS scanout gsr captures, so switch to
+# wf-recorder, which grabs the composited output (the live wallpaper included).
 live_wallpaper_active() {
   command -v pgrep >/dev/null 2>&1 || return 1
-  pgrep -x ryogami-live >/dev/null 2>&1 || pgrep -x ryoku-livewall >/dev/null 2>&1
+  pgrep -x zenith-wallpaper-live >/dev/null 2>&1
 }
 
 # which backend owns the live recording right now, if any.
@@ -146,7 +149,7 @@ signal_recorder() {
   pkill "$signal" -f "$pattern" >/dev/null 2>&1 || true
 }
 
-# must match Ryoku.Ui.Singletons.Paths.recordingsDir, which the deck's recordings
+# must match Zenith.Ui.Singletons.Paths.recordingsDir, which the deck's recordings
 # list and the Hub's Recording page both read: the env override, then the Hub's
 # `directory` setting, then ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings. the list
 # watches that one dir, so any other resolution (e.g. `xdg-user-dir VIDEOS`,
@@ -154,8 +157,8 @@ signal_recorder() {
 # recording.
 recordings_dir() {
   local configured
-  if [[ -n ${RYOKU_SHELL_RECORDINGS_DIR:-} ]]; then
-    printf '%s\n' "$RYOKU_SHELL_RECORDINGS_DIR"
+  if [[ -n ${ZENITH_SHELL_RECORDINGS_DIR:-} ]]; then
+    printf '%s\n' "$ZENITH_SHELL_RECORDINGS_DIR"
     return
   fi
 
@@ -170,7 +173,7 @@ recordings_dir() {
 
 next_recording_path() {
   local dir="$1"
-  local name_format="${RYOKU_SCREENRECORD_NAME_FORMAT:-recording_%Y-%m-%d_%H.%M.%S}"
+  local name_format="${ZENITH_SCREENRECORD_NAME_FORMAT:-recording_%Y-%m-%d_%H.%M.%S}"
   local name
   local path
   local suffix=1
@@ -193,7 +196,7 @@ next_recording_path() {
 # than the render GPU this is false and we have to use wf-recorder. probe is
 # time-boxed because gsr's DRM enum can hang on exactly those machines.
 gsr_capture_probe() {
-  local cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
+  local cmd="${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
   local out
 
   command -v "$cmd" >/dev/null 2>&1 || return 1
@@ -221,14 +224,16 @@ gpu_topology_signature() {
     # (e.g. a "gsr" written by the old webcam-fooled probe, or a "wf" stranded
     # by a portal that only stalled while the picker waited on a person) is
     # dropped and re-run.
-    printf 'recorder-select-v3\n'
+    printf 'recorder-select-v4\n'
+    command -v "${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}" >/dev/null 2>&1 && printf 'gsr\n'
+    command -v "${ZENITH_SCREENRECORD_WF:-wf-recorder}" >/dev/null 2>&1 && printf 'wf\n'
     printf '%s\n' /dev/dri/card*
     cat /sys/class/drm/card*/status 2>/dev/null
   } 2>/dev/null | md5sum 2>/dev/null | cut -d' ' -f1
 }
 
 backend_cache_file() {
-  printf '%s/screenrecord-backend' "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+  printf '%s/screenrecord-backend' "${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}"
 }
 
 # persist the chosen backend for the current GPU/monitor topology so the next
@@ -253,7 +258,7 @@ forget_backend() {
 }
 
 select_backend() {
-  local backend="${RYOKU_SCREENRECORD_BACKEND:-auto}"
+  local backend="${ZENITH_SCREENRECORD_BACKEND:-auto}"
 
   case "$backend" in
   gsr|wf|portal)
@@ -281,12 +286,12 @@ select_backend() {
   # matter which card scans out), and only to wf-recorder if gsr is absent.
   if gsr_capture_probe; then
     chosen="gsr"
-  elif command -v "${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}" >/dev/null 2>&1; then
+  elif command -v "${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}" >/dev/null 2>&1; then
     chosen="portal"
-  elif command -v "${RYOKU_SCREENRECORD_WF:-wf-recorder}" >/dev/null 2>&1; then
+  elif command -v "${ZENITH_SCREENRECORD_WF:-wf-recorder}" >/dev/null 2>&1; then
     chosen="wf"
   else
-    chosen="gsr"
+    chosen="wf"
   fi
 
   remember_backend "$chosen"
@@ -296,8 +301,8 @@ select_backend() {
 
 # slurp geometry as "WxH+X+Y" for gpu-screen-recorder. empty = cancelled.
 region_geometry_gsr() {
-  local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
-  local region_pick="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/region-pick"
+  local slurp_cmd="${ZENITH_SCREENRECORD_SLURP:-slurp}"
+  local region_pick="${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/region-pick"
   local geometry pos size x y
 
   # geometry sources in order: an explicit --geometry, the box the island's region
@@ -310,7 +315,7 @@ region_geometry_gsr() {
   fi
 
   if [[ -z ${geometry:-} ]]; then
-    require_command "$slurp_cmd" slurp
+    require_command "$slurp_cmd" slurp slurp
     geometry="$("$slurp_cmd" -f "%wx%h+%x+%y" 2>/dev/null || true)"
     [[ -n $geometry ]] || return 0
 
@@ -325,7 +330,7 @@ region_geometry_gsr() {
 
   if [[ ! $geometry =~ ^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$ ]]; then
     notify -u critical "Screen recording failed" "Invalid region: $geometry"
-    echo "ryoku-cmd-screenrecord: invalid region: $geometry" >&2
+    echo "zenith-cmd-screenrecord: invalid region: $geometry" >&2
     exit 1
   fi
 
@@ -334,8 +339,8 @@ region_geometry_gsr() {
 
 # slurp's native "X,Y WxH" for wf-recorder -g. empty = cancelled.
 region_geometry_wf() {
-  local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
-  local region_pick="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/region-pick"
+  local slurp_cmd="${ZENITH_SCREENRECORD_SLURP:-slurp}"
+  local region_pick="${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/region-pick"
   local geometry gsr_geom
 
   # island-provided region (WxH+X+Y, via --geometry or the picker file) ->
@@ -350,7 +355,7 @@ region_geometry_wf() {
     return
   fi
 
-  require_command "$slurp_cmd" slurp
+  require_command "$slurp_cmd" slurp slurp
   geometry="$("$slurp_cmd" 2>/dev/null || true)"
   printf '%s' "$geometry"
 }
@@ -359,9 +364,9 @@ region_geometry_wf() {
 # when it cannot be resolved (wf-recorder then records the only/default output),
 # which is also the honest result on a compositor whose outputs we cannot read.
 focused_output() {
-  command -v ryoku-hub >/dev/null 2>&1 || return 0
+  command -v zenith-hubd >/dev/null 2>&1 || return 0
   command -v jq >/dev/null 2>&1 || return 0
-  ryoku-hub outputs 2>/dev/null \
+  zenith-hubd outputs 2>/dev/null \
     | jq -r 'first(.[] | select(.focused)) // .[0] // {} | .name // empty' 2>/dev/null
 }
 
@@ -372,7 +377,7 @@ validate_monitor_name() {
   local name="$1"
   if [[ -z $name || ! $name =~ ^[A-Za-z0-9._-]+$ ]]; then
     notify -u critical "Screen recording failed" "Invalid monitor: $name"
-    echo "ryoku-cmd-screenrecord: invalid monitor: $name" >&2
+    echo "zenith-cmd-screenrecord: invalid monitor: $name" >&2
     exit 1
   fi
 }
@@ -390,7 +395,7 @@ default_source_name() {
 }
 
 # render node (/dev/dri/renderD*) sharing a PCI addr with the given card
-# device (a real card or a ryoku-gpu-* symlink).
+# device (a real card or a zenith-gpu-* symlink).
 render_node_for_card() {
   local ref="$1"
   local card name pci node
@@ -409,7 +414,7 @@ render_node_for_card() {
 }
 
 # pick the render node for wf-recorder's VAAPI encoder: explicit override, the
-# primary GPU pinned by ryoku-gpu (AQ_DRM_DEVICES), else the card that actually
+# primary GPU pinned by zenith-gpu (AQ_DRM_DEVICES), else the card that actually
 # drives a connected display, else the first render node.
 #
 # The display-owning card matters on a hybrid laptop: the compositor scans out
@@ -419,8 +424,8 @@ render_node_for_card() {
 # hw encode dies inside its probe window, and every recording silently drops to
 # CPU libx264.
 wf_vaapi_node() {
-  if [[ -n ${RYOKU_SCREENRECORD_WF_DEVICE:-} ]]; then
-    printf '%s' "$RYOKU_SCREENRECORD_WF_DEVICE"
+  if [[ -n ${ZENITH_SCREENRECORD_WF_DEVICE:-} ]]; then
+    printf '%s' "$ZENITH_SCREENRECORD_WF_DEVICE"
     return 0
   fi
 
@@ -482,7 +487,7 @@ stop_recording() {
   # a config reload triggers one. A compositor that cannot reload its config live
   # is unaffected and needs none.
   if wm_can configReload; then
-    "$ryoku_bin" wm act config.reload >/dev/null 2>&1 || true
+    "$zenith_bin" wm act config.reload >/dev/null 2>&1 || true
   fi
 }
 
@@ -522,38 +527,44 @@ focused_gpu_vendor() {
 encoder_label() {
   local backend="$1" encoder="$2" vendor
   if [[ $encoder == cpu ]]; then printf 'CPU (libx264)'; return 0; fi
+  if [[ $backend == wf ]]; then printf 'VAAPI / CPU (libx264)'; return 0; fi
   vendor="$(focused_gpu_vendor)"
   case "$vendor" in
   0x10de) printf 'NVIDIA NVENC' ;;
   0x1002) printf 'AMD VAAPI' ;;
   0x8086) printf 'Intel QSV' ;;
-  *) if [[ $backend == wf ]]; then printf 'VAAPI'; else printf 'GPU (hardware)'; fi ;;
+  *) printf 'GPU (hardware)' ;;
   esac
 }
 
 # machine-readable summary for the Hub's Recording page: which backend + encoder
 # will run, and the resolved settings.
 info_recording() {
-  local backend fps quality codec fmode encoder enc
-  backend="$(select_backend)"
-  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
-  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
-  codec="${RYOKU_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
-  fmode="${RYOKU_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
-  encoder="${RYOKU_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
-  enc="$(encoder_label "$backend" "$encoder")"
+  local backend="" fps quality codec fmode encoder enc=""
+  fps="${ZENITH_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  quality="${ZENITH_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  codec="${ZENITH_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
+  fmode="${ZENITH_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
+  encoder="${ZENITH_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
+  # Neither recorder installed: backend and encoder stay empty, which is how the
+  # Recording page knows there is nothing to record with.
+  if command -v "${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}" >/dev/null 2>&1 ||
+    command -v "${ZENITH_SCREENRECORD_WF:-wf-recorder}" >/dev/null 2>&1; then
+    backend="$(select_backend)"
+    enc="$(encoder_label "$backend" "$encoder")"
+  fi
   printf '{"backend":"%s","encoder":"%s","fps":"%s","quality":"%s","codec":"%s","framerateMode":"%s"}\n' \
     "$backend" "$enc" "$fps" "$quality" "$codec" "$fmode"
 }
 
 # absolute path to the post-save hook gpu-screen-recorder runs via -sc (a sibling
-# script, resolved the way ryoku-cmd-studiorecord resolves this one). empty when
+# script, resolved the way zenith-cmd-studiorecord resolves this one). empty when
 # the helper is missing or not executable, so we never hand gsr a -sc it can't
 # run and never call a phantom helper on the wf path.
 recording_saved_hook() {
   local here hook
   here="$(dirname "$(readlink -f "$0")")"
-  hook="$here/ryoku-cmd-recording-saved"
+  hook="$here/zenith-cmd-recording-saved"
   [[ -x $hook ]] && printf '%s' "$hook"
 }
 
@@ -572,7 +583,7 @@ start_gsr() {
   local mode="$1"
   local desktop_audio="$2"
   local microphone_audio="$3"
-  local recorder_cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
+  local recorder_cmd="${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
   local fps fmode quality codec encoder cursor
   local capture="screen"
   local region_geom=""
@@ -581,11 +592,11 @@ start_gsr() {
   local output_path
   local args
 
-  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
-  fmode="${RYOKU_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
-  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
-  codec="${RYOKU_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
-  encoder="${RYOKU_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
+  fps="${ZENITH_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  fmode="${ZENITH_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
+  quality="${ZENITH_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  codec="${ZENITH_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
+  encoder="${ZENITH_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
   cursor="$(cfg_bool '.cursor' true)"
 
   require_command "$recorder_cmd" gpu-screen-recorder
@@ -618,10 +629,10 @@ start_gsr() {
   output_dir="$(recordings_dir)"
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
-  # record the output path so the studio flow (ryoku-cmd-studiorecord) can find
+  # record the output path so the studio flow (zenith-cmd-studiorecord) can find
   # the finished clip to write its cursor sidecar and hand to the editor.
-  mkdir -p "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}" 2>/dev/null || true
-  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
+  mkdir -p "${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/last-recording" 2>/dev/null || true
 
   # -fm cfr: a steady framerate every player and editor reads correctly (vfr
   # often imports as ~30fps and looks choppy). -q/-k/-encoder come from the
@@ -650,23 +661,23 @@ start_portal() {
   local mode="$1"
   local desktop_audio="$2"
   local microphone_audio="$3"
-  local recorder_cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
+  local recorder_cmd="${ZENITH_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
   local fps fmode quality codec encoder cursor pick_each_time
   local audio_source=""
   local output_dir output_path pid token ticks i
   local -a args
 
-  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
-  fmode="${RYOKU_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
-  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
-  codec="${RYOKU_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
-  encoder="${RYOKU_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
+  fps="${ZENITH_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  fmode="${ZENITH_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
+  quality="${ZENITH_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  codec="${ZENITH_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
+  encoder="${ZENITH_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
   cursor="$(cfg_bool '.cursor' true)"
   # The portal caches the chosen source in a restore token and gsr reuses it
   # silently, so after the first recording every later one captures whatever
   # screen was picked then -- black or empty once that monitor is gone. Asking
   # each time is the user's call: recording.json pickEachTime, or the env.
-  pick_each_time="${RYOKU_SCREENRECORD_PICK:-}"
+  pick_each_time="${ZENITH_SCREENRECORD_PICK:-}"
   [[ -n $pick_each_time ]] || pick_each_time="$(cfg_bool '.pickEachTime' false)"
 
   require_command "$recorder_cmd" gpu-screen-recorder
@@ -682,8 +693,8 @@ start_portal() {
   output_dir="$(recordings_dir)"
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
-  mkdir -p "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}" 2>/dev/null || true
-  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
+  mkdir -p "${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/last-recording" 2>/dev/null || true
 
   token="${XDG_CONFIG_HOME:-$HOME/.config}/gpu-screen-recorder/restore_token"
   args=("$recorder_cmd" -w portal)
@@ -728,7 +739,7 @@ start_portal() {
   for ((i = 0; i < 20; i++)); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
   rm -f "$output_path"
   output_path="$(next_recording_path "$output_dir")"
-  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/last-recording" 2>/dev/null || true
   start_wf "$mode" "$desktop_audio" "$microphone_audio"
 }
 
@@ -736,16 +747,16 @@ start_wf() {
   local mode="$1"
   local desktop_audio="$2"
   local microphone_audio="$3"
-  local wf_cmd="${RYOKU_SCREENRECORD_WF:-wf-recorder}"
+  local wf_cmd="${ZENITH_SCREENRECORD_WF:-wf-recorder}"
   local fps quality qp crf
   local geom monitor audio_dev node output_dir output_path pid status
   local target_args=()
   local audio_args=()
 
-  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
-  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  fps="${ZENITH_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  quality="${ZENITH_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
 
-  require_command "$wf_cmd" wf-recorder
+  require_command "$wf_cmd" wf-recorder wf-recorder
 
   if [[ $mode == "region" ]]; then
     geom="$(region_geometry_wf)"
@@ -761,6 +772,7 @@ start_wf() {
 
   if [[ $desktop_audio == "true" ]]; then
     audio_dev="$(default_sink_monitor)"
+    [[ $microphone_audio == "true" ]] && notify -u normal "Screen recording" "wf-recorder takes one audio source: recording desktop audio, microphone skipped"
   elif [[ $microphone_audio == "true" ]]; then
     audio_dev="$(default_source_name)"
   fi
@@ -775,8 +787,8 @@ start_wf() {
   output_dir="$(recordings_dir)"
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
-  mkdir -p "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}" 2>/dev/null || true
-  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
+  mkdir -p "${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/last-recording" 2>/dev/null || true
 
   # quality preset -> VAAPI qp / x264 crf (lower = crisper).
   case "$quality" in
@@ -788,9 +800,9 @@ start_wf() {
 
   # explicit codec: skip hw/sw negotiation entirely. run (not exec) so we can hand
   # the finished file to the saved hook, which wf-recorder can't do itself.
-  if [[ -n ${RYOKU_SCREENRECORD_WF_CODEC:-} ]]; then
+  if [[ -n ${ZENITH_SCREENRECORD_WF_CODEC:-} ]]; then
     "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
-      -c "$RYOKU_SCREENRECORD_WF_CODEC" -f "$output_path" && status=0 || status=$?
+      -c "$ZENITH_SCREENRECORD_WF_CODEC" -f "$output_path" && status=0 || status=$?
     spawn_saved_hook "$output_path"
     exit "$status"
   fi
@@ -817,7 +829,7 @@ start_wf() {
     fi
     rm -f "$output_path"
     output_path="$(next_recording_path "$output_dir")"
-    printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
+    printf '%s\n' "$output_path" >"${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}/last-recording" 2>/dev/null || true
   fi
 
   "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
@@ -939,7 +951,7 @@ while (($# > 0)); do
     action="start"
     ;;
   *)
-    echo "ryoku-cmd-screenrecord: unknown argument: $1" >&2
+    echo "zenith-cmd-screenrecord: unknown argument: $1" >&2
     usage >&2
     exit 2
     ;;

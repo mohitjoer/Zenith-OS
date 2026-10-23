@@ -276,6 +276,10 @@ Item {
         root.viewedDesktop = root.activeDesktop;
         root.selected = Math.max(0, root.slotIndexOfWs(root.activeWsId));
         root.seeded = true;
+        if (Hy.pendingStep !== 0) {
+            root.cycleDesktop(Hy.pendingStep);
+            Hy.pendingStep = 0;
+        }
     }
     onDataReadyChanged: root.trySeed()
     onActiveWsIdChanged: root.trySeed()
@@ -306,6 +310,13 @@ Item {
         if (cur < 0) cur = 0;
         var nx = ((cur + d) % list.length + list.length) % list.length;
         root.switchToDesktop(list[nx]);
+    }
+    Connections {
+        target: Hy
+        function onDesktopStep(delta) {
+            if (root.active)
+                root.cycleDesktop(delta);
+        }
     }
     function activateSelected() {
         if (root.selected < 0 || root.selected >= root.slotModel.length)
@@ -553,7 +564,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 38 * root.s
-        text: I18n.tr("SCROLL / TAB  CYCLE      ALT+TAB  DESKTOP      DRAG  MOVE      \u2715  CLOSE      R-CLICK / ENTER  GO      ESC  DISMISS")
+        text: I18n.tr("SCROLL / TAB  CYCLE      SUPER+ALT+TAB  DESKTOP      DRAG  MOVE      \u2715  CLOSE      R-CLICK / ENTER  GO      ESC  DISMISS")
         color: Theme.faint
         font.family: Theme.mono
         font.pixelSize: 10 * root.s

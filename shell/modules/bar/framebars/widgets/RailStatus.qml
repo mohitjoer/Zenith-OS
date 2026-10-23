@@ -71,7 +71,7 @@ Item {
         return a.enabled ? "bluetooth-active" : "bluetooth-disabled";
     }
 
-    readonly property bool hasNotifs: Notifs.tracked.length > 0
+    readonly property bool hasNotifs: (Notifs.tracked || []).length > 0
     readonly property string glyph: {
         if (statusId === "battery")
             return batteryGlyph(Battery.pct, Battery.charging || Battery.full);

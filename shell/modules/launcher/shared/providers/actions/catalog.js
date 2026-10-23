@@ -15,11 +15,11 @@ var CATALOG = [
     { id: "toggle-game-mode", name: "Game Mode",          category: "System",     icon: "gamepad",     exec: ["zenith-cmd-game-mode"], caps: "liveConfigEval" },
     { id: "mirror-displays",  name: "Mirror Displays",    category: "System",     icon: "monitor",     exec: ["zenith-monitor", "toggle"], caps: "outputMirror" },
 
-    { id: "next-wallpaper",   name: "Next Wallpaper",     category: "Appearance", icon: "image",       exec: ["ryogami", "wallpaper", "next"] },
-    { id: "pick-wallpaper",   name: "Wallpaper Picker",   category: "Appearance", icon: "image-multi", exec: ["ryogami", "wallpaper", "ui"] },
+    { id: "next-wallpaper",   name: "Next Wallpaper",     category: "Appearance", icon: "image",       exec: ["zenith-wallpaper", "wallpaper", "next"] },
+    { id: "pick-wallpaper",   name: "Wallpaper Picker",   category: "Appearance", icon: "image-multi", exec: ["zenith-wallpaper", "wallpaper", "ui"] },
     { id: "toggle-nightlight",name: "Night Light",        category: "Appearance", icon: "moon",        exec: ["zenith-cmd-nightlight"], caps: "nightLight" },
 
-    { id: "screenshot",       name: "Screenshot",         category: "Tools",      icon: "camera",      exec: ["sh", "-c", "flock -n -o /tmp/ryoshot.lock qs -c ryoshot"] },
+    { id: "screenshot",       name: "Screenshot",         category: "Tools",      icon: "camera",      exec: ["zenith", "ipc", "call", "zenith", "toggleScreenshot"] },
     { id: "screen-record",    name: "Screen Record",      category: "Tools",      icon: "video",       exec: ["zenith-cmd-screenrecord"] },
     { id: "color-picker",     name: "Color Picker",       category: "Tools",      icon: "eyedropper",  exec: ["zenith-cmd-color-picker"] },
     { id: "ocr",              name: "OCR Text Grab",      category: "Tools",      icon: "text-scan",   exec: ["zenith-cmd-ocr"] },
@@ -32,12 +32,21 @@ var CATALOG = [
     { id: "recognize-music",  name: "Recognize Music",    category: "Media",      icon: "music",       exec: ["zenith-cmd-songrec"] },
     { id: "media-visualizer", name: "Audio Visualizer",   category: "Media",      icon: "wave",        exec: ["zenith-shell", "visualizer-overlay"] },
 
-    { id: "open-settings",    name: "Zenith Settings",     category: "Settings",   icon: "settings",    exec: ["sh", "-c", "flock -n -o /tmp/zenith-hub.lock qs -c hub"] },
-    { id: "keybind-legend",   name: "Keybind Reference",  category: "Settings",   icon: "keyboard",    exec: ["sh", "-c", "flock -n -o /tmp/zenith-keys.lock qs -c keys"] },
+    { id: "open-settings",    name: "Zenith Settings",     category: "Settings",   icon: "settings",    exec: ["zenith-shell", "hub", "open"] },
+    { id: "keybind-legend",   name: "Keybind Reference",  category: "Settings",   icon: "keyboard",    exec: ["zenith", "ipc", "call", "zenith", "toggleCheatsheet"] },
     { id: "reload-shell",     name: "Reload Shell",       category: "Settings",   icon: "refresh",     exec: ["zenith-shell", "reload"] }
 ];
 
 var CATEGORIES = ["All", "System", "Appearance", "Tools", "Media", "Settings"];
+
+// The distinct commands the catalog runs, so the provider can leave out the
+// actions whose command is not installed.
+function commands() {
+    var seen = {};
+    return CATALOG.map(function (a) { return a.exec[0]; }).filter(function (c) {
+        return seen[c] ? false : (seen[c] = true);
+    });
+}
 
 // Validate the catalog: unique ids, required fields, a known category, and a
 // non-empty exec argv. Returns an array of problem strings (empty = valid).
@@ -59,5 +68,5 @@ function validate(catalog) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { CATALOG, CATEGORIES, validate };
+    module.exports = { CATALOG, CATEGORIES, validate, commands };
 }

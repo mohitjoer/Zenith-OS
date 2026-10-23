@@ -1,41 +1,32 @@
 # The Hub
 
-The settings application. A window that draws the pages `zenith config export` hands it and changes
-nothing except through the tool that owns the settings.
+Zenith Settings: Ryoku's Hub, ported (a navigation rail in groups, a global search, one page per
+area of the desktop), plus one extra group, **Zenith**, for the settings the GSettings schemas
+declare. `session/zenith-hub [PAGE]` runs `quickshell -p /usr/share/zenith/shell/hub.qml`; the
+window is titled exactly `Zenith Settings` (its Wayland class is `org.quickshell`), which is what
+the compositor's window rule matches. `PAGE` is a navigation key (`displays`, `keybinds`, `zenith`)
+and reaches the window as `ZENITH_HUB_PAGE`. A running Hub is steered with
+`quickshell ipc -p .../hub.qml call nav open KEY` and closed with `call hub close`.
 
-It is the other configuration in the shell's own tree. `session/zenith-hub` runs
-`quickshell -p /usr/share/zenith/shell/hub.qml`, and a Quickshell configuration's root is the
-directory of the file it is started on — so the Hub's root is the shell's, and everything the shell
-can import the Hub can import. That is what lets it be drawn with the same component kit as the
-desktop, and it is why the entry file is at the shell's root rather than beside the files below.
+A Quickshell configuration's root is the directory of the file it is started on, so the entry file,
+`../hub.qml`, is at the shell's root, where `qs.*` resolves. Everything else is here.
 
-Two windows, two entry files, one tree. The Hub reads the shell's theme and the shell's settings
-wrapper as its own, because they are its own, and it still shares no state with the desktop shell: it
-reads no schema and writes no dconf except through `zenith config set`.
-
-## The shape of it
-
-| File | What it is |
+| What | Where |
 |---|---|
-| `../hub.qml` | The window. The navigation rail, the registry read, and the four states the window can be in. It is one directory up, beside `shell.qml`, because it is an entry file. |
-| `PageView.qml` | One page. A group of rows, and the row that chooses the editor for a key. |
-| `Editor.qml` | The base every editor is built on: the value, the write, and the error. |
-| `Zenith.qml` | The one writer. The queue of writes, and the outcome of each. |
-| `GVariant.qml` | The dialect the tool speaks. How a value is quoted, unquoted, parsed and written. |
-| `Controls/` | The five editors: `SwitchControl`, `SpinControl`, `ChoiceControl`, `TextControl`, `ListControl`. |
+| The window: rail, search, page host, action bar | `Hub.qml` (from Ryoku) |
+| The pages | `pages/` (Ryoku's, one file per rail entry), their rows in `schema/` |
+| Page chrome shared by them | `SchemaPage.qml`, `SettingsSheet.qml`, `Combos.js`, `fuzzy.js` |
+| The daemon, as the Hub sees it | `Singletons/` (`Settings.qml` is the `zenith-shell` socket) |
+| The Zenith group | `ZenithPage.qml`, drawn with `PageView.qml`, `Editor.qml`, `Controls/`, `Zenith.qml`, `GVariant.qml` |
 
-`Editor.qml` is at the top of this directory rather than beside the editors in `Controls/` because a
-file in a subdirectory cannot name a type from the directory beside it by relative import. The
-editors reach their base through the module that stands for this directory — `qs.hub` — and a module
-is named by its directory, so the base has to be at the top of it.
+Ryoku pages edit `shell.json` through the daemon and the compositor files through `zenith-hubd`.
+The Zenith group is the other store: GSettings, written only through `zenith config set`. It shows a
+control only for a setting something reads (today the idle timeouts); the rest are on the `Unread`
+list in `desktop/internal/hub`, with the reason, and come off it when something starts reading them.
 
-`../hub.qml` is the one file of the Hub that is not here, and it has to be, because the engine
-resolves `qs.modules.*` against the root of the configuration: an entry file under this directory
-would put the root here, and every import the kit uses to reach itself would name nothing.
+## Where the Zenith pages come from
 
-## Where the pages come from
-
-Nowhere in this directory. The window runs `zenith config export`, which writes the page registry
+Nowhere in this directory. `ZenithPage.qml` runs `zenith config export`, which writes the page registry
 as JSON, and draws what it is given: the pages, the keys on each page, the type of each key, the
 permitted values of an enum, the range of a number, and the current value of everything.
 
@@ -45,7 +36,7 @@ settings it does not own, or a setting has no page at all, which is the exact fa
 in `desktop/internal/hub` reports. Adding a setting to the Hub means adding a key to a schema and
 putting it on a page in Go. Nothing in this directory has to be touched.
 
-The registry is read once, at startup, and not watched. It changes when the package is upgraded,
+The registry is read once, when the page is first opened, and not watched. It changes when the package is upgraded,
 and a settings window that has to be told about it is a settings window that can be running against
 a stale list.
 

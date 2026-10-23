@@ -57,11 +57,14 @@ Item {
     readonly property var days3: (root.active && root.full && root.ready)
         ? Svc.Weather.daily.slice(0, 3) : []
 
-    // honest wording for the unavailable state: the daemon's own error line, or a
-    // plain loading note while the first frame is in flight.
+    // honest wording for the unavailable state: the daemon's own error line, a
+    // plain loading note while the first frame is in flight, or the quiet note
+    // while no location is set.
     readonly property string statusText: {
         if (Svc.Weather.status === "loading")
             return I18n.tr("Loading weather…");
+        if (Svc.Weather.noLocation)
+            return I18n.tr("Set a weather location in Settings");
         if (Svc.Weather.errorText.length > 0)
             return Svc.Weather.errorText;
         return I18n.tr("Weather unavailable");

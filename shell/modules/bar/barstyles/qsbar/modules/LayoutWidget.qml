@@ -8,7 +8,7 @@ Item {
     required property var root
 
     readonly property bool iconOnly: root.iconOnly("G19")
-    readonly property bool shown: root.modLayout && Wm.caps.keyboardLayoutSwitch
+    readonly property bool shown: root.modLayout && Wm.caps.keyboardLayoutSwitch === true
 
     property string layout: {
         var value = KeyboardLayout.variant || ""

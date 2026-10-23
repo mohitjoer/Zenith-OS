@@ -60,7 +60,7 @@ Singleton {
     // and offers no way to set one per config. The title is the only thing
     // that tells them apart, so it maps to the desktop entry id the dock
     // groups, launches and draws them by; anything else keeps its class.
-    readonly property var quickshellApps: ({ "Zenith Settings": "zenith-hub", "Ryostore": "ryostore", "ryovm": "ryovm" })
+    readonly property var quickshellApps: ({ "Zenith Settings": "zenith-hub", "Zenith Store": "zenith-store", "zenith-vm": "zenith-vm" })
     function classOf(w) {
         if (!w) return "";
         const cls = w.appId;
@@ -107,11 +107,18 @@ Singleton {
         return n;
     }
 
-    // Fallback pins so an empty dock is not mistaken for a missing one.
+    // Fallback pins so an empty dock is not mistaken for a missing one: Zenith's
+    // default terminal and file manager, and the first browser that is installed.
+    // The desktop DB is scanned a moment after the first paint and heuristicLookup
+    // is not reactive, so read iconRev (bumped when the DB lands) or a dock built
+    // before the scan stays empty for good.
     function starterPins() {
+        void root.iconRev;
         const out = [];
-        for (const className of ["kitty", "chromium", "nautilus"])
-            if (DesktopEntries.heuristicLookup(className)) out.push(className);
+        for (const role of [["com.mitchellh.ghostty"], ["firefox", "brave-browser", "chromium", "google-chrome"], ["org.gnome.Nautilus"]]) {
+            const hit = role.find(id => DesktopEntries.heuristicLookup(id));
+            if (hit) out.push(hit);
+        }
         return out;
     }
 

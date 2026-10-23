@@ -1,21 +1,37 @@
 #!/usr/bin/env bash
 # Recognize the currently playing audio with SongRec (Shazam) and copy the result
-# to the clipboard. The launcher's music-recognition button calls this; it hides
-# the button when songrec is absent, so this only runs when installed.
+# to the clipboard. The launcher's music-recognition button calls this.
+#
+# SongRec is not in the Ubuntu archive. Its author runs a PPA for Ubuntu
+# (ppa:marin-m/songrec) and a Flatpak (re.fossplant.songrec). Upstream warns that
+# the Flatpak's command line is limited by its sandbox, so only a real `songrec`
+# on PATH is used here, and its absence is said plainly rather than guessed around.
 set -euo pipefail
 
 app="Recognize music"
-need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+prog="zenith-cmd-songrec"
 
-for c in songrec wl-copy notify-send; do need "$c"; done
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send "$@" 2>/dev/null || true; }
 
-notify-send -u low "$app" "Listening..."
+if ! command -v songrec >/dev/null 2>&1; then
+  msg="songrec is not installed. It is not in the Ubuntu archive: sudo add-apt-repository ppa:marin-m/songrec, then sudo apt install songrec"
+  echo "$prog: $msg" >&2
+  notify -u normal "$app" "$msg"
+  exit 127
+fi
+if ! command -v wl-copy >/dev/null 2>&1; then
+  echo "$prog: wl-copy is not installed (sudo apt install wl-clipboard)" >&2
+  notify -u normal "$app" "wl-copy is not installed (sudo apt install wl-clipboard)"
+  exit 127
+fi
+
+notify -u low "$app" "Listening..."
 result="$(songrec recognize 2>/dev/null || true)"
 
 if [ -z "$result" ]; then
-  notify-send -u normal "$app" "No match found"
+  notify -u normal "$app" "No match found"
   exit 0
 fi
 
 printf '%s' "$result" | wl-copy
-notify-send -u normal "$app" "$result"
+notify -u normal "$app" "$result"

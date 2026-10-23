@@ -1,8 +1,8 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Services.Notifications
 import qs.Ui.Singletons
-import "../NotificationServer.qml" as NotificationServer
 
 // Notification model, faithful to the reference wayle-notification service
 // (contract 07 sec 4.3, sec 8; verified against monitoring.rs). Two flat,
@@ -35,9 +35,7 @@ Singleton {
     property var popupExpireAt: ({})
 
     // Raw server-tracked notifications (the rail's has-notifs dot reads this).
-    // The singleton NotificationServer (shell/NotificationServer.qml) owns the
-    // org.freedesktop.Notifications bus name; we read its tracked list.
-    readonly property var tracked: NotificationServer.trackedNotifications.values
+    readonly property var tracked: server.trackedNotifications.values
 
     // Panel list: flat, newest-first, transient excluded. A notification whose
     // remove_expired has elapsed has already left `tracked` (historyReaper calls
@@ -229,35 +227,37 @@ Singleton {
         });
     }
 
-    // Connect to the shell's singleton NotificationServer (shell/NotificationServer.qml).
-    // Its notificationArrived signal fires for every bus arrival (including
-    // lastGeneration on reload). We hook closed for all, but only add popups for
-    // genuinely new ones (isNew=true).
-    Connections {
-        target: NotificationServer
-        function onNotificationArrived(n, isNew) {
+    NotificationServer {
+        id: server
+        keepOnReload: true
+        bodySupported: true
+        actionsSupported: true
+        imageSupported: true
+
+        Component.onCompleted: {
+            var l = trackedNotifications.values;
+            var a = Object.assign({}, root.arrivalMs);
+            for (var i = 0; i < l.length; i++) {
+                if (!a[l[i].id])
+                    a[l[i].id] = Date.now();
+                root.hookClosed(l[i]);
+            }
+            root.arrivalMs = a;
+            root.scheduleHistoryReap();
+        }
+
+        onNotification: function(n) {
             var a = Object.assign({}, root.arrivalMs);
             a[n.id] = Date.now();
             root.arrivalMs = a;
-            // n.tracked is already set by the server's remember()
+            n.tracked = true;
             root.hookClosed(n);
-            if (isNew && !root.dnd)
+            // keepOnReload re-emits the live notifications with lastGeneration set on
+            // every reload, and systemd reloads this shell often: they stay in history
+            // but must not toast again.
+            if (!n.lastGeneration && !root.dnd)
                 root.addPopup(n);
             root.scheduleHistoryReap();
         }
-    }
-
-    // On startup, hook closed for any notifications already tracked by the
-    // server (e.g. after a reload where keepOnReload preserved them).
-    Component.onCompleted: {
-        var l = NotificationServer.trackedNotifications.values;
-        var a = Object.assign({}, root.arrivalMs);
-        for (var i = 0; i < l.length; i++) {
-            if (!a[l[i].id])
-                a[l[i].id] = Date.now();
-            root.hookClosed(l[i]);
-        }
-        root.arrivalMs = a;
-        root.scheduleHistoryReap();
     }
 }

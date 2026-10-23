@@ -3,16 +3,29 @@
 set -euo pipefail
 
 app="Color picker"
-need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+prog="zenith-cmd-color-picker"
+# A missing tool is a notification, because the shell runs this with nowhere to
+# print, plus exit 127 (the shell's "command not found") with the apt package
+# named. notify-send is checked first and on its own: it is the one tool whose
+# absence cannot be reported through itself.
+need() { # command [package]
+  command -v "$1" >/dev/null 2>&1 && return 0
+  echo "$prog: $1 is not installed (sudo apt install ${2:-$1})" >&2
+  command -v notify-send >/dev/null 2>&1 \
+    && notify-send -u normal "$app" "$1 is not installed (sudo apt install ${2:-$1})" 2>/dev/null
+  exit 127
+}
 
 repeat=false
 case "${1:-}" in
   "") ;;
   --repeat) repeat=true ;;
-  *) notify-send -u critical "$app" "Usage: ryoku-cmd-color-picker [--repeat]"; exit 2 ;;
+  *) notify-send -u critical "$app" "Usage: $prog [--repeat]"; exit 2 ;;
 esac
 
-for c in hyprpicker wl-copy notify-send; do need "$c"; done
+need notify-send libnotify-bin
+need hyprpicker
+need wl-copy wl-clipboard
 
 while true; do
   if ! color="$(hyprpicker -f hex)"; then

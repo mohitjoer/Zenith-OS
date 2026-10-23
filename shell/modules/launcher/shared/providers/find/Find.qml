@@ -4,16 +4,19 @@ import Quickshell.Io
 import qs.Ui.Singletons
 import "../../Singletons"
 import "../requeststate.js" as RequestState
+import "find.js" as Finder
 import ".."
 
 // Scoped file finder, reached only by an explicit command so a plain search is
 // never flooded with deep system paths:
 //   /file <q>    files by name (home, junk excluded)
 //   /folder <q>  directories
-//   /image <q>   images in Pictures + Downloads (by extension)
-//   /video <q>   videos in Videos + Downloads (by extension)
-// Backed by fd, async + cached per (mode, query). Opens with xdg-open; a
+//   /image <q>   images (by extension)
+//   /video <q>   videos (by extension)
+// Backed by plocate, async + cached per (mode, query). Opens with xdg-open; a
 // secondary action reveals the containing folder. Not a default provider.
+// It registers only when plocate has a database to read; without one the
+// /file prefixes and the IMG and FILE mode keys are gone.
 Provider {
     id: find
 
@@ -100,7 +103,7 @@ Provider {
         find.setRequestState(next);
         findProc.cacheKey = find.pendingKey;
         findProc.requestGeneration = find.pendingGeneration;
-        findProc.command = find.fdArgs(
+        findProc.command = Finder.args(
             find.pendingMode, find.pendingQuery);
         findProc.hits = [];
         findProc.inFlight = true;
@@ -113,26 +116,6 @@ Provider {
         if (prefix === "/image") return "image";
         if (prefix === "/video") return "video";
         return "file";
-    }
-
-    // fd argv for a mode: type, extension filters, and the roots to search. No
-    // --hidden, so dot-dirs (.cache, .claude, .config) are skipped; explicit
-    // excludes drop the heavy non-dot dirs too.
-    function fdArgs(mode, query) {
-        var common = ["--max-results", "25", "--exclude", "node_modules",
-            "--exclude", ".git", "--exclude", "Trash"];
-        var imgExt = ["--extension", "png", "--extension", "jpg", "--extension", "jpeg",
-            "--extension", "gif", "--extension", "webp", "--extension", "svg",
-            "--extension", "bmp", "--extension", "avif"];
-        var vidExt = ["--extension", "mp4", "--extension", "mkv", "--extension", "webm",
-            "--extension", "mov", "--extension", "avi", "--extension", "m4v"];
-        if (mode === "folder")
-            return ["fd", "--type", "d"].concat(common).concat([query, find.home]);
-        if (mode === "image")
-            return ["fd", "--type", "f"].concat(imgExt).concat(common).concat([query, find.home + "/Pictures", find.home + "/Downloads"]);
-        if (mode === "video")
-            return ["fd", "--type", "f"].concat(vidExt).concat(common).concat([query, find.home + "/Videos", find.home + "/Downloads"]);
-        return ["fd", "--type", "f"].concat(common).concat([query, find.home]);
     }
 
     function baseName(path) {
@@ -212,8 +195,14 @@ Provider {
 
     Process {
         id: availProc
-        command: ["sh", "-c", "command -v fd >/dev/null 2>&1"]
-        onExited: (code) => { find.available = (code === 0); }
+        // a search for "/" matches everything, so it fails when there is no
+        // readable database as well as when plocate is missing
+        command: ["sh", "-c", "command -v plocate >/dev/null 2>&1 && plocate -l 1 / >/dev/null 2>&1"]
+        onExited: (code) => {
+            find.available = (code === 0);
+            if (find.available)
+                Dispatcher.register(find);
+        }
     }
 
     Process {
@@ -263,8 +252,5 @@ Provider {
         }
     }
 
-    Component.onCompleted: {
-        availProc.running = true;
-        Dispatcher.register(find);
-    }
+    Component.onCompleted: availProc.running = true
 }

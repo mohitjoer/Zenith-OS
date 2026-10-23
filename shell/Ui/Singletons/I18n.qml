@@ -7,17 +7,15 @@ import Quickshell.Io
 // the wallpaper picker, the greeter). Source-string-as-key:
 // `I18n.tr("Power limit")` returns the current language's string, or the English
 // key itself when there is no translation, so the UI is never broken and
-// translating is purely additive. English is the source of truth in code; the
-// per-language files are generated (see zenith/i18n/sync.py), so a developer only
-// ever writes English.
+// translating is purely additive. English is the source of truth in code, so a
+// developer only ever writes English; the per-language catalogs are
+// shell/i18n/data, installed read-only at /usr/share/zenith/i18n.
 //
 // The language is a global shell setting (shell.json "language"), set from the
 // Hub's Global page and watched here, so changing it retranslates every open
-// surface live -- no relogin. The same catalog serves the Go installers and the
-// installer's shell (zenith/i18n/i18n.go, installation/backend/lib/i18n.sh), so
-// there is one set of strings for the whole system, at /usr/share/zenith/i18n
-// (a dev checkout points ZENITH_I18N_DIR at zenith/i18n/catalog). Brand kana
-// (天, 描画, seals) are never wrapped, so they stay put.
+// surface live -- no relogin. A dev checkout points ZENITH_I18N_DIR at
+// shell/i18n/data. Brand kana (天, 描画, seals) are never wrapped, so they stay
+// put.
 Singleton {
     id: i18n
 
@@ -95,14 +93,12 @@ Singleton {
     property var genMap: ({})    // user/AI-generated, layered on top
 
     // Where the shipped catalog lives, most specific first: an explicit
-    // override (tests, a CI run), a dev checkout's `zenith/i18n/install.sh`
-    // drop, then the packaged location every runtime shares. langs.json sits in
-    // the same directory, so probing for it settles the catalog too: a failed
-    // load steps to the next candidate rather than needing a stat call QML
-    // cannot make.
+    // override (a dev checkout, tests), then the packaged location. langs.json
+    // sits in the same directory, so probing for it settles the catalog too: a
+    // failed load steps to the next candidate rather than needing a stat call
+    // QML cannot make.
     readonly property var catalogDirs: [
         Quickshell.env("ZENITH_I18N_DIR") || "",
-        (Quickshell.env("XDG_DATA_HOME") || (Quickshell.env("HOME") + "/.local/share")) + "/zenith/i18n",
         "/usr/share/zenith/i18n"
     ].filter((d) => d !== "")
     property int dirIndex: 0
@@ -110,10 +106,13 @@ Singleton {
     function _trPath(l) {
         return i18n.catalogDir + "/" + l + ".json";
     }
-    // user/AI-generated translations live in the config dir, so a language the
-    // shell did not ship (or a better LLM pass) can be dropped in and layered.
+    // A hand fix for one's own box layers over the shipped catalog. It lives in
+    // the user's data dir, not ~/.config/zenith/i18n: `zenith materialize`
+    // mirrors all of /usr/share/zenith, i18n/ included, into ~/.config/zenith,
+    // and a mirror in the layer that wins would pin an old translation after
+    // the package updates.
     function _genPath(l) {
-        return (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/i18n/" + l + ".json";
+        return (Quickshell.env("XDG_DATA_HOME") || (Quickshell.env("HOME") + "/.local/share")) + "/zenith/i18n/" + l + ".json";
     }
 
     // the global config; language lives under "language", watched for live switch.

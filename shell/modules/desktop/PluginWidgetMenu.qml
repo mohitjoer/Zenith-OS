@@ -51,7 +51,9 @@ Item {
     signal lockToggled(string id)
     signal settingChanged(string id, string key, var value)
     signal sizeChanged(string id, real scale)
-    signal opacityChanged(string id, real opacity)
+    // Not opacityChanged: Item.opacity already owns that name, and a second
+    // signal under it is an invalid override that leaves the handler unbound.
+    signal opacityEdited(string id, real opacity)
 
     function openFor(id, locked, x, y, manifest, placement) {
         menu.scope = id;
@@ -158,7 +160,7 @@ Item {
             value: menu.opacityLive
             valueText: Math.round(opacitySlider.value * 100) + "%"
             onMoved: (v) => menu.opacityLive = v
-            onReleased: (v) => { menu.opacityLive = v; menu.opacityChanged(menu.scope, v); }
+            onReleased: (v) => { menu.opacityLive = v; menu.opacityEdited(menu.scope, v); }
         }
 
         // ── colour (only when the plugin declares it honours a host accent) ──

@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.Ui.Singletons
 import "../../Singletons"
 import "../../../../../utils/fuzzy.js" as Fuzzy
@@ -9,7 +10,8 @@ import ".."
 // System-action provider: the "/" prefix lists fire-and-forget commands (lock,
 // wallpaper, screenshot, night light, media keys, settings...) from the catalog,
 // fuzzy-filtered. Each action runs its catalog `exec` argv detached. The active
-// category tab (set by the view) narrows the list.
+// category tab (set by the view) narrows the list. An action whose command is
+// not installed is left out rather than failing silently when run.
 Provider {
     id: actions
 
@@ -20,6 +22,20 @@ Provider {
     property string activeCategory: "All"
     onActiveCategoryChanged: Dispatcher.notifyAsync()
 
+    // the commands found by the probe below; everything shows until it answers
+    property var present: ({})
+    property bool probed: false
+    Process {
+        running: true
+        command: ["sh", "-c", 'for c; do command -v "$c" >/dev/null 2>&1 && echo "$c"; done', "sh"].concat(Catalog.commands())
+        stdout: SplitParser {
+            onRead: name => actions.present[name] = true
+        }
+        onExited: {
+            actions.probed = true;
+            Dispatcher.notifyAsync();
+        }
+    }
 
     function rowFor(entry) {
         return {
@@ -44,6 +60,8 @@ Provider {
             // an action gated on a window-manager capability is dropped on a
             // compositor that lacks it (its helper is not even installed there).
             if (a.caps && Wm.caps[a.caps] !== true)
+                return false;
+            if (actions.probed && actions.present[a.exec[0]] !== true)
                 return false;
             return actions.activeCategory === "All" || a.category === actions.activeCategory;
         });

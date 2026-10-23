@@ -11,18 +11,27 @@ Item {
     property real s: 1
     implicitHeight: col.implicitHeight
 
-    readonly property var searchRows: [
+    // `p` names the provider a row documents; a provider that did not register
+    // (its tool is missing) has no row.
+    readonly property var allSearchRows: [
         { k: "type",   d: I18n.tr("federated apps, open windows, web and quick math") },
         { k: "ALL",    d: I18n.tr("browse apps alphabetically; typing stays apps-only") },
-        { k: "IMG FILE REC", d: I18n.tr("scope to images, files, or standard recent files") },
+        { k: "IMG FILE", p: "find", d: I18n.tr("scope to images or files") },
+        { k: "REC",    d: I18n.tr("standard recent files") },
         { k: "/",      d: I18n.tr("actions: lock, screenshot, media, settings") },
-        { k: "/file",  d: I18n.tr("find files (also /folder /image /video)") },
-        { k: ">",      d: I18n.tr("packages: >install, >remove, >search") },
-        { k: "=",      d: I18n.tr("calculator") },
+        { k: "/file",  p: "find", d: I18n.tr("find files (also /folder /image /video)") },
+        { k: ">",      p: "packages", d: I18n.tr("packages: >install, >remove, >search") },
+        { k: "=",      p: "calc", d: I18n.tr("calculator") },
         { k: "?",      d: I18n.tr("web search (supports !bangs)") },
-        { k: "@",      d: I18n.tr("live radio: @lofi tunes in, @stop tunes out") },
-        { k: "\\",     d: I18n.tr("ask the Rashin agent (one terse answer)") }
+        { k: "@",      p: "radio", d: I18n.tr("live radio: @lofi tunes in, @stop tunes out") },
+        { k: "\\",     d: I18n.tr("ask the Zenith Agent (one terse answer)") }
     ]
+    readonly property var searchRows: {
+        void Dispatcher.revision;
+        return root.allSearchRows.filter(function (row) {
+            return !row.p || Dispatcher.registry[row.p] !== undefined;
+        });
+    }
     readonly property var keyRows: [
         { k: "Enter",  d: I18n.tr("run the selected result's primary action") },
         { k: "Up Down", d: I18n.tr("move selection") },

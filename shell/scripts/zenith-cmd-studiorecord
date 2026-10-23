@@ -1,34 +1,34 @@
 #!/bin/bash
-# Ryoku Motion studio capture. Records the screen with gpu-screen-recorder (the
+# ryomotion studio capture. Records the screen with gpu-screen-recorder (the
 # same path the shell's Quick capture uses) AND samples the cursor, then writes
 # OpenScreen's <video>.cursor.json sidecar and opens the clip in the ryomotion
 # editor -- so the editor's automatic cursor-follow zoom still works even though
 # gsr itself carries no cursor track.
 #
-#   ryoku-cmd-studiorecord [--with-desktop-audio] [--with-microphone-audio]
+#   zenith-cmd-studiorecord [--with-desktop-audio] [--with-microphone-audio]
 #
 # The shell island starts this and stops it with SIGTERM (which finalises the
 # clip, writes the cursor sidecar, and opens the editor).
 set -uo pipefail
 
-state_dir="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+state_dir="${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}"
 last_rec="$state_dir/last-recording"
 here="$(dirname "$(readlink -f "$0")")"
-# ryoku-cmd-screenrecord is a sibling in the install bin dir; fall back to PATH
+# zenith-cmd-screenrecord is a sibling in the install bin dir; fall back to PATH
 # when this runs from a source tree where the two no longer sit together.
-screenrec="$here/ryoku-cmd-screenrecord"
-[[ -x $screenrec ]] || screenrec="ryoku-cmd-screenrecord"
-raw="$(mktemp "${TMPDIR:-/tmp}/ryoku-cursor.XXXXXX")"
+screenrec="$here/zenith-cmd-screenrecord"
+[[ -x $screenrec ]] || screenrec="zenith-cmd-screenrecord"
+raw="$(mktemp "${TMPDIR:-/tmp}/zenith-cursor.XXXXXX")"
 sampler_pid=""
 done=0
 
 # The window manager is reached only through the seam, asked by capability and
 # never by name.
-ryoku_bin="${RYOKU_BIN-$(command -v ryoku || true)}"
+zenith_bin="${ZENITH_BIN-$(command -v zenith || true)}"
 
 wm_can() {  # capability -> 0 when the live compositor honours it
-  [[ -n $ryoku_bin && -x $ryoku_bin ]] || return 1
-  case ",$("$ryoku_bin" wm status 2>/dev/null | sed -n 's/^Capabilities: //p' | tr -d '[:space:]')," in
+  [[ -n $zenith_bin && -x $zenith_bin ]] || return 1
+  case ",$("$zenith_bin" wm status 2>/dev/null | sed -n 's/^Capabilities: //p' | tr -d '[:space:]')," in
     *",$1,"*) return 0 ;;
   esac
   return 1
@@ -36,9 +36,9 @@ wm_can() {  # capability -> 0 when the live compositor honours it
 
 # Cursor-follow zoom needs a live pointer read, which the window manager answers
 # only where it honours live config eval. The read itself is a compositor payload
-# (ryoku-cursor-track ships with the Hyprland session), so ask by capability and
+# (zenith-cursor-track ships with the Hyprland session), so ask by capability and
 # by whether the tracker is on PATH. Where it is not, the clip still records
-# through the plain focused-output path (what ryoku-cmd-screenrecord does), just
+# through the plain focused-output path (what zenith-cmd-screenrecord does), just
 # without the cursor sidecar the editor auto-zoom uses; say so once so the missing
 # zoom is not a mystery.
 #
@@ -51,16 +51,16 @@ wm_can() {  # capability -> 0 when the live compositor honours it
 have_cursor=0
 MX=0; MY=0; MW=1920; MH=1080
 cursor_feed=0
-if wm_can liveConfigEval && command -v ryoku-cursor-track >/dev/null 2>&1; then
+if wm_can liveConfigEval && command -v zenith-cursor-track >/dev/null 2>&1; then
   cursor_feed=1
 elif command -v notify-send >/dev/null 2>&1; then
-  notify-send -a ryoku-cli "Ryoku Motion" \
+  notify-send -a zenith-cli "Zenith" \
     "Cursor-follow zoom needs the running compositor's support; recording without it" >/dev/null 2>&1 || true
 fi
 
 start_tracker() {
   local tfd tx ty tw th
-  exec {tfd}< <(ryoku-cursor-track "$raw")
+  exec {tfd}< <(zenith-cursor-track "$raw")
   sampler_pid=$!
   read -r tx ty tw th <&"$tfd" || true
   exec {tfd}<&-
@@ -123,7 +123,7 @@ finish() {
     if command -v ryomotion >/dev/null 2>&1; then
       setsid ryomotion "$video" >/dev/null 2>&1 &
     elif command -v notify-send >/dev/null 2>&1; then
-      notify-send -a ryoku-cli "Ryoku Motion" "Recording saved; editor (ryomotion) not installed" || true
+      notify-send -a zenith-cli "Zenith" "Recording saved; ryomotion is not installed (not in the Ubuntu archive)" || true
     fi
   fi
   rm -f "$raw" 2>/dev/null || true

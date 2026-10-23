@@ -1,4 +1,4 @@
-/* Ryoku palette -> GTK 4 / libadwaita. Rendered by matugen; do not hand-edit.
+/* Zenith palette -> GTK 4 / libadwaita. Rendered by zenith theme; do not hand-edit.
    Two blocks ship because libadwaita 1.6+ recolours its own widgets from CSS
    custom properties and no longer reads @define-color for them, so the :root
    block is what actually moves the accent off stock Adwaita blue. The

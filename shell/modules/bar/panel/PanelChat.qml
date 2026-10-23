@@ -135,7 +135,7 @@ Item {
     // Fetch the session's slash commands (available once a session exists).
     Process {
         id: cmdsProc
-        command: ["zenith-rashin", "chat", "--commands"]
+        command: ["zenith-agent", "chat", "--commands"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -149,7 +149,7 @@ Item {
     }
     Process {
         id: skillsProc
-        command: ["zenith-rashin", "chat", "--skills"]
+        command: ["zenith-agent", "chat", "--skills"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -249,7 +249,7 @@ Item {
         Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: I18n.tr("RASHIN")
+            text: I18n.tr("AGENT")
             color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
             font.family: Theme.mono
             font.pixelSize: 9 * root.s
@@ -721,7 +721,7 @@ Item {
                         }
                     }
 
-                    // approval: hermes paused on a tool and waits for a pick. A
+                    // approval: the engine paused on a tool and waits for a pick. A
                     // card in the accent, not a status line: this is the one thing
                     // the turn cannot continue without.
                     Rectangle {
@@ -772,7 +772,7 @@ Item {
                                 width: parent.width
                                 spacing: 6 * root.s
                                 Repeater {
-                                    // hermes usually offers its own reject option; add one only when it did not
+                                    // the engine usually offers its own reject option; add one only when it did not
                                     model: {
                                         var req = bodyCol.permReq;
                                         if (!req) return [];
@@ -1223,7 +1223,7 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Needle.ready ? I18n.tr("Ask the needle") : I18n.tr("Connect an AI")
+            text: Needle.ready ? I18n.tr("Ask the needle") : I18n.tr("No agent engine")
             color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
             font.family: Theme.display
             font.pixelSize: 21 * root.s
@@ -1233,7 +1233,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             text: Needle.ready
                 ? I18n.tr("It knows this machine, your desktop, and the Zenith source. Drop in an image to ask about it.")
-                : I18n.tr("Rashin needs an AI to answer. Set it up once and the needle is ready.")
+                : (Needle.readyReason !== "" ? Needle.readyReason : I18n.tr("No agent engine configured: set engine.command in ~/.config/zenith/agent/config.json"))
             wrapMode: Text.WordWrap
             color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
             font.family: Theme.fontPrimary
@@ -1334,13 +1334,13 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Quickshell.execDetached(["zenith-shell", "hub", "open", "rashin"])
+                    onClicked: Quickshell.execDetached(["zenith-shell", "hub", "open", "agent"])
                 }
             }
             Text {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
-                text: I18n.tr("Or add an API key to ~/.config/zenith/rashin.env")
+                text: I18n.tr("Or edit engine.command in ~/.config/zenith/agent/config.json")
                 wrapMode: Text.WordWrap
                 color: Theme.inkOn(Theme.effectiveSurface, Theme.outlineVariant, 3.0)
                 font.family: Theme.mono

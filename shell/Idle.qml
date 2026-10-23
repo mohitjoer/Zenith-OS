@@ -1,91 +1,65 @@
 pragma ComponentBehavior: Bound
 
-// Idle policy: when the session locks.
+// The shell's part of the idle policy: it draws the dim scrim and nothing else.
 //
-// Three timers, dim, blank, lock, each fed by the same activity signal. Not one
-// timer with three thresholds — three, because each is independent and a user
-// who wants a blank screen but no auto-lock is a normal thing to want, and a
-// single timer cannot express it.
+// hypridle owns the clock. It holds off for D-Bus and systemd inhibitors (a
+// browser playing a video, Keep Awake), which the compositor's own idle signal
+// does not see, so a second clock here would dim a screen the lock then
+// ignores. hypridle tells the shell a stage began or ended by writing its name
+// to $XDG_RUNTIME_DIR/zenith-idle (session/hyprland/hypridle.conf); this
+// watches that file.
 //
-// The policy lives here and not in hypridle because the shell is already the
-// idle implementation. Two idle daemons both deciding when to lock is a machine
-// that locks at a time neither of them was asked for.
+// It also keeps ~/.config/zenith/current/background pointing at the wallpaper in
+// use. The lock screen's config can only name an image path, not read the
+// wallpaper state file, and that link is the path it names.
 
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.Services
 
-Item {
+Scope {
     id: idle
 
-    // Every input resets every timer. Not "the last timer" and not "each timer
-    // independently": a user who is typing has not been idle for 300 seconds,
-    // and a policy that let the lock timer run while they typed is a policy
-    // that locks people out mid-sentence.
-    property bool active: false
+    property bool dimmed: false
+    property bool ready: false
+    readonly property string flag: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-idle"
 
-    // The three timeouts, in seconds, with 0 meaning never.
-    readonly property int dimAfter: Config.idleDimSeconds
-    readonly property int blankAfter: Config.idleBlankSeconds
-    readonly property int lockAfter: Config.idleLockSeconds
+    // A file that does not exist cannot be watched, and the shell may start
+    // before zenith-idle does.
+    Process {
+        running: true
+        command: ["sh", "-c", ": >> \"$0\"", idle.flag]
+        onExited: idle.ready = true
+    }
 
-    // Set while the session is locked, so a notification that arrives after
-    // locking does not wake the screen back up.
-    property bool locked: false
+    FileView {
+        path: idle.ready ? idle.flag : ""
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: idle.dimmed = text().trim() === "dim"
+    }
+
+    Variants {
+        model: ShellState.screens
+        IdleOverlay { dimmed: idle.dimmed }
+    }
+
+    function syncBackground() {
+        // A video has no still for the lock screen to draw; the link keeps the
+        // last image and hyprlock falls back to its colour when there is none.
+        if (Session.wallpaper === "" || Session.wallIsVideo)
+            return;
+        Quickshell.execDetached(["ln", "-sfn", Session.wallpaper,
+            Quickshell.env("HOME") + "/.config/zenith/current/background"]);
+    }
 
     Connections {
-        target: idle
-        function onActiveChanged() {
-            if (idle.active) idle.bump()
-        }
+        target: Session
+        function onWallpaperChanged() { idle.syncBackground(); }
     }
 
-    function bump() {
-        locked = false
-        dimTimer.restart()
-        blankTimer.restart()
-        lockTimer.restart()
-    }
-
-    Timer {
-        id: dimTimer
-        // A timer with interval 0 and running false does nothing at all, which
-        // is what "never" should mean. It must not be left running, or it fires
-        // on the next event loop turn.
-        interval: idle.dimAfter * 1000
-        repeat: false
-        onTriggered: idle.dimmed = true
-    }
-
-    Timer {
-        id: blankTimer
-        interval: idle.blankAfter * 1000
-        repeat: false
-        onTriggered: idle.blanked = true
-    }
-
-    Timer {
-        id: lockTimer
-        interval: idle.lockAfter * 1000
-        repeat: false
-
-        // The one that matters. Locking twice execs a second locker over the
-        // first, and which one is in front depends on which started second.
-        onTriggered: {
-            if (idle.locked) return
-            idle.locked = true
-            Config.lock()
-        }
-    }
-
-    property bool dimmed: false
-    property bool blanked: false
-
-    // Re-lock after unlocking, because the timer that fired is spent. Without
-    // this, a session unlocks and then never locks again for the rest of the
-    // login, which is the opposite of what the policy said.
-    function onUnlocked() {
-        locked = false
-        bump()
-    }
+    Component.onCompleted: syncBackground()
 }

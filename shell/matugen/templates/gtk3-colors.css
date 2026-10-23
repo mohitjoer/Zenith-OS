@@ -1,4 +1,4 @@
-/* Ryoku palette -> classic GTK 3. Rendered by matugen; do not hand-edit.
+/* Zenith palette -> classic GTK 3. Rendered by zenith theme; do not hand-edit.
    GTK 3 has no CSS custom properties, so @define-color is the whole story here:
    the :root { --* } form the GTK 4 template leads with would not parse. The
    theme this pairs with must derive its widget colours from these named colours,

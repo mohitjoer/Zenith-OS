@@ -7,7 +7,7 @@ Rectangle {
     property string eyebrow: ""
     default property alias content: body.data
 
-    radius: 0
+    radius: Theme.radius
     color: "transparent"
     border.width: 1
     border.color: Theme.border

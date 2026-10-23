@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# merge a plugin placement change into ~/.config/zenith/plugins.json. used by:
+# the desktop layer (drag commits a free position), Zenith Settings (any
+# placement edit), and the installer (seed/forget a plugin's settings block).
+# Registry's file watch sees it and retunes every surface, no reload.
+#
+#   zenith-plugins-place <id> desktopWidget <x> <y> [scale] [locked] [opacity]
+#   zenith-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>
+#   zenith-plugins-place <id> host <hostName>
+#   zenith-plugins-place <id> enabled <true|false>
+#   zenith-plugins-place <id> settings <json>   merge a settings object
+#   zenith-plugins-place <id> seed              inject the manifest preset block
+#   zenith-plugins-place <id> forget            drop the whole entry (uninstall)
+set -euo pipefail
+
+cfg_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+f="$cfg_home/zenith/plugins.json"
+mkdir -p "$(dirname "$f")"
+lock="$f.lock"
+exec 9>"$lock"
+flock -x 9
+
+# self-heal. missing / empty / corrupt (stale partial write, external reset)
+# becomes a fresh {}, so writes below have valid input and discover.sh doesn't
+# choke on it.
+if [ ! -s "$f" ] || ! jq -e . "$f" >/dev/null 2>&1; then
+	echo '{}' >"$f"
+fi
+
+# atomic: unique temp on the same filesystem, then rename. The adjacent flock
+# serializes desktop, Settings, and Store transaction writers so no merge is
+# lost while another process is reading and replacing the file.
+tmp="$(mktemp "$f.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+id="${1:?id required}"; field="${2:?field required}"; shift 2
+
+# manifest path for a plugin. dev override dirs first, then the data dir
+# (same order discover.sh uses). non-zero when none found.
+manifest_for() {
+	local pid="$1" d
+	local -a dirs=()
+	local pdir="${ZENITH_PLUGINS_DIR:-}"
+	[ -n "$pdir" ] && IFS=':' read -r -a dirs <<<"$pdir"
+	dirs+=("$data_home/zenith/plugins")
+	for d in "${dirs[@]}"; do
+		[ -n "$d" ] && [ -f "$d/$pid/manifest.json" ] && { printf '%s\n' "$d/$pid/manifest.json"; return 0; }
+	done
+	return 1
+}
+
+# fill a plugin's entry with its shipped presets (default host, default
+# settings, and the tile geometry the product declares for itself) -- only the
+# missing keys, so user edits survive. idempotent; no manifest = nothing to seed.
+seed_entry() {
+	local pid="$1" man defs host geo
+	man="$(manifest_for "$pid")" || return 0
+	# defaults come from the schema (metadata.settings[].default). older flat
+	# metadata.defaultSettings still works.
+	defs="$(jq -c 'if (.metadata.settings | type) == "array" then (.metadata.settings | map({(.key): .default}) | add // {}) else (.metadata.defaultSettings // {}) end' "$man")"
+	host="$(jq -r '.defaults.host // "desktopWidget"' "$man")"
+	# a product may ship the spot its tile opens at (a widget set composes a
+	# desktop layout this way); absent, the desktop's own default applies.
+	geo="$(jq -c 'if (.defaults.desktopWidget | type) == "object" then
+			(.defaults.desktopWidget | with_entries(select(.key == "x" or .key == "y" or .key == "scale" or .key == "locked") | with_entries(select(.value != null))))
+		else {} end' "$man")"
+	jq --arg id "$pid" --argjson defs "$defs" --arg host "$host" --argjson geo "$geo" \
+		'.[$id] = ((.[$id] // {}) + {
+			enabled: ((.[$id].enabled) // false),
+			host: ((.[$id].host) // $host),
+			settings: ($defs + ((.[$id].settings) // {}))
+		} + (if ($geo == {}) or ((.[$id] // {}) | has("desktopWidget")) then {} else {desktopWidget: $geo} end))' "$f" >"$tmp" && mv "$tmp" "$f"
+}
+
+case "$field" in
+desktopWidget)
+	x="${1:?x}"; y="${2:?y}"; scale="${3:-}"; locked="${4:-}"; opacity="${5:-}"
+	# scale/locked/opacity optional: keep existing (or a sane default) when
+	# omitted, so a position-only write doesn't drop them.
+	jq --arg id "$id" --argjson x "$x" --argjson y "$y" \
+		--arg scale "$scale" --arg locked "$locked" --arg opacity "$opacity" \
+		'.[$id] = ((.[$id] // {}) + {
+			enabled: ((.[$id].enabled) // true),
+			host: ((.[$id].host) // "desktopWidget"),
+			desktopWidget: (((.[$id].desktopWidget) // {}) + { x: $x, y: $y }
+				+ (if $scale == "" then {} else { scale: ($scale | tonumber) } end)
+				+ (if $locked == "" then {} else { locked: ($locked == "true") } end)
+				+ (if $opacity == "" then {} else { opacity: ($opacity | tonumber) } end))
+		})' "$f" >"$tmp" && mv "$tmp" "$f"
+	;;
+framePopout)
+	edge="${1:?edge}"; align="${2:-start}"; hoverW="${3:-320}"; hoverH="${4:-16}"
+	jq --arg id "$id" --arg e "$edge" --arg a "$align" --argjson hw "$hoverW" --argjson hh "$hoverH" \
+		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "framePopout"), framePopout: (((.[$id].framePopout) // {}) + { edge: $e, align: $a, hoverW: $hw, hoverH: $hh }) })' \
+		"$f" >"$tmp" && mv "$tmp" "$f"
+	;;
+host)
+	host="${1:?host}"
+	jq --arg id "$id" --arg h "$host" '.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: $h })' "$f" >"$tmp" && mv "$tmp" "$f"
+	;;
+enabled)
+	en="${1:?enabled}"
+	jq --arg id "$id" --argjson e "$en" '.[$id] = ((.[$id] // {}) + { enabled: $e })' "$f" >"$tmp" && mv "$tmp" "$f"
+	# enabling seeds the preset block too, so the moment it goes live its
+	# settings already exist in the right place.
+	if [ "$en" = "true" ]; then seed_entry "$id"; fi
+	;;
+settings)
+	json="${1:?settings json}"
+	jq --arg id "$id" --argjson s "$json" \
+		'.[$id] = ((.[$id] // {}) + { settings: (((.[$id].settings) // {}) + $s) })' \
+		"$f" >"$tmp" && mv "$tmp" "$f"
+	;;
+seed)
+	seed_entry "$id"
+	;;
+restore)
+	json="${1:?entry json or null}"
+	file_existed="${2:?file-existed bool}"
+	if [ "$json" = "null" ]; then
+		jq --arg id "$id" 'del(.[$id])' "$f" >"$tmp"
+	else
+		jq --arg id "$id" --argjson entry "$json" '.[$id] = $entry' "$f" >"$tmp"
+	fi
+	mv "$tmp" "$f"
+	if [ "$file_existed" = "false" ] && jq -e 'length == 0' "$f" >/dev/null; then
+		rm -f "$f"
+	fi
+	;;
+forget)
+	jq --arg id "$id" 'del(.[$id])' "$f" >"$tmp" && mv "$tmp" "$f"
+	;;
+*)
+	echo "usage: zenith-plugins-place <id> desktopWidget <x> <y> | framePopout <edge> <align> <hoverW> <hoverH> | host <name> | enabled <bool> | settings <json> | seed | restore <json|null> <file-existed> | forget" >&2
+	exit 2
+	;;
+esac

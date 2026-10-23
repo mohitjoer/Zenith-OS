@@ -155,6 +155,7 @@ download)
     exit 0
   fi
   # no cobalt, or it declined (auth/unsupported): fall back to yt-dlp.
+  command -v yt-dlp >/dev/null 2>&1 || { emit ERROR "yt-dlp is not installed (sudo apt install yt-dlp)"; exit 127; }
   if ytdlp "$url" "$mode"; then
     notify-send "Stash" "Downloaded" -i emblem-ok-symbolic 2>/dev/null || true
     exit 0

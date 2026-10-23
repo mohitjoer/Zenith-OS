@@ -23,6 +23,9 @@ Column {
     function dim(a) { return Qt.rgba(page.ink.r, page.ink.g, page.ink.b, a) }
 
     readonly property var adapter: Bluetooth.defaultAdapter
+    // Notifs.history is undefined until the notification server has handed over
+    // its list, so every read goes through this guarded copy.
+    readonly property var notifList: Notifs.history || []
     readonly property string wifiSubtitle: {
         if (!Network.wifiPresent) return I18n.tr("Not available");
         if (!Network.wifiRadio) return I18n.tr("Off");
@@ -308,7 +311,7 @@ Column {
                 }
                 Item {
                     id: clearItem
-                    visible: Notifs.history.length > 0
+                    visible: page.notifList.length > 0
                     width: clearLabel.implicitWidth
                     height: clearLabel.implicitHeight
                     Text {
@@ -328,7 +331,7 @@ Column {
             }
 
             Text {
-                visible: Notifs.history.length === 0
+                visible: page.notifList.length === 0
                 text: I18n.tr("No notifications")
                 color: page.dim(0.5)
                 font.family: Theme.fontPrimary
@@ -336,7 +339,7 @@ Column {
             }
 
             Repeater {
-                model: Math.min(3, Notifs.history.length)
+                model: Math.min(3, page.notifList.length)
                 delegate: Row {
                     id: notifRow
                     required property int index
@@ -354,8 +357,8 @@ Column {
                         spacing: 1
                         Text {
                             width: parent.width
-                            text: Notifs.history[notifRow.index]
-                                ? (Notifs.history[notifRow.index].summary || Notifs.history[notifRow.index].appName || "") : ""
+                            text: page.notifList[notifRow.index]
+                                ? (page.notifList[notifRow.index].summary || page.notifList[notifRow.index].appName || "") : ""
                             color: page.ink
                             font.family: Theme.fontPrimary
                             font.pixelSize: 12
@@ -364,7 +367,7 @@ Column {
                         Text {
                             width: parent.width
                             visible: text.length > 0
-                            text: Notifs.history[notifRow.index] ? (Notifs.history[notifRow.index].body || "") : ""
+                            text: page.notifList[notifRow.index] ? (page.notifList[notifRow.index].body || "") : ""
                             color: page.dim(0.55)
                             font.family: Theme.fontPrimary
                             font.pixelSize: 11

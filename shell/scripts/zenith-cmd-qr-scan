@@ -4,22 +4,43 @@
 set -euo pipefail
 
 app="QR Code"
-need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+prog="zenith-cmd-qr-scan"
+# A missing tool is a notification, because the shell runs this with nowhere to
+# print, plus exit 127 (the shell's "command not found") with the apt package
+# named. notify-send is checked first and on its own: it is the one tool whose
+# absence cannot be reported through itself.
+need() { # command [package]
+  command -v "$1" >/dev/null 2>&1 && return 0
+  echo "$prog: $1 is not installed (sudo apt install ${2:-$1})" >&2
+  command -v notify-send >/dev/null 2>&1 \
+    && notify-send -u normal "$app" "$1 is not installed (sudo apt install ${2:-$1})" 2>/dev/null
+  exit 127
+}
+
+need notify-send libnotify-bin
 
 input_file=""
 if [[ ${1:-} == "--file" ]]; then
   [[ -n ${2:-} ]] || { notify-send -u critical "$app" "Missing image path"; exit 2; }
   input_file="$2"; shift 2
 fi
-(( $# == 0 )) || { notify-send -u critical "$app" "Usage: ryoku-cmd-qr-scan [--file IMAGE]"; exit 2; }
+(( $# == 0 )) || { notify-send -u critical "$app" "Usage: $prog [--file IMAGE]"; exit 2; }
 
-for c in zbarimg wl-copy notify-send xdg-open; do need "$c"; done
+need zbarimg zbar-tools
+need wl-copy wl-clipboard
+need xdg-open xdg-utils
+
+# Only the file made here is removed; a --file image is the caller's.
+shot=""
+cleanup() { [[ -z $shot ]] || rm -f "$shot"; }
+trap cleanup EXIT
 
 tmp="$input_file"
 if [[ -z $tmp ]]; then
-  for c in grim slurp; do need "$c"; done
-  tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-qr.XXXXXX.png")"
-  trap 'rm -f "$tmp"' EXIT
+  need grim
+  need slurp
+  shot="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/zenith-qr.XXXXXX.png")"
+  tmp="$shot"
 fi
 
 if [[ -n $input_file ]]; then

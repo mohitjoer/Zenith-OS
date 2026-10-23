@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ryoku-cmd-discord-compress: shrink the Quick screen recording the shell just
+# zenith-cmd-discord-compress: shrink the Quick screen recording the shell just
 # wrote to a Discord-friendly size (default 10MB) with a two-pass x264 encode
 # that keeps the native resolution and the audio track. Best effort: it
 # re-encodes only when the raw clip is over the limit, retries with a smaller
@@ -9,22 +9,22 @@
 # Studio recordings never reach this path; the record chooser's Discord toggle
 # drives it for Quick captures only.
 #
-#   ryoku-cmd-discord-compress [FILE]   (no arg = the path the recorder wrote)
+#   zenith-cmd-discord-compress [FILE]   (no arg = the path the recorder wrote)
 #
 # The bitrate split (video budget from target-size and duration, audio scaled
 # down when the budget is tight) mirrors iNiR's compress-discord approach.
 
 set -uo pipefail
 
-target_mb="${RYOKU_DISCORD_TARGET_MB:-10}"
-audio_kbps="${RYOKU_DISCORD_AUDIO_KBPS:-128}"
-preset="${RYOKU_DISCORD_PRESET:-veryfast}"
+target_mb="${ZENITH_DISCORD_TARGET_MB:-10}"
+audio_kbps="${ZENITH_DISCORD_AUDIO_KBPS:-128}"
+preset="${ZENITH_DISCORD_PRESET:-veryfast}"
 # budget = limit * safety, to leave room for container overhead and muxing.
-safety="${RYOKU_DISCORD_SAFETY:-0.92}"
-state="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+safety="${ZENITH_DISCORD_SAFETY:-0.92}"
+state="${ZENITH_STATE_PATH:-$HOME/.local/state/zenith}"
 
 notify() {
-  command -v notify-send >/dev/null 2>&1 && notify-send -a ryoku-cli "$@" >/dev/null 2>&1 || true
+  command -v notify-send >/dev/null 2>&1 && notify-send -a zenith-cli "$@" >/dev/null 2>&1 || true
 }
 
 # 1024-base size label (matches the "saved 45.2 MB" style elsewhere).
@@ -81,8 +81,8 @@ if ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$i
   has_audio=1
 fi
 
-tmp="$(mktemp "${TMPDIR:-/tmp}/ryoku-discord.XXXXXX")"
-passlog="$(mktemp -u "${TMPDIR:-/tmp}/ryoku-discord-pass.XXXXXX")"
+tmp="$(mktemp "${TMPDIR:-/tmp}/zenith-discord.XXXXXX")"
+passlog="$(mktemp -u "${TMPDIR:-/tmp}/zenith-discord-pass.XXXXXX")"
 cleanup() { rm -f "$tmp" "$passlog"* 2>/dev/null || true; }
 trap cleanup EXIT
 

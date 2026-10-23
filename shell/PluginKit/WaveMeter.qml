@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
-// Ryoku wave as a meter. dim line full-width, bright (brand) crest filled from
+// The wave motif as a meter. dim line full-width, bright (brand) crest filled from
 // the left up to `frac` of the width: lit length = the value. travels gently
 // while visible. used for RAM + disk readouts on the system card. set `frac`
 // (0..1) and a width.

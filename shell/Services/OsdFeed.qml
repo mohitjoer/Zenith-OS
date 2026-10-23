@@ -57,10 +57,16 @@ Singleton {
         var cur = parseInt((briFile.text() || "").trim(), 10);
         var max = parseInt((maxFile.text() || "").trim(), 10);
         if (!isNaN(cur) && !isNaN(max) && max > 0) {
+            var next = Math.max(0, Math.min(1, cur / max));
+            // The OSD flashes on the sequence, the daemon's counter in the normal
+            // case. Without the daemon this is its stand-in: advance it on a real
+            // change, never on the first read (that one is the login sync).
+            if (root.sysfsValid && next !== root.brightness)
+                root.brightnessSeq++;
             root.sysfsBrightness = cur;
             root.sysfsMaxBrightness = max;
             root.sysfsValid = true;
-            root.brightness = Math.max(0, Math.min(1, cur / max));
+            root.brightness = next;
         } else {
             root.sysfsValid = false;
         }
@@ -99,6 +105,16 @@ Singleton {
         blockLoading: true
         printErrors: false
         onLoaded: root.onBriLoaded()
+    }
+
+    // The kernel notifies actual_brightness on every set (verified on this
+    // machine), so the OSD follows the key press at once instead of waiting out
+    // the 2 s poll below, which stays as the floor for a driver that does not.
+    FileView {
+        path: root.blPath ? root.blPath + "/actual_brightness" : ""
+        watchChanges: true
+        printErrors: false
+        onFileChanged: root.refreshSysfs()
     }
 
     // Subscribe once for the whole shell; every screen's brightness OSD reads

@@ -84,7 +84,9 @@ Singleton {
 
     Process {
         id: loader
-        command: [root._bin, "icons"]
+        // The daemon's index first; `zenith icons` prints the same one, so icons
+        // resolve before the daemon is installed or while it is down.
+        command: ["sh", "-c", "\"$0\" icons 2>/dev/null || exec zenith icons", root._bin]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {

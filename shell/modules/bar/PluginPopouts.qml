@@ -53,10 +53,7 @@ Item {
     readonly property real maskBodyW: first ? first.maskW : 0
     readonly property real maskBodyH: first ? first.maskH : 0
 
-    readonly property string _shellDir: Quickshell.env("ZENITH_SHELL_DIR")
-    readonly property string _script: (_shellDir && _shellDir.length > 0)
-        ? _shellDir + "/quickshell/plugins/discover.sh"
-        : (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/quickshell/plugins/discover.sh"
+    readonly property string _script: Quickshell.shellPath("plugins/discover.sh")
     readonly property string _stateHome: Quickshell.env("XDG_STATE_HOME")
         || (Quickshell.env("HOME") + "/.local/state")
     readonly property string _revision: root._stateHome + "/zenith/store/revision.json"
