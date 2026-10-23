@@ -120,6 +120,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--parent-mirror-bootstrap "$MIRROR" \
 		--parent-mirror-chroot "$MIRROR" \
 		--parent-mirror-binary "$MIRROR" \
+		--linux-packages linux-image-generic \
 		--binary-images iso-hybrid \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
