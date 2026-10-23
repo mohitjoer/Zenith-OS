@@ -530,7 +530,7 @@ jobs:
         env:
           ZENITH_SUITE: resolute
           ZENITH_ARCH: amd64
-        run: sudo -E installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
+        run: sudo --preserve-env=ZENITH_SUITE,ZENITH_ARCH env "PATH=$PATH" installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
 
       - name: Verify ISO output
         run: |
