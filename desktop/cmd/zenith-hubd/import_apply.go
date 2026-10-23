@@ -404,6 +404,33 @@ func headerComment(prefix, ts, source string) string {
 // unclassified line is never lost and never breaks the file.
 func commentPreserve(raw string) string { return "# zenith-import: " + raw }
 
+// knownHyprlandDispatchers names dispatchers accepted by Hyprland's parser.
+// Used as a fallback syntax gate when Hyprland is not installed.
+var knownHyprlandDispatchers = map[string]bool{
+	"exec": true, "execr": true, "pass": true, "killactive": true, "closewindow": true,
+	"workspace": true, "movetoworkspace": true, "movetoworkspacesilent": true,
+	"togglefloating": true, "fullscreen": true, "fullscreenstate": true, "fakefullscreen": true,
+	"dpms": true, "pin": true, "movefocus": true, "movewindow": true, "swapwindow": true,
+	"centerwindow": true, "resizeactive": true, "moveactive": true, "resizewindowpixel": true,
+	"movewindowpixel": true, "cyclenext": true, "swapnext": true, "tagwindow": true,
+	"focuswindow": true, "focusmonitor": true, "movecursortocorner": true, "movecursor": true,
+	"splitratio": true, "toggleopaque": true, "movecurrentworkspacetomonitor": true,
+	"focusworkspaceoncurrentmonitor": true, "swapactiveworkspaces": true, "bringactivetotop": true,
+	"alterzorder": true, "togglegroup": true, "changegroupactive": true, "moveintogroup": true,
+	"moveoutofgroup": true, "lockgroups": true, "lockactivegroup": true, "movewindoworgroup": true,
+	"setignoregrouplock": true, "global": true, "submap": true, "sendshortcut": true,
+	"event": true, "togglespecialworkspace": true, "renameworkspace": true, "exit": true,
+	"forcerendererreload": true,
+}
+
+func parseDispatcherFromLine(line string) string {
+	parts := strings.Split(line, ",")
+	if len(parts) >= 3 {
+		return strings.TrimSpace(parts[2])
+	}
+	return ""
+}
+
 // bindApplies reports whether an imported bind will actually take effect:
 // ingestable (a GUI Keybind) or a native line Hyprland accepts in user.conf.
 func bindApplies(b importBind) bool { return b.Ingestable || nativeBindOK(b.Native) }
@@ -412,7 +439,14 @@ func bindApplies(b importBind) bool { return b.Ingestable || nativeBindOK(b.Nati
 // Hyprland rejects a dispatcher it does not know at parse time, and one such
 // line would put an error banner on every login, so it is kept as a comment.
 func nativeBindOK(line string) bool {
-	return strings.TrimSpace(line) != "" && confContentOK([]byte(line+"\n"))
+	if strings.TrimSpace(line) == "" {
+		return false
+	}
+	if _, err := exec.LookPath("Hyprland"); err == nil {
+		return confContentOK([]byte(line + "\n"))
+	}
+	disp := strings.ToLower(parseDispatcherFromLine(line))
+	return knownHyprlandDispatchers[disp]
 }
 
 // portByHand keeps a bind Hyprland would reject as a comment, naming the
