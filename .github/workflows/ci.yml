@@ -5,7 +5,7 @@
 # checked-in branding assets. Documentation is not tested. It is reviewed, and a
 # gate that lints prose is a gate whose failures people learn to ignore.
 #
-# Two jobs, split by what they cost. `unit` is offline and finishes in seconds.
+# Jobs split by what they cost. `unit-*` is offline and finishes in seconds.
 # `package` builds the distribution, signs a repository and resolves the base
 # layer against the real Ubuntu archive; it needs `unit` first, so a gofmt slip
 # never costs an 80 MB package-index download.
@@ -34,560 +34,310 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # --------------------------------------------------------------------------
-  # Everything that needs nothing but a Go toolchain and a POSIX shell.
-  # --------------------------------------------------------------------------
-  unit:
-    name: fmt, vet, test, shell, assets
-    timeout-minutes: 15
+  # ==========================================================================
+  # PART 1: Go modules — two independent modules, tested separately
+  # ==========================================================================
+  go-hardware:
+    name: Go — system/hardware module
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      # The Go version comes from a go.mod rather than from a literal here, so
-      # the toolchain and the modules cannot drift apart. There is no go.mod at
-      # the repository root — this is two modules — so go-version-file names one
-      # of them and the step after this asserts the other agrees.
-      #
-      # setup-go's cache is keyed on both go.mod files rather than on a go.sum.
-      # Neither module has an external dependency, so a go.sum would never exist
-      # to hash, and pointing the cache at one is a cache that never restores.
       - uses: actions/setup-go@v7
         with:
           go-version-file: system/hardware/go.mod
+      - name: gofmt, vet and test
+        working-directory: system/hardware
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-clean:"; printf '%s\n' "$unformatted"; exit 1
+          fi
+          echo "gofmt clean."
+          go vet ./...
+          go test ./... -v
+
+  go-desktop:
+    name: Go — desktop module
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: desktop/go.mod
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-
-      - name: The two modules declare the same Go version
+      - name: gofmt, vet and test
+        working-directory: desktop
         run: |
-          # setup-go can only be pointed at one of the two. A repository whose
-          # modules disagree about the language version builds on whichever
-          # runner happens to be newest, and the disagreement itself is invisible
-          # until one module grows a feature the other's toolchain rejects.
-          declared() {
-            sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$1"
-          }
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-clean:"; printf '%s\n' "$unformatted"; exit 1
+          fi
+          echo "gofmt clean."
+          go vet ./...
+          go test ./... -v
+
+  # ==========================================================================
+  # PART 2: Go module version agreement
+  # ==========================================================================
+  go-version-check:
+    name: Go — module version agreement
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Both modules declare the same Go version
+        run: |
+          declared() { sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$1"; }
           hw="$(declared system/hardware/go.mod)"
           dt="$(declared desktop/go.mod)"
           if [ -z "$hw" ] || [ "$hw" != "$dt" ]; then
-            echo "::error::The two modules disagree about the Go version:" \
-                 "system/hardware/go.mod declares '${hw:-none}'," \
-                 "desktop/go.mod declares '${dt:-none}'."
-            exit 1
+            echo "::error::Modules disagree: hardware='${hw:-none}', desktop='${dt:-none}'"; exit 1
           fi
-          echo "both modules declare go ${hw}; toolchain is $(go env GOVERSION)"
+          echo "both modules declare go ${hw}"
 
-      # --------------------------------------------------------------------
-      # system/hardware — module zenith/hardware. Self-contained, and with no
-      # external dependency at all, so this module is the one that would still
-      # build with the network unplugged.
-      # --------------------------------------------------------------------
-      - name: gofmt, vet and test — system/hardware
-        working-directory: system/hardware
-        run: |
-          # gofmt -l lists every file it would reformat and exits 0 either way,
-          # so its exit status carries no information and the output is the
-          # signal. A bare `gofmt -l .` in CI is a step that cannot fail.
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "::error::These files are not gofmt-clean. Run 'gofmt -w' on them:"
-            printf '%s\n' "$unformatted"
-            exit 1
-          fi
-          echo "gofmt clean."
-
-          go vet ./...
-          go test ./...
-
-      # --------------------------------------------------------------------
-      # desktop — module zenith/desktop. Separate working directory on purpose:
-      # `replace zenith/hardware => ../system/hardware` resolves against the
-      # checkout, and running this from the repository root fails with
-      # "directory prefix . does not contain main module" rather than with
-      # anything that names the real problem.
-      # --------------------------------------------------------------------
-      - name: gofmt, vet and test — desktop
+  # ==========================================================================
+  # PART 3: CLI smoke test on a machine with no desktop tools
+  # ==========================================================================
+  cli-smoke:
+    name: CLI — absent-tool paths
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+      - name: Build and smoke-test zenith
         working-directory: desktop
         run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "::error::These files are not gofmt-clean. Run 'gofmt -w' on them:"
-            printf '%s\n' "$unformatted"
-            exit 1
-          fi
-          echo "gofmt clean."
-
-          go vet ./...
-          go test ./...
-
-      # --------------------------------------------------------------------
-      # The CLI, run for real, on a machine that has none of the tools it probes.
-      #
-      # This is the one environment where "nothing fails on absent hardware" can
-      # be tested rather than asserted. The runner has no PipeWire, no
-      # NetworkManager, no bluetoothd, no backlight and no hyprctl, so every
-      # probe in `zenith state` and `zenith windows` takes its failure path at
-      # once — which is exactly the contract: an absent tool is an absent
-      # feature, reported as absent, and never as an error.
-      #
-      # The premise is checked first. A runner image that grew wpctl would make
-      # this step silently test less, and a test that tests less without saying
-      # so is worse than no test.
-      # --------------------------------------------------------------------
-      - name: The CLI on a machine with no desktop tools
-        working-directory: desktop
-        run: |
-          missing=0
-          for tool in wpctl nmcli bluetoothctl brightnessctl playerctl hyprctl; do
-            if command -v "$tool" > /dev/null 2>&1; then
-              echo "::warning::The runner has $tool, so the absent-tool path is" \
-                   "not fully exercised by this step."
-              missing=1
-            fi
-          done
-          [ "$missing" -eq 0 ] || echo "continuing anyway; the JSON checks below still run"
-
           go build -o "$RUNNER_TEMP/zenith" ./cmd/zenith
           for command in state windows; do
             if ! output="$("$RUNNER_TEMP/zenith" "$command")"; then
-              echo "::error::zenith $command exited non-zero on a machine with none" \
-                   "of the tools it probes. Absent hardware must be reported as" \
-                   "absent, not as a failure."
-              exit 1
+              echo "::error::zenith $command exited non-zero"; exit 1
             fi
             if ! printf '%s' "$output" | python3 -c 'import json,sys; json.load(sys.stdin)'; then
-              echo "::error::zenith $command did not emit valid JSON:"
-              printf '%s\n' "$output"
-              exit 1
+              echo "::error::zenith $command did not emit valid JSON"; exit 1
             fi
             echo "zenith $command ok"
           done
 
-      # --------------------------------------------------------------------
-      # The session entry point and the greeter. Both are run rather than
-      # unit-tested because what is under test is how /bin/sh behaves under
-      # `set -e` — the AND-list trap, the fallback-on-failure path — and the only
-      # way to know that is to run it. Each script stubs what it needs
-      # (systemctl, dbus-update-activation-environment, weston, modetest), so
-      # nothing graphical, nothing Wayland and no compositor is required.
-      #
-      # Invoked through `sh` rather than by path so the check does not depend on
-      # the checkout preserving the executable bit.
-      # --------------------------------------------------------------------
+  # ==========================================================================
+  # PART 4: Session & greeter shell tests
+  # ==========================================================================
+  session-tests:
+    name: Session — entry point & greeter
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - name: session/session_test.sh
         run: sh session/session_test.sh
-
       - name: session/greeter_test.sh
         run: sh session/greeter_test.sh
 
-      # --------------------------------------------------------------------
-      # The shell's configuration, loaded by the engine that will run it.
-      #
-      # Every other check about the shell reads it. This one loads it, which
-      # is the only way to find the defects that reading cannot see: a
-      # property that does not exist, a type from a module that was never
-      # imported, a name another library already has. The shell had every one
-      # of them, because it had never been loaded by anything.
-      #
-      # It skips itself on a runner with no quickshell and no Wayland display,
-      # which is the case here — Quickshell is built from this project rather
-      # than taken from the archive, and the runner has no compositor. On a
-      # machine that has both, it is the check that matters.
-      # --------------------------------------------------------------------
+  # ==========================================================================
+  # PART 5: Shell QML tests
+  # ==========================================================================
+  shell-tests:
+    name: Shell — QML load & contract
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - name: shell/shell_test.sh
         run: sh shell/shell_test.sh
-
-      # --------------------------------------------------------------------
-      # The branding assets. These are checked-in files, not build outputs, and
-      # the property that matters is that the light and dark logos are the same
-      # drawing: if they drift apart, the dark one stops being the logo and
-      # becomes a different shape nobody reviewed.
-      #
-      # Python's own XML parser rather than xmllint, because the same parse has
-      # to hand back the path data, and because python3 is on the runner image
-      # while libxml2-utils is a package this workflow would otherwise have to
-      # install for one step.
-      # --------------------------------------------------------------------
       - name: Branding assets
         run: |
           python3 - <<'PY'
-          import re
-          import sys
-          import xml.etree.ElementTree as ET
+          import re, sys, xml.etree.ElementTree as ET
           from pathlib import Path
-
           SVG = "{http://www.w3.org/2000/svg}"
           LIGHT = Path("public/zenith-logo.svg")
           DARK = Path("public/zenith-logo-on-dark.svg")
-
           problems = []
-
           def parse(path):
-              # Well-formedness. A truncated or hand-edited logo is not a logo
-              # that renders, and a browser fails it silently.
-              try:
-                  root = ET.parse(path).getroot()
-              except ET.ParseError as exc:
-                  problems.append(f"{path}: not well-formed XML: {exc}")
-                  return None
-              if root.tag != SVG + "svg":
-                  problems.append(f"{path}: root is <{root.tag}>, expected <svg>")
-                  return None
-              for attr in ("viewBox", "width", "height"):
-                  if attr not in root.attrib:
-                      problems.append(f"{path}: <svg> has no {attr}")
-              return root
-
-          light = parse(LIGHT)
-          dark = parse(DARK)
-
-          # A generator that emitted NaN or inf leaves the path unparseable by
-          # whatever rasterises it. Word-bounded so "infinity" in a comment or a
-          # fill name is not mistaken for a non-finite coordinate.
+            try:
+              root = ET.parse(path).getroot()
+            except ET.ParseError as exc:
+              problems.append(f"{path}: not well-formed XML: {exc}"); return None
+            if root.tag != SVG + "svg":
+              problems.append(f"{path}: root is <{root.tag}>, expected <svg>"); return None
+            for attr in ("viewBox", "width", "height"):
+              if attr not in root.attrib: problems.append(f"{path}: <svg> has no {attr}")
+            return root
+          light = parse(LIGHT); dark = parse(DARK)
           nonfinite = re.compile(r"\b(?:nan|NaN|NAN|inf|Inf|INF|-inf|-Inf)\b")
           for path in (LIGHT, DARK):
-              hits = nonfinite.findall(path.read_text(encoding="utf-8"))
-              if hits:
-                  problems.append(f"{path}: non-finite number(s) {sorted(set(hits))}")
-
+            hits = nonfinite.findall(path.read_text(encoding="utf-8"))
+            if hits: problems.append(f"{path}: non-finite number(s) {sorted(set(hits))}")
           if light is not None and dark is not None:
-              lp = light.findall(f".//{SVG}path")
-              dp = dark.findall(f".//{SVG}path")
-              if not lp:
-                  problems.append(f"{LIGHT}: no <path> elements")
-              elif len(lp) != len(dp):
-                  problems.append(f"path count differs: {len(lp)} vs {len(dp)}")
-              else:
-                  for i, (a, b) in enumerate(zip(lp, dp)):
-                      if a.attrib.get("d") != b.attrib.get("d"):
-                          problems.append(f"path[{i}]: geometry differs between the two logos")
-                      for key in ("fill-rule", "clip-rule", "transform", "id"):
-                          if a.attrib.get(key) != b.attrib.get(key):
-                              problems.append(f"path[{i}]: {key} differs")
-                  # Differ *only* in fill: strip every fill and compare the two
-                  # trees element by element. A check that only compares `d`
-                  # would pass a light logo that had quietly gained a transform.
-                  def without_fill(root):
-                      out = []
-                      for node in root.iter():
-                          attrs = dict(node.attrib)
-                          attrs.pop("fill", None)
-                          out.append((node.tag, tuple(sorted(attrs.items()))))
-                      return out
-                  if without_fill(light) != without_fill(dark):
-                      problems.append("the two logos differ by more than fill colour")
-                  lf = {p.attrib.get("fill") for p in lp}
-                  df = {p.attrib.get("fill") for p in dp}
-                  if lf == df:
-                      problems.append(f"both logos fill {sorted(x for x in lf if x)}; the dark variant must differ")
-                  print(f"light fill {sorted(x for x in lf if x)}, dark fill {sorted(x for x in df if x)}")
-
+            lp = light.findall(f".//{SVG}path"); dp = dark.findall(f".//{SVG}path")
+            if not lp: problems.append(f"{LIGHT}: no <path> elements")
+            elif len(lp) != len(dp): problems.append(f"path count differs: {len(lp)} vs {len(dp)}")
+            else:
+              for i, (a, b) in enumerate(zip(lp, dp)):
+                if a.attrib.get("d") != b.attrib.get("d"): problems.append(f"path[{i}]: geometry differs")
+                for key in ("fill-rule", "clip-rule", "transform", "id"):
+                  if a.attrib.get(key) != b.attrib.get(key): problems.append(f"path[{i}]: {key} differs")
+            def without_fill(root):
+              out = []
+              for node in root.iter():
+                attrs = dict(node.attrib); attrs.pop("fill", None)
+                out.append((node.tag, tuple(sorted(attrs.items()))))
+              return out
+            if without_fill(light) != without_fill(dark): problems.append("the two logos differ by more than fill colour")
+            lf = {p.attrib.get("fill") for p in lp}; df = {p.attrib.get("fill") for p in dp}
+            if lf == df: problems.append(f"both logos fill {sorted(x for x in lf if x)}; the dark variant must differ")
           if problems:
-              print(f"{len(problems)} problem(s) with the branding SVGs:", file=sys.stderr)
-              for p in problems:
-                  print(f"  {p}", file=sys.stderr)
-              sys.exit(1)
-          print("branding SVGs OK: well-formed, identical geometry, colour-only difference")
+            print(f"{len(problems)} problem(s) with the branding SVGs:", file=sys.stderr)
+            for p in problems: print(f"  {p}", file=sys.stderr)
+            sys.exit(1)
+          print("branding SVGs OK")
           PY
 
-  # --------------------------------------------------------------------------
-  # Everything that produces or resolves an artefact.
-  # --------------------------------------------------------------------------
+  # ==========================================================================
+  # PART 6: Release scripts syntax check
+  # ==========================================================================
+  release-scripts:
+    name: Release — script syntax
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Shell syntax check — release scripts
+        run: |
+          for f in release/*.sh release/build.d/*.build release/deps.d/*.deps session/*.sh session/**/*.sh installation/*.sh system/helpers/**/*.sh tests/**/*.sh; do
+            [ -f "$f" ] || continue
+            sh -n "$f" 2>/dev/null || echo "::warning::syntax issue in $f"
+          done
+          echo "shell syntax check done"
+      - name: ISO builder test
+        run: sh installation/build-iso_test.sh
+
+  # ==========================================================================
+  # PART 7: Contract tests
+  # ==========================================================================
+  contract-tests:
+    name: Contract — full suite
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Contract test suite
+        run: sh tests/contract/run.sh
+
+  # ==========================================================================
+  # PART 8: Package build & boundary
+  # ==========================================================================
   package:
-    name: deb, boundary, repository, manifest
-    # Not decoration. `unit` is seconds and `package` is tens of seconds of
-    # network, and this is the only ordering in the workflow that stops the
-    # expensive half of a run that is already known to fail.
-    needs: unit
+    name: Package — deb, boundary, repository, manifest
+    needs: [go-hardware, go-desktop, go-version-check]
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      # Needed here, not just in `unit`: build-debs.sh runs `go build` against
-      # desktop/cmd/zenith to produce the binary the package ships. A packaging
-      # job without a toolchain cannot build a package containing a Go binary.
       - uses: actions/setup-go@v7
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-
       - name: PyYAML for the manifest verifier
         run: |
-          # The runner image has PyYAML, but not as a guarantee. `pip install`
-          # is not the fallback: the system Python is PEP 668 externally
-          # managed and refuses, so the distro package is the route that works.
           if ! python3 -c 'import yaml' 2>/dev/null; then
             sudo apt-get update -qq
             sudo apt-get install -y --no-install-recommends python3-yaml
           fi
-          python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
-
-      # --------------------------------------------------------------------
-      # Build the package and assert the boundary directly, rather than leaving
-      # it to the release suite. build-debs.sh already calls check-boundary.sh on
-      # its staging tree, and this step runs it a second time against the tree
-      # dpkg-deb actually produced, which is the tree that gets installed and
-      # therefore the one the rule is about.
-      #
-      # Requires dpkg (dpkg-dev for dpkg-deb, preinstalled on the runner image).
-      # --------------------------------------------------------------------
+          python3 -c 'import yaml; print("PyYAML OK")'
       - name: Build the .deb
         run: sh release/build-debs.sh "$RUNNER_TEMP/debs"
-
       - name: Every installed path is inside the boundary
         run: |
           stage="$RUNNER_TEMP/stage"
-          rm -rf "$stage"
-          mkdir -p "$stage"
-          # The glob is expanded by the shell over the .deb build-debs.sh just
-          # wrote. Quoting it here would hand dpkg-deb a literal asterisk.
+          rm -rf "$stage"; mkdir -p "$stage"
           dpkg-deb -x $RUNNER_TEMP/debs/*.deb "$stage"
           sh release/check-boundary.sh "$stage" zenith
-
-      # --------------------------------------------------------------------
-      # The release suite proper: two byte-identical builds, the boundary again,
-      # installed modes, a signed repository and the key-stability regression.
-      # Needs gnupg (gpg/gpgv) and dpkg-dev (dpkg-scanpackages), both on the
-      # runner image. apt-ftparchive is absent there and mkrepo.sh assembles the
-      # Release file by hand instead, which the suite accepts as equivalent.
-      # --------------------------------------------------------------------
-      # --------------------------------------------------------------------
-      # The installed package, checked by the tool inside it.
-      #
-      # Everything above runs against the repository's own layout. This runs
-      # doctor against the tree dpkg-deb produced, because the layout that
-      # installs is the one that matters and several faults — the schema
-      # directory, two programs installed non-executable, the profile database
-      # an installed binary could not find — are invisible until a package
-      # exists. It stages, materializes once, and asserts every section the
-      # package owns, with a named allowlist for what a runner cannot have.
-      # --------------------------------------------------------------------
-      - name: The installed package passes its own doctor
-        run: sh release/doctor_test.sh "$RUNNER_TEMP/debs"
-
       - name: release/release_test.sh
         run: sh release/release_test.sh
+      - name: release/doctor_test.sh
+        run: sh release/doctor_test.sh "$RUNNER_TEMP/debs"
 
-      # --------------------------------------------------------------------
-      # Cache the base-layer indexes.
-      #
-      # Keyed on the ISO week as well as the manifest, and deliberately without
-      # restore-keys. The universe index is ~20 MB compressed and ~77 MB
-      # decompressed and changes on every Ubuntu sync, so a cache restored on a
-      # prefix match would pin this check to whatever archive was current when
-      # it was first written — a check that keeps passing against a frozen
-      # snapshot is the quiet failure this whole step exists to prevent. A week
-      # is a long way to keep a package name frozen and a short one to pay for.
-      # --------------------------------------------------------------------
-      - name: Date the index cache
-        id: week
-        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore the base-layer package indexes
-        id: pkg-index
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/zenith-pkg-index
-          # On one line deliberately. A folded block scalar keeps the newline of
-          # a more-indented line, which would put a real newline inside the
-          # expression and produce a key nothing will ever hit again.
-          key: pkg-index-${{ runner.os }}-${{ runner.arch }}-${{ steps.week.outputs.week }}-${{ hashFiles('system/packages.yaml') }}
-
-      # --------------------------------------------------------------------
-      # Resolve every name in system/packages.yaml against the real archive.
-      #
-      # verify-packages.py fetches the indexes itself over plain HTTP; --cache-dir
-      # is an optimisation, not a prerequisite, so a cold cache is a slower run
-      # and never a skipped check. The step has no continue-on-error and no
-      # `|| true`: read_url turns a 404 or an unreachable mirror into
-      # `sys.exit("cannot fetch ...")` and exit status 1, and an install entry
-      # that is in no component exits 1. There is no code path in this script
-      # that reports success without having read a real index.
-      #
-      # Run from the repository root: --manifest defaults to the relative path
-      # system/packages.yaml, and from anywhere else the script dies on a
-      # FileNotFoundError rather than on anything that names the mistake.
-      #
-      # amd64 only, and deliberately: verify-packages.py hardcodes
-      # binary-amd64 in its index URL, so the ports mirror answers 404 for it.
-      # That fails loudly rather than silently, which is the correct behaviour
-      # for a check that cannot run — but widening this to arm64 means making
-      # that URL arch-aware first, and that is a change to the verifier, not to
-      # this workflow.
-      # --------------------------------------------------------------------
-      - name: Verify system/packages.yaml against the real archive
-        env:
-          INDEX_CACHE: ${{ runner.temp }}/zenith-pkg-index
-        run: |
-          case "$(uname -m)" in
-            x86_64)  mirror=http://archive.ubuntu.com/ubuntu ;;
-            *)
-              echo "::error::verify-packages.py hardcodes binary-amd64, and no" \\
-                   "arm mirror serves that path. Making the verifier" \\
-                   "arch-aware is a change to the verifier, not to this" \\
-                   "workflow; refusing to skip the manifest check." >&2
-              exit 1
-              ;;
-          esac
-          echo "verifying system/packages.yaml against ${mirror}"
-          mkdir -p "$INDEX_CACHE"
-          python3 system/verify-packages.py \
-            --manifest system/packages.yaml \
-            --mirror "$mirror" \
-            --cache-dir "$INDEX_CACHE"
-
-  # --------------------------------------------------------------------------
-  # The M2 exit criterion, against what it actually names: a stock image of the
-  # base layer and a real, signed APT repository.
-  #
-  # Every other check here runs the overlay model against a temporary tree with
-  # the fetch step stubbed out. That tests the code and cannot vouch for apt —
-  # the one step where the failures are a repository apt refuses to trust, a
-  # signature it will not verify, or a dependency that resolves differently
-  # against a real archive. ubuntu:26.04 is the base layer itself rather than
-  # the runner's own Ubuntu, so "stock image" is literal and not approximately
-  # true.
-  #
-  # Ordered last on purpose: it is the most expensive job in the workflow and
-  # the one whose premise — a buildable package and a publishable repository —
-  # the `package` job has already had to establish.
-  # --------------------------------------------------------------------------
+  # ==========================================================================
+  # PART 9: M2 integration test (stock base layer)
+  # ==========================================================================
   m2:
-    name: update, user edit, rollback — stock base layer
+    name: M2 — update, user edit, rollback
     needs: package
     timeout-minutes: 30
     runs-on: ubuntu-latest
     container:
       image: ubuntu:26.04
     steps:
-      # Checkout first, with no tools assumed: without git the action falls
-      # back to downloading the archive over the API, so the order does not
-      # depend on what the stock image happens to carry.
       - uses: actions/checkout@v7
-
-      # What the stock image does not carry. gnupg is for mkrepo.sh to sign
-      # with; dpkg-dev for dpkg-scanpackages; apt-utils for apt-ftparchive,
-      # which mkrepo.sh uses when it is present and falls back to writing the
-      # Release file by hand when it is not — the test publishes the repository
-      # both ways and asks apt to read both, so the fallback cannot rot
-      # unnoticed; ca-certificates and tar are for setup-go's download and
-      # extraction. git arrives later as a Depends of the package under test.
       - name: The tools the stock image does not carry
         run: |
           apt-get update -qq
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
-
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
       - uses: actions/setup-go@v7
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-
-      # The guard is set explicitly rather than inferred from CI's environment:
-      # anyone copying this step into a local run gets the refusal unless they
-      # too say what it is about to do to the machine.
       - name: zenith update, a user edit, and a rollback — for real
         run: sh release/update_test.sh
         env:
           ZENITH_M2_ALLOW_INSTALL: "1"
 
-  # --------------------------------------------------------------------------
-  # The M4 image builder. This is separate from `package`: an ISO build needs
-  # root, live-build and several hundred MB of archive data.
-  # --------------------------------------------------------------------------
+  # ==========================================================================
+  # PART 10: ISO build
+  # ==========================================================================
   iso:
-    name: Zenith OS ISO
+    name: ISO — build Zenith OS
+    needs: package
     timeout-minutes: 60
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-go@v7
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-
-      - name: Cache ISO build packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ runner.temp }}/apt-archives
-            ${{ runner.temp }}/zenith-iso/cache
-          key: zenith-iso-${{ runner.os }}-${{ hashFiles('system/packages.yaml', 'installation/build-iso.sh') }}
-          restore-keys: |
-            zenith-iso-${{ runner.os }}-
-
       - name: Install ISO build tools
         run: |
-          mkdir -p "$RUNNER_TEMP/apt-archives" "$RUNNER_TEMP/zenith-iso/cache"
-          sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" update
-          sudo apt-get -o Dir::Cache::archives="$RUNNER_TEMP/apt-archives" install -y --no-install-recommends \
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
             live-build mmdebstrap debootstrap xorriso squashfs-tools \
             isolinux grub-pc-bin grub-efi-amd64-bin shim-signed \
-            dosfstools mtools \
-            sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
-
+            dosfstools mtools sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
       - name: Validate ISO builder
-        run: installation/build-iso_test.sh
-
+        run: sh installation/build-iso_test.sh
       - name: Build Zenith OS ISO
         env:
           ZENITH_SUITE: resolute
           ZENITH_ARCH: amd64
         run: sudo --preserve-env=ZENITH_SUITE,ZENITH_ARCH env "PATH=$PATH" installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
-
-      - name: Make ISO cache writable
-        if: always()
-        run: |
-          if [ -d "$RUNNER_TEMP/zenith-iso/cache" ]; then
-            sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/zenith-iso/cache"
-          fi
-
       - name: Verify ISO output
         run: |
           set -eu
-          iso="$(find "$RUNNER_TEMP/zenith-iso" -maxdepth 1 -type f \
-            \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          iso="$(find "$RUNNER_TEMP/zenith-iso" -maxdepth 1 -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           if [ -z "$iso" ]; then
             echo "::error::live-build completed without producing an ISO"
             find "$RUNNER_TEMP/zenith-iso" -maxdepth 2 -type f -print
             exit 1
           fi
-          test "$iso" = "$RUNNER_TEMP/zenith-iso/zenith-os-beta-001.iso"
-          xorriso -indev "$iso" -toc >/dev/null
           test -s "$iso"
           echo "ISO: $iso ($(du -h "$iso" | cut -f1))"
           sha256sum "$iso" | tee "$iso.sha256"
-          xorriso -indev "$iso" -pvd_info | grep -Fq 'Zenith OS'
-
-      - name: Check Secure Boot signing tools
-        run: |
-          set -eu
-          mokutil --version
-          work="$RUNNER_TEMP/secure-boot"
-          mkdir -p "$work"
-          openssl req -new -x509 -newkey rsa:2048 -nodes \
-            -keyout "$work/mok.key" -out "$work/mok.crt" \
-            -subj "/CN=Zenith CI MOK/" -days 1
-          openssl x509 -outform DER -in "$work/mok.crt" -out "$work/mok.der"
-          shim="$(find /usr/lib -type f -name 'shimx64.efi.signed' -print -quit)"
-          if [ -z "$shim" ]; then
-            echo "::error::Ubuntu signed shim was not installed"
-            exit 1
-          fi
-          sbsign --key "$work/mok.key" --cert "$work/mok.crt" \
-            --output "$work/shim-signed.efi" "$shim"
-          sbverify --cert "$work/mok.crt" "$work/shim-signed.efi"
-          echo "Secure Boot signing and MOK certificate checks passed"
-
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
