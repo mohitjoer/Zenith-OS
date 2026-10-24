@@ -75,6 +75,19 @@ Zenith OS Beta 001
 Welcome to Zenith OS.
 EOF
 
+# Modern Ubuntu archive does not publish gfxboot-theme-ubuntu or syslinux-themes,
+# causing live-build's lb_binary_syslinux stage to fail with exit code 100 when
+# it attempts to apt-get install them. Providing dummy stubs and copying local
+# bootloader templates satisfies Check_package and prevents those package installs.
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu"
+tar -czf "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu/bootlogo.tar.gz" -T /dev/null
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/syslinux/themes/ubuntu-server/isolinux-live" \
+	"$BUILD_DIR/config/includes.chroot/usr/share/syslinux/themes/ubuntu/isolinux-live"
+if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
+	mkdir -p "$BUILD_DIR/config/bootloaders"
+	cp -r /usr/share/live/build/bootloaders/isolinux "$BUILD_DIR/config/bootloaders/"
+fi
+
 python3 - "$REPO_ROOT/system/packages.yaml" \
 	"$BUILD_DIR/config/package-lists/zenith.list.chroot" <<'PY'
 import sys
@@ -99,8 +112,9 @@ for group, body in manifest.items():
 # live-build verifies the chroot's APT metadata with gpg during package
 # installation; installing it only on the host does not provide it here.
 packages.append("gnupg")
-# Bootloaders for UEFI and BIOS hybrid media, plus zenith runtime dependencies.
+# Syslinux/isolinux modules, bootloaders, and zenith runtime dependencies.
 packages.extend([
+    "isolinux", "syslinux-common",
     "grub-pc-bin", "grub-efi-amd64-bin",
     "curl", "file", "imagemagick", "jq", "libnotify-bin",
     "openssh-client", "pkexec", "procps", "qml6-module-qtmultimedia", "util-linux",
@@ -133,7 +147,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--linux-packages linux-image \
 		--linux-flavours generic \
 		--binary-images iso-hybrid \
-		--bootloaders "grub-pc,grub-efi" \
+		--bootloader syslinux \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
