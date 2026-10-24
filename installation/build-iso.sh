@@ -86,9 +86,50 @@ mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu"
 tar -czf "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu/bootlogo.tar.gz" -T /dev/null
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/syslinux/themes/ubuntu-server/isolinux-live" \
 	"$BUILD_DIR/config/includes.chroot/usr/share/syslinux/themes/ubuntu/isolinux-live"
+# Resolute's syslinux-common moved vesamenu.c32 to
+# /usr/lib/syslinux/modules/bios/ and isolinux package uses
+# /usr/lib/ISOLINUX/isolinux.bin, but live-build's bootloaders/isolinux
+# symlinks still point at /usr/lib/syslinux/*.  Without compat links the
+# lb_binary_syslinux "cp -aL /root/isolinux" dereference fails with
+# "cannot stat isolinux.bin/vesamenu.c32" (run 40095280254).
+cat >"$BUILD_DIR/config/hooks/normal/0000-fix-syslinux-compat.chroot" <<'HOOK_EOF'
+#!/bin/sh
+set -eu
+mkdir -p /usr/lib/syslinux
+if [ ! -e /usr/lib/syslinux/isolinux.bin ]; then
+	if [ -e /usr/lib/ISOLINUX/isolinux.bin ]; then
+		ln -sf /usr/lib/ISOLINUX/isolinux.bin /usr/lib/syslinux/isolinux.bin
+	elif [ -e /usr/lib/syslinux/modules/bios/isolinux.bin ]; then
+		ln -sf /usr/lib/syslinux/modules/bios/isolinux.bin /usr/lib/syslinux/isolinux.bin
+	fi
+fi
+if [ ! -e /usr/lib/syslinux/vesamenu.c32 ]; then
+	if [ -e /usr/lib/syslinux/modules/bios/vesamenu.c32 ]; then
+		ln -sf /usr/lib/syslinux/modules/bios/vesamenu.c32 /usr/lib/syslinux/vesamenu.c32
+	elif [ -e /usr/lib/syslinux/vesamenu.c32 ]; then
+		:
+	fi
+fi
+HOOK_EOF
+chmod 0755 "$BUILD_DIR/config/hooks/normal/0000-fix-syslinux-compat.chroot"
+# Provide a corrected config/bootloaders/isolinux so lb_binary_syslinux's
+# _SOURCE already points at resolute-correct targets (belt-and-suspenders
+# with the chroot hook above).
 if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
 	mkdir -p "$BUILD_DIR/config/bootloaders"
 	cp -r /usr/share/live/build/bootloaders/isolinux "$BUILD_DIR/config/bootloaders/"
+	# Fix dangling symlinks to match resolute layout
+	if [ -L "$BUILD_DIR/config/bootloaders/isolinux/isolinux.bin" ]; then
+		ln -sf /usr/lib/ISOLINUX/isolinux.bin "$BUILD_DIR/config/bootloaders/isolinux/isolinux.bin"
+	fi
+	if [ -L "$BUILD_DIR/config/bootloaders/isolinux/vesamenu.c32" ]; then
+		ln -sf /usr/lib/syslinux/modules/bios/vesamenu.c32 "$BUILD_DIR/config/bootloaders/isolinux/vesamenu.c32"
+	fi
+else
+	# Fallback if host has no live-build bootloaders (e.g. local test)
+	mkdir -p "$BUILD_DIR/config/bootloaders/isolinux"
+	ln -sf /usr/lib/ISOLINUX/isolinux.bin "$BUILD_DIR/config/bootloaders/isolinux/isolinux.bin"
+	ln -sf /usr/lib/syslinux/modules/bios/vesamenu.c32 "$BUILD_DIR/config/bootloaders/isolinux/vesamenu.c32"
 fi
 # Keep dummy stubs for LB_BUILD_WITH_CHROOT=false fallback, but the real
 # fix is --syslinux-theme live-build passed to lb config below.
