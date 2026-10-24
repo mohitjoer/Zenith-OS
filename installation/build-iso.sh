@@ -192,6 +192,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--parent-mirror-binary "$MIRROR" \
 		--linux-packages linux-image \
 		--linux-flavours generic \
+		--initramfs live-boot \
 		--binary-images iso-hybrid \
 		--bootloader syslinux \
 		--syslinux-theme live-build \
