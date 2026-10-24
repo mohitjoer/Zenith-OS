@@ -361,7 +361,10 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn, peek bool) {
 			}
 		case "history":
 			go func(c *acpConn, target *chatClient) {
-				sessions := c.ListSessions()
+				var sessions []SessionMeta
+				if c != nil {
+					sessions = c.ListSessions()
+				}
 				h.mu.Lock()
 				if h.clients[target] {
 					select {

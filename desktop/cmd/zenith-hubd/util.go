@@ -41,11 +41,13 @@ func selfExe() string {
 }
 
 // escalateSelf re-runs this binary as root via pkexec, preserving the invoking
-// user's id (PKEXEC_UID) so the privileged half acts on the right user (the
-// lock.go greeter pattern).
+// user's id (PKEXEC_UID) and HOME so the privileged half can access the
+// caller's config (e.g. gpu-presets.json). Without HOME pkexec clears the
+// environment and defaults HOME to /root, which breaks custom preset loading.
 func escalateSelf(args ...string) error {
 	uid := strconv.Itoa(os.Getuid())
-	full := append([]string{"env", "PKEXEC_UID=" + uid, selfExe()}, args...)
+	home := os.Getenv("HOME")
+	full := append([]string{"env", "HOME=" + home, "PKEXEC_UID=" + uid, selfExe()}, args...)
 	cmd := exec.Command("pkexec", full...)
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	return cmd.Run()

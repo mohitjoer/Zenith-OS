@@ -163,8 +163,11 @@ export function applyEvent(state, ev) {
     }
     case "replay_start": {
       // A load/new replays a fresh transcript: clear the stream and suppress
-      // animations while historical frames stream back in.
+      // animations while historical frames stream back in. Drop any permission
+      // cards left over from the previous session so a stale "waiting for your
+      // approval" card does not outlive the session it belonged to.
       s.items = [];
+      s.permissions = [];
       s.replaying = true;
       return s;
     }
@@ -308,10 +311,10 @@ if (typeof document !== "undefined") {
       stream.innerHTML = state.items.map((it) => {
         if (it.kind === "tool") {
           return (
-            '<div class="tool-card" data-status="' + it.status + '">' +
+            '<div class="tool-card" data-status="' + esc(it.status) + '">' +
             '<div class="tool-head"><span class="tool-title">' + esc(it.title) + "</span>" +
             '<span class="tool-kind">' + esc(it.kind2) + "</span></div>" +
-            '<span class="stamp stamp-status">' + (STATUS_STAMP[it.status] || it.status) + "</span>" +
+            '<span class="stamp stamp-status">' + esc(STATUS_STAMP[it.status] || it.status) + "</span>" +
             "</div>"
           );
         }
@@ -646,6 +649,12 @@ if (typeof document !== "undefined") {
     function submit() {
       const text = input.value.trim();
       if ((!text && !attachments.length) || input.disabled) return;
+      // Do not drop the message silently when the daemon is unreachable: keep
+      // the draft and the attachments in place and tell the user.
+      if (!ws || ws.readyState !== 1) {
+        renderBanner();
+        return;
+      }
       const images = attachments.map((a) => ({ data: a.data, mimeType: a.mimeType }));
       send({ type: "user", text, images });
       dispatch({ type: "user", text, images });

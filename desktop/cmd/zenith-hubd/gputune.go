@@ -328,6 +328,10 @@ func tuneSet(gpu, id, value string) error {
 		if !inList(t.Options, value) {
 			return fmt.Errorf("%s must be one of %s", id, strings.Join(t.Options, "|"))
 		}
+	} else if t.Kind == "toggle" {
+		if value != "on" && value != "off" {
+			return fmt.Errorf("%s must be one of [on off]", id)
+		}
 	} else {
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {

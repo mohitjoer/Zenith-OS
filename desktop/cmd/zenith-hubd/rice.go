@@ -356,6 +356,23 @@ func validAssetName(n string) bool {
 	return n != "" && !strings.HasPrefix(n, ".") && !strings.ContainsAny(n, "/\\")
 }
 
+// safeAssetPath rejects paths that escape the rice directory: absolute paths,
+// ".." components, or anything containing a path separator that would let a
+// hostile manifest read or overwrite files outside the rice bundle.
+func safeAssetPath(p string) bool {
+	if p == "" {
+		return true
+	}
+	if filepath.IsAbs(p) {
+		return false
+	}
+	clean := filepath.Clean(p)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return !strings.ContainsAny(p, "\\")
+}
+
 // bundleDecorAssets copies each decor's picture into the rice and marks its
 // src rice://<asset>, so the decors travel with the rice instead of pointing
 // at files that exist only on the author's disk.
@@ -708,7 +725,9 @@ func restoreRice(slot string) error {
 			_ = setLockSkinIn(qylockThemesDir(), qylockThemePref(), slug)
 		}
 	}
-	_, _ = desktopClient().Apply(desktopStorePath())
+	if _, err := desktopClient().Apply(desktopStorePath()); err != nil {
+		return fmt.Errorf("apply desktop store: %w", err)
+	}
 	riceReload()
 	return nil
 }
@@ -719,6 +738,19 @@ func applyRice(slug string, layers []string) error {
 	r, dir, err := loadRice(slug)
 	if err != nil {
 		return err
+	}
+	// Validate asset paths to prevent path traversal from a hostile manifest.
+	// Each asset must be a plain name or relative path inside the rice dir,
+	// not an escape like "../../.ssh/id_rsa".
+	if !safeAssetPath(r.Assets.Wallpaper) || !safeAssetPath(r.Assets.Hero) ||
+		!safeAssetPath(r.Assets.Fastfetch) || !safeAssetPath(r.Assets.FastfetchStyle) ||
+		!safeAssetPath(r.Assets.Lock) || !safeAssetPath(r.Color.Palette) {
+		return fmt.Errorf("rice %q contains an unsafe asset path", slug)
+	}
+	for _, fp := range r.Assets.Fonts {
+		if !safeAssetPath(fp) {
+			return fmt.Errorf("rice %q contains an unsafe font path", slug)
+		}
 	}
 	_ = snapshotStores(".previous")
 	ensureBaseline()
@@ -761,7 +793,9 @@ func applyRice(slug string, layers []string) error {
 			}
 		}
 		if len(sections) > 0 {
-			_ = setHyprSections(sections)
+			if err := setHyprSections(sections); err != nil {
+				return fmt.Errorf("apply hypr look: %w", err)
+			}
 		}
 	}
 	if err := applyShellLook(r.Look["shell"]); err != nil {
@@ -907,7 +941,9 @@ func applyRice(slug string, layers []string) error {
 		}
 	}
 
-	_, _ = desktopClient().Apply(desktopStorePath())
+	if _, err := desktopClient().Apply(desktopStorePath()); err != nil {
+		return fmt.Errorf("apply desktop store: %w", err)
+	}
 	riceReload()
 	return nil
 }

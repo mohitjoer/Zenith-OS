@@ -372,6 +372,9 @@ func parseDevice(b []byte) (orgbDevice, error) {
 	modes := int(r.u16())
 	d.ActiveMode = int(r.i32())
 	for range modes {
+		if r.err != nil {
+			break
+		}
 		var m orgbMode
 		m.Name = r.str()
 		m.Value = r.i32()
@@ -382,6 +385,9 @@ func parseDevice(b []byte) (orgbDevice, error) {
 		m.Speed, m.Bri = r.u32(), r.u32()
 		m.Direction, m.ColorMode = r.u32(), r.u32()
 		for range int(r.u16()) {
+			if r.err != nil {
+				break
+			}
 			m.Colors = append(m.Colors, r.u32())
 		}
 		d.Modes = append(d.Modes, m)
@@ -389,18 +395,31 @@ func parseDevice(b []byte) (orgbDevice, error) {
 
 	var start uint32
 	for range int(r.u16()) {
+		if r.err != nil {
+			break
+		}
 		z := orgbZone{Name: r.str(), Type: r.i32()}
 		r.u32() // leds_min
 		r.u32() // leds_max
 		z.LEDs = r.u32()
 		if mlen := r.u16(); mlen > 0 {
 			z.H, z.W = r.u32(), r.u32()
+			if z.H*z.W > 1<<20 {
+				r.err = fmt.Errorf("zone map too large: %d", z.H*z.W)
+				break
+			}
 			z.Map = make([]uint32, 0, z.H*z.W)
 			for range int(z.H) * int(z.W) {
+				if r.err != nil {
+					break
+				}
 				z.Map = append(z.Map, r.u32())
 			}
 		}
 		for range int(r.u16()) { // segments (protocol 4+)
+			if r.err != nil {
+				break
+			}
 			r.str()
 			r.i32()
 			r.u32()
@@ -415,6 +434,9 @@ func parseDevice(b []byte) (orgbDevice, error) {
 	leds := int(r.u16())
 	d.LEDCount = leds
 	for range leds {
+		if r.err != nil {
+			break
+		}
 		r.str()
 		r.u32()
 	}

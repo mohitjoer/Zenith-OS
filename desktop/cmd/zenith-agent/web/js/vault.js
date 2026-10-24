@@ -44,8 +44,13 @@ export function initVault(root) {
       b.classList.toggle("active", b.dataset.p === rel));
     try {
       const md = await api.vaultFile(rel);
+      // Guard against a stale response: if the user has selected a different
+      // file while this fetch was in flight, drop the result so the pane does
+      // not show the wrong note.
+      if (rel !== current) return;
       pane.innerHTML = mdToHtml(md);
     } catch (err) {
+      if (rel !== current) return;
       pane.innerHTML = '<p class="dim">could not read ' + escapeHtml(rel) + "</p>";
     }
   }

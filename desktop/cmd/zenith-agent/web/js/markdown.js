@@ -7,7 +7,8 @@ export function escapeHtml(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function splitRow(line) {
@@ -81,7 +82,6 @@ export function mdToHtml(src, opts) {
   // Agent replies opt into hard line breaks so a line-structured answer (a
   // /tools list, terse notes) keeps its shape; vault docs stay soft-wrapped.
   const brk = opts && opts.breaks ? "<br>" : " ";
-
   const flushPara = () => {
     if (para.length) {
       out.push("<p>" + inline(para.join(brk)) + "</p>");

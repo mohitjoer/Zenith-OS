@@ -127,12 +127,20 @@ var prowlCache struct {
 
 func ProwlReportNow() ProwlReport {
 	prowlCache.mu.Lock()
-	defer prowlCache.mu.Unlock()
 	if time.Since(prowlCache.at) < 60*time.Second {
-		return prowlCache.data
+		rep := prowlCache.data
+		prowlCache.mu.Unlock()
+		return rep
 	}
+	prowlCache.mu.Unlock()
+
+	// Build the report outside the lock so the three subprocesses don't block
+	// concurrent callers for up to ~50s.
 	rep := buildProwlReport()
+
+	prowlCache.mu.Lock()
 	prowlCache.at, prowlCache.data = time.Now(), rep
+	prowlCache.mu.Unlock()
 	return rep
 }
 

@@ -41,7 +41,10 @@ func setGpuMode(mode string) error {
 	default:
 		return fmt.Errorf("mode must be hybrid|performance|passthrough")
 	}
-	report, _ := detectCapability()
+	report, err := detectCapability()
+	if err != nil {
+		return fmt.Errorf("gpu mode set: capability detection failed: %w", err)
+	}
 	if mode == "passthrough" && wouldStrandDisplay(report) {
 		return fmt.Errorf("passthrough needs the discrete GPU free, but it is driving your screen right now. Switch the laptop to Hybrid GPU mode in the BIOS/firmware setup (often labelled GPU Mode, MUX, or Hybrid/Optimus) and reboot first, so the built-in GPU drives the display")
 	}

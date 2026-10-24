@@ -135,8 +135,9 @@ func resolvePresetValue(t *Tunable, sym string) string {
 		case "max":
 			return trimTrailingZero(t.Max)
 		default:
-			if _, err := strconv.ParseFloat(sym, 64); err == nil {
-				return sym // a concrete number from a custom preset
+			if v, err := strconv.ParseFloat(sym, 64); err == nil {
+				// Clamp concrete values against the knob's probed envelope.
+				return strconv.FormatFloat(clampf(v, t.Min, t.Max), 'f', -1, 64)
 			}
 			return ""
 		}

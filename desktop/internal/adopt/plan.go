@@ -201,9 +201,9 @@ type PlanEnv struct {
 	Terminal string
 	// Prune asks for the GNOME removal step.
 	Prune bool
-	// gsettings reports the current value of a "schema key" pair, and whether
+	// GSettings reports the current value of a "schema key" pair, and whether
 	// the key exists at all. Injected so a plan can be built without a session.
-	gsettings func(schema, key string) (string, bool)
+	GSettings func(schema, key string) (string, bool)
 }
 
 // BuildPlan assembles the steps, in the order they must run.
@@ -307,10 +307,10 @@ func BuildPlan(env PlanEnv) Plan {
 	}
 
 	// 6. Carry settings across.
-	if env.gsettings != nil {
+	if env.GSettings != nil {
 		for _, mapping := range settingImports {
 			schema, key, _ := strings.Cut(mapping.To, " ")
-			value, exists := env.gsettings(schema, key)
+			value, exists := env.GSettings(schema, key)
 			if !exists {
 				// A GNOME key that is not set is not an import. Writing the
 				// Zenith default over it would be indistinguishable from

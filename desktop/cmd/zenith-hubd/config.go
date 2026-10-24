@@ -44,7 +44,11 @@ func normalizeSection(section string) string {
 func loadConfig() Config {
 	c := defaultConfig()
 	if b, err := os.ReadFile(configPath()); err == nil {
-		_ = toml.Unmarshal(b, &c)
+		if err := toml.Unmarshal(b, &c); err != nil {
+			// corrupt config: keep defaults rather than silently accepting
+			// a half-parsed file.
+			c = defaultConfig()
+		}
 	}
 	if c.UI.Section != normalizeSection(c.UI.Section) {
 		c.UI.Section = normalizeSection(c.UI.Section)
