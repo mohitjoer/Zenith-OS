@@ -111,9 +111,29 @@ if [ ! -e /usr/lib/syslinux/vesamenu.c32 ]; then
 	fi
 fi
 # librsvg2-bin on resolute ships /usr/bin/rsvg-convert, but live-build's
-# lb_binary_syslinux calls "rsvg" (run 40099593317: env: 'rsvg': No such file).
+# lb_binary_syslinux calls "rsvg --format png ... in.svg out.png" (run
+# 40099593317: env: 'rsvg': No such file). rsvg-convert requires "-o out.png"
+# instead of positional output, so a symlink alone fails with
+# "Multiple SVG files are only allowed for PDF and (E)PS output."
 if [ -e /usr/bin/rsvg-convert ] && [ ! -e /usr/bin/rsvg ]; then
-	ln -sf /usr/bin/rsvg-convert /usr/bin/rsvg
+	cat > /usr/bin/rsvg <<'RSVG_EOF'
+#!/bin/bash
+# Compat wrapper: translate "rsvg [opts] in.svg out.png" -> "rsvg-convert [opts] in.svg -o out.png"
+if [ $# -ge 2 ]; then
+	last="${!#}"
+	prev="${@: -2:1}"
+	case "$last" in *.png)
+		case "$prev" in *.svg)
+			out="$last"
+			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$out"
+			;;
+		esac
+		;;
+	esac
+fi
+exec /usr/bin/rsvg-convert "$@"
+RSVG_EOF
+	chmod 0755 /usr/bin/rsvg
 fi
 HOOK_EOF
 chmod 0755 "$BUILD_DIR/config/hooks/normal/0000-fix-syslinux-compat.chroot"
@@ -198,6 +218,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--linux-packages linux-image \
 		--linux-flavours generic \
 		--initramfs live-boot \
+		--initsystem systemd \
 		--binary-images iso-hybrid \
 		--bootloader syslinux \
 		--syslinux-theme live-build \
