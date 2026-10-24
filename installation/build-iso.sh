@@ -75,10 +75,13 @@ Zenith OS Beta 001
 Welcome to Zenith OS.
 EOF
 
-# Modern Ubuntu archive does not publish gfxboot-theme-ubuntu or syslinux-themes,
-# causing live-build's lb_binary_syslinux stage to fail with exit code 100 when
-# it attempts to apt-get install them. Providing dummy stubs and copying local
-# bootloader templates satisfies Check_package and prevents those package installs.
+# Modern Ubuntu archive does not publish gfxboot-theme-ubuntu or
+# syslinux-themes-ubuntu-oneiric, causing live-build's lb_binary_syslinux stage
+# to fail with exit code 100 when it attempts to apt-get install them.  The
+# dummy stubs below are kept for older live-build versions that check file
+# existence, but the real fix is forcing the syslinux theme to "live-build"
+# (via --syslinux-theme) so lb_binary_syslinux never requests those obsolete
+# Ubuntu theme packages in the first place.
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu"
 tar -czf "$BUILD_DIR/config/includes.chroot/usr/share/gfxboot-theme-ubuntu/bootlogo.tar.gz" -T /dev/null
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/syslinux/themes/ubuntu-server/isolinux-live" \
@@ -87,6 +90,8 @@ if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
 	mkdir -p "$BUILD_DIR/config/bootloaders"
 	cp -r /usr/share/live/build/bootloaders/isolinux "$BUILD_DIR/config/bootloaders/"
 fi
+# Keep dummy stubs for LB_BUILD_WITH_CHROOT=false fallback, but the real
+# fix is --syslinux-theme live-build passed to lb config below.
 
 python3 - "$REPO_ROOT/system/packages.yaml" \
 	"$BUILD_DIR/config/package-lists/zenith.list.chroot" <<'PY'
@@ -148,6 +153,7 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 		--linux-flavours generic \
 		--binary-images iso-hybrid \
 		--bootloader syslinux \
+		--syslinux-theme live-build \
 		--iso-application "$ISO_APPLICATION" \
 		--iso-publisher "$ISO_PUBLISHER" \
 		--iso-volume "$ISO_LABEL" \
