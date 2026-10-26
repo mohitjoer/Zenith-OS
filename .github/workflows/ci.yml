@@ -372,7 +372,7 @@ jobs:
 
       - name: Restore the base-layer package indexes
         id: pkg-index
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/zenith-pkg-index
           # On one line deliberately. A folded block scalar keeps the newline of
