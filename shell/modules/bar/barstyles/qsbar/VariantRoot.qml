@@ -256,7 +256,6 @@ Item {
     BrightnessPanel { root: theme }
     MprisPanel { root: theme }
     WorkspacePanel { root: theme }
-    ControlCenter { id: controlCenter; root: theme }
     TrayMenu { root: theme }
 
     // Picker variants: only the selected pickerStyle is instantiated.
@@ -267,29 +266,5 @@ Item {
     LazyLoader { active: theme.mediaBrowserVisible && theme.pickerStyle === "hearthstone";                             MediaBrowserHearthstone  { root: theme } }
     LazyLoader { active: theme.mediaBrowserVisible && theme.pickerStyle === "carousel";                                MediaBrowserCarousel     { root: theme } }
 
-    // The bar's own IPC surface (contract 5): open QS Bar Settings on a route
-    // (a keybind or `zenith-shell bar settings`), close it (`bar settings close`,
-    // so a script can put it away), and read the live layout as JSON.
-    // settings() drives the same ControlCenter.open the logo uses.
-    IpcHandler {
-        target: "qsbar"
-        function settings(route: string): void {
-            if (route === "close") controlCenter.close()
-            else controlCenter.open(route)
-        }
-        // Keybind toggle: the shell's zenith handler forwards here because it
-        // cannot read the panel's visibility from the shell's side of the bar
-        // seam, so the flip reads the live visibility directly.
-        function toggle(): void {
-            controlCenter.root.controlVisible = !controlCenter.root.controlVisible
-        }
-        function layout(): string { return JSON.stringify(theme.barLayout) }
-    }
 
-    // Theme.openBarSettings() (the contract-4 root API) requests the panel; the
-    // panel lives here, so wire the request to the ControlCenter instance.
-    Connections {
-        target: theme
-        function onBarSettingsOpenRequested(route) { controlCenter.open(route) }
-    }
 }

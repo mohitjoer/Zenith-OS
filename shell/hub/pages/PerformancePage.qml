@@ -22,7 +22,7 @@ import "../Singletons"
 // unconditional -- an audio analyser with no audio has nothing to show, so it
 // always stops -- and a stale copy in someone's file is ignored by the adapter
 // and pruned the next time this page saves. The cheap-on-RAM keys ship ON
-// (unloadWidgetsWhenCovered, unloadVisualizerWhenSilent and the launcher/overview
+// (unloadWidgetsWhenCovered and the launcher/overview
 // unloads each free a hidden surface's whole process); their defaults mirror the
 // Go watchers and must not drift.
 // The lowPowerMode implication is applied downstream by each
@@ -49,14 +49,12 @@ Item {
     readonly property var factory: ({
         "lowPowerMode": false,
         "powerProfileEffects": true,
-        "autoPowerSaverOnBattery": false,
+        "autoPowerSaverOnBattery": true,
         "reduceMotion": false,
         "disableBlur": false,
         "disableShadows": false,
         "liveWallpaper60": false,
-        "ambientBarMotion": false,
         "pauseLiveWallpaperWhenFullscreen": true,
-        "unloadVisualizerWhenSilent": true,
         "unloadWidgetsWhenCovered": true,
         "unloadLauncherWhenIdle": true,
         "unloadOverviewWhenIdle": true
@@ -107,9 +105,7 @@ Item {
             "disableBlur": cfgA.disableBlur,
             "disableShadows": cfgA.disableShadows,
             "liveWallpaper60": cfgA.liveWallpaper60,
-            "ambientBarMotion": cfgA.ambientBarMotion,
             "pauseLiveWallpaperWhenFullscreen": cfgA.pauseLiveWallpaperWhenFullscreen,
-            "unloadVisualizerWhenSilent": cfgA.unloadVisualizerWhenSilent,
             "unloadWidgetsWhenCovered": cfgA.unloadWidgetsWhenCovered,
             "unloadLauncherWhenIdle": cfgA.unloadLauncherWhenIdle,
             "unloadOverviewWhenIdle": cfgA.unloadOverviewWhenIdle
@@ -156,9 +152,7 @@ Item {
         cfgA.disableBlur = pg.draft.disableBlur;
         cfgA.disableShadows = pg.draft.disableShadows;
         cfgA.liveWallpaper60 = pg.draft.liveWallpaper60;
-        cfgA.ambientBarMotion = pg.draft.ambientBarMotion;
         cfgA.pauseLiveWallpaperWhenFullscreen = pg.draft.pauseLiveWallpaperWhenFullscreen;
-        cfgA.unloadVisualizerWhenSilent = pg.draft.unloadVisualizerWhenSilent;
         cfgA.unloadWidgetsWhenCovered = pg.draft.unloadWidgetsWhenCovered;
         cfgA.unloadLauncherWhenIdle = pg.draft.unloadLauncherWhenIdle;
         cfgA.unloadOverviewWhenIdle = pg.draft.unloadOverviewWhenIdle;
@@ -196,15 +190,13 @@ Item {
             id: cfgA
             property bool lowPowerMode: false
             property bool powerProfileEffects: true
-            property bool autoPowerSaverOnBattery: false
+            property bool autoPowerSaverOnBattery: true
             property bool reduceMotion: false
             property bool disableBlur: false
             property bool disableShadows: false
             property bool liveWallpaper60: false
-            property bool ambientBarMotion: false
             property bool pauseLiveWallpaperWhenFullscreen: true
-            property bool unloadVisualizerWhenSilent: true
-            property bool unloadWidgetsWhenCovered: true
+                property bool unloadWidgetsWhenCovered: true
             property bool unloadLauncherWhenIdle: true
             property bool unloadOverviewWhenIdle: true
         }
@@ -245,16 +237,10 @@ Item {
         { "tab": "", "group": I18n.tr("MOTION"), "key": "pauseLiveWallpaperWhenFullscreen", "ctl": "sw", "src": "performance",
           "label": I18n.tr("Pause video wallpaper"),
           "desc": I18n.tr("Stops the video behind a fullscreen window.") },
-        { "tab": "", "group": I18n.tr("MOTION"), "key": "ambientBarMotion", "ctl": "sw", "src": "performance",
-          "label": I18n.tr("Bar drifts when silent"),
-          "desc": I18n.tr("The bar keeps drifting while nothing plays.") },
 
         { "tab": "", "group": I18n.tr("MEMORY"), "key": "unloadWidgetsWhenCovered", "ctl": "sw", "src": "performance",
           "label": I18n.tr("Hide covered widgets"),
           "desc": I18n.tr("Parks widgets while every monitor is covered.") },
-        { "tab": "", "group": I18n.tr("MEMORY"), "key": "unloadVisualizerWhenSilent", "ctl": "sw", "src": "performance",
-          "label": I18n.tr("Unload the visualiser"),
-          "desc": I18n.tr("Frees ~250 MB after 30s of silence.") },
         { "tab": "", "group": I18n.tr("MEMORY"), "key": "unloadLauncherWhenIdle", "ctl": "sw", "src": "performance",
           "label": I18n.tr("Unload the launcher"),
           "desc": I18n.tr("Frees ~250 MB a minute after closing.") },

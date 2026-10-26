@@ -463,11 +463,6 @@ Item {
         return out
     }
 
-    // ── the root API BarSettings and the qsbar IPC drive (design section 4) ──
-    signal barSettingsOpenRequested(string route)
-    function openBarSettings(route) {
-        barSettingsOpenRequested((route === undefined || route === null) ? "" : String(route))
-    }
     function gidForId(id) { return barCat.gidOf(id) }
     function idForGid(gid) { return barCat.idOf(gid) }
 
@@ -2575,7 +2570,7 @@ Item {
     property string barPosition: "top"   // "top" or "bottom"
     // ── gap animation mode (Bar Studio; drives the V2 gap/reactor layer) ──
     // 0=off, 1=stream, 2=surge, 3=bolt, 7=reactor, 8=quotes.
-    property int barAnim: 1
+    property int barAnim: 0  // gap animation disabled by default
     onBarAnimChanged: if (_widgetsLoaded) saveWidgets()
     // Reactor IPC (barAnim modes 7/8): ParticleStream listens via onReactorTest.
     signal reactorTest(string kind, string arg)

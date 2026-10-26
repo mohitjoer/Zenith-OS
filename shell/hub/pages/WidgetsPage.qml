@@ -40,11 +40,11 @@ Item {
 
     // Factory values mirror the wallpaper clock's canonical Config defaults.
     readonly property var factory: ({
-        "clockEnabled": true, "clockDesign": "digital", "clock24h": true, "clockSeconds": false,
+        "clockEnabled": true, "clockDesign": "zen", "clock24h": true, "clockSeconds": false,
         "clockScale": 1.0, "clockOpacity": 1.0, "clockRadius": 26, "clockAccent": "palette",
         "clockBg": "none", "clockAnchor": "top-left", "clockX": 72, "clockY": 64, "clockLocked": false,
-        "dateShow": true, "dateDesign": "inline", "widgetFont": "",
-        "calendarEnabled": true, "calendarStyle": "glass", "calendarWeeks": 6,
+        "dateShow": true, "dateDesign": "hud", "widgetFont": "",
+        "calendarEnabled": false, "calendarStyle": "glass", "calendarWeeks": 6,
         "calendarWeekNumbers": true, "calendarHolidayRegion": "", "calendarScale": 1.0,
         "calendarOpacity": 1.0, "calendarAnchor": "bottom-right", "calendarX": 80,
         "calendarY": 80, "calendarLocked": false,
@@ -313,7 +313,7 @@ Item {
         JsonAdapter {
             id: cfgA
             property bool clockEnabled: true
-            property string clockDesign: "digital"
+            property string clockDesign: "zen"
             property bool clock24h: true
             property bool clockSeconds: false
             property real clockScale: 1.0
@@ -326,9 +326,9 @@ Item {
             property int clockY: 64
             property bool clockLocked: false
             property bool dateShow: true
-            property string dateDesign: "inline"
+            property string dateDesign: "hud"
             property string widgetFont: ""
-            property bool calendarEnabled: true
+            property bool calendarEnabled: false
             property string calendarStyle: "glass"
             property int calendarWeeks: 6
             property bool calendarWeekNumbers: true
@@ -475,7 +475,7 @@ Item {
 
     // one preview per widget, reused by the grid card and the subpage specimen.
     Component { id: clockPrevC; Loader { anchors.fill: parent; source: Qt.resolvedUrl("../ClockPreview.qml")
-        onLoaded: { item.design = Qt.binding(() => pg.draft.clockDesign || "digital"); item.is24 = Qt.binding(() => pg.draft.clock24h === true); item.seconds = Qt.binding(() => pg.draft.clockSeconds === true); item.accentChoice = Qt.binding(() => pg.draft.clockAccent || "palette"); item.dateShow = Qt.binding(() => pg.draft.dateShow === true); item.dateDesign = Qt.binding(() => pg.draft.dateDesign || "inline"); } } }
+        onLoaded: { item.design = Qt.binding(() => pg.draft.clockDesign || "zen"); item.is24 = Qt.binding(() => pg.draft.clock24h === true); item.seconds = Qt.binding(() => pg.draft.clockSeconds === true); item.accentChoice = Qt.binding(() => pg.draft.clockAccent || "palette"); item.dateShow = Qt.binding(() => pg.draft.dateShow === true); item.dateDesign = Qt.binding(() => pg.draft.dateDesign || "hud"); } } }
     Component { id: aioPrevC; Loader { anchors.fill: parent; source: Qt.resolvedUrl("../AioPreview.qml")
         onLoaded: { item.style = Qt.binding(() => pg.draft.aioStyle || "wide"); } } }
     Component { id: statsPrevC; Loader { anchors.fill: parent; source: Qt.resolvedUrl("../StatsPreview.qml") } }

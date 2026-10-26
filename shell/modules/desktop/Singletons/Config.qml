@@ -182,7 +182,7 @@ Singleton {
         JsonAdapter {
             id: adapter
             property bool clockEnabled: true
-            property string clockDesign: "digital"
+            property string clockDesign: "zen"
             property bool clock24h: true
             property bool clockSeconds: false
             property string clockAccent: "palette"
@@ -198,9 +198,9 @@ Singleton {
             property string clockColor2: ""
             property bool clockGradient: false
             property bool dateShow: true
-            property string dateDesign: "inline"
+            property string dateDesign: "hud"
             property string widgetFont: ""
-            property bool calendarEnabled: true
+            property bool calendarEnabled: false
             property string calendarStyle: "glass"
             property int calendarWeeks: 6
             property bool calendarWeekNumbers: true

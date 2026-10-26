@@ -139,7 +139,7 @@ func zenithAdopt(args []string) int {
 }
 
 // adoptPlanEnv builds the PlanEnv from the adoption environment.
-func adoptPlanEnv(env adopt.Env, prune bool) adopt.PlanEnv {
+func adoptPlanEnv(_ adopt.Env, prune bool) adopt.PlanEnv {
 	home, _ := os.UserHomeDir()
 	backupDir := filepath.Join("/etc/zenith", "adopt", "backup",
 		time.Now().UTC().Format("20060102T150405"))

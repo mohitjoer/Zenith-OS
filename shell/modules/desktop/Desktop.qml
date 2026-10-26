@@ -15,8 +15,6 @@ import qs.PluginKit
 import qs.Services as Services
 import "../stage"
 import "../stage/Singletons" as StageCfg
-import "../visualizer/Singletons" as VizCfg
-import "../visualizer" as Viz
 import "../wallpaper" as WallpaperMod
 
 // desktop widgets layer: WlrLayer.Bottom (below windows), instantiated once per
@@ -60,8 +58,6 @@ Scope {
         return StageCfg.Config.isFront(id) ? 5 : 3;
     }
     readonly property var stageState: Services.ShellState.forScreen(root.screen)
-    readonly property bool hostsVisualizer: root.stageOn && VizCfg.Config.enabled
-        && !(root.stageState && (root.stageState.visualizerOverlay || root.stageState.visualizerPlacing))
     readonly property string monitorName: root.screen ? root.screen.name : ""
     // Edit widgets on this monitor frees every widget for dragging and lifts
     // this desktop above open windows; Done restores the per-widget locks.
@@ -95,7 +91,6 @@ Scope {
             { id: "stats", label: "System stats", icon: "monitor_heart", enabled: Config.statsEnabled, group: "" },
             { id: "weather", label: "Weather", icon: "partly_cloudy_day", enabled: Config.weatherEnabled, group: "" },
             { id: "notes", label: "Notes", icon: "sticky_note_2", enabled: Config.notesEnabled, group: "" },
-            { id: "visualizer", label: "Visualizer", icon: "graphic_eq", enabled: VizCfg.Config.enabled, group: "" }
         ];
         // Fallback group name for a plugin whose manifest names no set. Plain
         // like the built-in labels above; the Hub translates its own copy.
@@ -133,11 +128,6 @@ Scope {
     // the visualizer), off runs the same Remove path. Every toggle marks the
     // session dirty so Reset appears.
     function stageAddToggle(id) {
-        if (id === "visualizer") {
-            VizCfg.Config.setEnabled(!VizCfg.Config.enabled);
-            StageCfg.StageSession.markDirty();
-            return;
-        }
         if (id.indexOf("plugin:") === 0) {
             const pid = id.slice(7);
             const on = (win.desktopPluginIds || []).indexOf(pid) >= 0;
@@ -457,17 +447,6 @@ Scope {
         }
 
         // While the stage is on, the visualizer lives inside this surface so it
-        // sits behind every cut-out: above the backdrop, below every layer and
-        // widget. Its own surface (a sibling window that can never interleave
-        // with the subject) is suppressed meanwhile; Above windows and the
-        // Placer keep that surface (docs/stage.md).
-        Item {
-            z: 1.5
-            anchors.fill: parent
-            visible: root.hostsVisualizer
-            Viz.InlineVisualizer { anchors.fill: parent }
-        }
-
         // Mirror of the same image for glass widgets: Qt cannot sample another
         // scene graph, so ShaderEffectSource captures the pixels beneath a
         // frosted widget from this offscreen copy. WidgetGlass hides this
@@ -955,7 +934,7 @@ Scope {
                 z: StageCfg.StageBackend.layerFront(root.wallpaperPath, index) ? 4 : 2
                 mouseNX: StageCfg.StageBackend.cursorNXFor(root.screen.name)
                 mouseNY: StageCfg.StageBackend.cursorNYFor(root.screen.name)
-                energy: VizCfg.Spectrum.energy
+                energy: 0
                 motionEnabled: root.stageParallax
             }
         }
@@ -1162,13 +1141,7 @@ Scope {
             items: root.addItems
             onDone: StageCfg.StageSession.leave()
             onAddToggle: id => root.stageAddToggle(id)
-            onVisualizer: {
-                StageCfg.StageSession.leave();
-                if (!VizCfg.Config.enabled)
-                    VizCfg.Config.setEnabled(true);
-                if (root.stageState)
-                    root.stageState.visualizerPlacing = true;
-            }
+
         }
 
         // position/scale writeback for plugin tiles. zenith-plugins-place

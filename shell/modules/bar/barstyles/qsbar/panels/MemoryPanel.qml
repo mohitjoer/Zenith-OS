@@ -209,6 +209,6 @@ PanelWindow {
 
     Process {
         id: btopRunner
-        command: ["bash", "-c", "kitty 'btop'"]
+        command: ["zenith-app", "terminal", "--", "btop"]
     }
 }

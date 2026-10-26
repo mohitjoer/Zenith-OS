@@ -182,49 +182,6 @@ Item {
                 }
             }
 
-            // ── 02 MOTION: the stream flowing in the gaps between widgets. Right
-            // under position, so it is the second thing on the page, not the last ──
-            Entrance {
-                width: page.colW
-                index: 1
-                SettingCard {
-                    width: page.colW
-                    title: I18n.tr("02 MOTION")
-                    kana: "\u52d5\u304d"
-
-                    SettingRow {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        block: true
-                        label: I18n.tr("Gap animation")
-                        desc: I18n.tr("Motion in the gaps between widgets")
-                        source: "shell.json"
-                        Seg {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            options: page.animModes.map(m => m.label)
-                            current: page.animLabel(page.curAnim)
-                            onChose: key => page.setAnim(page.animValue(key))
-                        }
-                    }
-                    SettingRow {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        visible: page.curAnim >= 1 && page.curAnim <= 6
-                        divider: true
-                        controlWidth: 54
-                        label: I18n.tr("Drift when silent")
-                        desc: I18n.tr("Keep it moving with no audio, on any power profile")
-                        source: "performance.json"
-                        Sw {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            on: Perf.ambientBarMotionPref
-                            onToggled: value => Perf.setAmbientBarMotion(value)
-                        }
-                    }
-                }
-            }
 
             // ── 03 FORM: one row of named tiles, the way the Hub picks a bar
             // style. The live silhouette sits at the top of this page already, so a

@@ -18,9 +18,8 @@ Item {
     // monitor this instance draws on, supplied by the controller.
     property var screen
 
-    // off | desktop | overlay. defaults from Config so a standalone instance
-    // still honours the persisted enabled flag; the controller overrides it.
-    property string mode: Config.enabled ? "desktop" : "off"
+    // Permanently disabled
+    property string mode: "off"
 
     // Placement: the look becomes draggable and sizable on the desktop, on its
     // own surface (Placer), and rides the top layer so it is not buried while

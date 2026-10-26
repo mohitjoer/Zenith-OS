@@ -47,42 +47,23 @@ Item {
 
     function faceFor(d) {
         switch (d) {
+        case "zen":     return zenComp;
         case "minimal": return minimalComp;
-        case "analog":  return analogComp;
-        case "flip":    return flipComp;
-        case "rings":   return ringsComp;
-        case "bighour": return bigHourComp;
-        case "metal":   return metalComp;
-        case "goodnight": return goodNightComp;
-        case "grand":   return grandComp;
-        case "column":  return columnComp;
-        case "outline": return outlineComp;
-        case "banner":  return bannerComp;
         default:        return digitalComp;
         }
     }
     function dateFor(d) {
         switch (d) {
-        case "badge":   return dateBadgeComp;
-        case "stacked": return dateStackedComp;
-        default:        return dateInlineComp;
+        case "card":    return dateCardComp;
+        case "hud":     return dateHudComp;
+        default:        return dateHudComp;
         }
     }
 
-    Component { id: digitalComp; ClockDigital { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: minimalComp; ClockMinimal { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: analogComp;  ClockAnalog { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: flipComp;    ClockFlip { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: ringsComp;   ClockRings { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: bigHourComp; ClockBigHour { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: metalComp;   ClockMetal { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: goodNightComp; ClockGoodNight { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: grandComp;   ClockGrand { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: columnComp;  ClockColumn { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: outlineComp; ClockOutline { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: bannerComp;  ClockBanner { underL: clock.underL; inkColorA: clock.inkColorA } }
+    Component { id: zenComp;      ClockZen { underL: clock.underL; inkColorA: clock.inkColorA } }
+    Component { id: digitalComp;  ClockDigital { underL: clock.underL; inkColorA: clock.inkColorA } }
+    Component { id: minimalComp;  ClockMinimal { underL: clock.underL; inkColorA: clock.inkColorA } }
 
-    Component { id: dateInlineComp;  DateInline { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: dateBadgeComp;   DateBadge { underL: clock.underL; inkColorA: clock.inkColorA } }
-    Component { id: dateStackedComp; DateStacked { underL: clock.underL; inkColorA: clock.inkColorA } }
+    Component { id: dateCardComp; DateCard { underL: clock.underL; inkColorA: clock.inkColorA } }
+    Component { id: dateHudComp;  DateHud { underL: clock.underL; inkColorA: clock.inkColorA } }
 }

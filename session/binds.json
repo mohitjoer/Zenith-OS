@@ -44,6 +44,24 @@
       "argument": "launcher"
     },
     {
+      "id": "super-launcher-left",
+      "category": "desktop",
+      "label": "Open the launcher",
+      "chord": "Super_L",
+      "kind": "shell",
+      "action": "togglePopover",
+      "argument": "launcher"
+    },
+    {
+      "id": "super-launcher-right",
+      "category": "desktop",
+      "label": "Open the launcher",
+      "chord": "Super_R",
+      "kind": "shell",
+      "action": "togglePopover",
+      "argument": "launcher"
+    },
+    {
       "id": "quick-settings",
       "category": "desktop",
       "label": "Open the quick settings",
@@ -122,33 +140,6 @@
       "kind": "app",
       "action": "zenith-wallpaper",
       "argument": "wallpaper random"
-    },
-    {
-      "id": "visualizer",
-      "category": "desktop",
-      "label": "Toggle the desktop audio visualiser",
-      "chord": "SUPER + M",
-      "kind": "shell",
-      "action": "toggleSurface",
-      "argument": "visualizer"
-    },
-    {
-      "id": "visualizer-overlay",
-      "category": "desktop",
-      "label": "Raise the visualiser over windows",
-      "chord": "SUPER + SHIFT + M",
-      "kind": "shell",
-      "action": "toggleSurface",
-      "argument": "visualizer-overlay"
-    },
-    {
-      "id": "visualizer-place",
-      "category": "desktop",
-      "label": "Move the visualiser",
-      "chord": "SUPER + ALT + M",
-      "kind": "shell",
-      "action": "toggleSurface",
-      "argument": "visualizer-place"
     },
     {
       "id": "overview",
@@ -234,6 +225,213 @@
       "kind": "app",
       "action": "zenith-app",
       "argument": "notes"
+    },
+    {
+      "id": "onscreen-keyboard",
+      "category": "desktop",
+      "label": "Toggle on-screen keyboard",
+      "chord": "SUPER + ALT + K",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "onscreen-keyboard"
+    },
+    {
+      "id": "overlay",
+      "category": "desktop",
+      "label": "Toggle widget overlay",
+      "chord": "SUPER + ALT + G",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "overlay"
+    },
+    {
+      "id": "session-menu",
+      "category": "desktop",
+      "label": "Open session menu",
+      "chord": "CTRL + ALT + Delete",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "session"
+    },
+    {
+      "id": "bar-toggle",
+      "category": "desktop",
+      "label": "Toggle bar",
+      "chord": "SUPER + J",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "barToggle"
+    },
+    {
+      "id": "theme-toggle",
+      "category": "desktop",
+      "label": "Toggle light/dark mode",
+      "chord": "SUPER + CTRL + SHIFT + D",
+      "kind": "shell",
+      "action": "theme",
+      "argument": "toggle"
+    },
+    {
+      "id": "restart-widgets",
+      "category": "desktop",
+      "label": "Restart shell widgets",
+      "chord": "SUPER + CTRL + R",
+      "kind": "shell",
+      "action": "restart",
+      "argument": ""
+    },
+    {
+      "id": "panel-cycle",
+      "category": "desktop",
+      "label": "Cycle panel family",
+      "chord": "SUPER + CTRL + P",
+      "kind": "shell",
+      "action": "panel",
+      "argument": "cycle"
+    },
+    {
+      "id": "region-search",
+      "category": "tools",
+      "label": "Region search / Google Lens",
+      "chord": "SUPER + SHIFT + A",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "region-search"
+    },
+    {
+      "id": "ocr",
+      "category": "tools",
+      "label": "OCR (text recognition)",
+      "chord": "SUPER + SHIFT + X",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "ocr"
+    },
+    {
+      "id": "translate",
+      "category": "tools",
+      "label": "Screen translate",
+      "chord": "SUPER + SHIFT + T",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "translate"
+    },
+    {
+      "id": "region-record",
+      "category": "tools",
+      "label": "Region screen record",
+      "chord": "SUPER + SHIFT + R",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "region-record"
+    },
+    {
+      "id": "fullscreen-record",
+      "category": "tools",
+      "label": "Fullscreen screen record",
+      "chord": "CTRL + ALT + R",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "fullscreen-record"
+    },
+    {
+      "id": "screenshot-save",
+      "category": "tools",
+      "label": "Screenshot to file",
+      "chord": "CTRL + Print",
+      "kind": "shell",
+      "action": "toggleSurface",
+      "argument": "screenshot#save"
+    },
+    {
+      "id": "zoom-in",
+      "category": "display",
+      "label": "Zoom in",
+      "chord": "SUPER + Equal",
+      "kind": "wm",
+      "action": "zoom",
+      "argument": "0.3"
+    },
+    {
+      "id": "zoom-out",
+      "category": "display",
+      "label": "Zoom out",
+      "chord": "SUPER + Minus",
+      "kind": "wm",
+      "action": "zoom",
+      "argument": "-0.3"
+    },
+    {
+      "id": "split-ratio-decrease",
+      "category": "windows",
+      "label": "Decrease split ratio",
+      "chord": "SUPER + Semicolon",
+      "kind": "wm",
+      "action": "layout",
+      "argument": "splitratio -0.1"
+    },
+    {
+      "id": "split-ratio-increase",
+      "category": "windows",
+      "label": "Increase split ratio",
+      "chord": "SUPER + Apostrophe",
+      "kind": "wm",
+      "action": "layout",
+      "argument": "splitratio +0.1"
+    },
+    {
+      "id": "float-toggle",
+      "category": "windows",
+      "label": "Toggle float/tile",
+      "chord": "SUPER + ALT + Space",
+      "kind": "wm",
+      "action": "togglefloating",
+      "argument": ""
+    },
+    {
+      "id": "force-kill",
+      "category": "windows",
+      "label": "Force kill window",
+      "chord": "SUPER + CTRL + ALT + SHIFT + Q",
+      "kind": "wm",
+      "action": "kill",
+      "argument": ""
+    },
+    {
+      "id": "sleep",
+      "category": "desktop",
+      "label": "Sleep",
+      "chord": "SUPER + SHIFT + L",
+      "kind": "shell",
+      "action": "sleep",
+      "argument": ""
+    },
+    {
+      "id": "volume-mixer",
+      "category": "media",
+      "label": "Open volume mixer",
+      "chord": "SUPER + CTRL + V",
+      "kind": "shell",
+      "action": "volume",
+      "argument": "mixer"
+    },
+    {
+      "id": "task-manager",
+      "category": "apps",
+      "label": "Open task manager",
+      "chord": "CTRL + SHIFT + Escape",
+      "kind": "app",
+      "action": "launch",
+      "argument": "taskmanager"
+    },
+    {
+      "id": "text-editor",
+      "category": "apps",
+      "label": "Open text editor",
+      "chord": "SUPER + X",
+      "kind": "app",
+      "action": "launch",
+      "argument": "editor --text"
     },
     {
       "id": "vm",
@@ -677,7 +875,7 @@
       "id": "restart-audio",
       "category": "media",
       "label": "Recover the audio when sound stops",
-      "chord": "SUPER + SHIFT + A",
+      "chord": "SUPER + CTRL + ALT + SHIFT + A",
       "kind": "app",
       "action": "zenith-restart-audio"
     },

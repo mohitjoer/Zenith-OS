@@ -117,24 +117,24 @@ PanelWindow {
         id: peekStrip
         x: dock.horizontal ? band.x : (dock.edge === "left" ? 0 : dock.width - dock.edgeGap)
         y: dock.horizontal ? (dock.edge === "top" ? 0 : dock.height - dock.edgeGap) : band.y
-        width: dock.horizontal ? band.width : dock.edgeGap
-        height: dock.horizontal ? dock.edgeGap : band.height
+        width: dock.horizontal ? band.implicitWidth : dock.edgeGap
+        height: dock.horizontal ? dock.edgeGap : band.implicitHeight
         HoverHandler { id: peekHover }
     }
-    // Input mask = band rect ∪ peek strip, so the empty margins and the magnify
-    // headroom stay click-through.
+    // Input mask: covers the interactive dock lane (band rect unioned with headroom and edge peek).
+    // The empty monitor space outside the dock stays completely click-through.
     mask: Region {
         Region {
-            x: Math.round(band.x)
-            y: Math.round(band.y)
-            width: Math.round(band.width)
-            height: Math.round(band.height)
+            x: dock.horizontal ? Math.round(band.x) : (dock.revealed ? 0 : Math.round(peekStrip.x))
+            y: dock.horizontal ? (dock.revealed ? 0 : Math.round(peekStrip.y)) : Math.round(band.y)
+            width: dock.horizontal ? Math.max(1, Math.round(band.width)) : (dock.revealed ? Math.round(dock.width) : Math.max(1, Math.round(peekStrip.width)))
+            height: dock.horizontal ? (dock.revealed ? Math.round(dock.height) : Math.max(1, Math.round(peekStrip.height))) : Math.max(1, Math.round(band.height))
         }
         Region {
             x: Math.round(peekStrip.x)
             y: Math.round(peekStrip.y)
-            width: Math.round(peekStrip.width)
-            height: Math.round(peekStrip.height)
+            width: Math.max(1, Math.round(peekStrip.width))
+            height: Math.max(1, Math.round(peekStrip.height))
         }
     }
 }

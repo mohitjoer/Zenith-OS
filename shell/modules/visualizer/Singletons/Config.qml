@@ -341,12 +341,12 @@ Singleton {
 
         JsonAdapter {
             id: adapter
-            property bool enabled: true
+            property bool enabled: false
             property int bars: 64
             property real thickness: 0.58
             property real bloom: 0.6
             property real reflection: 0.1
-            property bool idleWave: true
+            property bool idleWave: false
             property string style: "bars"
             property string shape: "rounded"
             property string color: ""

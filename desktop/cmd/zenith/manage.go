@@ -760,16 +760,38 @@ func gitSnapshot(paths overlay.Paths) error {
 // reimplement: apt already resolves dependencies, verifies signatures and
 // records what it installed, and a second implementation would be a smaller,
 // worse version of it.
+// We run under sudo so zenith update works without manual elevation.
 func aptFetch() error {
-	command := exec.Command("apt-get", "update")
-	command.Stdout, command.Stderr = os.Stderr, os.Stderr
-	if err := command.Run(); err != nil {
+	sudo := "sudo"
+	// If already root, don't prefix sudo.
+	if os.Geteuid() == 0 {
+		sudo = ""
+	}
+	var updateCmd *exec.Cmd
+	if sudo != "" {
+		updateCmd = exec.Command(sudo, "apt-get", "update")
+	} else {
+		updateCmd = exec.Command("apt-get", "update")
+	}
+	updateCmd.Stdout, updateCmd.Stderr = os.Stderr, os.Stderr
+	if err := updateCmd.Run(); err != nil {
+		if sudo != "" {
+			return fmt.Errorf("apt-get update: %w (run \"sudo zenith update\" in a terminal to enter your password)", err)
+		}
 		return fmt.Errorf("apt-get update: %w", err)
 	}
 
-	command = exec.Command("apt-get", "install", "--yes", "zenith")
-	command.Stdout, command.Stderr = os.Stdout, os.Stderr
-	if err := command.Run(); err != nil {
+	var installCmd *exec.Cmd
+	if sudo != "" {
+		installCmd = exec.Command(sudo, "apt-get", "install", "--yes", "zenith")
+	} else {
+		installCmd = exec.Command("apt-get", "install", "--yes", "zenith")
+	}
+	installCmd.Stdout, installCmd.Stderr = os.Stdout, os.Stderr
+	if err := installCmd.Run(); err != nil {
+		if sudo != "" {
+			return fmt.Errorf("apt-get install zenith: %w (run \"sudo zenith update\" in a terminal to enter your password)", err)
+		}
 		return fmt.Errorf("apt-get install zenith: %w", err)
 	}
 	return nil

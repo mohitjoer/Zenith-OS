@@ -37,18 +37,12 @@ Singleton {
         return a;
     }
 
-    // Visible, permitted, and something actually playing: the same three
-    // questions AudioBars asks, so the two analysers cannot drift apart again.
-    // A live placement overrides the freeze so the look stays visible to aim.
-    readonly property bool analysing: root.active && (!Perf.visualizerFrozen || root.placementHolds > 0)
+    readonly property bool analysing: false
 
     Process {
         id: cavaProc
-        // playback spectrum via cava's native pipewire backend, source=auto (the default sink's monitor). the pulse backend can't connect here ("Connection terminated") even with pipewire-pulse up, and this path needs no pactl. exec so quickshell's SIGTERM reaches cava, leaving no orphaned analyser when the surface unloads.
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=\"${XDG_RUNTIME_DIR:-/tmp}/zenith-cava-visualizer.conf\"; printf '%s\\n' '[general]' 'framerate = " + root.fps + "' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' 'source = auto' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; exec cava -p \"$cfg\""]
-        // `backoff`'s false->true edge relaunches a cava that self-exits (a pipewire
-        // hiccup) mid-track; the shipped `running: analysing` alone never did (#61).
-        running: root.analysing && !cavaProc.backoff
+        command: ["true"]
+        running: false
         property bool backoff: false
         stdout: SplitParser {
             splitMarker: "\n"

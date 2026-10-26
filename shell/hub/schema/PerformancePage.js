@@ -45,11 +45,6 @@ var rows = [
         "desc": "Stops the video behind a fullscreen window"
     },
     {
-        "tab": "", "group": "MOTION", "key": "ambientBarMotion", "ctl": "sw", "src": "performance.json",
-        "label": "Bar drifts when silent",
-        "desc": "The bar keeps drifting while nothing plays"
-    },
-    {
         "tab": "", "group": "MEMORY", "key": "unloadWidgetsWhenCovered", "ctl": "sw", "src": "performance.json",
         "label": "Hide covered widgets",
         "desc": "Parks widgets while every monitor is covered"

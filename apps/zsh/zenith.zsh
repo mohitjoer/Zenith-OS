@@ -9,7 +9,8 @@ export EDITOR="${EDITOR:-nvim}" VISUAL="${VISUAL:-nvim}"
 [[ -o interactive ]] || return
 
 _zenith_cfg=${XDG_CONFIG_HOME:-$HOME/.config}
-# A starship.toml of the user's own wins over the packaged one.
+# A starship.toml of the user'"'"'s own (at $_zenith_cfg/starship.toml) wins over the packaged one.
+# The packaged starship.toml lives at $_zenith_cfg/zenith/apps/starship/starship.toml
 [[ -z $STARSHIP_CONFIG && ! -e $_zenith_cfg/starship.toml ]] &&
   export STARSHIP_CONFIG=$_zenith_cfg/zenith/apps/starship/starship.toml
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
@@ -25,6 +26,18 @@ compinit -d "$_cache/zcompdump"
 [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] &&
   source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#8A8A8A'
+
+# History substring search (up/down arrows search history with current buffer)
+if [[ -r /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
+  source /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+fi
+
+# Atuin for enhanced history (sqlite-backed, syncable)
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh --disable-up-arrow)"
+fi
 
 # Sourced last: the highlighter wraps the widgets that exist when it loads.
 if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then

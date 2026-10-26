@@ -283,7 +283,7 @@ func (p *powerProfilesState) maybeHandleProfileChange() {
 	st := readPowerState()
 	onBattery := st.present && st.discharging
 	switch decideProfileChange(active, saved, p.restoreDone.Load(), onBattery,
-		perfFlag("autoPowerSaverOnBattery"), gameModeActive(),
+		perfFlagDefault("autoPowerSaverOnBattery", true), gameModeActive(),
 		p.sinceACFlip(), p.sinceRestore()) {
 	case profilePersist:
 		p.persistProfile(active)

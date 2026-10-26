@@ -73,7 +73,7 @@ func (d *daemon) watchAutoPowerSaver() {
 			if !first && onAC != prevAC {
 				d.pp.noteACFlip()
 			}
-			to := a.step(perfFlag("autoPowerSaverOnBattery"), onBattery, active, d.pp.profiles())
+			to := a.step(perfFlagDefault("autoPowerSaverOnBattery", true), onBattery, active, d.pp.profiles())
 			// On the plug edge, if autoprofile has nothing to restore, re-assert
 			// the saved profile so a firmware/ppd switch to performance on AC
 			// cannot strand the desktop on a profile the user never picked.

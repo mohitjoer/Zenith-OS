@@ -318,7 +318,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             live-build mmdebstrap debootstrap xorriso squashfs-tools \
             isolinux grub-pc-bin grub-efi-amd64-bin shim-signed \
-            dosfstools mtools sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml
+            dosfstools mtools sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml \
+            librsvg2-bin
       - name: Validate ISO builder
         run: sh installation/build-iso_test.sh
       - name: Build Zenith OS ISO

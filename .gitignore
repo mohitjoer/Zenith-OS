@@ -59,7 +59,7 @@ Thumbs.db
 /AGENTS.md
 /CLAUDE.md
 GEMINI.md
-
+agents
 # Generated diagram output. The HTML is a build artifact of the archify tool,
 # not a source file; the candidate JSON next to it is the thing worth keeping.
 .archify/

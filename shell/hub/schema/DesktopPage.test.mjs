@@ -23,5 +23,5 @@ test("reload cover is a brand-backed General setting after Brand", () => {
     assert.ok(row.desc.length > 0 && row.desc.length <= 60, `desc is ${row.desc.length} chars`);
     // and where it sits: the account for marking, and the end of the tab
     assert.equal(rows[index - 1].key, "markTint");
-    assert.equal(rows[index + 1].tab, "Visualizer");
+    assert.equal(rows[index + 1].tab, "General");
 });

@@ -30,7 +30,6 @@ var CATALOG = [
     { id: "media-next",       name: "Next Track",         category: "Media",      icon: "skip-next",   exec: ["playerctl", "next"] },
     { id: "media-previous",   name: "Previous Track",     category: "Media",      icon: "skip-prev",   exec: ["playerctl", "previous"] },
     { id: "recognize-music",  name: "Recognize Music",    category: "Media",      icon: "music",       exec: ["zenith-cmd-songrec"] },
-    { id: "media-visualizer", name: "Audio Visualizer",   category: "Media",      icon: "wave",        exec: ["zenith-shell", "visualizer-overlay"] },
 
     { id: "open-settings",    name: "Zenith Settings",     category: "Settings",   icon: "settings",    exec: ["zenith-shell", "hub", "open"] },
     { id: "keybind-legend",   name: "Keybind Reference",  category: "Settings",   icon: "keyboard",    exec: ["zenith", "ipc", "call", "zenith", "toggleCheatsheet"] },

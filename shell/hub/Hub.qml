@@ -157,7 +157,7 @@ Rectangle {
         "windowmanager": "compositor window manager wm wayland switch change swap session provider window windows rounding corners softness gaps border borders thickness colour tiling layout opacity transparency transparent dim blur shadow float snap resize animation spread offset",
         "plugins": "plugin plugins hyprland compositor hyprpm title bar titlebar hyprbars glass hyprglass image border imgborders cursor motion dynamic cursors focus flash hyprfocus key sound sounds keyboard keysounds typing click clicky thock creamy cherry mx topre mechvibes switch version abi mismatch rebuild build update add git repository install",
         "bar-studio": "bar frame rails zones widgets menus surfaces style catalogue layout framebars sidebar dock dockapps pinned pin magnify autohide auto-hide media chip peek labels edge taskbar",
-        "desktop": "desktop visualizer visualiser spectrum brand logo mark name widget board wallpaper",
+        "desktop": "desktop brand logo mark name widget board wallpaper",
         "launcher": "launcher spotlight command palette greeting weather home",
         "fastfetch": "fetch neofetch terminal system info logo ascii emblem readout",
         "widgets": "desktop widget clock calendar weather face overlay wallpaper",
@@ -283,7 +283,7 @@ Rectangle {
         "titlebar": "title bar", "titlebars": "title bar", "plugin": "plugins addon", "plugins": "plugin addon",
         "monitor": "displays screen", "monitors": "displays screen", "resolution": "displays screen", "hidpi": "displays scale", "refresh": "displays",
         "mouse": "input pointer", "pointer": "input", "keyboard": "input", "touchpad": "input trackpad", "trackpad": "input touchpad",
-        "visualizer": "desktop spectrum", "visualiser": "desktop spectrum", "clock": "widgets desktop", "notifications": "layerrules",
+        "clock": "widgets desktop", "notifications": "layerrules",
         "update": "updates upgrade", "upgrade": "updates", "blur": "windows glass", "rounding": "windows corners", "corners": "windows rounding",
         "animation": "animations motion", "motion": "animations", "gpu": "graphics", "graphics": "gpu",
         "voice": "dictation", "speech": "dictation voice", "microphone": "dictation", "mic": "dictation"
@@ -533,6 +533,22 @@ Rectangle {
         "markText": "天", "markImage": "", "markTint": true, "name": "Zenith",
         "reloadCover": ReloadCoverModel.empty(),
         "language": "auto", "barStyle": "qsbar", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
+        "qsbar.barPosition": "top", "qsbar.barShellStyle": "fit", "qsbar.barScale": 1.0,
+        "qsbar.barAutoHide": false, "qsbar.barBorderEnabled": true, "qsbar.barCornerRadius": 6,
+        "qsbar.panelTooltipBorderEnabled": true, "qsbar.barShadowEnabled": false, "qsbar.barFrostEnabled": false,
+        "qsbar.barGapTop": 3, "qsbar.barGapBottom": 0, "qsbar.barGapLeft": 0, "qsbar.barGapRight": 0,
+        "qsbar.barColor": "accent", "qsbar.launcherLogoMode": "text", "qsbar.launcherLogoText": "zenith", "qsbar.launcherLogoIcon": "zenith",
+        "qsbar.workspaceStyle": "default", "qsbar.workspaceMode": "active",
+        "qsbar.widgets.battery": true, "qsbar.widgets.bluetooth": true, "qsbar.widgets.brightness": true,
+        "qsbar.widgets.cpu": true, "qsbar.widgets.cpuTemperature": true, "qsbar.widgets.gpu": true,
+        "qsbar.widgets.layout": true, "qsbar.widgets.media": true, "qsbar.widgets.mpris": true,
+        "qsbar.widgets.memory": true, "qsbar.widgets.network": true, "qsbar.widgets.power": true,
+        "qsbar.widgets.quick": true, "qsbar.widgets.status": true, "qsbar.widgets.storage": true,
+        "qsbar.widgets.volume": true, "qsbar.widgets.weather": true, "qsbar.widgets.claude": false,
+        "qsbar.barTemperatureSource": "cpu", "qsbar.audioBoost": false, "qsbar.aiTools": "claude,codex,opencode",
+        "qsbar.clock12h": false, "qsbar.weatherImperial": false,
+        "dock.enabled": true, "dock.edge": "auto", "dock.style": "islands", "dock.autohide": true,
+        "dock.magnify": true, "dock.labels": true, "dock.shadow": true, "dock.frost": true, "dock.media": false,
         "clipboard.widthPercent": 65, "clipboard.heightPercent": 42, "clipboard.bottomPercent": 0,
         "clipboard.panelRadius": 18, "clipboard.paneRadius": 12, "clipboard.cardRadius": 9,
         "clipboard.pruneWeekly": false
@@ -541,7 +557,7 @@ Rectangle {
     // key -> source file, derived from the schema so it cannot drift.
     readonly property var srcOf: {
         var m = {};
-        var rows = DesktopSchema.rows;
+        var rows = DesktopSchema.rows.concat(BarStudioSchema.rows);
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
             if (r.src && r.src !== "none") m[r.key] = r.src;
@@ -550,7 +566,7 @@ Rectangle {
         return m;
     }
     function adapterFor(src) { return src === "viz" ? vizA : brandA; }
-    function fileFor(src) { return src === "viz" ? "visualizer" : (src === "brand" ? "brand" : "shell"); }
+    function fileFor(src) { return src === "brand" ? "brand" : "shell"; }
 
     // The full config files backing the current page: the source of truth the GUI
     // writes and the user can hand-edit in place (every value present, not a sparse
@@ -574,8 +590,6 @@ Rectangle {
             out.push({ role: "yours", label: "Your shell config", path: ce + "/shell.json",
                 note: "Every shell setting, with your values, in one full file you edit in place. The GUI writes it and the shell retunes live when you save a hand-edit." });
             if (s === "desktop") {
-                out.push({ role: "yours", label: "Widget visuals", path: ce + "/visualizer.json",
-                    note: "Visualiser and desktop-widget visuals, a full file you edit in place." });
                 out.push({ role: "yours", label: "Brand mark", path: ce + "/brand.json",
                     note: "The brand mark and hero, a full file you edit in place." });
             }
@@ -642,7 +656,19 @@ Rectangle {
     // against liveBaseline: the state at open, re-snapshotted on every Save.
     // Quit and Revert walk the desktop back to that baseline through the same
     // channel, so an unsaved close leaves no residue.
-    readonly property var liveKeys: ["frameBars", "frameEnabled", "frameOpacity", "frameThickness", "frameCorner", "fontFamily", "fontSize", "barStyle", "obi", "nacre", "qsbar", "dock", "clipboard.widthPercent", "clipboard.heightPercent", "clipboard.bottomPercent", "clipboard.panelRadius", "clipboard.paneRadius", "clipboard.cardRadius"]
+    readonly property var liveKeys: [
+        "frameBars", "frameEnabled", "frameOpacity", "frameThickness", "frameCorner", "fontFamily", "fontSize", "barStyle", "obi", "nacre", "qsbar", "dock",
+        "qsbar.barPosition", "qsbar.barShellStyle", "qsbar.barScale", "qsbar.barAutoHide",
+        "qsbar.barBorderEnabled", "qsbar.barCornerRadius", "qsbar.panelTooltipBorderEnabled", "qsbar.barShadowEnabled", "qsbar.barFrostEnabled",
+        "qsbar.barColor", "qsbar.barGapTop", "qsbar.barGapBottom", "qsbar.barGapLeft", "qsbar.barGapRight",
+        "qsbar.launcherLogoMode", "qsbar.launcherLogoText", "qsbar.launcherLogoIcon", "qsbar.workspaceMode", "qsbar.workspaceStyle",
+        "qsbar.widgets.status", "qsbar.widgets.quick", "qsbar.widgets.volume", "qsbar.widgets.brightness", "qsbar.widgets.battery", "qsbar.widgets.power",
+        "qsbar.widgets.network", "qsbar.widgets.bluetooth", "qsbar.widgets.weather", "qsbar.widgets.media", "qsbar.widgets.mpris", "qsbar.widgets.cpu",
+        "qsbar.widgets.memory", "qsbar.widgets.gpu", "qsbar.widgets.cpuTemperature", "qsbar.widgets.storage", "qsbar.widgets.layout", "qsbar.widgets.claude",
+        "qsbar.barTemperatureSource", "qsbar.audioBoost", "qsbar.clock12h", "qsbar.weatherImperial", "qsbar.aiTools",
+        "dock.enabled", "dock.edge", "dock.style", "dock.autohide", "dock.magnify", "dock.media", "dock.frost", "dock.shadow", "dock.labels",
+        "clipboard.widthPercent", "clipboard.heightPercent", "clipboard.bottomPercent", "clipboard.panelRadius", "clipboard.paneRadius", "clipboard.cardRadius"
+    ]
     property var liveBaseline: null
     property var livePending: ({})
     function captureLiveBaseline() {
@@ -833,7 +859,7 @@ Rectangle {
     }
     FileView {
         id: vizFV
-        path: hub.cfgDir + "/visualizer.json"
+
         watchChanges: true
         onFileChanged: reload()
         onLoaded: hub.rebase()

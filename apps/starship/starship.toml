@@ -1,10 +1,98 @@
-# Adapted from Ryoku's apps/starship/starship.toml (GPL-3.0).
+# Adapted from Ryoku's starship.toml (GPL-3.0).
 add_newline = false
 palette = "zenith"
 
 format = """
-$directory$git_branch$cmd_duration
-$character"""
+$cmd_duration $directory$git_branch
+  $character"""
+
+[fill]
+symbol = '-'
+style = 'fg:ink_faint'
+
+# Replace the "❯" symbol in the prompt with "➜"
+[character]                            # The name of the module we are configuring is "character"
+success_symbol = "[λ](bold fg:ink)"
+error_symbol = "[λ](bold fg:error)"
+
+# Disable the package module, hiding it from the prompt completely
+[package]
+disabled = true
+
+[git_branch]
+style = "fg:ink_dim"
+symbol = "󰘬"
+truncation_length = 12
+truncation_symbol = ""
+format = " 󰜥 [](bold fg:ink_dim)[$symbol $branch(:$remote_branch)](fg:ink bg:ink_dim)[ ](bold fg:ink_dim)"
+
+[git_commit]
+commit_hash_length = 4
+tag_symbol = " "
+
+[git_state]
+format = '[\($state( $progress_current of $progress_total)\)]($style) '
+cherry_pick = "[🍒 PICKING](bold red)"
+
+[git_status]
+conflicted = " 🏳 "
+ahead = " 🏎💨 "
+behind = " 😰 "
+diverged = " 😵 "
+untracked = " 🤷 ‍"
+stashed = " 📦 "
+modified = " 📝 "
+staged = '[++\($count\)](green)'
+renamed = " ✍️ "
+deleted = " 🗑 "
+
+[hostname]
+ssh_only = false
+format = "[󰣇](bg:ink_dim bold fg:ink)[](bold fg:ink_dim)"
+trim_at = ".companyname.com"
+disabled = false
+
+[line_break]
+disabled = false
+
+[memory_usage]
+disabled = true
+threshold = -1
+symbol = " "
+style = "bold dimmed green"
+
+[time]
+disabled = true
+format = '🕙[\[ $time \]]($style) '
+time_format = "%T"
+
+[username]
+style_user = "bold bg:ink_dim fg:ink"
+style_root = "red bold"
+format = "[](bold fg:ink_dim)[$user]($style)"
+disabled = false
+show_always = true
+
+[directory]
+home_symbol = " "
+read_only = "  "
+style = "bg:ink fg:ink_dim"
+truncation_length = 2
+truncation_symbol = ".../"
+format = '[](bold fg:ink)[󰉋 → $path]($style)[](bold fg:ink)'
+
+[directory.substitutions]
+"Desktop" = "  "
+"Documents" = "  "
+"Downloads" = "  "
+"Music" = " 󰎈 "
+"Pictures" = "  "
+"Videos" = "  "
+"GitHub" = " 󰊤 "
+
+[cmd_duration]
+min_time = 0
+format = '[](bold fg:ink_dim)[󰪢 $duration](bold bg:ink_dim fg:ink)[](bold fg:ink_dim)'
 
 # The ink ramp from shell/Theme.qml; red is the design system's error colour.
 [palettes.zenith]
@@ -12,30 +100,3 @@ ink = "#F2F2F2"
 ink_dim = "#CCCCCC"
 ink_faint = "#A1A1A1"
 error = "#E5484D"
-
-[directory]
-style = "bold fg:ink"
-truncation_length = 3
-truncation_symbol = "…/"
-# The base has no Nerd Font, so no icon glyphs anywhere in this prompt.
-read_only = " ro"
-read_only_style = "bold fg:error"
-format = "[$path]($style)[$read_only]($read_only_style) "
-
-[git_branch]
-symbol = ""
-style = "fg:ink_dim"
-format = "[on $symbol$branch]($style) "
-
-[cmd_duration]
-min_time = 500
-style = "fg:ink_faint"
-format = "[took $duration]($style) "
-
-[character]
-# lambda, not a chevron
-success_symbol = "[λ](bold fg:ink)"
-error_symbol = "[λ](bold fg:error)"
-
-[package]
-disabled = true

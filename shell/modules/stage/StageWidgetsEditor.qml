@@ -6,7 +6,7 @@ import "../../components"
 
 // The Edit widgets toolbar (docs/stage.md, "Edit widgets"): one row docked
 // top-centre while the desktop is lifted. Title, Add widget (drops a panel
-// under the button), Visualizer... (hands off to Customize visualizer), Reset
+// under the button), Reset
 // (only once something changed) and the filled Done. The desktop draws the
 // per-widget frames and runs the drag/resize; this owns the toolbar and the Add
 // drop-down and reports its host actions as signals.
@@ -20,7 +20,6 @@ Item {
     property var items: []
 
     signal done()
-    signal visualizer()
     signal addToggle(string id)
 
     readonly property var ses: StageSession
@@ -136,12 +135,7 @@ Item {
                 on: ed.ses.panel === "add"
                 onAct: ed.ses.togglePanel("add")
             }
-            Tool {
-                anchors.verticalCenter: parent.verticalCenter
-                icon: "graphic_eq"
-                label: "Visualizer..."
-                onAct: ed.visualizer()
-            }
+
         }
 
         Row {

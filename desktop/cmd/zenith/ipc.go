@@ -160,10 +160,18 @@ func quickshellPathArg(fields []string) (string, bool) {
 // second shell, so every keybind refused to fire until it was closed.
 func pickShellInstance(paths []string) (string, error) {
 	shells := make([]string, 0, len(paths))
+	seen := map[string]bool{}
 	for _, path := range paths {
-		if !strings.HasSuffix(strings.ToLower(path), ".qml") {
-			shells = append(shells, path)
+		if strings.HasSuffix(strings.ToLower(path), ".qml") {
+			continue
 		}
+		// A shell that is restarting can leave two identical entries in the
+		// process table; those are one instance, not an ambiguity.
+		if seen[path] {
+			continue
+		}
+		seen[path] = true
+		shells = append(shells, path)
 	}
 	paths = shells
 

@@ -1889,9 +1889,7 @@ PanelWindow {
         Keys.onEscapePressed: barSlot.root.barUnlocked = false
 
         readonly property int fitPadding: 8
-        // Compact shells pack the clusters flush, leaving the gap stream no
-        // channel to flow through; open a wider one while an animation runs.
-        readonly property int fitRegionGap: barSlot.root.barAnim > 0 ? 56 : 12
+        readonly property int fitRegionGap: 12
         readonly property int fitRegionCount:
             (leftRowItem.implicitWidth > 0.5 ? 1 : 0)
             + (centerRowItem.implicitWidth > 0.5 ? 1 : 0)
@@ -2259,23 +2257,7 @@ PanelWindow {
         onPanelAnchorsChanged: barSlot.root.publishBarAnchors(panelScreenName, Object.assign({}, panelAnchors, pluginPanelAnchors))
         Component.onCompleted: barSlot.root.publishBarAnchors(panelScreenName, Object.assign({}, panelAnchors, pluginPanelAnchors))
 
-        // ── reactor / gap-stream layer (barAnim modes 1-8) ──
-        // Runs = the widget clusters; the stream flows in the dead space between
-        // them. z:1 places it above the widget rows and below the edit-mode frame
-        // and screen chrome - the same z ordering V1's particleLayer uses inside
-        // its island. Idle unless an animation is picked and the bar is on screen.
-        ReactorLayer {
-            anchors.fill: parent
-            z: 1
-            theme: barSlot.root
-            leftRow: leftRowItem
-            centerRow: centerRowItem
-            rightRow: rightRowItem
-            monitor: barSlot.screenName
-            shellVisible: barSlot.visible
-            gapInset: barSlot.islandsShell ? barSlot.islandsPad : 0
-            pillRects: island.pillRects
-        }
+
 
     }
 

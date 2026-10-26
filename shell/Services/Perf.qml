@@ -51,10 +51,8 @@ Singleton {
     readonly property bool reduceMotionPref: adapter.reduceMotion
     function setLowPower(on) { adapter.lowPowerMode = on; file.writeAdapter(); }
     function setReduceMotion(on) { adapter.reduceMotion = on; file.writeAdapter(); }
-    // The bar's silent gap drift, flipped from the bar control centre's Gap
-    // animation card as well as the Performance page. Same write path as above.
-    readonly property bool ambientBarMotionPref: adapter.ambientBarMotion
-    function setAmbientBarMotion(on) { adapter.ambientBarMotion = on; file.writeAdapter(); }
+    readonly property bool ambientBarMotionPref: false
+    function setAmbientBarMotion(on) {}
 
     // Power profile -> tier. With powerProfileEffects off, or no power-profiles-daemon
     // (a desktop reports no profiles), the tier is Balanced so nothing is forced.
@@ -137,8 +135,8 @@ Singleton {
     // fullRate answers "may the drift run at the full frame rate it was drawn for".
     // The silent drift runs at full rate; loud playback (paceBusy) is always full
     // rate on every profile, and a fully dark frame always backs off.
-    readonly property bool ambientMotion: (tier === tierPerformance || adapter.ambientBarMotion) && !(lowPower || gaming || saver)
-    readonly property bool fullRate: ambientMotion
+    readonly property bool ambientMotion: false
+    readonly property bool fullRate: false
 
     // Graceful cost knobs. Multiply a base poll interval by pollFactor: a second of
     // staleness in a stat readout is invisible, so sampling slows on battery / Saver.
@@ -163,7 +161,6 @@ Singleton {
             property bool disableShadows: false
             property real motionSpeed: 1.0
             property bool powerProfileEffects: true
-            property bool ambientBarMotion: false
         }
     }
 }

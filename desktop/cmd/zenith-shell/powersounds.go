@@ -49,7 +49,7 @@ func readPowerStateFrom(root string) powerState {
 	for _, e := range entries {
 		base := filepath.Join(root, e.Name())
 		switch readTrim(filepath.Join(base, "type")) {
-		case "Mains":
+		case "Mains", "USB", "USB_C", "USB_PD", "USB_PD_DRP":
 			st.haveAC = true
 			if readTrim(filepath.Join(base, "online")) == "1" {
 				st.online = true

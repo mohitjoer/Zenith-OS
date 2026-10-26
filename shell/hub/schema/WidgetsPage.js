@@ -21,22 +21,13 @@ var rows = [
         "group": "WIDGET",
         "key": "clockDesign",
         "label": "Face",
-        "desc": "How the time is drawn: digits, analog, flip and more",
+        "desc": "How the time is drawn: zen, minimal or digital",
         "ctl": "chips",
         "src": "widgets.json",
         "opts": [
-            "digital",
+            "zen",
             "minimal",
-            "grand",
-            "column",
-            "outline",
-            "banner",
-            "analog",
-            "flip",
-            "rings",
-            "bighour",
-            "metal",
-            "goodnight"
+            "digital"
         ]
     },
     {
@@ -95,13 +86,12 @@ var rows = [
         "group": "TIME & DATE",
         "key": "dateDesign",
         "label": "Date style",
-        "desc": "How the date sits with the time: inline, badge or stacked",
+        "desc": "How the date sits with the time: hud or card",
         "ctl": "seg",
         "src": "widgets.json",
         "opts": [
-            "inline",
-            "badge",
-            "stacked"
+            "hud",
+            "card"
         ]
     },
     {

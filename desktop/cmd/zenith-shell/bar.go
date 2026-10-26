@@ -1168,11 +1168,10 @@ func (d *daemon) barDefaults() string {
 // barSettings raises QS Bar Settings on the active monitor through the qsbar
 // IPC the shell exposes; an empty route opens the default route.
 func (d *daemon) barSettings(args []string) string {
-	route := ""
-	if len(args) >= 1 {
-		route = args[0]
-	}
-	go ipcCallN(shellRoot(), "qsbar", "settings", route)
+	go func() {
+		cmd := exec.Command("zenith-shell", "hub", "open", "bar-studio")
+		cmd.Start()
+	}()
 	return "ok"
 }
 

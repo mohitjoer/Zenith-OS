@@ -6,7 +6,6 @@ import qs.Ui.Singletons
 // namespaced: shell.services also has a Config, and an unqualified import of it
 // shadowed this menu's own, leaving every widget toggle reading undefined.
 import qs.Services as Services
-import "../visualizer/Singletons" as VizCfg
 import "../stage/Singletons" as StageCfg
 
 // The desktop right-click menu, built on the shared DesktopMenu chrome in the
@@ -36,8 +35,7 @@ Item {
     readonly property bool isStats: menu.scope === "stats"
     readonly property bool isWeather: menu.scope === "weather"
     readonly property bool isNotes: menu.scope === "notes"
-    // only offer to place the spectrum when it is actually running
-    readonly property bool vizOn: VizCfg.Config.enabled
+
     readonly property bool locked: menu.isWidget ? Config[menu.scope + "Locked"] : false
     readonly property string curAnchor: menu.isWidget ? Config[menu.scope + "Anchor"] : ""
     // clock faces persist as <scope>Design; the calendar and the music sheet
@@ -78,7 +76,7 @@ Item {
 
     function cycleDesign() {
         const lists = {
-            clock: ["digital", "minimal", "grand", "column", "outline", "banner", "analog", "flip", "rings", "bighour", "metal", "goodnight"],
+            clock: ["zen", "minimal", "digital"],
             calendar: ["glass", "paper"],
             music: ["cover", "glass"],
             aio: ["wide", "tall"],
@@ -154,15 +152,6 @@ Item {
         Services.ShellState.requestSurfaceActive("quick-settings#stage", undefined);
         menu.close();
     }
-    function customizeVisualizer() {
-        const st = menu.targetState();
-        if (!st)
-            return;
-        if (!VizCfg.Config.enabled)
-            VizCfg.Config.setEnabled(true);
-        st.visualizerPlacing = true;
-        menu.close();
-    }
     // Depth off drops Parallax with it; Parallax on turns Depth on with it.
     readonly property string stageEffect: StageCfg.StageBackend.effect
     readonly property bool stageBusy: StageCfg.StageBackend.busy
@@ -191,11 +180,6 @@ Item {
         }
         MenuRow {
             visible: !menu.isWidget
-            label: I18n.tr("Customize visualizer")
-            onTriggered: menu.customizeVisualizer()
-        }
-        MenuRow {
-            visible: !menu.isWidget
             label: I18n.tr("Change wallpaper")
             closeOnTrigger: false
             onTriggered: menu.changeWallpaper()
@@ -216,6 +200,17 @@ Item {
             on: Config.dateShow
             closeOnTrigger: false
             onTriggered: Config.toggle("dateShow")
+        }
+        MenuRow {
+            visible: menu.isClock && Config.dateShow
+            label: I18n.tr("Date style")
+            value: menu.cap(Config.dateDesign || "hud")
+            closeOnTrigger: false
+            onTriggered: {
+                const styles = ["hud", "card"];
+                const cur = Config.dateDesign || "hud";
+                Config.set("dateDesign", styles[(styles.indexOf(cur) + 1) % styles.length]);
+            }
         }
         MenuRow {
             visible: menu.isMusic

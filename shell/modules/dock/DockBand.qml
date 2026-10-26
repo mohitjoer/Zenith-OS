@@ -111,6 +111,8 @@ Item {
 
     implicitWidth: band.horizontal ? band.totalSpan : band.baseSize
     implicitHeight: band.horizontal ? band.baseSize : band.totalSpan
+    width: band.implicitWidth
+    height: band.implicitHeight
 
     // ── cursor tracking (icons AND gaps, no dropout) ──────────────────────────
     property real cursorAlong: 0
@@ -118,7 +120,11 @@ Item {
     readonly property bool hovered: bandHover.hovered
     HoverHandler {
         id: bandHover
-        onPointChanged: band.cursorAlong = band.horizontal ? point.position.x : point.position.y
+        margin: Math.max(band.edgeReach, 24)
+        onPointChanged: {
+            var lp = band.horizontal ? point.position.x : point.position.y;
+            band.cursorAlong = Math.max(0, Math.min(band.totalSpan, lp));
+        }
     }
 
     // ── drag-to-reorder (pinned islands only) ─────────────────────────────────

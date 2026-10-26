@@ -206,10 +206,12 @@ Item {
     }
 
     HoverHandler {
+        margin: 16
         cursorShape: Qt.PointingHandCursor
     }
 
     TapHandler {
+        margin: 16
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onSingleTapped: (eventPoint, button) => {
             if (button === Qt.RightButton) {

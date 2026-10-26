@@ -4,7 +4,7 @@ import qs.Services
 import "../../components"
 
 // The Add widget drop-down (docs/stage.md, "Edit widgets"): one row per widget
-// (the built-ins, the visualizer, every enabled plugin widget), each with its
+// (the built-ins, every enabled plugin widget), each with its
 // icon, name and a switch. On adds it at its default anchor; off removes it.
 // Store-installed widgets are grouped under their set's caption, below a
 // hairline that separates them from the shell's own built-ins. It drops from

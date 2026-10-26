@@ -33,6 +33,12 @@ export XDG_SESSION_TYPE=wayland
 # give every GTK4 app an XWayland dialog at the wrong scale, and a GDK_BACKEND
 # left set at all is how the GNOME portal backend decides it is not on a real
 # GNOME session and silently drops interfaces.
+#
+# Similarly, unset stray global PRIME offload from /etc/environment so the desktop
+# session renders on the energy-efficient integrated GPU, letting the discrete
+# GPU enter dynamic sleep (RTD3).
+unset __NV_PRIME_RENDER_OFFLOAD
+unset DRI_PRIME
 export GDK_BACKEND=wayland
 export MOZ_ENABLE_WAYLAND=1
 export QT_QPA_PLATFORM=wayland

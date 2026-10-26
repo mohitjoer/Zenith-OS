@@ -11,14 +11,12 @@ pragma ComponentBehavior: Bound
 
 import Quickshell
 import qs.Services
-import "modules/visualizer/Singletons" as VizCfg
 import "modules/stage/Singletons" as StageCfg
 import "modules/overview/Singletons" as OverviewCfg
 import "components"
 import "modules/wallpaper"
 import "modules/wallpaper/Singletons" as WallCfg
 import "modules/desktop"
-import "modules/visualizer"
 import "modules/bar"
 import "modules/dock"
 import "modules/launcher"
@@ -214,30 +212,6 @@ ShellRoot {
 
             // Stage now renders entirely inside the desktop surface (one stack:
             // backdrop, layers, widgets), so there is no separate Background
-            // surface here (docs/stage.md). Built on first enable or first
-            // placement; cava and its buffers never exist while the visualizer
-            // is off.
-            LazyLoader {
-                id: vizLoader
-                activeAsync: VizCfg.Config.enabled || (perScreen.st && perScreen.st.visualizerPlacing)
-                Visualizer {
-                    id: perScreenViz
-                    screen: perScreen.modelData
-                    mode: !VizCfg.Config.enabled ? "off"
-                        : (perScreen.st && perScreen.st.visualizerOverlay ? "overlay" : "desktop")
-                    placing: perScreen.st ? perScreen.st.visualizerPlacing : false
-                    // The desktop hosts the visualizer behind the cut-outs while the
-                    // stage is on; this surface steps aside (cava keeps running).
-                    // A rebuilt monitor stack (DPMS off/on, a lid close/open) starts
-                    // with no wallpaper frame, so hostsVisualizer briefly reads false
-                    // even for a stage wallpaper: stay suppressed until the frame
-                    // lands, or the surface maps full-screen and pulses for a few
-                    // seconds on every resume.
-                    suppressed: desktop.hostsVisualizer || !wallpaper.reloadReady
-                    onPlacingDone: if (perScreen.st) perScreen.st.visualizerPlacing = false
-                }
-            }
-
             // The frame bar (Phase 2): reads its own reveal from this slice.
             Frame {
                 modelData: perScreen.modelData
@@ -471,17 +445,9 @@ ShellRoot {
             else if (st)
                 st.overviewOpen = !st.overviewOpen;
             break;
-        case "visualizer":
-            VizCfg.Config.setEnabled(!VizCfg.Config.enabled);
-            break;
-        case "visualizer-overlay":
-            if (st)
-                st.visualizerOverlay = !st.visualizerOverlay;
-            break;
-        case "visualizer-place":
-            if (st)
-                root.placeVisualizer(!st.visualizerPlacing);
-            break;
+
+
+
         case "quicksettings":
             ShellState.requestSurfaceActive("quick-settings", undefined);
             break;
@@ -522,11 +488,7 @@ ShellRoot {
             case "launcher":
             case "overview":
             case "clipboard":
-            case "visualizer":
-            case "visualizer-overlay":
-            case "visualizer-place":
-                root.toggleSurface(id);
-                break;
+
             }
         }
     }
@@ -548,33 +510,6 @@ ShellRoot {
         name: "overview"
         description: I18n.tr("Toggle the workspace overview on the active monitor")
         onPressed: root.toggleSurface("overview")
-    }
-    // On/off is the persisted key, so the keybind, the Hub switch and the next
-    // restart all read the same answer. Only the layer is per-monitor memory.
-    CustomShortcut {
-        name: "visualizer"
-        description: I18n.tr("Cycle the desktop audio visualiser off and on")
-        onPressed: root.toggleSurface("visualizer")
-    }
-    CustomShortcut {
-        name: "visualizer-overlay"
-        description: I18n.tr("Toggle the audio visualiser overlay over windows")
-        onPressed: root.toggleSurface("visualizer-overlay")
-    }
-    CustomShortcut {
-        name: "visualizer-place"
-        description: I18n.tr("Grab the audio visualiser's ring or orb and drag it into place")
-        onPressed: root.toggleSurface("visualizer-place")
-    }
-
-    // Aiming a hidden spectrum aims nothing, so placing it shows it first.
-    function placeVisualizer(on) {
-        const st = ShellState.forActive();
-        if (!st)
-            return;
-        if (on && !VizCfg.Config.enabled)
-            VizCfg.Config.setEnabled(true);
-        st.visualizerPlacing = on;
     }
 
     // --- Root machinery (ported from the reference pill root) --------------
@@ -742,19 +677,7 @@ ShellRoot {
 
     // The Hub's "Place on the desktop" button lands here: a slider cannot let a
     // user drop a ring where they want it, so the shell hands them the shape.
-    IpcHandler {
-        target: "visualizer"
-        function place(): void {
-            const st = ShellState.forActive();
-            if (st)
-                root.placeVisualizer(true);
-        }
-        function done(): void {
-            const st = ShellState.forActive();
-            if (st)
-                root.placeVisualizer(false);
-        }
-    }
+
 
     IpcHandler {
         target: "keypresses"

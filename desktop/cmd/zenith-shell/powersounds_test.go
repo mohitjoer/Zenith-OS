@@ -105,6 +105,21 @@ func TestReadPowerStateSkipsPeripheralBattery(t *testing.T) {
 	}
 }
 
+func TestReadPowerStateUSBCCharging(t *testing.T) {
+	root := t.TempDir()
+	// Laptop charging over USB Type-C PD
+	writeSupply(t, root, "ucsi-source-psy-USBC000:001", map[string]string{"type": "USB", "online": "1"})
+	writeSupply(t, root, "BAT0", map[string]string{
+		"type": "Battery", "present": "1", "status": "Charging", "capacity": "50",
+	})
+
+	st := readPowerStateFrom(root)
+	want := powerState{haveAC: true, online: true, present: true, discharging: false, percent: 50}
+	if st != want {
+		t.Fatalf("readPowerStateFrom = %+v, want %+v", st, want)
+	}
+}
+
 func writeSupply(t *testing.T, root, name string, attrs map[string]string) {
 	t.Helper()
 	dir := filepath.Join(root, name)
