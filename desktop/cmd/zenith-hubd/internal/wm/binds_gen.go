@@ -304,8 +304,18 @@ func emitRebind(b *strings.Builder, c CatalogBind, from, to string, byChord map[
 		return
 	}
 	fmt.Fprintf(b, "unbind = %s, %s\n", fromMods, hlStr(fromKey))
+	existingOnTo := byChord[chordKey(to)]
 	for _, cb := range binds {
-		fmt.Fprintf(b, "bind%s = %s, %s, %s\n", cb.flags, toMods, hlStr(toKey), cb.rest)
+		alreadyBound := false
+		for _, existing := range existingOnTo {
+			if existing.flags == cb.flags && existing.rest == cb.rest {
+				alreadyBound = true
+				break
+			}
+		}
+		if !alreadyBound {
+			fmt.Fprintf(b, "bind%s = %s, %s, %s\n", cb.flags, toMods, hlStr(toKey), cb.rest)
+		}
 	}
 }
 
