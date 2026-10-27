@@ -24,7 +24,10 @@ Flickable {
     signal selectionLost()
 
     readonly property int columns: MainMetrics.gridColumns
-    readonly property real tile: MainMetrics.tileSize * s
+    readonly property real columnSpacing: 4 * grid.s
+    readonly property real tile: grid.width > 0
+        ? Math.floor((grid.width - (columns - 1) * columnSpacing) / columns)
+        : MainMetrics.tileSize * s
 
     clip: true
     contentWidth: width
@@ -198,8 +201,9 @@ Flickable {
                 }
 
                 Grid {
+                    anchors.horizontalCenter: parent.horizontalCenter
                     columns: grid.columns
-                    columnSpacing: 4 * grid.s
+                    columnSpacing: grid.columnSpacing
                     rowSpacing: 4 * grid.s
 
                     Repeater {
