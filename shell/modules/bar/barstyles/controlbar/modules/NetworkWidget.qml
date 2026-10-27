@@ -131,68 +131,50 @@ Item {
             elide: Text.ElideRight
         }
 
-        Item {
-            id: trafficMeter
+        Column {
+            id: trafficSpeed
             anchors.verticalCenter: parent.verticalCenter
-            // Throughput is read off the default route whatever the link is, so
-            // the meter belongs on wifi too: full density means icon, label, stats.
             visible: rootMod.mode !== "none" && !root.iconOnly("G11")
-            width: visible ? 16 : 0
-            height: 20
+            spacing: 1
 
-            readonly property real rxLevel: rootMod.trafficLevel(rootMod.dlRate)
-            readonly property real txLevel: rootMod.trafficLevel(rootMod.ulRate)
-
-            UiText {
-                x: 0; y: 0
-                width: 8; height: 8
-                text: "RX"
-                color: Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.72)
-                font.family: root.mono
-                font.pixelSize: 7
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            Column {
-                x: 2; y: 8
-                spacing: 1
-                Repeater {
-                    model: 4
-                    delegate: Rectangle {
-                        required property int index
-                        width: 4; height: 2; radius: 1
-                        color: trafficMeter.rxLevel > index / 4
-                            ? rootMod.contentColor
-                            : Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.18)
-                        Behavior on color { ColorAnimation { duration: 160 } }
-                    }
+            Row {
+                spacing: 3
+                UiText {
+                    text: "RX"
+                    color: Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.65)
+                    font.family: root.mono
+                    font.pixelSize: 7
+                    font.weight: Font.DemiBold
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                UiText {
+                    text: rootMod.formatBarRate(rootMod.dlRate)
+                    color: rootMod.contentColor
+                    font.family: root.mono
+                    font.pixelSize: 8
+                    font.weight: Font.Medium
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
-            Column {
-                x: 10; y: 1
-                spacing: 1
-                Repeater {
-                    model: 4
-                    delegate: Rectangle {
-                        required property int index
-                        width: 4; height: 2; radius: 1
-                        color: trafficMeter.txLevel > (3 - index) / 4
-                            ? rootMod.contentColor
-                            : Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.18)
-                        Behavior on color { ColorAnimation { duration: 160 } }
-                    }
+            Row {
+                spacing: 3
+                UiText {
+                    text: "TX"
+                    color: Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.65)
+                    font.family: root.mono
+                    font.pixelSize: 7
+                    font.weight: Font.DemiBold
+                    anchors.verticalCenter: parent.verticalCenter
                 }
-            }
-            UiText {
-                x: 8; y: 13
-                width: 8; height: 8
-                text: "TX"
-                color: Qt.rgba(rootMod.contentColor.r, rootMod.contentColor.g, rootMod.contentColor.b, 0.72)
-                font.family: root.mono
-                font.pixelSize: 7
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+                UiText {
+                    text: rootMod.formatBarRate(rootMod.ulRate)
+                    color: rootMod.contentColor
+                    font.family: root.mono
+                    font.pixelSize: 8
+                    font.weight: Font.Medium
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
 
