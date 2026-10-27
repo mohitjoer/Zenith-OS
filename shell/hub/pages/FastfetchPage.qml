@@ -887,7 +887,7 @@ Item {
                                 border.color: Tokens.line
                                 Text {
                                     anchors.centerIn: parent
-                                    text: pg.model.logo.kind === "ascii" ? I18n.tr("TXT") : "\uf303"
+                                    text: pg.model.logo.kind === "ascii" ? I18n.tr("TXT") : "\uf31b"
                                     color: Tokens.inkFaint
                                     font.family: Tokens.mono
                                     font.pixelSize: pg.model.logo.kind === "builtin" ? 30 : 12
