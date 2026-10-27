@@ -1,6 +1,5 @@
 package main
 
-
 // The store entries the Hyprland config importer produces. They serialise to the
 // desktop.json arrays the provider reads, so the JSON tags match the provider's
 // model; the importer is the only Hub code that still needs the typed shape.

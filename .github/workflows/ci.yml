@@ -46,6 +46,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: system/hardware/go.mod
+          cache-dependency-path: system/hardware/go.mod
       - name: gofmt, vet and test
         working-directory: system/hardware
         run: |

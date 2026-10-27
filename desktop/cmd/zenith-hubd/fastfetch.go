@@ -425,7 +425,7 @@ func ffBuildLogo(l ffLogo) ffOutLogo {
 	out := ffOutLogo{Width: l.Width, Height: l.Height}
 	switch l.Kind {
 	case "image":
-		out.Type = "kitty-direct"
+		out.Type = "kitty"
 		out.Source = l.Source
 	case "ascii":
 		out.Type = "file"

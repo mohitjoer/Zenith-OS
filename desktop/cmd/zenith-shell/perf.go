@@ -10,7 +10,6 @@ import (
 // writes; a few daemon behaviours (the battery power-saver, the power profile
 // restore) read their opt-ins from it.
 
-
 // zenithConfigDir is ~/.config/zenith (honouring XDG_CONFIG_HOME), the dir the
 // Zenith Settings sections write. Empty only when the home dir is unknowable.
 func zenithConfigDir() string {

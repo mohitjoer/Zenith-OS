@@ -42,29 +42,29 @@ fi
 # Sourced last: the highlighter wraps the widgets that exist when it loads.
 if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
   source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-  ZSH_HIGHLIGHT_STYLES[default]='fg=#F2F2F2'
-  ZSH_HIGHLIGHT_STYLES[command]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[hashed-command]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[builtin]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[function]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[alias]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[global-alias]='fg=#F2F2F2,bold'
-  ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=#CCCCCC,bold'
-  ZSH_HIGHLIGHT_STYLES[precommand]='fg=#CCCCCC,bold'
-  ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=#CCCCCC'
-  ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=#CCCCCC'
-  ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[redirection]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[named-fd]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[numeric-fd]='fg=#A1A1A1'
-  ZSH_HIGHLIGHT_STYLES[globbing]='fg=#CCCCCC'
-  ZSH_HIGHLIGHT_STYLES[history-expansion]='fg=#CCCCCC'
-  ZSH_HIGHLIGHT_STYLES[comment]='fg=#8A8A8A'
-  ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=#E5484D'
+  ZSH_HIGHLIGHT_STYLES[default]='fg=#cdd6f4'
+  ZSH_HIGHLIGHT_STYLES[command]='fg=#a6e3a1,bold'
+  ZSH_HIGHLIGHT_STYLES[hashed-command]='fg=#a6e3a1,bold'
+  ZSH_HIGHLIGHT_STYLES[builtin]='fg=#89b4fa,bold'
+  ZSH_HIGHLIGHT_STYLES[function]='fg=#89b4fa,bold'
+  ZSH_HIGHLIGHT_STYLES[alias]='fg=#94e2d5,bold'
+  ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=#94e2d5,bold'
+  ZSH_HIGHLIGHT_STYLES[global-alias]='fg=#94e2d5,bold'
+  ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=#cba6f7,bold'
+  ZSH_HIGHLIGHT_STYLES[precommand]='fg=#cba6f7,bold'
+  ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=#6c7086'
+  ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=#fab387'
+  ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=#fab387'
+  ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=#f9e2af'
+  ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=#f9e2af'
+  ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=#f9e2af'
+  ZSH_HIGHLIGHT_STYLES[redirection]='fg=#89b4fa'
+  ZSH_HIGHLIGHT_STYLES[named-fd]='fg=#89b4fa'
+  ZSH_HIGHLIGHT_STYLES[numeric-fd]='fg=#89b4fa'
+  ZSH_HIGHLIGHT_STYLES[globbing]='fg=#f5c2e7'
+  ZSH_HIGHLIGHT_STYLES[history-expansion]='fg=#f5c2e7'
+  ZSH_HIGHLIGHT_STYLES[comment]='fg=#6c7086'
+  ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=#f38ba8'
 fi
 
 if command -v eza >/dev/null 2>&1; then
@@ -72,6 +72,11 @@ if command -v eza >/dev/null 2>&1; then
   alias lsa='ls -a'
   alias lt='eza --tree --level=2 --long --git'
   alias lta='lt -a'
+fi
+
+# Fastfetch banner on interactive shell startup
+if [[ -o interactive ]] && command -v fastfetch >/dev/null 2>&1; then
+  fastfetch
 fi
 
 # Ghostty injects its integration into the shell it starts itself; this covers

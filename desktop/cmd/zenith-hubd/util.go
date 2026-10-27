@@ -53,8 +53,6 @@ func escalateSelf(args ...string) error {
 	return cmd.Run()
 }
 
-
-
 // run is best-effort: one missing tool never aborts the rest of a reset.
 func run(name string, args ...string) {
 	cmd := exec.Command(name, args...)
