@@ -271,3 +271,55 @@ func TestDoctorNeverWrites(t *testing.T) {
 		t.Errorf("doctor changed a file: %q -> %q", before, after)
 	}
 }
+
+// TestMaterializePrunesOrphansPreservingUserConfig verifies that Materialize removes
+// stale orphan files while preserving user config and edits.
+func TestMaterializePrunesOrphansPreservingUserConfig(t *testing.T) {
+	m := newMachine(t)
+	m.baseFile("shipped.conf", "base\n")
+	m.edit("shipped.conf", "customized\n")
+
+	// Write user config files and state
+	m.write(filepath.Join(m.paths.Config, "shell.json"), "{\"theme\":\"dark\"}\n")
+	m.write(filepath.Join(m.paths.Config, ".git", "HEAD"), "ref: refs/heads/main\n")
+	m.write(filepath.Join(m.paths.Config, "orphan.conf"), "leftover\n")
+
+	// Doctor should see orphan.conf as DriftOrphan, but NOT shell.json or .git
+	findings, err := Doctor(m.paths)
+	if err != nil {
+		t.Fatalf("Doctor: %v", err)
+	}
+	orphans := 0
+	for _, f := range findings {
+		if f.Reason == DriftOrphan {
+			orphans++
+			if f.Path != "orphan.conf" {
+				t.Errorf("unexpected orphan reported: %s", f.Path)
+			}
+		}
+	}
+	if orphans != 1 {
+		t.Errorf("expected 1 orphan, got %d", orphans)
+	}
+
+	// Materialize should prune orphan.conf
+	if err := Materialize(m.paths); err != nil {
+		t.Fatalf("Materialize: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(m.paths.Config, "orphan.conf")); !os.IsNotExist(err) {
+		t.Errorf("orphan.conf should have been pruned by Materialize")
+	}
+
+	// User edit and user config must be preserved
+	if got := m.read(filepath.Join(m.paths.Config, "shipped.conf")); got != "customized\n" {
+		t.Errorf("user edit clobbered: %s", got)
+	}
+	if got := m.read(filepath.Join(m.paths.Config, "shell.json")); got != "{\"theme\":\"dark\"}\n" {
+		t.Errorf("user config clobbered: %s", got)
+	}
+	if got := m.read(filepath.Join(m.paths.Config, ".git", "HEAD")); got != "ref: refs/heads/main\n" {
+		t.Errorf(".git clobbered: %s", got)
+	}
+}
+

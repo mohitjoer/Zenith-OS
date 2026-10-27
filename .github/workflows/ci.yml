@@ -42,8 +42,8 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: system/hardware/go.mod
@@ -63,8 +63,8 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: desktop/go.mod
           cache-dependency-path: |
@@ -89,7 +89,7 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: Both modules declare the same Go version
         run: |
           declared() { sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$1"; }
@@ -108,8 +108,8 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: desktop/go.mod
           cache-dependency-path: |
@@ -137,7 +137,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: session/session_test.sh
         run: sh session/session_test.sh
       - name: session/greeter_test.sh
@@ -151,7 +151,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: shell/shell_test.sh
         run: sh shell/shell_test.sh
       - name: Branding assets
@@ -211,7 +211,7 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: Shell syntax check — release scripts
         run: |
           for f in release/*.sh release/build.d/*.build release/deps.d/*.deps session/*.sh session/**/*.sh installation/*.sh system/helpers/**/*.sh tests/**/*.sh; do
@@ -230,7 +230,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: Contract test suite
         run: sh tests/contract/run.sh
 
@@ -243,8 +243,8 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
@@ -281,12 +281,12 @@ jobs:
     container:
       image: ubuntu:26.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: The tools the stock image does not carry
         run: |
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@v5
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
@@ -306,8 +306,8 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |

@@ -18,10 +18,16 @@ type InterfaceFinding struct {
 	Reason string
 }
 
-// backendDir is where GLib reads portal backend descriptors from, and nowhere
-// else. The dispatcher builds its whole view of what exists from this directory,
-// so a backend that is installed but not described here is not a backend.
+// backendDir is where GLib reads portal backend descriptors from.
 const backendDir = "/usr/share/xdg-desktop-portal/backends"
+
+// backendDirs are the directories where xdg-desktop-portal searches for backend descriptors.
+// Modern Linux distributions (Ubuntu, Debian, Arch) install .portal files into
+// /usr/share/xdg-desktop-portal/portals.
+var backendDirs = []string{
+	"/usr/share/xdg-desktop-portal/portals",
+	backendDir,
+}
 
 // CheckInterfaces verifies that every interface the configuration names a
 // backend for is one that backend actually implements.
@@ -66,8 +72,15 @@ func CheckInterfaces(env Env, config *Config) []InterfaceFinding {
 
 		impl := canonicalInterface(section)
 
-		path := filepath.Join(env.Root, backendDir, backend+".portal")
-		body, err := os.ReadFile(path)
+		var body []byte
+		var err error
+		for _, dir := range backendDirs {
+			path := filepath.Join(env.Root, dir, backend+".portal")
+			body, err = os.ReadFile(path)
+			if err == nil {
+				break
+			}
+		}
 		if err != nil {
 			findings = append(findings, InterfaceFinding{
 				Interface: impl,
@@ -78,7 +91,12 @@ func CheckInterfaces(env Env, config *Config) []InterfaceFinding {
 			continue
 		}
 
-		if !declaresInterface(string(body), impl) {
+		matched := declaresInterface(string(body), impl)
+		if !matched && impl == "org.freedesktop.impl.portal.OpenURI" {
+			matched = declaresInterface(string(body), "org.freedesktop.impl.portal.AppChooser")
+		}
+
+		if !matched {
 			findings = append(findings, InterfaceFinding{
 				Interface: impl,
 				Backend:   backend,

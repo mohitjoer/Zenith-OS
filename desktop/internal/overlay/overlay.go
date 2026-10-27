@@ -173,6 +173,33 @@ func Materialize(paths Paths) error {
 		return fmt.Errorf("overlay: materializing %s into %s: %w",
 			paths.Base, paths.Config, err)
 	}
+	if err := pruneOrphans(paths); err != nil {
+		return fmt.Errorf("overlay: pruning orphans: %w", err)
+	}
+	return nil
+}
+
+// pruneOrphans removes materialized files that the base no longer ships.
+func pruneOrphans(paths Paths) error {
+	findings, err := Doctor(paths)
+	if err != nil {
+		return err
+	}
+	for _, finding := range findings {
+		if finding.Reason == DriftOrphan {
+			target := filepath.Join(paths.Config, finding.Path)
+			if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			parent := filepath.Dir(target)
+			for parent != paths.Config && parent != "." && parent != "/" {
+				if err := os.Remove(parent); err != nil {
+					break
+				}
+				parent = filepath.Dir(parent)
+			}
+		}
+	}
 	return nil
 }
 
@@ -303,14 +330,21 @@ func Doctor(paths Paths) ([]Drift, error) {
 		if walkErr != nil {
 			return nil
 		}
-		if entry.IsDir() || !entry.Type().IsRegular() {
+		if entry.IsDir() {
+			if strings.HasPrefix(entry.Name(), ".") || entry.Name() == EditsDir ||
+				entry.Name() == "current" || entry.Name() == "agent" {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !entry.Type().IsRegular() {
 			return nil
 		}
 		relative, err := filepath.Rel(paths.Config, path)
 		if err != nil {
 			return err
 		}
-		if isEditPath(relative, paths.Edits, paths.Config) {
+		if isEditPath(relative, paths.Edits, paths.Config) || isUserConfig(relative) {
 			return nil
 		}
 		if seen[relative] {
@@ -367,3 +401,24 @@ func cleanRelative(path string) (string, error) {
 	}
 	return cleaned, nil
 }
+
+// isUserConfig reports whether a path in paths.Config is user state / config rather than a materialized base file.
+func isUserConfig(relative string) bool {
+	parts := strings.Split(relative, string(filepath.Separator))
+	for _, part := range parts {
+		if strings.HasPrefix(part, ".") {
+			return true
+		}
+	}
+	if parts[0] == "current" || parts[0] == "agent" {
+		return true
+	}
+	if len(parts) == 1 {
+		ext := filepath.Ext(relative)
+		if ext == ".json" || ext == ".toml" || ext == ".lock" {
+			return true
+		}
+	}
+	return false
+}
+

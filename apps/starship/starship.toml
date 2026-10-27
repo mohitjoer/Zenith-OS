@@ -94,18 +94,19 @@ format = '[](bold fg:blue)[󰉋 $path]($style)[](bold fg:blue) '
 min_time = 0
 format = '[](bold fg:peach)[󰪢 $duration](bold bg:peach fg:surface)[](bold fg:peach) '
 
-# Vibrant Ryoku terminal palette for starship prompt badges
+# Monochrome Zenith terminal palette for starship prompt badges
 [palettes.zenith]
-ink = "#cdd6f4"
-ink_dim = "#a6adc8"
-ink_faint = "#585b70"
-surface = "#11111b"
-blue = "#89b4fa"
-sapphire = "#74c7ec"
-mauve = "#cba6f7"
-green = "#a6e3a1"
-peach = "#fab387"
-red = "#f38ba8"
-teal = "#94e2d5"
-yellow = "#f9e2af"
-error = "#f38ba8"
+ink = "#F2F2F2"
+ink_dim = "#CCCCCC"
+ink_faint = "#A1A1A1"
+surface = "#242424"
+blue = "#CCCCCC"
+sapphire = "#A1A1A1"
+mauve = "#F2F2F2"
+green = "#CCCCCC"
+peach = "#F5A524"
+red = "#E5484D"
+teal = "#A1A1A1"
+yellow = "#F5A524"
+error = "#E5484D"
+
