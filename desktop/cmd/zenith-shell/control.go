@@ -156,7 +156,17 @@ func (d *daemon) hub(sub, section string) string {
 			// held the lock for the rest of the session and every later open
 			// silently did nothing. The lock lives in the runtime dir, which is
 			// per user, unlike /tmp.
-			cmd := exec.Command("flock", "-n", "-o", filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "zenith-hub.lock"), "zenith-hub")
+			hubEntry := filepath.Join(shellRoot(), "hub.qml")
+			cmd := exec.Command("flock", "-n", "-o", filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "zenith-hub.lock"),
+				"quickshell", "-p", hubEntry)
+			env := withWaylandDisplay(os.Environ())
+			if os.Getenv("ZENITH_SCHEMA_DIR") == "" {
+				env = append(env, "ZENITH_SCHEMA_DIR=/usr/share/glib-2.0/schemas")
+			}
+			if section != "" {
+				env = append(env, "ZENITH_HUB_PAGE="+section)
+			}
+			cmd.Env = env
 			if err := cmd.Start(); err != nil {
 				return
 			}

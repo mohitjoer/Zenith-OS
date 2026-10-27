@@ -110,8 +110,26 @@ if [ ! -e /usr/lib/syslinux/vesamenu.c32 ]; then
 		:
 	fi
 fi
-# rsvg wrapper is created on the HOST before lb build (see below).
-# This chroot hook only ensures syslinux compat links.
+# Ensure rsvg wrapper exists in chroot for live-build theme conversions
+if [ -e /usr/bin/rsvg-convert ] && [ ! -e /usr/bin/rsvg ]; then
+	cat > /usr/bin/rsvg <<'RSVG_CHROOT_EOF'
+#!/bin/bash
+if [ $# -ge 2 ]; then
+	last="${!#}"
+	prev="${@: -2:1}"
+	case "$last" in *.png)
+		case "$prev" in *.svg)
+			out="$last"
+			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$out"
+			;;
+		esac
+		;;
+	esac
+fi
+exec /usr/bin/rsvg-convert "$@"
+RSVG_CHROOT_EOF
+	chmod 0755 /usr/bin/rsvg
+fi
 HOOK_EOF
 chmod 0755 "$BUILD_DIR/config/hooks/normal/0000-fix-syslinux-compat.chroot"
 # Provide a corrected config/bootloaders/isolinux so lb_binary_syslinux's

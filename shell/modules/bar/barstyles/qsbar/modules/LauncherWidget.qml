@@ -10,7 +10,7 @@ Item {
     implicitWidth: logo.implicitWidth + logoPadding
     implicitHeight: 28
 
-    readonly property string tooltipText: Config.launcherTarget === "quick" ? I18n.tr("Quick settings") : I18n.tr("Control center")
+    readonly property string tooltipText: I18n.tr("Quick settings")
     readonly property real logoPadding: 12
     readonly property color contentColor: root.widgetContentColor("G1", root.seal)
 
@@ -121,10 +121,7 @@ Item {
         onExited:  { tip.hide() }
         onClicked: {
             tip.hide()
-            if (Config.launcherTarget === "quick")
-                ShellState.requestSurfaceActive("quick-settings", undefined)
-            else
-                root.controlVisible = !root.controlVisible
+            ShellState.requestSurfaceActive("quick-settings", undefined)
         }
     }
 }

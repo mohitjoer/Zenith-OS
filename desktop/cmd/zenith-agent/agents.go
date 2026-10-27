@@ -268,10 +268,10 @@ func tildeAbbrev(p string) string {
 // explicit override, the packaged tree, then the dev checkout the last deploy
 // recorded. Each root holds a `zenith` subdir.
 func skillRoots() []string {
-	var roots []string
 	if v := os.Getenv(envName("SKILLS")); v != "" {
-		roots = append(roots, v)
+		return []string{v}
 	}
+	var roots []string
 	roots = append(roots, "/usr/share/zenith/shell/"+productName+"/skills")
 	if repo := recordedCheckout(); repo != "" {
 		roots = append(roots, filepath.Join(repo, "shell", productName, "skills"))

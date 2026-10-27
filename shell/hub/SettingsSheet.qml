@@ -479,7 +479,7 @@ Item {
                                                 // hands the shell its placement mode: the look becomes draggable
                                                 // on the desktop, which no slider in here can be.
                                                 if (srow.r.key === "vizPlace")
-                                                    Spawn.run(["zenith", "ipc", "call", "visualizer", "place"]);
+                                                    Spawn.run(["zenith-shell", "visualizer-place"]);
                                             }
                                         }
                                     }

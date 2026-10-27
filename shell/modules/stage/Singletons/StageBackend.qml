@@ -119,17 +119,8 @@ Singleton {
         root._opt = keep;
     }
 
-    // Transient per-monitor cursor (-1..1), shared so a screen's parallax layers
-    // drift in lockstep with its StageBackdrop; not persisted.
-    property var _cursor: ({})
-    function setCursor(name, nx, ny) {
-        const next = {};
-        for (const k in root._cursor) next[k] = root._cursor[k];
-        next[name] = { nx: nx, ny: ny };
-        root._cursor = next;
-    }
-    function cursorNXFor(name) { const e = root._cursor && root._cursor[name]; return e ? e.nx : 0; }
-    function cursorNYFor(name) { const e = root._cursor && root._cursor[name]; return e ? e.ny : 0; }
+    function cursorNXFor(name) { return 0; }
+    function cursorNYFor(name) { return 0; }
 
     // Per-wall lookups (each monitor reads its own wallpaper path).
     function wallOf(path) { return (path && root.frame.walls) ? (root.frame.walls[path] || null) : null; }
@@ -139,7 +130,7 @@ Singleton {
     function backgroundFor(path) { const w = root.wallOf(path); return (w && w.background) ? w.background : ""; }
     function layerCountFor(path) { return root.layersFor(path).length; }
     function isActiveFor(path) { return root.effectFor(path) !== "off" && root.layerCountFor(path) > 0; }
-    function isParallaxFor(path) { return root.effectFor(path) === "parallax" && root.layerCountFor(path) > 0; }
+    function isParallaxFor(path) { return false; }
 
     // The subject (layer 0) draws from the top-level `subject`, set only once the
     // cut lands; every url is busted with the per-wall `rev`.

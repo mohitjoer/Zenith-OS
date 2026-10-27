@@ -766,12 +766,7 @@ ShellRoot {
                 root.toggleSurface("launcher");
                 break;
             case "quick":
-                // The fork bar's frame card for quick-settings renders nothing
-                // on this bar style (verified live: the record opens, the
-                // panel never draws). The working renderer is the bar's control
-                // center (zenith-control layer, verified open+close), so the
-                // toggle forwards there over the bar's own IPC surface.
-                Quickshell.execDetached(["zenith", "ipc", "call", "qsbar", "toggle"]);
+                root.toggleSurface("quicksettings");
                 break;
             case "sidebar":
                 root.toggleSurface("stash");

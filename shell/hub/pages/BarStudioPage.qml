@@ -114,6 +114,7 @@ Item {
         eyebrow: pg.pEyebrow
         blurb: pg.pBlurb
         query: pg.hub ? pg.hub.query : ""
+        tailTabs: ["Layout"]
         onEdited: (k, v) => {
             if (!pg.hub) return;
             pg.hub.stageLive(k, v);

@@ -10,7 +10,7 @@ import "../../../../stage"
 import "../../../../stage/Singletons" as St
 
 // The Stage tab of the Super+Esc panel (docs/stage.md, "The Stage tab"): every
-// Depth and Parallax setting in one scrolling column, ordered by how often it
+// Depth setting in one scrolling column, ordered by how often it
 // is touched, built from the sidebar's own kit so it reads like Home and
 // Capture. Everything is live and shows its value; the only second press is for
 // what runs the engine (a re-cut, a cut from a picture, a clear).
@@ -27,36 +27,7 @@ Item {
     readonly property string effect: root.sb.effect
     readonly property string wall: root.sb.current
     readonly property bool depthOn: root.effect !== "off"
-    readonly property bool parallaxOn: root.effect === "parallax"
     readonly property int layerCount: root.sb.layerCountFor(root.wall)
-
-    // A tier chosen but not yet cut with: the segment shows it and the confirm
-    // row offers Re-cut (or Download first). Leaving the panel drops it.
-    property string pendingTier: ""
-    // A picture picked for a new layer, waiting for its Cut.
-    property string pickedCut: ""
-    property bool clearArmed: false
-    property bool pointerOpen: false
-
-    readonly property string shownTier: root.pendingTier !== "" ? root.pendingTier : root.cfg.quality
-    readonly property var shownModel: root.sb.modelForQuality(root.shownTier)
-    readonly property bool shownInstalled: !!(root.shownModel && root.shownModel.installed === true)
-
-    readonly property color ink: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
-    readonly property color inkDim: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
-    readonly property color line: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.30)
-
-    onOpenChanged: if (!root.open) root.dropPending()
-
-    function dropPending() {
-        root.pendingTier = "";
-        root.pickedCut = "";
-        root.clearArmed = false;
-    }
-    function tierLabel(t) { return t === "fine" ? "Fine" : t === "standard" ? "Standard" : "Draft"; }
-    // Depth off drops Parallax with it; Parallax on turns Depth on with it.
-    function toggleDepth() { root.sb.setEffect(root.depthOn ? "off" : "depth"); }
-    function toggleParallax() { root.sb.setEffect(root.parallaxOn ? "depth" : "parallax"); }
     function chooseTier(t) {
         if (t === root.cfg.quality) {
             root.pendingTier = "";
@@ -74,30 +45,6 @@ Item {
     function _path(u) {
         const s = "" + u;
         return s.indexOf("file://") === 0 ? decodeURIComponent(s.slice(7)) : s;
-    }
-    // Presets: one tap sets the whole motion. The row shows a preset only
-    // while every knob still matches it; any hand change clears the highlight.
-    readonly property var presets: ({
-        soft:      { amount: "subtle", idle: "float",   speed: 0.6, music: false },
-        cinematic: { amount: "normal", idle: "breathe", speed: 0.4, music: false },
-        beat:      { amount: "strong", idle: "sway",    speed: 1.0, music: true }
-    })
-    readonly property string currentPreset: {
-        for (const id in root.presets) {
-            const p = root.presets[id];
-            if (root.cfg.amount === p.amount && root.cfg.idle === p.idle
-                && Math.abs(root.cfg.speed - p.speed) < 0.01 && root.cfg.music === p.music)
-                return id;
-        }
-        return "";
-    }
-    function applyPreset(id) {
-        const p = root.presets[id];
-        if (!p) return;
-        root.cfg.setAmount(p.amount);
-        root.cfg.setIdle(p.idle);
-        root.cfg.setSpeed(p.speed);
-        root.cfg.setMusic(p.music);
     }
     function resetLook() {
         root.cfg.setEdge(0.15);
@@ -366,24 +313,14 @@ Item {
             Grid {
                 id: tiles
                 width: parent.width
-                columns: 2
-                columnSpacing: 8
-                readonly property real tileWidth: (width - columnSpacing) / 2
+                columns: 1
                 Menus.QsTile {
-                    width: tiles.tileWidth
+                    width: parent.width
                     icon: "layers"
                     label: qsTr("Depth")
                     sub: !root.depthOn ? qsTr("Off") : root.sb.busy ? (root.sb.percent + "%") : qsTr("On")
                     on: root.depthOn
                     onToggled: root.toggleDepth()
-                }
-                Menus.QsTile {
-                    width: tiles.tileWidth
-                    icon: "animation"
-                    label: qsTr("Parallax")
-                    sub: root.parallaxOn ? qsTr("On") : qsTr("Off")
-                    on: root.parallaxOn
-                    onToggled: root.toggleParallax()
                 }
             }
 
@@ -503,13 +440,6 @@ Item {
                                 }
                             }
                         }
-                        KnobRow {
-                            visible: root.parallaxOn
-                            label: qsTr("Drift")
-                            value: root.sb.layerDepth(root.wall, lr.index)
-                            valueLabel: qsTr("near") + " \u2192 " + qsTr("far") + "  " + root.sb.layerDepth(root.wall, lr.index).toFixed(2)
-                            onMoved: v => root.sb.setLayerDepth(lr.index, v)
-                        }
                     }
                 }
 
@@ -583,87 +513,6 @@ Item {
                 }
             }
 
-            // ── Motion (Parallax only) ─────────────────────────────────
-            Menus.QsSection { visible: root.parallaxOn; width: parent.width; label: qsTr("Motion") }
-            Column {
-                visible: root.parallaxOn
-                width: parent.width
-                spacing: 8
-                ChoiceRow {
-                    label: qsTr("Preset")
-                    options: [{ id: "soft", label: "Soft" }, { id: "cinematic", label: "Cinematic" }, { id: "beat", label: "Beat" }]
-                    current: root.currentPreset
-                    onChose: id => root.applyPreset(id)
-                }
-                ChoiceRow {
-                    label: qsTr("Amount")
-                    options: [{ id: "subtle", label: "Subtle" }, { id: "normal", label: "Normal" }, { id: "strong", label: "Strong" }]
-                    current: root.cfg.amount
-                    onChose: id => root.cfg.setAmount(id)
-                }
-                ChoiceRow {
-                    label: qsTr("Idle")
-                    options: [{ id: "none", label: "Still" }, { id: "float", label: "Float" }, { id: "breathe", label: "Breathe" }, { id: "sway", label: "Sway" }]
-                    current: root.cfg.idle
-                    onChose: id => root.cfg.setIdle(id)
-                }
-                KnobRow {
-                    visible: root.cfg.idle !== "none"
-                    label: qsTr("Speed")
-                    value: (root.cfg.speed - 0.25) / 1.75
-                    valueLabel: root.cfg.speed.toFixed(2) + "\u00d7"
-                    onMoved: v => root.cfg.setSpeed(0.25 + v * 1.75)
-                }
-                SwitchRow {
-                    label: qsTr("React to music")
-                    sub: qsTr("Near layers pulse with the beat")
-                    on: root.cfg.music
-                    onToggled: root.cfg.setMusic(!root.cfg.music)
-                }
-                KnobRow {
-                    visible: root.cfg.music
-                    label: qsTr("Intensity")
-                    value: root.cfg.musicLevel
-                    valueLabel: root.cfg.musicLevel.toFixed(2)
-                    onMoved: v => root.cfg.setMusicLevel(v)
-                }
-                SwitchRow {
-                    label: qsTr("Follow mouse")
-                    sub: qsTr("Layers drift with the pointer")
-                    on: root.cfg.followMouse
-                    onToggled: root.cfg.setMouse(!root.cfg.followMouse)
-                }
-                Menus.RevealerButton {
-                    visible: root.cfg.followMouse
-                    width: parent.width
-                    iconName: "tune"
-                    label: qsTr("Fine-tune pointer")
-                    revealed: root.pointerOpen
-                    onToggled: r => root.pointerOpen = r
-                    Column {
-                        width: parent.width
-                        spacing: 8
-                        KnobRow {
-                            label: qsTr("Sensitivity")
-                            value: root.cfg.sensitivity / 2
-                            valueLabel: root.cfg.sensitivity.toFixed(2)
-                            onMoved: v => root.cfg.setSensitivity(v * 2)
-                        }
-                        KnobRow {
-                            label: qsTr("Range")
-                            value: root.cfg.range / 2
-                            valueLabel: root.cfg.range.toFixed(2)
-                            onMoved: v => root.cfg.setRange(v * 2)
-                        }
-                        KnobRow {
-                            label: qsTr("Backdrop drift")
-                            value: root.cfg.backdrop
-                            valueLabel: root.cfg.backdrop.toFixed(2)
-                            onMoved: v => root.cfg.setBackdrop(v)
-                        }
-                    }
-                }
-            }
         }
     }
 

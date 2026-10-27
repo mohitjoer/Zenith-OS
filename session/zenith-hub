@@ -21,6 +21,12 @@ PREFIX=/usr/share/zenith
 QUICKSHELL_BIN=${ZENITH_QUICKSHELL:-/usr/bin/quickshell}
 HUB_ENTRY="$PREFIX/shell/hub.qml"
 
+if [ -n "${ZENITH_SHELL_DIR:-}" ] && [ -f "$ZENITH_SHELL_DIR/hub.qml" ]; then
+    HUB_ENTRY="$ZENITH_SHELL_DIR/hub.qml"
+elif [ -f "$(dirname "$0")/../shell/hub.qml" ]; then
+    HUB_ENTRY="$(cd "$(dirname "$0")/.." && pwd)/shell/hub.qml"
+fi
+
 # The same wrapper pattern as the greeter: a missing quickshell is the package
 # build's problem and is stated, rather than being a shell error about an
 # undefined variable.

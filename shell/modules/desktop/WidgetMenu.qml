@@ -146,21 +146,17 @@ Item {
         StageCfg.StageSession.enterWidgets(menu.activeMonitor());
         menu.close();
     }
-    // Every Depth and Parallax setting lives on the Stage tab of Super+Esc;
+    // Depth settings live on the Stage tab of Super+Esc;
     // "#stage" deep-links the panel there (FrameMenuManager.openSurface).
     function depthSettings() {
         Services.ShellState.requestSurfaceActive("quick-settings#stage", undefined);
         menu.close();
     }
-    // Depth off drops Parallax with it; Parallax on turns Depth on with it.
     readonly property string stageEffect: StageCfg.StageBackend.effect
     readonly property bool stageBusy: StageCfg.StageBackend.busy
     readonly property int stagePct: StageCfg.StageBackend.percent
     function toggleDepth() {
         StageCfg.StageBackend.setEffect(menu.stageEffect === "off" ? "depth" : "off");
-    }
-    function toggleParallax() {
-        StageCfg.StageBackend.setEffect(menu.stageEffect === "parallax" ? "depth" : "parallax");
     }
     function changeWallpaper() {
         Services.ShellState.requestSurfaceActive("wallpaper", null);
@@ -388,27 +384,14 @@ Item {
         // The menu's own choice chips: a bone plate when the effect is on, a
         // quiet tile when off, the state spelled out in the label.
         MenuSection {}
-        Row {
-            id: stageRow
+        MenuChip {
             visible: !menu.isWidget
             width: parent.width
-            spacing: Theme.s1
-            readonly property real cw: (width - Theme.s1) / 2
-            MenuChip {
-                width: stageRow.cw
-                height: Theme.ctlH + 6
-                selected: menu.stageEffect !== "off"
-                label: I18n.tr("Depth") + " \u00b7 " + (menu.stageBusy ? (menu.stagePct + "%")
-                    : menu.stageEffect !== "off" ? I18n.tr("On") : I18n.tr("Off"))
-                onClicked: menu.toggleDepth()
-            }
-            MenuChip {
-                width: stageRow.cw
-                height: Theme.ctlH + 6
-                selected: menu.stageEffect === "parallax"
-                label: I18n.tr("Parallax") + " \u00b7 " + (menu.stageEffect === "parallax" ? I18n.tr("On") : I18n.tr("Off"))
-                onClicked: menu.toggleParallax()
-            }
+            height: Theme.ctlH + 6
+            selected: menu.stageEffect !== "off"
+            label: I18n.tr("Depth") + " \u00b7 " + (menu.stageBusy ? (menu.stagePct + "%")
+                : menu.stageEffect !== "off" ? I18n.tr("On") : I18n.tr("Off"))
+            onClicked: menu.toggleDepth()
         }
 
         MenuRow {

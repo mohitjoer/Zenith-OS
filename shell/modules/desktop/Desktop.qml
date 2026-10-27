@@ -50,8 +50,6 @@ Scope {
     // video/live walls, which the daemon skips.
     readonly property bool stageOn: StageCfg.StageBackend.isActiveFor(root.wallpaperPath)
         && root.videoUrl === "" && !root.wallpaperLive
-    readonly property bool stageParallax: StageCfg.StageBackend.isParallaxFor(root.wallpaperPath)
-        && root.videoUrl === "" && !root.wallpaperLive
     function widgetZ(id) {
         if (!root.stageOn)
             return 0;
@@ -417,8 +415,7 @@ Scope {
         WallpaperMod.Backdrop {
             id: backdrop
             anchors.fill: parent
-            // The base wallpaper draws under the stage (Parallax's StageBackdrop
-            // covers its baked subject, Depth locks the still cut over it), and
+            // The base wallpaper draws under the stage (Depth locks the still cut over it), and
             // yields to the zenith-wallpaper-live player on its own `live` rule: forcing
             // it visible painted the still over every video wallpaper.
             readonly property real screenDpr: (root.screen && root.screen.devicePixelRatio) ? root.screen.devicePixelRatio : 1
@@ -433,17 +430,6 @@ Scope {
             live: root.wallpaperLive
             videoMuted: root.videoMuted
             videoVolume: root.videoVolume
-        }
-
-        // The Parallax backdrop: the inpainted background.png drifting just
-        // above the base wallpaper, covering its baked subject. Only Parallax
-        // shows it; it also owns the per-monitor cursor poll (docs/stage.md).
-        StageBackdrop {
-            z: 1
-            screen: root.screen
-            wallpaperPath: root.wallpaperPath
-            wallpaperFit: root.wallpaperFit
-            visible: root.stageParallax
         }
 
         // While the stage is on, the visualizer lives inside this surface so it
@@ -921,7 +907,7 @@ Scope {
         // The one place a stage layer is drawn (docs/stage.md): every cut layer,
         // each at its own z by its `front` flag -- behind the widgets (z 2) or in
         // front of them (z 4). Depth renders this stack still (motion off, no
-        // backdrop); Parallax adds drift. Gated off for video/live walls.
+        // backdrop). Gated off for video/live walls.
         Repeater {
             id: stageLayers
             model: root.stageOn ? StageCfg.StageBackend.layerCountFor(root.wallpaperPath) : 0
@@ -932,10 +918,6 @@ Scope {
                 url: StageCfg.StageBackend.layerUrlFor(root.wallpaperPath, index)
                 fit: root.wallpaperFit
                 z: StageCfg.StageBackend.layerFront(root.wallpaperPath, index) ? 4 : 2
-                mouseNX: StageCfg.StageBackend.cursorNXFor(root.screen.name)
-                mouseNY: StageCfg.StageBackend.cursorNYFor(root.screen.name)
-                energy: 0
-                motionEnabled: root.stageParallax
             }
         }
 
@@ -974,8 +956,7 @@ Scope {
 
         Process { id: paletteProc }
 
-        // Menus sit above the whole stage stack (backdrop z 1, layers up to z 5),
-        // or a Parallax backdrop paints over an open right-click menu.
+        // Menus sit above the whole stage stack (layers up to z 5).
         // Built on the first right-click (the sync build hides behind the press)
         // and kept for the session.
         Loader {
