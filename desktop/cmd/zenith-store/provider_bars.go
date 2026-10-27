@@ -14,7 +14,8 @@ import (
 type barProvider struct{}
 
 var builtinBarStyles = []Item{
-	{ID: "qsbar", Name: "QS Bar", Summary: "Top bar", Description: "The default top bar.", Tags: []string{"top", "horizontal", "built-in"}},
+	{ID: "controlbar", Name: "Control Bar", Summary: "Top bar", Description: "The default top bar.", Tags: []string{"top", "horizontal", "built-in"}},
+	{ID: "qsbar", Name: "Control Bar (Legacy)", Summary: "Top bar", Description: "The default top bar (legacy alias).", Tags: []string{"top", "horizontal", "built-in"}},
 	{ID: "kairos", Name: "Kairos", Summary: "Island clock", Description: "One floating island at the top of the screen: the clock that grows on hover.", Tags: []string{"top", "island", "built-in"}},
 	{ID: "sumi", Name: "Sumi", Summary: "Ink spine", Description: "A vertical rail down the left edge.", Tags: []string{"rail", "vertical", "built-in"}},
 }

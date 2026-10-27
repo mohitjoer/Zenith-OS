@@ -1,6 +1,5 @@
 package main
 
-import "strings"
 
 // The store entries the Hyprland config importer produces. They serialise to the
 // desktop.json arrays the provider reads, so the JSON tags match the provider's
@@ -21,10 +20,4 @@ type WindowRule struct {
 	Title  string `json:"title"`
 	Action string `json:"action"`
 	Value  string `json:"value"`
-}
-
-// luaStr quotes a string for the Lua the importer renders into user.lua.
-func luaStr(s string) string {
-	r := strings.NewReplacer("\\", "\\\\", "\"", "\\\"", "\n", "\\n", "\r", "\\r")
-	return "\"" + r.Replace(s) + "\""
 }

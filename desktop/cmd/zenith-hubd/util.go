@@ -53,11 +53,7 @@ func escalateSelf(args ...string) error {
 	return cmd.Run()
 }
 
-// pkgInstalled asks dpkg whether a package is installed. Read-only.
-func pkgInstalled(p string) bool {
-	out, err := exec.Command("dpkg-query", "-W", "-f=${Status}", p).Output()
-	return err == nil && string(out) == "install ok installed"
-}
+
 
 // run is best-effort: one missing tool never aborts the rest of a reset.
 func run(name string, args ...string) {

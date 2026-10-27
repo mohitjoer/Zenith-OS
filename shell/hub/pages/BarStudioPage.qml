@@ -17,7 +17,7 @@ Item {
 
     readonly property string pTitle: I18n.tr("Bar Studio")
     readonly property string pEyebrow: I18n.tr("BAR & DOCK")
-    readonly property string pBlurb: I18n.tr("Configure QS Bar layout, surface, widgets, gaps and the desktop dock.")
+    readonly property string pBlurb: I18n.tr("Configure Control Bar layout, surface, widgets, gaps and the desktop dock.")
     function focusKey(k) { sp.focusKey(k); }
 
     component IconText: Text {

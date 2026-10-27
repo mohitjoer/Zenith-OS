@@ -471,7 +471,6 @@ func (r *reader) take(n int) []byte {
 	return out
 }
 
-func (r *reader) skip(n int)  { r.take(n) }
 func (r *reader) u16() uint16 { return binary.LittleEndian.Uint16(r.take(2)) }
 func (r *reader) u32() uint32 { return binary.LittleEndian.Uint32(r.take(4)) }
 func (r *reader) i32() int32  { return int32(r.u32()) }

@@ -373,5 +373,8 @@ func lockDesktopDescription(path string) string {
 			return strings.TrimSpace(v)
 		}
 	}
+	if err := sc.Err(); err != nil {
+		return ""
+	}
 	return ""
 }

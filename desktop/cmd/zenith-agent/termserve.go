@@ -167,14 +167,14 @@ func termContext(req termReq) string {
 	var b strings.Builder
 	b.WriteString("# Terminal\n\n")
 	if req.Cwd != "" {
-		b.WriteString("- cwd: " + req.Cwd + "\n")
+		fmt.Fprintf(&b, "- cwd: %s\n", req.Cwd)
 	}
 	if req.LastCmd != "" {
-		line := "- last command: `" + req.LastCmd + "`"
 		if req.LastStatus != nil && *req.LastStatus != 0 {
-			line += fmt.Sprintf(" (exit %d)", *req.LastStatus)
+			fmt.Fprintf(&b, "- last command: `%s` (exit %d)\n", req.LastCmd, *req.LastStatus)
+		} else {
+			fmt.Fprintf(&b, "- last command: `%s`\n", req.LastCmd)
 		}
-		b.WriteString(line + "\n")
 	}
 	if b.Len() == len("# Terminal\n\n") {
 		b.WriteString("- no context passed\n")

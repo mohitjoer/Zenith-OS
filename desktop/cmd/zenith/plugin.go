@@ -134,7 +134,7 @@ var pluginBuiltinIDs = []string{
 	"cputemp", "gpu", "storage", "layout",
 }
 
-const pluginCatalogueRel = "modules/bar/barstyles/qsbar/core/widgets.json"
+const pluginCatalogueRel = "modules/bar/barstyles/controlbar/core/widgets.json"
 
 // pluginCataloguePath is the bar's widget catalogue: the installed shell tree,
 // else a checkout found by walking up from the working directory.
@@ -142,6 +142,10 @@ func pluginCataloguePath() string {
 	installed := filepath.Join("/usr/share/zenith/shell", pluginCatalogueRel)
 	if pluginExists(installed) {
 		return installed
+	}
+	legacy := filepath.Join("/usr/share/zenith/shell", "modules/bar/barstyles/qsbar/core/widgets.json")
+	if pluginExists(legacy) {
+		return legacy
 	}
 	if dir, err := os.Getwd(); err == nil {
 		for depth := 0; depth < 6; depth++ {

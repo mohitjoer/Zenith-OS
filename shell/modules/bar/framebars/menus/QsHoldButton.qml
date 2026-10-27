@@ -20,9 +20,9 @@ Rectangle {
     property int holdMs: 800
     signal activated()
 
-    implicitWidth: 38
-    implicitHeight: 38
-    radius: Theme.radiusWidget
+    implicitWidth: 32
+    implicitHeight: 32
+    radius: 8
     color: tap.containsMouse
         ? Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.12)
         : Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.06)

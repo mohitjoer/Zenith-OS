@@ -51,7 +51,8 @@ Singleton {
     // frame scene (empty scene url); "qsbar" is the shipped QS Bar folder and
     // "kairos" the shipped island clock.
     readonly property var builtins: ({
-        "qsbar": "barstyles/qsbar/Scene.qml",
+        "controlbar": "barstyles/controlbar/Scene.qml",
+        "qsbar": "barstyles/controlbar/Scene.qml",
         "kairos": "barstyles/kairos/Scene.qml"
     })
 

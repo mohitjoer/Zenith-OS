@@ -199,6 +199,10 @@ The source tree is `desktop/`, never a directory named after a control tool — 
 directory collides with the built binary and silently defeats the repository's own ignore
 rules.
 
+## Rules
+
+- [2026-10-27] Never use or ship kitty in this OS; Ghostty is the sole supported terminal emulator.
+
 ## Branches
 
 | Branch | Holds |

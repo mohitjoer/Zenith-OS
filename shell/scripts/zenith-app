@@ -93,7 +93,7 @@ terminal_command() {
 	local t
 	t="$(read_role terminal)"
 	[ -n "$t" ] && { printf '%s' "$t"; return 0; }
-	first_of ghostty x-terminal-emulator kitty foot alacritty wezterm \
+	first_of ghostty x-terminal-emulator foot alacritty wezterm \
 		gnome-terminal ptyxis kgx konsole xterm
 }
 

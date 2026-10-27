@@ -52,9 +52,6 @@ type reloadCoverAsset struct {
 	Bytes int64  `json:"bytes"`
 }
 
-func emptyReloadCoverAsset() reloadCoverAsset {
-	return reloadCoverAsset{Kind: "default"}
-}
 
 func reloadCoverDir() string {
 	return filepath.Join(dataHome(), "zenith", "reload-cover")

@@ -65,12 +65,11 @@ Item {
     Rectangle {
         id: calCard
         width: root.width
-        radius: Theme.radiusWidget
-        color: Theme.surface
-        border.width: Theme.borderWidth
-        border.color: Theme.outline
+        radius: 12
+        color: Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.04)
+        border.width: 1
+        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.12)
         implicitHeight: cal.implicitHeight + 2 * (10 * root.s)
-        SumiEdge {}
 
         Column {
             id: cal

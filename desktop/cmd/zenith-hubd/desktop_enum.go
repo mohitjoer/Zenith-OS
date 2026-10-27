@@ -122,6 +122,9 @@ func parseXkbVariants(path, layout string) []map[string]string {
 		}
 		out = append(out, map[string]string{"code": code, "name": strings.TrimSpace(desc)})
 	}
+	if err := sc.Err(); err != nil {
+		return nil
+	}
 	return out
 }
 
@@ -151,6 +154,9 @@ func parseXkbLayouts(path string) []map[string]string {
 		code := fields[0]
 		name := strings.TrimSpace(strings.TrimPrefix(t, code))
 		out = append(out, map[string]string{"code": code, "name": name})
+	}
+	if err := sc.Err(); err != nil {
+		return nil
 	}
 	return out
 }

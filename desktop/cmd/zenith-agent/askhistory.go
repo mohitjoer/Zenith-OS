@@ -82,6 +82,7 @@ func readAskHistoryLocked() []askRecord {
 			out = append(out, r)
 		}
 	}
+	_ = sc.Err()
 	return out
 }
 

@@ -64,7 +64,7 @@ func cmdAsk(question string) error {
 	for sc.Scan() {
 		fmt.Println(sc.Text())
 	}
-	return nil
+	return sc.Err()
 }
 
 // askGet prints a daemon GET response verbatim (JSON for --recent).

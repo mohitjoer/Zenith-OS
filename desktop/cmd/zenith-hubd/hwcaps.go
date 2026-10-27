@@ -486,6 +486,9 @@ func readCPUVirt(root string) (vendor string, virt bool) {
 			}
 		}
 	}
+	if err := sc.Err(); err != nil {
+		return "", false
+	}
 	return vendor, virt
 }
 
@@ -528,6 +531,9 @@ func readMeminfo(root string) (totalMB, freeMB int) {
 		case "MemAvailable:":
 			freeMB = kb / 1024
 		}
+	}
+	if err := sc.Err(); err != nil {
+		return 0, 0
 	}
 	return totalMB, freeMB
 }

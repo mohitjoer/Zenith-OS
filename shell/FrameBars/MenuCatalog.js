@@ -22,12 +22,10 @@ const widgets = {
 const quickSettingsModules = {
     "home": { id: "home", label: "Home", icon: "space_dashboard", source: "QuickSettingsHome.qml" },
     "notifications": { id: "notifications", label: "Notifications", icon: "notifications", source: "QuickSettingsNotifications.qml" },
-    "weather": { id: "weather", label: "Weather", icon: "partly_cloudy_day", source: "QuickSettingsWeather.qml" },
     "capture": { id: "capture", label: "Capture", icon: "screenshot_region", source: "QuickSettingsCapture.qml" },
-    "media": { id: "media", label: "Media", icon: "music_note", source: "QuickSettingsMedia.qml" },
-    "stage": { id: "stage", label: "Stage", icon: "wallpaper", source: "QuickSettingsStage.qml" }
+    "media": { id: "media", label: "Media", icon: "music_note", source: "QuickSettingsMedia.qml" }
 };
-const quickSettingsDefaults = ["home", "notifications", "weather", "capture", "stage"];
+const quickSettingsDefaults = ["home", "notifications", "capture"];
 const menus = {
     "quick-settings": { id: "quick-settings", anchor: "left", minWidth: 410, expansion: "always", widgets: ["quick-settings"], modules: quickSettingsDefaults },
     wallpaper: { id: "wallpaper", anchor: "bottom", minWidth: 1400, expansion: "always", widgets: ["theme", "wallpaper"] },

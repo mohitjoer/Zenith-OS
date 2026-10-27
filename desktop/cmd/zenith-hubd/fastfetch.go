@@ -757,19 +757,54 @@ func ffTitleCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-// defaultFastfetchModel: a minimal readout for a box with no config.jsonc yet, so
-// the section is never empty. materialize seeds the real one on install.
+// defaultFastfetchModel: a rich Ryoku-style readout for a box with no config.jsonc yet,
+// matching the branded Zenith layout with section headers, tagline, hardware/system info, and swatches.
 func defaultFastfetchModel() ffModel {
 	mk := func(t, k string) ffRow {
 		raw, _ := json.Marshal(map[string]string{"type": t, "key": k})
 		return ffRow{Kind: "module", Enabled: true, Module: t, Key: k, Label: k, Raw: raw}
 	}
+	colorsRaw, _ := json.Marshal(map[string]any{"type": "colors", "symbol": "circle"})
+
+	home := os.Getenv("HOME")
+	emblemPath := filepath.Join(home, ".local/share/zenith/assets/brand/fastfetch-emblem.png")
+	logoKind := "builtin"
+	logoSrc := ""
+	if fileExists(emblemPath) {
+		logoKind = "image"
+		logoSrc = "~/.local/share/zenith/assets/brand/fastfetch-emblem.png"
+	}
+
 	return ffModel{
 		Accent: ffAccent,
-		Logo:   ffLogo{Kind: "builtin", Width: 28, Height: 14, Padding: 3},
+		Logo: ffLogo{
+			Kind:         logoKind,
+			Source:       logoSrc,
+			Width:        28,
+			Height:       14,
+			Padding:      3,
+			PaddingRight: 5,
+			PaddingTop:   2,
+		},
 		Rows: []ffRow{
-			mk("os", "OS"), mk("kernel", "KERNEL"), mk("cpu", "CPU"),
-			mk("memory", "MEMORY"), mk("uptime", "UPTIME"),
+			{Kind: "tagline", Enabled: true, Text: "ZENITH OS", Label: "Tagline"},
+			{Kind: "break", Enabled: true, Label: "Spacer"},
+			{Kind: "header", Enabled: true, Text: "SYSTEM", Label: "Section header"},
+			mk("os", "OS"),
+			mk("kernel", "KERNEL"),
+			mk("uptime", "UPTIME"),
+			mk("packages", "PACKAGES"),
+			mk("shell", "SHELL"),
+			mk("wm", "WM"),
+			{Kind: "break", Enabled: true, Label: "Spacer"},
+			{Kind: "header", Enabled: true, Text: "HARDWARE", Label: "Section header"},
+			mk("host", "HOST"),
+			mk("cpu", "CPU"),
+			mk("gpu", "GPU"),
+			mk("memory", "MEMORY"),
+			mk("display", "DISPLAY"),
+			{Kind: "break", Enabled: true, Label: "Spacer"},
+			{Kind: "colors", Enabled: true, Label: "Colour swatches", Raw: colorsRaw},
 		},
 	}
 }

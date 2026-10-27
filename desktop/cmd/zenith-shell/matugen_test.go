@@ -725,10 +725,10 @@ func TestMatugenFollows(t *testing.T) {
 		{"match on + static named theme -> idle", true, "Nord Dark", false},
 	}
 	for _, c := range cases {
-		if err := os.WriteFile(filepath.Join(zenith, "theme.json"), []byte(fmt.Sprintf(`{"followWallpaper":%v}`, c.follow)), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(zenith, "theme.json"), fmt.Appendf(nil, `{"followWallpaper":%v}`, c.follow), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(zenith, "shell.json"), []byte(fmt.Sprintf(`{"theme":{"theme":%q}}`, c.theme)), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(zenith, "shell.json"), fmt.Appendf(nil, `{"theme":{"theme":%q}}`, c.theme), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if got := matugenFollows(); got != c.want {

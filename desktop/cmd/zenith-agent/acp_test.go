@@ -66,6 +66,7 @@ func newTestPair(t *testing.T) (*acpConn, *fakeAgent) {
 				fa.lines <- m
 			}
 		}
+		_ = sc.Err()
 		close(fa.lines)
 	}()
 	return conn, fa

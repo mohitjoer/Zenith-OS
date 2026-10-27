@@ -6,10 +6,8 @@ import qs.Services
 import "../../../../components"
 import qs.Ui.Singletons
 
-// One quick-settings toggle tile: icon in a state circle, label + live
-// sub-state, whole face toggles, the chevron (when a detail page exists)
-// navigates. Active tiles fill with the primary tint so state reads at a
-// glance; everything else stays quiet surface.
+// One quick-settings toggle tile: clean, borderless surface without nested boxes.
+// When active, inverts cleanly to a luminous plate with dark ink.
 Item {
     id: root
 
@@ -20,136 +18,136 @@ Item {
     property bool hasPage: false
     property string pageTip: ""
 
-    // A tile whose action cannot be taken right now. It stays visible and keeps
-    // explaining itself through `sub` (the reason belongs there), but reads as
-    // inert and swallows the tap, so the user learns before clicking instead of
-    // after a notification. Defaults available, so a tile that never sets it
-    // behaves exactly as before.
+    // A tile whose action cannot be taken right now.
     property bool available: true
 
     signal toggled()
     signal pageRequested()
 
-    implicitHeight: 64
+    implicitHeight: 74
 
-    // The effective background the tile's ink sits on: the resting tile fill
-    // (soft primary tint when on, soft on-surface wash when off) composited
-    // over the panel's effective surface, so labels stay legible on the tint.
-    readonly property color effBg: Theme.blend(
-        root.on ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.20)
-                : Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.06),
-        Theme.effectiveSurface)
+    // Active inverts to Theme.primary, inactive is a soft quiet surface (no harsh box border)
+    readonly property color tileBg: root.on
+        ? (face.pressed ? Qt.darker(Theme.primary, 1.1) : (face.containsMouse ? Qt.lighter(Theme.primary, 1.05) : Theme.primary))
+        : (face.containsMouse ? Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.08)
+                              : Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.04))
 
+    readonly property color inkMain: root.on
+        ? Theme.inkOn(Theme.primary, Theme.onPrimary)
+        : Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+
+    readonly property color inkSub: root.on
+        ? Qt.rgba(Theme.onPrimary.r, Theme.onPrimary.g, Theme.onPrimary.b, 0.75)
+        : Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+
+    // Sleek single card surface — no nested boxes
     Rectangle {
+        id: cardBg
         anchors.fill: parent
-        radius: Theme.radiusWidget
-        color: root.on
-            ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, face.containsMouse ? 0.26 : 0.20)
-            : Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, face.containsMouse ? 0.10 : 0.06)
-        border.width: 1
-        border.color: root.on
-            ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.55)
-            : Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.30)
-        Behavior on color { ColorAnimation { duration: Motion.crossfade; easing.type: Motion.crossfadeCurve } }
-        SumiEdge {}
+        radius: 12
+        color: root.tileBg
+        border.width: root.on ? 0 : 1
+        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, face.containsMouse ? 0.20 : 0.08)
+
+        Behavior on color { ColorAnimation { duration: Motion.fast } }
+        Behavior on border.color { ColorAnimation { duration: Motion.fast } }
     }
 
     MouseArea {
         id: face
         anchors.fill: parent
-        anchors.rightMargin: root.hasPage ? 34 : 0
         hoverEnabled: true
         cursorShape: root.available ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: if (root.available) root.toggled()
     }
 
-    Row {
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
-        anchors.leftMargin: 12
-        anchors.right: parent.right
-        anchors.rightMargin: root.hasPage ? 34 : 12
-        spacing: 10
+    Item {
+        anchors.fill: parent
+        anchors.margins: 10
         opacity: root.available ? 1 : 0.45
         Behavior on opacity { NumberAnimation { duration: Motion.crossfade; easing.type: Motion.crossfadeCurve } }
 
-        Rectangle {
-            id: iconDisc
-            anchors.verticalCenter: parent.verticalCenter
-            scale: face.pressed ? 0.86 : 1
-            Behavior on scale { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutBack; easing.overshoot: 2.2 } }
-            width: 34
-            height: 34
-            radius: 17
-            color: root.on ? Theme.primary
-                           : Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.10)
-            Behavior on color { ColorAnimation { duration: Motion.crossfade; easing.type: Motion.crossfadeCurve } }
+        // ── Top Row: Direct Icon (no inner box) and Chevron/Status ──
+        Item {
+            id: topRow
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 24
+
             MaterialIcon {
-                anchors.centerIn: parent
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 font.pixelSize: 18
                 fill: root.on ? 1 : 0
                 text: root.icon
-                color: root.on ? Theme.inkOn(Theme.primary, Theme.onPrimary, 3.0)
-                               : Theme.inkOn(root.effBg, Theme.onSurface, 3.0)
+                color: root.inkMain
+                scale: face.pressed ? 0.88 : 1
+                Behavior on scale { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutBack; easing.overshoot: 2.0 } }
+                Behavior on color { ColorAnimation { duration: Motion.fast } }
+            }
+
+            // Right side: chevron or status dot (no nested box!)
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+
+                // Detail-page chevron
+                MaterialIcon {
+                    visible: root.hasPage
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.pixelSize: 15
+                    text: "chevron_right"
+                    color: root.inkSub
+                    opacity: pageTap.containsMouse ? 1 : 0.6
+
+                    MouseArea {
+                        id: pageTap
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.pageRequested()
+                    }
+                    QsTip {
+                        text: root.pageTip
+                        align: "right"
+                        hovered: pageTap.containsMouse && !pageTap.pressed
+                    }
+                }
             }
         }
 
+        // ── Bottom Area: Clean typography with full width (no truncation) ──
         Column {
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - iconDisc.width - parent.spacing
-            spacing: 1
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: 2
+
             Text {
                 width: parent.width
                 elide: Text.ElideRight
                 text: I18n.tr(root.label)
-                color: Theme.inkOn(root.effBg, Theme.onSurface)
+                color: root.inkMain
                 font.family: Theme.fontPrimary
                 font.pixelSize: Theme.fontSm
                 font.weight: Font.DemiBold
+                Behavior on color { ColorAnimation { duration: Motion.fast } }
             }
+
             Text {
                 width: parent.width
                 elide: Text.ElideRight
                 visible: text.length > 0
                 text: root.sub
-                color: Theme.inkOn(root.effBg, Theme.onSurfaceVariant, 3.0)
+                color: root.inkSub
                 font.family: Theme.fontPrimary
                 font.pixelSize: Theme.fontSm - 2
+                font.weight: Font.Normal
+                Behavior on color { ColorAnimation { duration: Motion.fast } }
             }
-        }
-    }
-
-    // Detail-page affordance: its own hit region so a chevron tap never toggles.
-    Rectangle {
-        visible: root.hasPage
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.margins: 6
-        width: 26
-        radius: Theme.radiusWidget - 4
-        color: pageTap.containsMouse
-            ? Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.12)
-            : "transparent"
-        scale: pageTap.pressed ? 0.9 : 1
-        Behavior on scale { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutBack; easing.overshoot: 2.2 } }
-        MaterialIcon {
-            anchors.centerIn: parent
-            font.pixelSize: 16
-            text: "chevron_right"
-            color: Theme.inkOn(root.effBg, Theme.onSurfaceVariant, 3.0)
-        }
-        MouseArea {
-            id: pageTap
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.pageRequested()
-        }
-        QsTip {
-            text: root.pageTip
-            align: "right"
-            hovered: pageTap.containsMouse && !pageTap.pressed
         }
     }
 }

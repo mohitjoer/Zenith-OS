@@ -146,6 +146,7 @@ func runTermAsk(o termOpts) error {
 	for sc.Scan() {
 		pres.line(sc.Text())
 	}
+	_ = sc.Err()
 	pres.clearSpinner()
 	return pres.finish()
 }

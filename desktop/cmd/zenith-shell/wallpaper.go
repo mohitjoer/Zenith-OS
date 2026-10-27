@@ -74,15 +74,6 @@ func (d *daemon) currentWall() string {
 	return d.wall.Default.Path
 }
 
-// currentWallVideo reports whether that default frame is a video's still:
-// zenith-wallpaper paints a clip's extracted frame with a `video` marker, and depth
-// must treat it like the video it stands for, not as an image.
-func (d *daemon) currentWallVideo() bool {
-	d.wallMu.Lock()
-	defer d.wallMu.Unlock()
-	return d.wall.Default.Video
-}
-
 // wallFrame returns a copy of the last frame seen from zenith-wallpaper.
 func (d *daemon) wallFrame() wallpaperFrame {
 	d.wallMu.Lock()
@@ -179,6 +170,7 @@ func (d *daemon) consumeWallpaperFrames(r io.Reader) {
 			d.scheduleTheme()
 		}
 	}
+	_ = sc.Err()
 }
 
 // watchWallpaper subscribes to zenith-wallpaper's wallpaper topic for the daemon's life,

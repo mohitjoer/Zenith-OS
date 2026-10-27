@@ -199,7 +199,8 @@ func toolListDir(path string) string {
 		if e.IsDir() {
 			name += "/"
 		}
-		b.WriteString(name + "\n")
+		b.WriteString(name)
+		b.WriteByte('\n')
 	}
 	return strings.TrimSpace(b.String())
 }

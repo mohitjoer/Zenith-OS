@@ -38,8 +38,6 @@ func findHubBin() string {
 	return "zenith-hubd"
 }
 
-func wallState() string { return filepath.Join(stateDir(), "zenith-wallpaper") }
-
 func isFile(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && !st.IsDir()
@@ -51,14 +49,6 @@ func isVideo(p string) bool {
 		return true
 	}
 	return false
-}
-
-func readState() string {
-	b, err := os.ReadFile(wallState())
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(b))
 }
 
 // ryowallsTune: the ryowalls per-image tune (zenith-ryowalls.json). frameOffset

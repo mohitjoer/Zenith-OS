@@ -39,17 +39,17 @@ var appRoleDefs = []struct {
 		{"Brave", "brave"}, {"Vivaldi", "vivaldi-stable"}, {"Zen", "zen|zen-browser"},
 		{"LibreWolf", "librewolf"}, {"Qutebrowser", "qutebrowser"},
 	}},
-	{"terminal", "Terminal", "kitty", [][2]string{
-		{"Kitty", "kitty"}, {"Alacritty", "alacritty"}, {"Foot", "foot"},
-		{"WezTerm", "wezterm"}, {"Ghostty", "ghostty"}, {"Konsole", "konsole"},
+	{"terminal", "Terminal", "ghostty", [][2]string{
+		{"Ghostty", "ghostty"}, {"Alacritty", "alacritty"}, {"Foot", "foot"},
+		{"WezTerm", "wezterm"}, {"Konsole", "konsole"},
 	}},
-	{"editor", "Editor", "kitty -e nvim", [][2]string{
-		{"Neovim", "kitty -e nvim"}, {"Helix", "kitty -e hx"}, {"Vim", "kitty -e vim"},
+	{"editor", "Editor", "ghostty -e nvim", [][2]string{
+		{"Neovim", "ghostty -e nvim"}, {"Helix", "ghostty -e hx"}, {"Vim", "ghostty -e vim"},
 		{"VS Code", "code"}, {"VSCodium", "codium"}, {"Zed", "zed"}, {"Sublime Text", "subl"},
 	}},
 	{"files", "File manager", "nautilus", [][2]string{
 		{"Files (Nautilus)", "nautilus"}, {"Thunar", "thunar"}, {"Dolphin", "dolphin"},
-		{"Nemo", "nemo"}, {"PCManFM", "pcmanfm-qt"}, {"Yazi", "kitty -e yazi"},
+		{"Nemo", "nemo"}, {"PCManFM", "pcmanfm-qt"}, {"Yazi", "ghostty -e yazi"},
 	}},
 	{"notes", "Notes", "", [][2]string{
 		{"Obsidian", "obsidian"}, {"Logseq", "logseq"}, {"Joplin", "joplin-desktop"},

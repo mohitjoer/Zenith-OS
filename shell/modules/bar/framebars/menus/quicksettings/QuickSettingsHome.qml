@@ -44,7 +44,7 @@ Item {
     Item {
         id: header
         anchors.top: parent.top
-        anchors.topMargin: 10
+        anchors.topMargin: 12
         anchors.left: parent.left
         anchors.leftMargin: 12
         anchors.right: parent.right
@@ -54,27 +54,77 @@ Item {
         Column {
             id: headerColumn
             width: parent.width
-            spacing: 4
+            spacing: 6
 
+            // ── Top Title Row: Minimalist Eyebrow ──
+            Item {
+                width: parent.width
+                height: 20
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: 13
+                        text: "tune"
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.primary, 3.0)
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.tr("QUICK SETTINGS")
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+                        font.family: Theme.fontPrimary
+                        font.pixelSize: 10
+                        font.weight: Font.Bold
+                        font.letterSpacing: 2
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
+
+                    Rectangle {
+                        width: 4
+                        height: 4
+                        radius: 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Theme.primary
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.tr("CONTROL")
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+                        font.family: Theme.fontPrimary
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        font.letterSpacing: 1.5
+                    }
+                }
+            }
+
+            // ── Floating Clock & Session Buttons (No Heavy Outer Box!) ──
             Item {
                 width: parent.width
                 height: 44
 
                 Text {
                     anchors.left: parent.left
-                    anchors.right: sessionRow.left
-                    anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     text: Qt.formatTime(clock.date, "HH:mm")
                     color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
                     font.family: Theme.fontPrimary
-                    font.pixelSize: 34
+                    font.pixelSize: 36
                     font.weight: Font.Bold
-                    elide: Text.ElideRight
                 }
 
+                // Session buttons floating cleanly with no heavy enclosure
                 Row {
-                    id: sessionRow
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 4
@@ -112,65 +162,42 @@ Item {
                 }
             }
 
+            // ── Date & Battery Indicator (Clean Inline, No Boxes) ──
             Item {
                 width: parent.width
-                height: 24
+                height: 20
 
                 Text {
                     anchors.left: parent.left
-                    anchors.right: Battery.present ? batteryPill.left : parent.right
-                    anchors.rightMargin: Battery.present ? 6 : 0
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Qt.locale().toString(clock.date, "dddd") + ", " + Qt.formatDate(clock.date, "MMM d, yyyy")
+                    text: Qt.locale().toString(clock.date, "dddd") + " • " + Qt.formatDate(clock.date, "MMM d, yyyy")
                     color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
                     font.family: Theme.fontPrimary
                     font.pixelSize: Theme.fontSm
-                    elide: Text.ElideRight
+                    font.weight: Font.Medium
                 }
 
-                Rectangle {
-                    id: batteryPill
+                Row {
                     visible: Battery.present
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: batteryRow.implicitWidth + 16
-                    height: 22
-                    radius: 11
-                    color: Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.07)
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.25)
+                    spacing: 4
 
-                    Row {
-                        id: batteryRow
-                        anchors.centerIn: parent
-                        spacing: 4
-
-                        MaterialIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            font.pixelSize: 13
-                            text: Battery.charging ? "bolt" : "battery_full"
-                            color: Theme.inkOn(Theme.effectiveSurface, Battery.charging ? Theme.primary : Theme.onSurfaceVariant, 3.0)
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: Battery.pct + "%"
-                            color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
-                            font.family: Theme.fontPrimary
-                            font.pixelSize: Theme.fontSm - 2
-                            font.weight: Font.DemiBold
-                        }
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: 13
+                        text: Battery.charging ? "bolt" : "battery_full"
+                        color: Theme.inkOn(Theme.effectiveSurface, Battery.charging ? Theme.primary : Theme.onSurfaceVariant, 3.0)
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Battery.pct + "%"
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+                        font.family: Theme.fontPrimary
+                        font.pixelSize: Theme.fontSm - 1
+                        font.weight: Font.Bold
                     }
                 }
-            }
-
-            // Surface switch: sets which panel the bar's brand logo opens -- this
-            // Super+Esc quick settings, or the bar-logo QS Bar Settings. The lit
-            // segment is the current target; picking the other retargets the logo.
-            Menus.QsSeg {
-                width: parent.width
-                options: [{ id: "studio", label: I18n.tr("QS BAR SETTINGS") }, { id: "quick", label: I18n.tr("QUICK SETTINGS") }]
-                current: Config.launcherTarget === "quick" ? "quick" : "studio"
-                onChose: (id) => Config.setLauncherTarget(id)
             }
         }
     }
@@ -178,7 +205,7 @@ Item {
     Flickable {
         id: homeFlick
         anchors.top: header.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 12
         anchors.bottom: powerDock.top
         anchors.bottomMargin: 8
         anchors.left: parent.left
@@ -235,9 +262,6 @@ Item {
                     on: !Toggles.wifiOn
                     onToggled: Toggles.toggleWifi()
                 }
-                // Only where the compositor can warm the screen. Both shipping
-                // compositors can; one that reports no night-light backend hides
-                // the tile instead of showing a dead toggle.
                 Menus.QsTile {
                     visible: Wm.caps.nightLight === true
                     width: tileGrid.tileWidth
@@ -263,17 +287,6 @@ Item {
                     on: Toggles.dnd
                     onToggled: Toggles.toggleDnd()
                 }
-                // On AC only: every lever trades battery and heat for latency, so
-                // start refuses on battery. Off must always work, or losing AC
-                // would trap the user in Game Mode. AC is the real line-power
-                // state (a full cell idling on AC still counts), so no battery
-                // is always eligible.
-                // Only where the compositor can strip itself live (Hyprland). On
-                // a compositor without live config eval the tuning script is not
-                // even installed, so a fresh tile would do nothing; hide it, not
-                // grey it, and the Grid reflows with no gap. Kept visible while
-                // game mode is already on, so a switch away from Hyprland mid-
-                // boost (the flag persists) can still be dismissed.
                 Menus.QsTile {
                     visible: Wm.caps.liveConfigEval === true || Toggles.gameMode
                     width: tileGrid.tileWidth

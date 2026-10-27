@@ -345,6 +345,10 @@ func barListRows(l barLayout, meta map[string]widgetMeta) []listRow {
 
 // shellCatalogPath resolves the widget catalogue inside the shell tree.
 func shellCatalogPath() string {
+	p := filepath.Join(shellRoot(), "modules", "bar", "barstyles", "controlbar", "core", "widgets.json")
+	if _, err := os.Stat(p); err == nil {
+		return p
+	}
 	return filepath.Join(shellRoot(), "modules", "bar", "barstyles", "qsbar", "core", "widgets.json")
 }
 
@@ -1167,7 +1171,7 @@ func (d *daemon) barDefaults() string {
 
 // barSettings raises QS Bar Settings on the active monitor through the qsbar
 // IPC the shell exposes; an empty route opens the default route.
-func (d *daemon) barSettings(args []string) string {
+func (d *daemon) barSettings(_ []string) string {
 	go func() {
 		cmd := exec.Command("zenith-shell", "hub", "open", "bar-studio")
 		cmd.Start()

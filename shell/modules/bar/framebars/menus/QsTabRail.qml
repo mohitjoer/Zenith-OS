@@ -58,7 +58,7 @@ Item {
         spacing: 6
 
         RailIconBtn {
-            icon: "search"; tipText: I18n.tr("Lens search")
+            glyph: "lens"; icon: "center_focus_strong"; tipText: I18n.tr("Lens search")
             onClicked: { Quickshell.execDetached(["zenith-cmd-google-lens"]); root.requestClose(); }
         }
         RailIconBtn {
@@ -72,10 +72,6 @@ Item {
         RailIconBtn {
             icon: "settings"; tipText: I18n.tr("Zenith Hub")
             onClicked: { Quickshell.execDetached(["zenith-shell", "hub", "open"]); root.requestClose(); }
-        }
-        RailIconBtn {
-            icon: "colorize"; tipText: I18n.tr("Pick a color")
-            onClicked: { Quickshell.execDetached(["zenith-cmd-color-picker"]); root.requestClose(); }
         }
     }
 
@@ -165,10 +161,11 @@ Item {
         QsTip { text: rt.tipText; side: true; hovered: rtTap.containsMouse && !rtTap.pressed }
     }
 
-    // Utility icon button (Hub, colour picker) - same side tip.
+    // Utility icon button (Hub, Google Lens, etc.) - same side tip.
     component RailIconBtn: Item {
         id: rib
         property string icon: ""
+        property string glyph: ""
         property string tipText: ""
         signal clicked()
 
@@ -182,7 +179,13 @@ Item {
             Behavior on color { ColorAnimation { duration: Motion.fast } }
         }
         MaterialIcon {
+            visible: rib.glyph === ""
             anchors.centerIn: parent; font.pixelSize: 17; text: rib.icon
+            color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+        }
+        GlyphIcon {
+            visible: rib.glyph !== ""
+            anchors.centerIn: parent; width: 17; height: 17; name: rib.glyph
             color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
         }
         scale: ribTap.pressed ? 0.88 : 1.0

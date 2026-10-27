@@ -230,7 +230,10 @@ func encodeKeyFile(entries []kfEntry) string {
 	var b strings.Builder
 	b.WriteString("[" + sxProtocol + "]\n")
 	for _, e := range entries {
-		b.WriteString(e.key + "=" + e.val + "\n")
+		b.WriteString(e.key)
+		b.WriteByte('=')
+		b.WriteString(e.val)
+		b.WriteByte('\n')
 	}
 	return b.String()
 }

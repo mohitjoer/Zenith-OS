@@ -271,11 +271,11 @@ func auraModeView(id uint32, state auraState) orgbMode {
 	if id == auraRainbowWave {
 		flags |= modeHasDirLR | modeHasDirUD
 	}
-	effect := auraEffect{Mode: id, Speed: "Med", Direction: "Right"}
+	effect := auraEffect{Speed: "Med", Direction: "Right"}
 	if stored, ok := state.ModeData[id]; ok {
 		effect = stored
-		effect.Mode = id
 	}
+	_ = effect.Mode
 	m := orgbMode{
 		Name:      auraModeName(id),
 		Value:     int32(id),

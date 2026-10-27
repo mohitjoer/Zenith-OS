@@ -18,9 +18,9 @@ Rectangle {
 
     signal clicked()
 
-    implicitWidth: 38
-    implicitHeight: 38
-    radius: Theme.radiusWidget
+    implicitWidth: 32
+    implicitHeight: 32
+    radius: 8
     color: tap.containsMouse
         ? (root.danger
             ? Qt.rgba(Theme.error.r, Theme.error.g, Theme.error.b, 0.22)

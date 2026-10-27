@@ -120,7 +120,7 @@ Flickable {
             ChipRow {
                 width: parent.width
                 model: [
-                    { "key": "qsbar", "label": I18n.tr("QS Bar") },
+                    { "key": "qsbar", "label": I18n.tr("Control Bar") },
                     { "key": "sumi",  "label": I18n.tr("Sumi rail") }
                 ]
                 current: step.barStyle
@@ -140,7 +140,7 @@ Flickable {
                     width: parent.width - 190
                     anchors.verticalCenter: parent.verticalCenter
                     wrapMode: Text.WordWrap
-                    text: I18n.tr("QS Bar is the full top bar; Sumi is a minimal left rail. Arrange rails and widgets in Bar Studio.")
+                    text: I18n.tr("Control Bar is the full top bar; Sumi is a minimal left rail. Arrange rails and widgets in Bar Studio.")
                     color: Tokens.inkMuted
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall

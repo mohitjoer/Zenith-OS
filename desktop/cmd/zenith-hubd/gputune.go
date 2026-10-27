@@ -324,15 +324,16 @@ func tuneSet(gpu, id, value string) error {
 		return fmt.Errorf("no tunable %q on %s (this hardware does not expose it)", id, gpu)
 	}
 	// Validate + clamp against the probed envelope before any privileged write.
-	if t.Kind == "segment" {
+	switch t.Kind {
+	case "segment":
 		if !inList(t.Options, value) {
 			return fmt.Errorf("%s must be one of %s", id, strings.Join(t.Options, "|"))
 		}
-	} else if t.Kind == "toggle" {
+	case "toggle":
 		if value != "on" && value != "off" {
 			return fmt.Errorf("%s must be one of [on off]", id)
 		}
-	} else {
+	default:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf("%s needs a number", id)

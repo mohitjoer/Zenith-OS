@@ -66,14 +66,6 @@ func validSessionID(id string) bool {
 	return true
 }
 
-func lockSessionID() string {
-	id := os.Getenv("XDG_SESSION_ID")
-	if !validSessionID(id) {
-		return ""
-	}
-	return id
-}
-
 // voxtypeRecord starts or stops dictation on the running Voxtype daemon (the
 // Super+` tap). Voxtype is an optional AUR app (voxtype-bin); absent, this is a
 // no-op and the voice surface stays a plain mic meter. `voxtype record` drives
@@ -100,10 +92,6 @@ func dictationReady() bool {
 		return false
 	}
 	return exec.Command("systemctl", "--user", "is-active", "--quiet", "voxtype.service").Run() == nil
-}
-
-func currentUserProcessRunning(pattern string) bool {
-	return exec.Command("pgrep", "-u", strconv.Itoa(os.Getuid()), "-f", pattern).Run() == nil
 }
 
 func stateDir() string {

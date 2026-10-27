@@ -383,6 +383,7 @@ func relayAptStatus(r io.Reader, working string, installing *atomic.Bool) {
 			emitStage(stage, int(p))
 		}
 	}
+	_ = sc.Err()
 }
 
 func emitStage(stage string, percent int) {

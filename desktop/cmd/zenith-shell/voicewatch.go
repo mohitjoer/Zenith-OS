@@ -108,6 +108,7 @@ func (d *daemon) watchVoice(stop <-chan struct{}) {
 				}
 			}
 		}
+		_ = sc.Err()
 		close(classes)
 	}()
 

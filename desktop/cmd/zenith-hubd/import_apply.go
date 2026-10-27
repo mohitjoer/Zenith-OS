@@ -265,9 +265,10 @@ func planBinds(binds []importBind, shipped map[string]shippedInfo, resolve map[s
 					plan.keep = append(plan.keep, b)
 				}
 			case "remap":
-				if i == dupFirst[n] {
+				switch i {
+				case dupFirst[n]:
 					plan.keep = append(plan.keep, b)
-				} else if i == dupSecond[n] {
+				case dupSecond[n]:
 					plan.keep = append(plan.keep, remapBind(b, ch.remap))
 				}
 			default: // zenith: keep the first, drop the rest

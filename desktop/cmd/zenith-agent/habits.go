@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -34,30 +33,30 @@ func habitsBody(cfg Config) string {
 	var b strings.Builder
 
 	b.WriteString("## Environment\n\n")
-	b.WriteString("- Shell: " + userShell() + " · Terminal: ghostty (Zenith default) · Editor: " + editorName() + "\n")
+	fmt.Fprintf(&b, "- Shell: %s · Terminal: ghostty (Zenith default) · Editor: %s\n", userShell(), editorName())
 	if dirs := xdgUserDirs(); len(dirs) > 0 {
 		var parts []string
 		for _, d := range dirs {
 			parts = append(parts, d.name+" -> "+d.path)
 		}
-		b.WriteString("- XDG directories: " + strings.Join(parts, ", ") + "\n")
+		fmt.Fprintf(&b, "- XDG directories: %s\n", strings.Join(parts, ", "))
 	}
 	if tops := homeTopDirs(); len(tops) > 0 {
-		b.WriteString("- Home directories: " + strings.Join(tops, ", ") + "\n")
+		fmt.Fprintf(&b, "- Home directories: %s\n", strings.Join(tops, ", "))
 	}
 
 	b.WriteString("\n## Stack\n\n")
-	b.WriteString("- " + strings.Join(stackNotes(), "\n- ") + "\n")
+	fmt.Fprintf(&b, "- %s\n", strings.Join(stackNotes(), "\n- "))
 
 	if cfg.HabitsHistoryEnabled() {
 		if rhythms := shellRhythms(); len(rhythms) > 0 {
 			b.WriteString("\n## Shell rhythms\n\nTop commands from shell history (counts only):\n\n")
-			b.WriteString("- " + strings.Join(rhythms, "\n- ") + "\n")
+			fmt.Fprintf(&b, "- %s\n", strings.Join(rhythms, "\n- "))
 		}
 	}
 
 	if usage := agentUsage(); usage != "" {
-		b.WriteString("\n## " + displayName + " usage\n\n" + usage)
+		fmt.Fprintf(&b, "\n## %s usage\n\n%s", displayName, usage)
 	}
 
 	if rs := LoadRecipes(); len(rs) > 0 {
@@ -309,7 +308,7 @@ func agentUsage() string {
 		}
 	}
 	if len(corr) > 0 {
-		b.WriteString("Corrections, learn from these:\n\n- " + strings.Join(corr, "\n- ") + "\n")
+		fmt.Fprintf(&b, "Corrections, learn from these:\n\n- %s\n", strings.Join(corr, "\n- "))
 	}
 	return b.String()
 }
@@ -423,7 +422,7 @@ func habitsFingerprint() string {
 		recipesPath(),
 	} {
 		if st, err := os.Stat(p); err == nil {
-			b.WriteString(p + ":" + strconv.FormatInt(st.Size(), 10) + ":" + strconv.FormatInt(st.ModTime().Unix(), 10) + ";")
+			fmt.Fprintf(&b, "%s:%d:%d;", p, st.Size(), st.ModTime().Unix())
 		}
 	}
 	return b.String()

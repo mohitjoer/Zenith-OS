@@ -1,7 +1,7 @@
 .pragma library
 
 var rows = [
-    // ── QS BAR: STYLE & POSITION ──
+    // ── CONTROL BAR: STYLE & POSITION ──
     {
         "tab": "Bar",
         "group": "STYLE & POSITION",
@@ -10,6 +10,7 @@ var rows = [
         "desc": "Which desktop bar is active.",
         "ctl": "seg",
         "opts": ["qsbar", "kairos", "sumi"],
+        "optLabels": { "qsbar": "Control Bar", "kairos": "Kairos", "sumi": "Sumi" },
         "src": "shell"
     },
     {
@@ -17,7 +18,7 @@ var rows = [
         "group": "STYLE & POSITION",
         "key": "qsbar.barPosition",
         "label": "Position",
-        "desc": "Which screen edge the QS Bar docks to.",
+        "desc": "Which screen edge the Control Bar docks to.",
         "ctl": "seg",
         "opts": ["top", "bottom"],
         "src": "shell"
@@ -55,7 +56,7 @@ var rows = [
         "src": "shell"
     },
 
-    // ── QS BAR: SURFACE & CORNERS ──
+    // ── CONTROL BAR: SURFACE & CORNERS ──
     {
         "tab": "Bar",
         "group": "SURFACE & CORNERS",
@@ -105,7 +106,7 @@ var rows = [
         "src": "shell"
     },
 
-    // ── QS BAR: ACCENT ──
+    // ── CONTROL BAR: ACCENT ──
     {
         "tab": "Bar",
         "group": "ACCENT",
@@ -117,7 +118,7 @@ var rows = [
         "src": "shell"
     },
 
-    // ── QS BAR: GAPS ──
+    // ── CONTROL BAR: GAPS ──
     {
         "tab": "Bar",
         "group": "GAPS",

@@ -452,15 +452,3 @@ func (p *powerProfilesState) applyActiveProfile(active string) {
 	}
 	p.lastApplyErr = ""
 }
-
-// saverActive reports whether Power Saver should shape the desktop: the active
-// power profile is power-saver and the user left "Follow the power profile" on
-// (performance.json powerProfileEffects, default on). Without a power-profiles
-// connection it reads false. Read by the palette / widget / visualiser unload
-// gates to reclaim memory while the machine is asking for frugality.
-func (d *daemon) saverActive() bool {
-	if d.pp == nil || !perfFlagDefault("powerProfileEffects", true) {
-		return false
-	}
-	return d.pp.activeProfile() == ppSaver
-}

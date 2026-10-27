@@ -131,6 +131,7 @@ func readCPUStat() (idle, total uint64, ok bool) {
 		}
 		return idle, sum, true
 	}
+	_ = sc.Err()
 	return 0, 0, false
 }
 
@@ -154,6 +155,7 @@ func cpuModelCores() (string, int) {
 			}
 		}
 	}
+	_ = sc.Err()
 	return model, cores
 }
 
@@ -183,6 +185,7 @@ func memTotalUsed() (total, used int64) {
 			avail = v * 1024
 		}
 	}
+	_ = sc.Err()
 	used = total - avail
 	if used < 0 {
 		used = 0
@@ -273,6 +276,7 @@ func diskVitals() []Disk {
 			Used:  int64(st.Blocks-st.Bfree) * bs,
 		}
 	}
+	_ = sc.Err()
 	out := make([]Disk, 0, len(order))
 	for _, src := range order {
 		out = append(out, byDev[src])

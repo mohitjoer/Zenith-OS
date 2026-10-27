@@ -615,6 +615,7 @@ func (c *acpConn) readLoop(out io.Reader) {
 			c.handleUpdate(msg.Params)
 		}
 	}
+	_ = sc.Err()
 	c.mu.Lock()
 	c.closed = true
 	for id, ch := range c.pending {

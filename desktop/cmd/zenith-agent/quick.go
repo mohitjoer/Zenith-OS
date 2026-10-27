@@ -380,6 +380,7 @@ func quickRound(ctx context.Context, t quickTarget, msgs []chatMessage, tools []
 			onDelta(d.Content)
 		}
 	}
+	_ = sc.Err()
 	var calls []toolCall
 	for _, idx := range order {
 		c := byIndex[idx]

@@ -146,10 +146,10 @@ func noBaselineBody(cfg string) string {
 		}
 	}
 	var b strings.Builder
-	b.WriteString("No shipped baseline found: no `/usr/share/zenith`, no\n" +
-		"`" + envName("CONFIG_BASE") + "`, and no dev checkout recorded, so a\n" +
-		"full shipped-vs-user diff is unavailable. Treat everything in `~/.config/zenith`\n" +
-		"as potentially user-owned.\n")
+	fmt.Fprintf(&b, "No shipped baseline found: no `/usr/share/zenith`, no\n"+
+		"`%s`, and no dev checkout recorded, so a\n"+
+		"full shipped-vs-user diff is unavailable. Treat everything in `~/.config/zenith`\n"+
+		"as potentially user-owned.\n", envName("CONFIG_BASE"))
 	if len(present) > 0 {
 		b.WriteString("\nThese override files are always user-owned and are present:\n\n")
 		bullets(&b, present)

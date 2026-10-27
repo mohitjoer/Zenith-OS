@@ -126,7 +126,8 @@ func systemBody() string {
 	if rows := diskRows(); len(rows) > 0 {
 		b.WriteString("| Device | Mount | Size | Used |\n|---|---|---|---|\n")
 		for _, r := range rows {
-			b.WriteString(r + "\n")
+			b.WriteString(r)
+			b.WriteByte('\n')
 		}
 	} else {
 		b.WriteString("(no block devices detected)\n")
@@ -284,13 +285,16 @@ type barSetting struct {
 // the packaged base, then the dev checkout the deploy recorded. Returns "" when
 // none exists.
 func barCatalogFile() string {
-	const rel = "shell/modules/bar/barstyles/qsbar/core/widgets.json"
+	const rel = "shell/modules/bar/barstyles/controlbar/core/widgets.json"
+	const legacyRel = "shell/modules/bar/barstyles/qsbar/core/widgets.json"
 	cands := []string{
 		filepath.Join(configHome(), "zenith", rel),
+		filepath.Join(configHome(), "zenith", legacyRel),
 		filepath.Join(baseConfigDir(), rel),
+		filepath.Join(baseConfigDir(), legacyRel),
 	}
 	if repo := recordedCheckout(); repo != "" {
-		cands = append(cands, filepath.Join(repo, rel))
+		cands = append(cands, filepath.Join(repo, rel), filepath.Join(repo, legacyRel))
 	}
 	for _, p := range cands {
 		if fileExists(p) {

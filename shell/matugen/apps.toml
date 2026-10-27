@@ -14,9 +14,3 @@ output_path = "~/.config/gtk-3.0/gtk.css"
 [templates.gtk4]
 input_path = "~/.config/zenith/shell/matugen/templates/gtk4-colors.css"
 output_path = "~/.config/gtk-4.0/gtk.css"
-
-# Kitty terminal theme. Enabled with "Theme apps" (theme.json themeApps).
-# Include in kitty.conf: include ~/.config/zenith/terminal/kitty.conf
-[templates.kitty]
-input_path = "~/.config/zenith/shell/matugen/templates/kitty.conf"
-output_path = "~/.config/zenith/terminal/kitty.conf"
