@@ -2553,7 +2553,11 @@ Item {
     property string workspaceMode: "active"   // "10", "5", "active"
     // ── workspace display style (orthogonal to mode; persisted) ──
     // "rings" is the stable cache token for the user-facing Frame style.
-    property string workspaceStyle: "default"   // default, numbers, magic, kanji, rings, aurora
+    property string workspaceStyle: "default"   // default, numbers, magic, kanji, rings, aurora, pacman
+    function workspaceStyleValid(s) {
+        return s === "default" || s === "numbers" || s === "magic" || s === "kanji"
+            || s === "rings" || s === "aurora" || s === "pacman"
+    }
     // The marker styles this variant offers (continuous V2 adds Kanji, Frame,
     // Aurora; "rings" is the persisted cache token for the Frame style).
     readonly property var workspaceStyleOptions: [
@@ -3117,8 +3121,7 @@ Item {
                     // cache layouts keep stable offsets.
                     if (parts.length > wsField + 8) {
                         var wss = parts[wsField + 8]
-                        if (wss === "numbers" || wss === "magic" || wss === "kanji"
-                                || wss === "rings" || wss === "aurora" || wss === "default")
+                        if (theme.workspaceStyleValid(wss))
                             theme.workspaceStyle = wss
                     }
                     if (parts.length > wsField + 9) {
@@ -3217,6 +3220,10 @@ Item {
         q.workspaceStyle = workspaceStyle
         q.pickerStyle = pickerStyle
         q.launcherLogoMode = launcherLogoMode
+        q.launcherLogoText = launcherLogoText
+        q.launcherLogoIcon = launcherLogoIcon
+        q.clock12h = clock12h
+        q.weatherImperial = weatherImperial
         q.aiTools = serializeAiTools()
         q.audioBoost = audioBoost
         q.barTemperatureSource = barTemperatureSource
@@ -3281,9 +3288,11 @@ Item {
         if (q.barAnim !== undefined) barAnim = q.barAnim
         if (q.barPosition === "top" || q.barPosition === "bottom") barPosition = q.barPosition
         if (q.workspaceMode !== undefined) workspaceMode = q.workspaceMode
-        if (q.workspaceStyle  !== undefined) workspaceStyle  = q.workspaceStyle
+        if (q.workspaceStyle  !== undefined && workspaceStyleValid(q.workspaceStyle)) workspaceStyle  = q.workspaceStyle
         if (q.pickerStyle     !== undefined) pickerStyle     = q.pickerStyle
-        if (q.launcherLogoMode !== undefined) launcherLogoMode = q.launcherLogoMode
+        applyLauncherConfig(q)
+        if (q.clock12h !== undefined) clock12h = q.clock12h === true
+        if (q.weatherImperial !== undefined) weatherImperial = q.weatherImperial === true
         if (q.aiTools !== undefined) parseAiTools(q.aiTools)
         if (q.audioBoost !== undefined) audioBoost = q.audioBoost === true
         if (q.barTemperatureSource !== undefined && barTemperatureSourceValid(q.barTemperatureSource)) barTemperatureSource = q.barTemperatureSource

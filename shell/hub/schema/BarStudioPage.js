@@ -106,17 +106,6 @@ var rows = [
         "src": "shell"
     },
 
-    // ── CONTROL BAR: ACCENT ──
-    {
-        "tab": "Bar",
-        "group": "ACCENT",
-        "key": "qsbar.barColor",
-        "label": "Palette accent slot",
-        "desc": "Which palette slot the bar draws its accent from, or follow wallpaper.",
-        "ctl": "chips",
-        "opts": ["accent", "color01", "color02", "color03", "color04", "color05", "color06", "color07", "color08", "color09", "color10", "color11", "color12", "color13", "color14", "color15", "color16"],
-        "src": "shell"
-    },
 
     // ── CONTROL BAR: GAPS ──
     {
