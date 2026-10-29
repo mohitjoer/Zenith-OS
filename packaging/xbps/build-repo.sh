@@ -11,12 +11,11 @@ xbps-install -Syu -y xbps
 xbps-install -yu -y
 xbps-install -y git curl tar xz ca-certificates make gcc go
 
-if [ ! -d "$VOID_PACKAGES_DIR" ]; then
-	echo "build-repo: cloning void-packages..."
-	git config --global http.postBuffer 524288000
-	git config --global core.compression 0
-	git clone --depth 1 --single-branch https://github.com/void-linux/void-packages.git "$VOID_PACKAGES_DIR" || \
-	(sleep 5 && git clone --depth 1 https://github.com/void-linux/void-packages.git "$VOID_PACKAGES_DIR")
+if [ ! -d "$VOID_PACKAGES_DIR/common" ]; then
+	echo "build-repo: downloading void-packages archive (fast ~9.5MB stream)..."
+	mkdir -p "$VOID_PACKAGES_DIR"
+	curl -sSL "https://codeload.github.com/void-linux/void-packages/tar.gz/refs/heads/master" | \
+		tar -xz -C "$VOID_PACKAGES_DIR" --strip-components=1
 fi
 
 cd "$VOID_PACKAGES_DIR"
