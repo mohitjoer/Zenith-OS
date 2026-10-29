@@ -327,10 +327,11 @@ jobs:
       - name: Verify ISO output
         run: |
           set -eu
-          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -maxdepth 1 -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          sudo chmod -R a+rwX "$RUNNER_TEMP/zenith-void-iso"
+          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           if [ -z "$iso" ]; then
             echo "::error::void-mklive completed without producing an ISO"
-            find "$RUNNER_TEMP/zenith-void-iso" -maxdepth 2 -type f -print
+            ls -laR "$RUNNER_TEMP/zenith-void-iso"
             exit 1
           fi
           test -s "$iso"

@@ -258,4 +258,5 @@ if [ ! -f "$FINAL_ISO" ]; then
 	exit 1
 fi
 
+chmod -R a+rwX "$BUILD_DIR" || true
 echo "build-iso-void: image written to $FINAL_ISO"
