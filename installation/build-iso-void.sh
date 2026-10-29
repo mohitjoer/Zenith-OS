@@ -42,9 +42,9 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 # Setup OS identity
 cat >"$INCLUDE_DIR/etc/os-release" <<'EOF'
 NAME="Zenith OS"
-PRETTY_NAME="Zenith OS Beta 001 (Void)"
+PRETTY_NAME="Zenith OS Beta 001"
 ID=zenith
-ID_LIKE="void linux"
+ID_LIKE="linux"
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
 HOME_URL="https://zenithos.dev/"
@@ -53,10 +53,35 @@ BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
 EOF
 
 printf 'zenith-os\n' >"$INCLUDE_DIR/etc/hostname"
-cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
-Zenith OS Beta 001 (Void Linux base)
 
-Welcome to Zenith OS.
+cat >"$INCLUDE_DIR/etc/issue" <<'EOF'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001 (\m)
+         ███          Kernel \r on an \m (\l)
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
+EOF
+
+cat >"$INCLUDE_DIR/etc/issue.net" <<'EOF'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+         ███          https://zenithos.dev
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
+EOF
+
+cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+         ███          https://zenithos.dev
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
 EOF
 
 # Copy branding assets
@@ -64,6 +89,10 @@ cp "$REPO_ROOT/public/zenith-logo.svg" \
 	"$INCLUDE_DIR/usr/share/zenith/branding/"
 cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" \
 	"$INCLUDE_DIR/usr/share/zenith/branding/"
+if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
+	cp "$REPO_ROOT/public/branding/boot-splash.png" \
+		"$INCLUDE_DIR/usr/share/zenith/branding/boot-splash.png"
+fi
 
 # Copy session files and runit user services
 cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/share/zenith/session/zenith-session"
@@ -215,6 +244,18 @@ if ! chroot "$ROOTFS" id zenith >/dev/null 2>&1; then
 fi
 echo "zenith:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 
+# Reset root and anon passwords to eliminate upstream voidlinux defaults
+echo "root:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+if chroot "$ROOTFS" id anon >/dev/null 2>&1; then
+	echo "anon:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+fi
+
+# Neutralize upstream installer command to launch Zenith installer
+if [ -f "$ROOTFS/usr/bin/void-installer" ]; then
+	rm -f "$ROOTFS/usr/bin/void-installer"
+	ln -sf /usr/bin/zenith-installer "$ROOTFS/usr/bin/void-installer"
+fi
+
 # Sudo permissions for wheel group
 echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$ROOTFS/etc/sudoers.d/wheel"
 chmod 0440 "$ROOTFS/etc/sudoers.d/wheel"
@@ -223,11 +264,87 @@ chmod 0440 "$ROOTFS/etc/sudoers.d/wheel"
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1"
 echo 'GETTY_ARGS="--autologin zenith --noclear"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
 
-# Auto-start Zenith Wayland desktop on tty1 login
+# Overwrite OS identity inside ROOTFS
+cat >"$ROOTFS/etc/os-release" <<'OSREL'
+NAME="Zenith OS"
+PRETTY_NAME="Zenith OS Beta 001"
+ID=zenith
+ID_LIKE="linux"
+VERSION_ID="0.1"
+VERSION_CODENAME=beta-001
+HOME_URL="https://zenithos.dev/"
+SUPPORT_URL="https://zenithos.dev/support"
+BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
+OSREL
+
+# Branding replacement: Change Welcome to Void! to Welcome to Zenith OS! in the boot sequence
+for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit/3" "$ROOTFS/etc/rc.local"; do
+	if [ -f "$runit_file" ]; then
+		sed -i 's/Welcome to Void!/Welcome to Zenith OS!/g' "$runit_file"
+		sed -i 's/Welcome to Void Linux!/Welcome to Zenith OS!/g' "$runit_file"
+		sed -i 's/Void Linux/Zenith OS/g' "$runit_file"
+	fi
+done
+
+# Set Zenith OS hostname and network identity
+printf 'zenith-os\n' > "$ROOTFS/etc/hostname"
+if [ -f "$ROOTFS/etc/rc.conf" ]; then
+	sed -i 's/^#\?HOSTNAME=.*/HOSTNAME="zenith-os"/' "$ROOTFS/etc/rc.conf"
+	if ! grep -q '^HOSTNAME=' "$ROOTFS/etc/rc.conf"; then
+		echo 'HOSTNAME="zenith-os"' >> "$ROOTFS/etc/rc.conf"
+	fi
+fi
+if [ -f "$ROOTFS/etc/hosts" ]; then
+	sed -i 's/void-live/zenith-os/g' "$ROOTFS/etc/hosts"
+fi
+
+# Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Zenith OS wordmark and logo
+cat >"$ROOTFS/etc/issue" <<'ISSUE'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001 (\m)
+         ███          Kernel \r on an \m (\l)
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
+ISSUE
+
+cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+         ███          https://zenithos.dev
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
+ISSUENET
+
+cat >"$ROOTFS/etc/motd" <<'MOTD'
+     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+         ███          https://zenithos.dev
+    █████████████
+     ███ ███ ███      天 — Robust. Minimal. Kinetic.
+    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
+   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+
+MOTD
+
+# Auto-start Zenith Wayland desktop on tty1 login (with safe fallback if compositor exits)
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
-	exec /usr/share/zenith/session/zenith-session
+	echo "Starting Zenith OS graphical session..."
+	if ! /usr/share/zenith/session/zenith-session; then
+		echo
+		echo "================================================================"
+		echo "  Zenith graphical desktop session exited."
+		echo "  Log available at: ~/.local/state/zenith/session.log"
+		echo
+		echo "  To launch the installer directly, run: sudo zenith install"
+		echo "  To retry launching the desktop, run: zenith-session"
+		echo "================================================================"
+		echo
+	fi
 fi
 PROFILE
 chmod 0755 "$ROOTFS/etc/profile.d/zenith-autologin.sh"
@@ -236,7 +353,7 @@ chmod +x "$POSTSETUP_SCRIPT"
 
 FINAL_ISO="$BUILD_DIR/$ISO_NAME.iso"
 
-# Run mklive to produce the image with hybrid graphics & power kernel arguments
+# Run mklive to produce the image with boot splash & hybrid graphics
 echo "build-iso-void: generating ISO with void-mklive..."
 (
 	cd "$MKLIVE_DIR"
@@ -246,6 +363,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
+		-s "$REPO_ROOT/public/branding/boot-splash.png" \
 		-S "dbus seatd elogind NetworkManager" \
 		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \

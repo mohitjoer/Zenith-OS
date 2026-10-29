@@ -45,6 +45,16 @@ grep -Fq 'NVreg_DynamicPowerManagement=0x02' "$SCRIPT"
 grep -Fq '99-zenith-power.rules' "$SCRIPT"
 grep -Fq 'turnstile.conf' "$SCRIPT"
 grep -Fq 'system/xbps.d/zenith.conf' "$SCRIPT"
+grep -Fq 'boot-splash.png' "$SCRIPT"
+grep -Fq 'Welcome to Zenith OS!' "$SCRIPT"
+grep -Fq 'etc/issue' "$SCRIPT"
+grep -Fq 'etc/motd' "$SCRIPT"
+
+# Verify boot splash asset exists
+if [ ! -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
+	echo "build-iso-void_test: public/branding/boot-splash.png missing" >&2
+	exit 1
+fi
 
 # Verify packages in packages-void.yaml
 grep -Fq 'base-system' "$MANIFEST"

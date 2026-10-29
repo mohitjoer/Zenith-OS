@@ -78,6 +78,11 @@ export XCURSOR_THEME=Adwaita
 # session starts.
 export WLR_NO_HARDWARE_CURSORS=1
 
+# Software renderer and scanout fallbacks for virtual machines (VirtualBox, QEMU)
+# and systems lacking hardware cursor planes or explicit sync modifiers.
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+export AQ_NO_MODIFIERS=1
+
 # Machine-level additions, then the user's overlay. Written as `if`, not as
 # `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
 # session before the compositor ever starts, which is a confusing way to fail.
@@ -156,17 +161,27 @@ echo "zenith-session: env ok, starting Hyprland"
 # is a desktop with no keybindings at all: a launcher nobody can open and a
 # switcher nobody can drive.
 #
-# Started through start-hyprland rather than through the compositor itself,
-# because start-hyprland is a watchdog: it restarts the compositor when the
-# compositor dies, and a compositor that dies takes the session with it. A
-# session that ends because a graphics driver threw an assertion is a session
-# that loses whatever the user was doing, and Hyprland says as much when it is
-# started without it.
-#
-# The arguments after `--` are the compositor's own, and the compositor's
-# configuration is one of them.
-#
-# Overridable for testing: the session's one job is the environment, and
-# testing that needs a target that is not a compositor.
-exec "${ZENITH_COMPOSITOR:-/usr/bin/start-hyprland}" -- \
-    -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"
+# Detect compositor executable: on Void Linux the packaged binary is Hyprland,
+# while some distributions package a start-hyprland watchdog wrapper.
+COMPOSITOR="${ZENITH_COMPOSITOR:-}"
+if [ -z "$COMPOSITOR" ]; then
+    if command -v start-hyprland >/dev/null 2>&1; then
+        COMPOSITOR="start-hyprland"
+    elif command -v Hyprland >/dev/null 2>&1; then
+        COMPOSITOR="Hyprland"
+    elif command -v hyprland >/dev/null 2>&1; then
+        COMPOSITOR="hyprland"
+    else
+        COMPOSITOR="/usr/bin/Hyprland"
+    fi
+fi
+
+# start-hyprland expects arguments after `--`, whereas native Hyprland
+# expects flags directly.
+if echo "$COMPOSITOR" | grep -q "start-hyprland"; then
+    exec "$COMPOSITOR" -- \
+        -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"
+else
+    exec "$COMPOSITOR" \
+        -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"
+fi
