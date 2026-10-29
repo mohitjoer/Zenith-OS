@@ -29,4 +29,4 @@ Design rationale belongs in [`docs/architecture.md`](../architecture.md). Durabl
 and style patterns belong in [`agents/agents.md`](../../agents/agents.md). Durability is the
 test: if the note is only interesting on the day it was written, it does not need to be here.
 
-The journal is the trail, not the destination.
+The journal is the trail, not the destination. 
