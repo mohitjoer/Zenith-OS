@@ -45,31 +45,39 @@ jobs:
               xbps-install -yu -y
               xbps-install -y git curl tar xz ca-certificates make gcc go
 
-              # Clone void-packages
-              git clone --depth 1 https://github.com/void-linux/void-packages.git /tmp/void-packages
-              cd /tmp/void-packages
+              # Create unprivileged build user
+              useradd -m -U builder
+              chown -R builder:builder /tmp
 
-              # Enable container breakout & bootstrap xbps-src
-              echo "XBPS_ALLOW_CHROOT_BREAKOUT=yes" >> etc/conf
-              ./xbps-src binary-bootstrap
+              # Clone void-packages and bootstrap
+              su builder -c '
+                git clone --depth 1 https://github.com/void-linux/void-packages.git /tmp/void-packages
+                cd /tmp/void-packages
+                echo "XBPS_ALLOW_CHROOT_BREAKOUT=yes" >> etc/conf
+                ./xbps-src binary-bootstrap
 
-              # Stage custom Zenith XBPS templates
-              for pkgdir in /workspace/packaging/xbps/*; do
-                [ -d "$pkgdir" ] || continue
-                pkgname=$(basename "$pkgdir")
-                echo "Staging template for $pkgname..."
-                cp -r "$pkgdir" "srcpkgs/$pkgname"
-              done
+                # Stage custom Zenith XBPS templates
+                for pkgdir in /workspace/packaging/xbps/*; do
+                  [ -d "$pkgdir" ] || continue
+                  pkgname=$(basename "$pkgdir")
+                  echo "Staging template for $pkgname..."
+                  cp -r "$pkgdir" "srcpkgs/$pkgname"
+                done
 
-              # Build zenith control plane package
-              ./xbps-src pkg zenith
+                # Stage workspace into builddir for zenith package
+                mkdir -p masterdir/builddir/zenith-0.1
+                cp -r /workspace/. masterdir/builddir/zenith-0.1/
 
-              # Index repository
-              mkdir -p /workspace/build/xbps-repo
-              cp -r hostdir/binpkgs/* /workspace/build/xbps-repo/ 2>/dev/null || true
-              cd /workspace/build/xbps-repo
-              xbps-rindex -a *.xbps 2>/dev/null || true
-              ls -la
+                # Build package
+                ./xbps-src -N pkg zenith
+
+                # Copy binaries to workspace
+                mkdir -p /workspace/build/xbps-repo
+                cp -r hostdir/binpkgs/* /workspace/build/xbps-repo/ 2>/dev/null || true
+                cd /workspace/build/xbps-repo
+                xbps-rindex -a *.xbps 2>/dev/null || true
+                ls -la
+              '
             '
 
       - name: Upload XBPS repository artifact

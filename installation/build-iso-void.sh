@@ -246,7 +246,6 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
-		-u zenith \
 		-S "dbus seatd elogind NetworkManager" \
 		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \

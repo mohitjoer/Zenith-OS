@@ -13,21 +13,21 @@ license="MIT"
 homepage="https://zenithos.dev"
 
 post_install() {
-	vlicense ../LICENSE
+	vlicense LICENSE
 	# Install session scripts and Wayland desktop entry
-	vinstall ../session/zenith-session 755 usr/share/zenith/session
-	vinstall ../session/zenith-activate 755 usr/share/zenith/session
-	vinstall ../session/runit/zenith-user-services 755 usr/bin
-	vinstall ../system/helpers/prime-run 755 usr/bin
-	vinstall ../session/zenith.desktop 644 usr/share/wayland-sessions
+	vinstall session/zenith-session 755 usr/share/zenith/session
+	vinstall session/zenith-activate 755 usr/share/zenith/session
+	vinstall session/runit/zenith-user-services 755 usr/bin
+	vinstall system/helpers/prime-run 755 usr/bin
+	vinstall session/zenith.desktop 644 usr/share/wayland-sessions
 
 	# Install runit service templates
 	vmkdir usr/share/zenith/runit/services
-	vcopy "../system/runit/user-services/*" usr/share/zenith/runit/services
+	vcopy "system/runit/user-services/*" usr/share/zenith/runit/services
 
 	# Install system runit service (zenith-sysd)
 	vsv zenith-sysd
 
 	# Install udev power rules
-	vinstall ../system/udev/99-zenith-power.rules 644 usr/lib/udev/rules.d
+	vinstall system/udev/99-zenith-power.rules 644 usr/lib/udev/rules.d
 }
