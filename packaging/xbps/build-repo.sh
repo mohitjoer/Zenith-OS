@@ -1,50 +1,84 @@
 #!/bin/sh
-# Build Zenith XBPS packages and repository index using void-packages / xbps-src
+# Build Zenith XBPS binary package and repository index using xbps-create and xbps-rindex
 set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 BUILD_DIR="${1:-$REPO_ROOT/build/xbps-repo}"
-VOID_PACKAGES_DIR="${2:-/tmp/void-packages}"
+VERSION="${ZENITH_VERSION:-0.1}"
+BIN_DIR="${2:-$REPO_ROOT/build/bin}"
 
-echo "build-repo: updating XBPS tools in container..."
-xbps-install -Syu -y xbps
-xbps-install -yu -y
-xbps-install -y git curl tar xz ca-certificates make gcc go
+STAGE=$(mktemp -d /tmp/zenith-stage.XXXXXX)
+cleanup() {
+	rm -rf "$STAGE"
+}
+trap cleanup EXIT
 
-if [ ! -d "$VOID_PACKAGES_DIR/common" ]; then
-	echo "build-repo: downloading void-packages archive (fast ~9.5MB stream)..."
-	mkdir -p "$VOID_PACKAGES_DIR"
-	curl -sSL "https://codeload.github.com/void-linux/void-packages/tar.gz/refs/heads/master" | \
-		tar -xz -C "$VOID_PACKAGES_DIR" --strip-components=1
+echo "build-repo: staging Zenith files into $STAGE..."
+mkdir -p \
+	"$STAGE/usr/bin" \
+	"$STAGE/usr/share/zenith/session" \
+	"$STAGE/usr/share/zenith/runit/services" \
+	"$STAGE/usr/share/applications" \
+	"$STAGE/usr/share/wayland-sessions" \
+	"$STAGE/usr/lib/udev/rules.d" \
+	"$STAGE/etc/sv/zenith-sysd" \
+	"$STAGE/usr/share/licenses/zenith"
+
+# Build binaries if not provided in build/bin
+if [ ! -f "$BIN_DIR/zenith" ]; then
+	echo "build-repo: compiling Go binaries..."
+	mkdir -p "$BIN_DIR"
+	(
+		cd "$REPO_ROOT/desktop"
+		for cmd in zenith zenith-sysd zenith-userd zenith-hubd zenith-shell zenith-wallpaper zpm; do
+			CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$BIN_DIR/$cmd" "./cmd/$cmd"
+		done
+	)
 fi
 
-cd "$VOID_PACKAGES_DIR"
-echo "XBPS_ALLOW_CHROOT_BREAKOUT=yes" >> etc/conf
-
-echo "build-repo: bootstrapping xbps-src..."
-./xbps-src binary-bootstrap
-
-echo "build-repo: staging Zenith XBPS templates..."
-for pkgdir in "$REPO_ROOT/packaging/xbps"/*; do
-	[ -d "$pkgdir" ] || continue
-	pkgname=$(basename "$pkgdir")
-	echo "  staging srcpkgs/$pkgname..."
-	rm -rf "srcpkgs/$pkgname"
-	cp -r "$pkgdir" "srcpkgs/$pkgname"
+# Install Go control plane daemons and utilities
+for cmd in zenith zenith-sysd zenith-userd zenith-hubd zenith-shell zenith-wallpaper zpm; do
+	install -m 755 "$BIN_DIR/$cmd" "$STAGE/usr/bin/$cmd"
 done
 
-# Stage workspace checkout into masterdir for zenith package
-mkdir -p masterdir/builddir/zenith-0.1
-cp -r "$REPO_ROOT/." masterdir/builddir/zenith-0.1/
+# Install scripts and helpers
+install -m 755 "$REPO_ROOT/system/helpers/prime-run" "$STAGE/usr/bin/prime-run"
+install -m 755 "$REPO_ROOT/session/runit/zenith-user-services" "$STAGE/usr/bin/zenith-user-services"
+install -m 755 "$REPO_ROOT/installation/zenith-installer.sh" "$STAGE/usr/bin/zenith-installer"
+install -m 755 "$REPO_ROOT/session/zenith-session" "$STAGE/usr/share/zenith/session/zenith-session"
+install -m 755 "$REPO_ROOT/session/zenith-activate" "$STAGE/usr/share/zenith/session/zenith-activate"
 
-echo "build-repo: building package zenith..."
-./xbps-src -N pkg zenith
+# Install desktop and wayland session entries
+install -m 644 "$REPO_ROOT/session/applications/zenith-installer.desktop" "$STAGE/usr/share/applications/zenith-installer.desktop"
+install -m 644 "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/wayland-sessions/zenith.desktop"
 
-echo "build-repo: indexing repository..."
+# Install user-level runit service templates
+cp -r "$REPO_ROOT/system/runit/user-services/"* "$STAGE/usr/share/zenith/runit/services/"
+find "$STAGE/usr/share/zenith/runit/services" -name "run" -exec chmod 755 {} +
+
+# Install system runit service (zenith-sysd)
+install -m 755 "$REPO_ROOT/system/runit/services/zenith-sysd/run" "$STAGE/etc/sv/zenith-sysd/run"
+
+# Install udev rules and license
+install -m 644 "$REPO_ROOT/system/udev/99-zenith-power.rules" "$STAGE/usr/lib/udev/rules.d/99-zenith-power.rules"
+install -m 644 "$REPO_ROOT/LICENSE" "$STAGE/usr/share/licenses/zenith/LICENSE"
+
+echo "build-repo: creating XBPS binary package..."
 mkdir -p "$BUILD_DIR"
-cp -r hostdir/binpkgs/* "$BUILD_DIR/" 2>/dev/null || true
-cd "$BUILD_DIR"
-xbps-rindex -a *.xbps 2>/dev/null || true
-ls -la
+xbps-create \
+	-A x86_64 \
+	-n "zenith-${VERSION}_1" \
+	-s "Zenith OS control plane, session daemons, and system integration" \
+	-m "Zenith OS Project <dev@zenithos.dev>" \
+	-l "MIT" \
+	-H "https://zenithos.dev" \
+	-D "hyprland quickshell seatd turnstile ghostty papirus-icon-theme font-awesome" \
+	"$STAGE"
 
-echo "build-repo: repository ready at $BUILD_DIR"
+mv "zenith-${VERSION}_1.x86_64.xbps" "$BUILD_DIR/"
+
+echo "build-repo: indexing repository at $BUILD_DIR..."
+xbps-rindex -a "$BUILD_DIR"/zenith-*.xbps
+
+echo "build-repo: repository ready at $BUILD_DIR:"
+ls -lh "$BUILD_DIR"
