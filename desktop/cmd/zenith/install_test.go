@@ -5,9 +5,12 @@ import (
 )
 
 func TestInstallSubcommand(t *testing.T) {
-	// Running without arguments in test environment where disk isn't provided
-	// should attempt to run the script or print usage
-	if _, taken := extraCommands["install"]; !taken {
+	cmd, taken := extraCommands["install"]
+	if !taken {
 		t.Fatalf("zenith install command not registered")
+	}
+
+	if code := cmd.run([]string{"--help"}); code != exitOK {
+		t.Errorf("zenith install --help returned %d, want %d", code, exitOK)
 	}
 }

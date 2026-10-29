@@ -18,6 +18,11 @@ func init() {
 }
 
 func zenithInstall(args []string) int {
+	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
+		fmt.Fprint(os.Stdout, installUsage)
+		return exitOK
+	}
+
 	installerPath := "/usr/bin/zenith-installer"
 	if _, err := os.Stat(installerPath); err != nil {
 		// Fallback to repository location if testing in dev

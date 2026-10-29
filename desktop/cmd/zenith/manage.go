@@ -68,7 +68,7 @@ func zenithUpdate(args []string) int {
 
 	var fetch func() error
 	if !*dryRun {
-		fetch = aptFetch
+		fetch = zenFetch
 	} else {
 		fetch = nil
 	}
