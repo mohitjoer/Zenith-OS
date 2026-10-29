@@ -340,7 +340,7 @@ jobs:
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v6
         with:
-          name: zenith-os-void-beta-001
+          name: zenith-os-beta-001
           path: |
             ${{ runner.temp }}/zenith-void-iso/*.iso
             ${{ runner.temp }}/zenith-void-iso/*.iso.sha256

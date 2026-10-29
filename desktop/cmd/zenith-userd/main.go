@@ -25,7 +25,7 @@ import (
 
 const (
 	sysSocketPath = "/run/zenith.sock"
-	version       = "0.1-void"
+	version       = "0.1-beta"
 )
 
 type ShellConfig struct {

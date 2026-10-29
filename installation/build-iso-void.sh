@@ -9,7 +9,7 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR=${1:-"$REPO_ROOT/build/iso-void"}
 ARCH=${ZENITH_ARCH:-x86_64}
 MIRROR=${ZENITH_MIRROR:-https://repo-default.voidlinux.org/current}
-ISO_NAME=zenith-os-void-beta-001
+ISO_NAME=zenith-os-beta-001
 ISO_TITLE="Zenith OS Beta 001"
 
 for tool in python3 git curl; do
@@ -29,6 +29,7 @@ BUILD_DIR=$(CDPATH= cd -- "$BUILD_DIR" && pwd)
 INCLUDE_DIR="$BUILD_DIR/include"
 mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/etc/udev/rules.d" \
+	"$INCLUDE_DIR/etc/sysctl.d" \
 	"$INCLUDE_DIR/etc/turnstile" \
 	"$INCLUDE_DIR/etc/xbps.d" \
 	"$INCLUDE_DIR/usr/bin" \
@@ -108,8 +109,9 @@ cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
 cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
 chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services" "$INCLUDE_DIR/usr/bin/prime-run" "$INCLUDE_DIR/usr/bin/zenith-installer"
 
-# Copy udev power rules, turnstile session configuration, and XBPS repository list
+# Copy udev power rules, sysctl performance tuning, turnstile config, and XBPS repos
 cp "$REPO_ROOT/system/udev/99-zenith-power.rules" "$INCLUDE_DIR/etc/udev/rules.d/99-zenith-power.rules"
+cp "$REPO_ROOT/system/sysctl.d/99-zenith-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-zenith-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
 cp "$REPO_ROOT/system/xbps.d/zenith.conf" "$INCLUDE_DIR/etc/xbps.d/zenith.conf"
 
@@ -145,6 +147,8 @@ echo "build-iso-void: building Zenith Go binaries..."
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zpm" ./cmd/zpm
 )
 chmod 0755 "$INCLUDE_DIR/usr/bin"/zenith* "$INCLUDE_DIR/usr/bin"/zpm
+# Symlink os-ctl to zenith for role switcher parity
+ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 
 # Stage system runit services (zenith-sysd)
 mkdir -p "$INCLUDE_DIR/etc/sv/zenith-sysd"
@@ -201,6 +205,12 @@ if [ ! -d "$MKLIVE_DIR" ]; then
 	git clone --depth 1 https://github.com/void-linux/void-mklive.git "$MKLIVE_DIR"
 fi
 
+# Overwrite upstream mklive issue and motd data files to eliminate upstream branding
+if [ -d "$MKLIVE_DIR/data" ]; then
+	cp "$INCLUDE_DIR/etc/issue" "$MKLIVE_DIR/data/issue"
+	cp "$INCLUDE_DIR/etc/motd" "$MKLIVE_DIR/data/motd"
+fi
+
 # Ensure XBPS tools are available (if running on a non-Void host, fetch xbps-static)
 if ! command -v xbps-install >/dev/null 2>&1; then
 	echo "build-iso-void: xbps-install not found on host, setting up xbps-static..."
@@ -250,11 +260,17 @@ if chroot "$ROOTFS" id anon >/dev/null 2>&1; then
 	echo "anon:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 fi
 
-# Neutralize upstream installer command to launch Zenith installer
+# Neutralize upstream installer and docs commands
 if [ -f "$ROOTFS/usr/bin/void-installer" ]; then
 	rm -f "$ROOTFS/usr/bin/void-installer"
 	ln -sf /usr/bin/zenith-installer "$ROOTFS/usr/bin/void-installer"
 fi
+
+cat >"$ROOTFS/usr/bin/void-docs" <<'DOCS'
+#!/bin/sh
+echo "Zenith OS documentation is available at: https://zenithos.dev"
+DOCS
+chmod 0755 "$ROOTFS/usr/bin/void-docs"
 
 # Sudo permissions for wheel group
 echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$ROOTFS/etc/sudoers.d/wheel"
@@ -365,7 +381,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s "$REPO_ROOT/public/branding/boot-splash.png" \
 		-S "dbus seatd elogind NetworkManager" \
-		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 quiet splash" \
+		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"

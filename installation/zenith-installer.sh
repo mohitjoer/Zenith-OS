@@ -1,6 +1,6 @@
 #!/bin/sh
 # Zenith OS Guided System Installer
-# Installs Zenith OS (Void Linux base) onto target drive.
+# Installs Zenith OS onto target drive.
 set -eu
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -63,7 +63,7 @@ wipefs -a "$TARGET_DISK"
 parted -s "$TARGET_DISK" mklabel gpt
 parted -s "$TARGET_DISK" mkpart "ESP" fat32 1MiB 513MiB
 parted -s "$TARGET_DISK" set 1 esp on
-parted -s "$TARGET_DISK" mkpart "ZenithRoot" ext4 513MiB 100%
+parted -s "$TARGET_DISK" mkpart "ZenithRoot" 513MiB 100%
 
 # Resolve partition names (e.g. /dev/nvme0n1p1 vs /dev/vda1)
 if [ -b "${TARGET_DISK}p1" ]; then
@@ -79,12 +79,24 @@ sleep 2
 
 echo "[2/6] Formatting partitions..."
 mkfs.vfat -F 32 -n "ZENITH_ESP" "$PART_EFI"
-mkfs.ext4 -F -L "ZENITH_ROOT" "$PART_ROOT"
 
-echo "[3/6] Mounting filesystems..."
 TARGET_DIR="/mnt/zenith-target"
 mkdir -p "$TARGET_DIR"
-mount "$PART_ROOT" "$TARGET_DIR"
+
+if command -v mkfs.btrfs >/dev/null 2>&1; then
+	echo "Using high-performance Btrfs filesystem with zstd compression..."
+	mkfs.btrfs -f -L "ZENITH_ROOT" "$PART_ROOT"
+	FS_TYPE="btrfs"
+	FS_OPTS="defaults,noatime,compress=zstd:1"
+	mount -o "$FS_OPTS" "$PART_ROOT" "$TARGET_DIR"
+else
+	echo "Using ext4 filesystem..."
+	mkfs.ext4 -F -L "ZENITH_ROOT" "$PART_ROOT"
+	FS_TYPE="ext4"
+	FS_OPTS="defaults,noatime"
+	mount "$PART_ROOT" "$TARGET_DIR"
+fi
+
 mkdir -p "$TARGET_DIR/boot/efi"
 mount "$PART_EFI" "$TARGET_DIR/boot/efi"
 
@@ -108,7 +120,7 @@ EFI_UUID=$(blkid -s UUID -o value "$PART_EFI")
 
 cat >"$TARGET_DIR/etc/fstab" <<EOF
 # /etc/fstab: static file system information for Zenith OS
-UUID=$ROOT_UUID / ext4 defaults,noatime 0 1
+UUID=$ROOT_UUID / $FS_TYPE $FS_OPTS 0 0
 UUID=$EFI_UUID /boot/efi vfat defaults,noatime,umask=0077 0 2
 tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
 EOF

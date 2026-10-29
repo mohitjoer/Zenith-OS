@@ -28,7 +28,7 @@ const pkgUsage = `Usage: zenith pkg [-flatpak] [-repo URL] verb [package...]
 
 Verbs: install, remove, search, update, upgrade.
 
-The package manager is picked by what the machine runs: xbps when the Void
+The package manager is picked by what the machine runs: xbps when the native
 base is on, apt otherwise. A package name that carries an application id
 (org.mozilla.firefox) is routed to flatpak, and --flatpak forces that; the
 route must already have its remote enabled, because nothing here chooses one.
