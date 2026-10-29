@@ -18,17 +18,14 @@ Nothing reaches up to touch it. That is the standard the project holds itself to
 why the base layer is treated as substrate and never as identity — see
 [the base-layer boundary](docs/architecture.md#the-base-layer-boundary).
 
-Zenith is a Linux distribution. Its **base layer** is Ubuntu Server 26.04 LTS. Everything above
+Zenith is a Linux distribution. Its **primary base layer** is Void Linux x86_64 (glibc). Everything above
 that line is Zenith's own — its compositor configuration, its shell drawn in Quickshell, its
-control tools, its hardware matrix, its updater.
+control tools, its hardware matrix, its updater, and its supervised session daemons.
 
-Zenith is not an Ubuntu flavour. Ubuntu supplies the substrate and nothing else. Zenith is the
-distribution; Ubuntu is what Zenith is built on top of.
+Zenith is not a Void spin. Void supplies the minimalist, lightning-fast substrate and nothing else. Zenith is the
+distribution; Void Linux is what Zenith is built on top of (with dual-stack support for Debian/Ubuntu environments).
 
-> **Status: pre-alpha.** There is no ISO and no installer, so nothing here boots on its own.
-> What runs is the Zenith session on a stock Ubuntu Server 26.04 install, from the `zenith` package
-> this repository builds; `zenith adopt --check` is the preflight, and switching a machine
-> over is not implemented yet. Do not install this on anything you care about.
+> **Status: Beta.** Live bootable ISO images (`zenith-os-void-beta-001.iso`) build cleanly in CI and run a fully functional live environment with automated Wayland desktop login. The guided desktop installer (`zenith install` / `zenith-installer.desktop`) partitions disks, installs rootfs, and configures GRUB EFI.
 
 ---
 
@@ -40,48 +37,33 @@ hardware profile for your specific machine, and an updater that can roll back.
 
 | Layer | Choice |
 |---|---|
-| Base layer | Ubuntu Server 26.04 LTS — the substrate only |
-| Compositor | Hyprland |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's design language |
-| Control tools | Go — `zenith`, `zenith-shell` (the shell daemon, run as `zenithd.service`), `zenith-hubd` (the Hub's data plane), and the wallpaper, agent, store and VM tools |
+| Base layer | Void Linux x86_64 (glibc) — the substrate only |
+| Init System | runit (system daemons) + user-level runit supervisor (`zenith-user-services`) |
+| Seat Management | seatd (`LIBSEAT_BACKEND=seatd`) / elogind |
+| Compositor | Hyprland (Wayland) |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's monochrome design language |
+| Control tools | Go — `zenith`, `zenith-sysd` (root daemon at `/run/zenith.sock`), `zenith-userd` (session daemon), `zenith-shell`, `zenith-hubd`, `zenith-wallpaper`, and `zpm` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
-| Terminal | Ghostty, from the base layer's archive — configured by Zenith, never rebuilt |
+| GPU & Power | `zenith gpu` (PCI inspection & `prime-run` offload), `zenith power` (profiles & NVIDIA RTX 3050 D3cold management) |
+| Terminal | Ghostty — strictly supported, configured by Zenith, never kitty |
 | User shell | zsh + starship |
 | Editor | Neovim |
-| Boot chain | Limine |
-| Login manager | SDDM, in Wayland greeter mode |
-| Desktop services | pipewire + wireplumber, power-profiles-daemon, iwd, NetworkManager, fprintd |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for the Secret interface |
-| Package manager | APT, with a signed first-party repository |
+| Boot chain | GRUB / Limine EFI |
+| Installer | `zenith install` / `zenith-installer.desktop` guided system installer |
+| Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
+| Package manager | XBPS, with first-party repository `zenith-xbps-repo`, plus `zpm` package manager frontend |
 | Agent layer | resident OS agent with a local knowledge vault |
 
 The desktop shell is inspired by ryoku.
 
-### Why Ubuntu is the base layer
+### Why Void Linux is the base layer
 
-Ubuntu's reason for existing in Zenith is hardware reach, not convenience. Zenith targets laptops,
-and the hardest part of that is drivers. Ubuntu's archive has the widest firmware, DKMS and
-hardware-enablement coverage of any Linux distribution, and it carries the firmware packages
-laptops need, which Zenith references rather than repackages. The base is chosen for hardware
-reach.
-
-26.04 LTS specifically: the HWE kernel stream is an archive of its own here, and that stream is
-the hardware reach the whole distribution exists for.
-
-One thing the base layer's reach does not settle is the terminal. It carries Ghostty, but in
-`universe` and a version behind upstream, which leaves two honest options: build it, or take
-what the archive has. Zenith takes what the archive has. It installs that package as-is rather
-than rebuilding it, and accepts the gap in exchange for a terminal that costs nothing to
-maintain — no source pin to resolve, no rebuild against each rebase, and no `zenith-terminal`
-release to ship when Ghostty patches. A version behind is a gap; a build is a liability that
-grows every release cycle, and the gap is the cheaper one. Ghostty is still the most capable
-terminal in the stack, and what Zenith ships around it is configuration, not packaging.
-
-Taking the archive's terminal also means the base version is a free parameter again. Ghostty's
-own policy is "minimum GTK/Adwaita in the most recent LTS at the time of a minor release", and a
-distribution building it would have inherited that as a constraint. Zenith does not build it, so
-the floor is the archive's problem and `26.04` is chosen above for one reason only: hardware
-reach.
+Void Linux provides a clean, bloat-free foundation:
+1. **glibc x86_64**: Complete binary compatibility with NVIDIA proprietary drivers, Steam, Electron, and modern developer toolchains.
+2. **runit init system**: Fast, predictable service supervision without systemd overhead, paired with Zenith's user-level session supervisor (`zenith-user-services`).
+3. **XBPS package manager**: Fast package installation and native binary package generation (`xbps-create`, `xbps-rindex`).
+4. **Hardware reach**: Direct support for hybrid graphics offloading (`prime-run`) and fine-grained power management.
 
 ### No GNOME
 

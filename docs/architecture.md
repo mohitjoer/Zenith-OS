@@ -6,7 +6,7 @@ This document records **decisions, not aspirations**. Where a decision is settle
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
 closed question or assumes an open one is closed.
 
-The ISO, the Limine/UKI boot chain and Btrfs rollback below are decided but deferred, not shipped: the product today is the Zenith session on a stock Ubuntu Server 26.04 install, laid down by the `zenith` package (`zenith adopt --check` is the preflight), and `zenith update` rolls back through the config git snapshot.
+Zenith OS is powered by a Void Linux x86_64 (glibc) base layer with runit service supervision and seatd seat management, paired with a bootable Live ISO (`build-iso-void.sh`), automated installer (`zenith install`), and dual-stack compatibility for Ubuntu/Debian hosts.
 
 ---
 
@@ -14,23 +14,26 @@ The ISO, the Limine/UKI boot chain and Btrfs rollback below are decided but defe
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Base | Ubuntu 26.04 LTS | Widest firmware and DKMS coverage of any distro, and the most complete driver story available. Hardware reach is why the base exists. |
-| Filesystem & Rollback | Btrfs subvolumes with automated pre-APT snapshot hooks | Enables atomic updates and instant rollback without wasting space on full system copies. |
+| Base | Void Linux x86_64 (glibc) | Minimalist, stable glibc substrate providing complete compatibility for NVIDIA proprietary drivers, Steam, and modern runtimes without systemd overhead. |
+| Init System & Session Supervision | runit (system services) + `zenith-user-services` (user desktop services) | Deterministic, lightweight service supervision. System services live in `/etc/sv/`, supervised user desktop daemons live in `~/.config/service/`. |
+| Seat Management | seatd (`LIBSEAT_BACKEND=seatd`) with fallback to elogind | Unprivileged Wayland session DRM master and input claiming without desktop environment bloat. |
+| Filesystem & Storage | Btrfs / ext4 with guided partitioning in installer | Robust root filesystem support with automated partitioning (`installation/zenith-installer.sh`). |
 | Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets; the lock screen is `hyprlock` and the login screen an SDDM theme. The **engine** is built by Zenith because the base layer carries no such shell; the **surfaces** are a ported Quickshell shell tree (Ryoku's, see [`NOTICE.md`](../NOTICE.md)) beside a vendored open-source Quickshell configuration, re-themed to Zenith's design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's, and that split is what makes a re-theme possible without a fork. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
-| Control plane & State | Go — `zenith`; `zenith-shell` (the shell's state daemon and its CLI, run as `zenithd.service`; zero-CGo); `zenith-hubd` (the Hub's data plane); and one tool each for the wallpaper, the agent, the store and the VM manager | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
-| Terminal | Ghostty, installed from the base layer's archive and configured by Zenith, never rebuilt | GPU-accelerated and client-side rendered. The archive's version is behind upstream and Zenith accepts that rather than owning a source pin, a rebuild and a release. See [terminal: Ghostty](#terminal-ghostty). |
-| User shell | zsh + starship | fish ships alongside as an alternative. blesh does not — see [user shell: zsh](#user-shell-zsh). |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets; the lock screen is `hyprlock` and the login screen an SDDM theme. The **engine** is built by Zenith; the **surfaces** are vendored open-source Quickshell components, re-themed to Zenith's monochrome design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
+| Control plane & State | Go — `zenith`; `zenith-sysd` (root daemon at `/run/zenith.sock`); `zenith-userd` (user session daemon); `zenith-shell`; `zenith-hubd`; `zenith-wallpaper`; `zpm` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
+| GPU & Power | `zenith gpu` + `prime-run` offload; `zenith power` for CPU governor and NVIDIA RTX 3050 D3cold power management | Low power drain on Intel Iris Xe graphics while unlocking high performance discrete NVIDIA GPU on demand. |
+| Terminal | Ghostty, strictly supported and configured by Zenith, never kitty | GPU-accelerated and client-side rendered. Zero kitty policy. See [terminal: Ghostty](#terminal-ghostty). |
+| User shell | zsh + starship | fish ships alongside as an alternative. |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
-| Boot chain | Limine + Unified Kernel Images (UKI) | Limine is small, modern, and proven; UKIs reduce boot complexity and improve security. |
-| Login manager | `sddm` in Wayland greeter mode, with the login surface drawn by Zenith | The base layer's login manager, run as shipped, with a greeter Zenith owns. See [what draws the login screen](#what-draws-the-login-screen). |
-| Desktop services | pipewire + wireplumber, tuned-ppd, iwd + NetworkManager, fprintd | Integrated audio/video, platform daemons, wireless/ wired networking, and fingerprint support. |
-| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, `-lxqt` for the Secret interface, plus interfaces Zenith owns itself | Hyprland-native portal backend with GTK fallback. `gnome-keyring` is installed as a daemon, but it does **not** satisfy the Secret interface; `xdg-desktop-portal-lxqt` does, and `zenith-portals.conf` names it. See [the portal seam](#the-portal-seam). |
-| Package manager | APT, backed by Zenith's signed first-party repository | Familiar, robust, and cryptographically signed for trustworthy updates. |
+| Boot chain | GRUB EFI / Limine | Reliable UEFI boot chain across NVMe/SATA drives. |
+| Login manager | `sddm` / tty1 autologin in Live ISO | Automated Wayland autologin on live boot and clean display manager integration. |
+| Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd | Modern Wayland audio/video routing, power tuning, and network management. |
+| Portals | `xdg-desktop-portal-hyprland` + `-gtk`, `-lxqt` for Secret interface | Hyprland-native portal backend with GTK fallback. |
+| Package manager | XBPS with first-party repository (`zenith-xbps-repo`), plus `zpm` package manager frontend (APT supported on Ubuntu) | Ultra-fast native packaging via `xbps-create` and `xbps-rindex`. |
 | Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
 | Scope | Open source, all laptops | Hardware reach is the product. |
-| Identity | Zenith is the distribution; Ubuntu is the base layer | See [the base-layer boundary](#the-base-layer-boundary). |
+| Identity | Zenith is the distribution; the base OS is the substrate | See [the base-layer boundary](#the-base-layer-boundary). |
 | Free software | Free at the distribution level, non-free declared per machine | See [firmware and free software](#firmware-and-free-software). |
 
 ### Rejected, and why

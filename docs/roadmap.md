@@ -112,23 +112,19 @@ Exit criterion: detection correctly identifies GPU, WiFi, audio codec and storag
 x86 laptop *and* a real ARM laptop, and produces a candidate profile that a human can read and
 confirm.
 
-## M4 — Bootable ISO
+## M4 — Bootable ISO & Guided Installer
 
-*Status: the ISO build entry point now exists and derives its package list from the reviewed
-Ubuntu Server 26.04 manifest, builds the local Zenith package, and invokes live-build for an
-iso-hybrid image. It has not yet been run here because live-build/mmdebstrap are not installed,
-and it does not install to disk yet.*
+*Status: complete in `dev-unstable`. The Void Linux Live ISO builder (`installation/build-iso-void.sh`) compiles and generates bootable hybrid UEFI/BIOS ISOs in CI (`zenith-os-void-beta-001.iso`). The live ISO features automated tty1 login directly into the Wayland session with Hyprland and Quickshell, seat management via seatd, user-level runit supervision, and the guided desktop installer (`zenith install` / `zenith-installer.desktop`).*
 
-- `live-build` for the ISO, `mmdebstrap` for the rootfs seed
-- [x] `installation/build-iso.sh` — reproducible build entry point with explicit tool checks,
-  reviewed-manifest package extraction and local Zenith package inclusion
-- Hardware detection in the installer, profile selection, tier display
-- Limine on a separate ESP, Secure Boot via shim + MOK
-- The offline firmware path: a broad rescue bundle plus `zenith-firmware load`
+- [x] `installation/build-iso-void.sh` — Void Linux live ISO builder via `void-mklive`, package extraction from `system/packages-void.yaml`, user autologin (`agetty-tty1`), and user group membership (`_seatd`, `video`, `audio`, `input`)
+- [x] `installation/build-iso-void_test.sh` — validation suite asserting required packages, runit services, and postsetup hooks
+- [x] `installation/zenith-installer.sh` — guided disk partitioner, rootfs installer, fstab generator, and GRUB EFI bootloader config
+- [x] `desktop/cmd/zenith/install.go` and `session/applications/zenith-installer.desktop` — CLI and desktop entry launcher for the installer
+- [x] `packaging/xbps/build-repo.sh` and `.github/workflows/xbps-repo.yml` — automated XBPS binary package creation via `xbps-create` and repository indexing via `xbps-rindex`
+- [x] CI automation in `.github/workflows/ci.yml` producing verified ISO artifacts and sha256 checksums
+- [x] Hybrid GPU management: `zenith gpu`, `system/helpers/prime-run`, and `zenith power` for NVIDIA RTX 3050 D3cold power management
 
-Exit criterion: a Zenith ISO installs on a clean machine with no network, and the installed
-image boots into the base layer's stock Hyprland session entry. Zenith's own session — SDDM,
-`zenith-session`, the portal stack — is M5's, and the shell is M6's.
+Exit criterion: a Zenith ISO boots on a clean machine into the live Wayland desktop session with functional display, audio, and network, and the guided installer can partition a drive and lay down a bootable system image.
 
 ## M5 — Session and portals
 
