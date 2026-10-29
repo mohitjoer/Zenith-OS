@@ -13,7 +13,10 @@ xbps-install -y git curl tar xz ca-certificates make gcc go
 
 if [ ! -d "$VOID_PACKAGES_DIR" ]; then
 	echo "build-repo: cloning void-packages..."
-	git clone --depth 1 https://github.com/void-linux/void-packages.git "$VOID_PACKAGES_DIR"
+	git config --global http.postBuffer 524288000
+	git config --global core.compression 0
+	git clone --depth 1 --single-branch https://github.com/void-linux/void-packages.git "$VOID_PACKAGES_DIR" || \
+	(sleep 5 && git clone --depth 1 https://github.com/void-linux/void-packages.git "$VOID_PACKAGES_DIR")
 fi
 
 cd "$VOID_PACKAGES_DIR"
