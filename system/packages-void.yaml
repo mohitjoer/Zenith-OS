@@ -1,0 +1,136 @@
+# Zenith package manifest for Void Linux base layer.
+#
+# Base layer: Void Linux x86_64 (glibc).
+# Package manager: XBPS.
+# Init system: runit.
+
+version: 1
+
+base:
+  distribution: void-linux
+  arch: x86_64
+  libc: glibc
+  kernel: linux
+  flavor: base-system
+
+essential:
+  packages:
+    - base-system
+    - runit
+    - runit-void
+    - dbus
+    - polkit
+    - elogind
+    - seatd
+    - udev
+    - util-linux
+    - coreutils
+    - findutils
+    - grep
+    - sed
+    - gawk
+    - tar
+    - gzip
+    - xz
+    - zstd
+    - curl
+    - ca-certificates
+    - sudo
+    - psmisc
+    - procps-ng
+    - iptables
+    - iproute2
+
+desktop:
+  packages:
+    # Wayland Compositor & helpers
+    - hyprland
+    - xdg-desktop-portal
+    - xdg-desktop-portal-hyprland
+    - wl-clipboard
+    - wlr-randr
+    - grim
+    - slurp
+    - xwayland
+    # Qt6 & QML runtime for Quickshell
+    - qt6-base
+    - qt6-declarative
+    - qt6-svg
+    - qt6-multimedia
+    - qt6-wayland
+    - qt6-imageformats
+    # Core utilities
+    - dconf
+    - glib
+    - libnotify
+    - jq
+    - imagemagick
+    - librsvg
+  exclude:
+    # No GNOME components per project rules
+    - gnome-shell: GNOME Shell is forbidden in Zenith
+    - gnome-control-center: Zenith uses Zenith Hub and Hyprland
+    - xdg-desktop-portal-gnome: Zenith uses xdg-desktop-portal-hyprland
+    - mutter: Zenith uses Hyprland
+
+session:
+  packages:
+    - pam
+    - turnstile
+    - greetd
+    - wlogout
+    - swayidle
+    - swaylock
+
+terminal-and-shell:
+  packages:
+    - ghostty
+    - zsh
+    - starship
+    - fastfetch
+  exclude:
+    - kitty: Kitty is strictly forbidden in Zenith per agent rules
+
+languages:
+  packages:
+    - go
+    - python3
+    - python3-yaml
+
+graphics-and-media:
+  packages:
+    - pipewire
+    - wireplumber
+    - pavucontrol
+    - alsa-utils
+    - alsa-plugins
+    - mpv
+    - imv
+    - ffmpeg
+
+power-and-hardware-services:
+  packages:
+    - upower
+    - tlp
+    - acpid
+    - brightnessctl
+    - bluez
+    - NetworkManager
+    - network-manager-applet
+    - wpa_supplicant
+
+fonts-and-icons:
+  packages:
+    - font-awesome
+    - noto-fonts-ttf
+    - noto-fonts-cjk
+    - noto-fonts-emoji
+    - papirus-icon-theme
+    - hicolor-icon-theme
+
+firmware:
+  packages:
+    - linux-firmware-amd
+    - linux-firmware-intel
+    - linux-firmware-network
+    - sof-firmware

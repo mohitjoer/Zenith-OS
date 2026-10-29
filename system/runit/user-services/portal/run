@@ -1,0 +1,16 @@
+#!/bin/sh
+exec 2>&1
+# Allow portal-hyprland backend to register first
+sleep 0.2
+EXE=""
+for p in /usr/libexec/xdg-desktop-portal /usr/lib/xdg-desktop-portal; do
+	if [ -x "$p" ]; then
+		EXE="$p"
+		break
+	fi
+done
+if [ -z "$EXE" ]; then
+	echo "xdg-desktop-portal not found" >&2
+	exit 1
+fi
+exec "$EXE"

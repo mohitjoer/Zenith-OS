@@ -1,0 +1,11 @@
+#!/bin/sh
+exec 2>&1
+# Quickshell requires WAYLAND_DISPLAY and a running compositor
+while [ -z "${WAYLAND_DISPLAY:-}" ]; do
+	sleep 0.1
+done
+SHELL_DIR="${ZENITH_SHELL_DIR:-/usr/share/zenith/shell}"
+if [ ! -d "$SHELL_DIR" ] && [ -d "$HOME/code/Zenith-OS/shell" ]; then
+	SHELL_DIR="$HOME/code/Zenith-OS/shell"
+fi
+exec quickshell -p "$SHELL_DIR"

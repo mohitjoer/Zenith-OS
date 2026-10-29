@@ -1,0 +1,126 @@
+#!/bin/sh
+# Zenith user-level process supervisor for Void Linux / runit.
+#
+# Supervises: pipewire, wireplumber, xdg-desktop-portal-hyprland,
+# xdg-desktop-portal, quickshell, zenith-hubd, zenith-wallpaper, swayidle.
+#
+# Usage:
+#   zenith-user-services start    # starts user runsvdir or spawns services
+#   zenith-user-services stop     # stops all user services
+#   zenith-user-services status   # queries status
+set -eu
+
+USER_SERVICE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/service"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zenith"
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+PID_FILE="$RUNTIME_DIR/zenith-user-services.pid"
+
+SYSTEM_SERVICES_SRC="/usr/share/zenith/runit/services"
+# Local fallback if testing in dev checkout
+if [ ! -d "$SYSTEM_SERVICES_SRC" ]; then
+	REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd 2>/dev/null || true)
+	if [ -d "$REPO_ROOT/system/runit/user-services" ]; then
+		SYSTEM_SERVICES_SRC="$REPO_ROOT/system/runit/user-services"
+	fi
+fi
+
+seed_services() {
+	mkdir -p "$USER_SERVICE_DIR"
+	if [ -d "$SYSTEM_SERVICES_SRC" ]; then
+		for svc_dir in "$SYSTEM_SERVICES_SRC"/*; do
+			[ -d "$svc_dir" ] || continue
+			svc_name=$(basename "$svc_dir")
+			if [ ! -d "$USER_SERVICE_DIR/$svc_name" ]; then
+				mkdir -p "$USER_SERVICE_DIR/$svc_name"
+				cp -a "$svc_dir"/* "$USER_SERVICE_DIR/$svc_name/"
+				chmod +x "$USER_SERVICE_DIR/$svc_name/run" 2>/dev/null || true
+			fi
+		done
+	fi
+}
+
+start_services() {
+	seed_services
+
+	# Update D-Bus activation environment so activated tools know Wayland & runtime
+	if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+		dbus-update-activation-environment --all 2>/dev/null || \
+		dbus-update-activation-environment \
+			XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+			XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
+	fi
+
+	# Method 1: If runsvdir is available, run it over ~/.config/service
+	if command -v runsvdir >/dev/null 2>&1; then
+		echo "zenith-user-services: starting runsvdir over $USER_SERVICE_DIR"
+		runsvdir -P "$USER_SERVICE_DIR" &
+		echo $! > "$PID_FILE"
+		return 0
+	fi
+
+	# Method 2: Resilient background spawner fallback if runsvdir is not installed
+	echo "zenith-user-services: runsvdir not found; launching services directly"
+	mkdir -p "$STATE_DIR"
+	for svc in pipewire wireplumber portal-hyprland portal quickshell zenith-userd zenith-hubd zenith-wallpaper zenith-idle; do
+		run_script="$USER_SERVICE_DIR/$svc/run"
+		if [ -x "$run_script" ]; then
+			(
+				while true; do
+					"$run_script" >>"$STATE_DIR/$svc.log" 2>&1 || true
+					sleep 1
+				done
+			) &
+		fi
+	done
+}
+
+stop_services() {
+	if [ -f "$PID_FILE" ]; then
+		pid=$(cat "$PID_FILE" 2>/dev/null || true)
+		if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+			kill "$pid" 2>/dev/null || true
+		fi
+		rm -f "$PID_FILE"
+	fi
+
+	if command -v sv >/dev/null 2>&1 && [ -d "$USER_SERVICE_DIR" ]; then
+		for s in "$USER_SERVICE_DIR"/*; do
+			[ -d "$s" ] && sv down "$s" 2>/dev/null || true
+		done
+	fi
+
+	pkill -u "$(id -u)" -x quickshell 2>/dev/null || true
+	pkill -u "$(id -u)" -x zenith-userd 2>/dev/null || true
+	pkill -u "$(id -u)" -x zenith-wallpaper 2>/dev/null || true
+	pkill -u "$(id -u)" -x zenith-hubd 2>/dev/null || true
+	pkill -u "$(id -u)" -x xdg-desktop-portal-hyprland 2>/dev/null || true
+	pkill -u "$(id -u)" -x xdg-desktop-portal 2>/dev/null || true
+}
+
+status_services() {
+	if command -v sv >/dev/null 2>&1 && [ -d "$USER_SERVICE_DIR" ]; then
+		for s in "$USER_SERVICE_DIR"/*; do
+			[ -d "$s" ] || continue
+			sv status "$s" || true
+		done
+	else
+		echo "User services running under $(id -un):"
+		pgrep -u "$(id -u)" -l -a -f 'quickshell|zenith-|pipewire|wireplumber|xdg-desktop-portal' || echo "No active user desktop services found"
+	fi
+}
+
+case "${1:-start}" in
+	start)
+		start_services
+		;;
+	stop)
+		stop_services
+		;;
+	status)
+		status_services
+		;;
+	*)
+		echo "Usage: $0 {start|stop|status}" >&2
+		exit 1
+		;;
+esac

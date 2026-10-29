@@ -27,6 +27,21 @@ export XDG_CURRENT_DESKTOP=Zenith
 export DESKTOP_SESSION=zenith
 export XDG_SESSION_TYPE=wayland
 
+# Seat management backend for Hyprland without root privileges:
+# Prefer seatd if /run/seatd.sock exists or default to seatd, fallback to logind.
+if [ -S /run/seatd.sock ] || [ -z "${LIBSEAT_BACKEND:-}" ]; then
+    export LIBSEAT_BACKEND=seatd
+fi
+
+# Ensure XDG_RUNTIME_DIR is properly set and permissions are 0700
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+    mkdir -p "$XDG_RUNTIME_DIR"
+    chmod 0700 "$XDG_RUNTIME_DIR"
+fi
+
 # Native Wayland dialogs everywhere, so scaling and theming are the shell's
 # problem and not the app's. Set unconditionally rather than inherited: a
 # GDK_BACKEND=x11 left in /etc/environment by a GNOME-era tweak would otherwise
@@ -82,10 +97,15 @@ fi
 # --systemd reaches the bus's activation environment, so a service activated on
 # demand inherits it. A backend that is D-Bus activated rather than started as a
 # unit sees nothing without the second one.
-systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
-    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR
-dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
-    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
+fi
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY 2>/dev/null || \
+    dbus-update-activation-environment --all 2>/dev/null || true
+fi
 
 # The user's own compositor configuration.
 #

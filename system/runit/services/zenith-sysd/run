@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+# Start the Zenith privileged system daemon
+exec /usr/bin/zenith-sysd run

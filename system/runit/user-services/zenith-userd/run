@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+# Start the unprivileged Zenith user daemon (state authority + telemetry bridge)
+exec /usr/bin/zenith-userd

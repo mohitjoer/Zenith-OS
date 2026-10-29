@@ -1,0 +1,13 @@
+#!/bin/sh
+exec 2>&1
+while [ -z "${WAYLAND_DISPLAY:-}" ]; do
+	sleep 0.1
+done
+LOCK_CMD="swaylock -f"
+if command -v zenith-screen-lock >/dev/null 2>&1; then
+	LOCK_CMD="zenith-screen-lock"
+fi
+exec swayidle -w \
+	timeout 300 "$LOCK_CMD" \
+	timeout 600 'hyprctl dispatch dpms off' \
+	resume 'hyprctl dispatch dpms on'

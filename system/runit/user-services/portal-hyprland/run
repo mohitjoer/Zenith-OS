@@ -1,0 +1,14 @@
+#!/bin/sh
+exec 2>&1
+EXE=""
+for p in /usr/libexec/xdg-desktop-portal-hyprland /usr/lib/xdg-desktop-portal-hyprland; do
+	if [ -x "$p" ]; then
+		EXE="$p"
+		break
+	fi
+done
+if [ -z "$EXE" ]; then
+	echo "xdg-desktop-portal-hyprland not found" >&2
+	exit 1
+fi
+exec "$EXE"

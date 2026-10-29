@@ -1,0 +1,19 @@
+# Template file for 'quickshell'
+pkgname=quickshell
+version=0.1.0
+revision=1
+build_style=cmake
+configure_args="-DQUICKSHELL_USE_SYSTEM_WAYLAND=ON -DQUICKSHELL_BUILD_TESTS=OFF"
+hostmakedepends="pkg-config cmake wayland-devel qt6-declarative-devel"
+makedepends="qt6-base-devel qt6-declarative-devel qt6-svg-devel qt6-wayland-devel
+ qt6-multimedia-devel wayland-devel pam-devel"
+depends="qt6-declarative qt6-svg qt6-wayland qt6-multimedia"
+short_desc="Flexible Qt6/QML desktop shell framework for Wayland"
+maintainer="Zenith OS Project <dev@zenithos.dev>"
+license="LGPL-3.0-or-later"
+homepage="https://quickshell.outfoxxed.me"
+distfiles="https://git.outfoxxed.me/outfoxxed/quickshell/archive/v${version}.tar.gz"
+
+post_install() {
+	vlicense LICENSE
+}

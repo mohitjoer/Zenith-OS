@@ -1,0 +1,5 @@
+# W28: Void Linux control plane: zenith-sysd (privileged root daemon) and zenith-userd (user session daemon)
+zenith-sysd -> /usr/bin/zenith-sysd
+zenith-userd -> /usr/bin/zenith-userd
+zpm -> /usr/bin/zpm
+session/runit/zenith-user-services -> /usr/bin/zenith-user-services

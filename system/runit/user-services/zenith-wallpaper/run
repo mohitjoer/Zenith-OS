@@ -1,0 +1,6 @@
+#!/bin/sh
+exec 2>&1
+while [ -z "${WAYLAND_DISPLAY:-}" ]; do
+	sleep 0.1
+done
+exec zenith-wallpaper

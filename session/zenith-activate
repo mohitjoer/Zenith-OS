@@ -21,9 +21,25 @@
 # the thing that knows the display is the thing that runs this.
 set -eu
 
-# A failure to import is not a failure of the session: the manager may simply
-# be running without the environment it would accept, and the units below
-# check the display themselves.
-systemctl --user import-environment || true
+# Update activation environment across D-Bus
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+	dbus-update-activation-environment --all 2>/dev/null || \
+	dbus-update-activation-environment \
+		XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+		XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
+fi
 
-systemctl --user start zenith-session.target
+# 1. systemd user manager path
+if command -v systemctl >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
+	systemctl --user import-environment || true
+	systemctl --user start zenith-session.target
+else
+	# 2. Void Linux / runit user supervision path
+	for cmd in /usr/share/zenith/session/zenith-user-services \
+		/usr/bin/zenith-user-services \
+		"$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/runit/zenith-user-services"; do
+		if [ -x "$cmd" ]; then
+			exec "$cmd" start
+		fi
+	done
+fi

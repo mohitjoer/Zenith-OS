@@ -201,6 +201,7 @@ rules.
 
 ## Rules
 
+- [2026-10-29] Zenith OS uses Void Linux x86_64 (glibc) as its base operating system.
 - [2026-10-27] Never use or ship kitty in this OS; Ghostty is the sole supported terminal emulator.
 
 ## Branches

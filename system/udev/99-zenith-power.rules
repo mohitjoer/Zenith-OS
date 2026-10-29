@@ -1,0 +1,13 @@
+# Zenith OS Udev Power Rules
+# Automatically switches system power profiles and manages NVIDIA dGPU D3cold state.
+
+# 1. AC Adapter status changes
+SUBSYSTEM=="power_supply", ATTR{online}=="1", RUN+="/usr/bin/zenith power ac"
+SUBSYSTEM=="power_supply", ATTR{online}=="0", RUN+="/usr/bin/zenith power bat"
+
+# 2. NVIDIA PCIe Runtime Power Management (enables RTD3 / 0-Watt sleep on hybrid systems)
+# Enable runtime PM for NVIDIA Audio Controller
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x040300", ATTR{power/control}="auto"
+
+# Enable runtime PM for NVIDIA VGA Controller
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x03[0-9]*", ATTR{power/control}="auto"

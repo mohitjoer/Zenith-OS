@@ -44,6 +44,7 @@ usr/share/applications/$PKG-*.desktop
 usr/share/applications/$PKG-mimeapps.list
 usr/bin/$PKG
 usr/bin/$PKG-*
+usr/bin/zpm
 usr/bin/cliphist-thumbs.sh
 usr/bin/localsend.sh
 usr/bin/stash-*.sh"
