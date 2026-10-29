@@ -22,7 +22,7 @@ essential:
     - polkit
     - elogind
     - seatd
-    - udev
+    - eudev
     - util-linux
     - coreutils
     - findutils
@@ -51,7 +51,7 @@ desktop:
     - wlr-randr
     - grim
     - slurp
-    - xwayland
+    - xorg-server-xwayland
     # Qt6 & QML runtime for Quickshell
     - qt6-base
     - qt6-declarative
@@ -64,7 +64,7 @@ desktop:
     - glib
     - libnotify
     - jq
-    - imagemagick
+    - ImageMagick
     - librsvg
   exclude:
     # No GNOME components per project rules

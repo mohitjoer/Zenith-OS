@@ -123,12 +123,13 @@ cp "$REPO_ROOT/system/runit/services/zenith-sysd/run" "$INCLUDE_DIR/etc/sv/zenit
 chmod +x "$INCLUDE_DIR/etc/sv/zenith-sysd/run"
 
 # Extract package list from system/packages-void.yaml
-PACKAGES=$(python3 - "$REPO_ROOT/system/packages-void.yaml" <<'PY'
-import sys
+PACKAGES=$(python3 - "$REPO_ROOT/system/packages-void.yaml" "$MIRROR" <<'PY'
+import sys, urllib.request, tarfile, io, re, yaml
 from pathlib import Path
-import yaml
 
 manifest = yaml.safe_load(Path(sys.argv[1]).read_text())
+mirror = sys.argv[2] if len(sys.argv) > 2 else "https://repo-default.voidlinux.org/current"
+
 if manifest.get("base", {}).get("distribution") != "void-linux":
     raise SystemExit("build-iso-void: system/packages-void.yaml must declare distribution: void-linux")
 
@@ -140,9 +141,26 @@ for group, body in manifest.items():
     if isinstance(entries, list):
         packages.extend(entries)
 
-# Remove base-system from extra package list since mklive installs it via -b
 filtered = [p for p in packages if p != "base-system"]
-out = sorted(dict.fromkeys(str(p) for p in filtered))
+all_requested = sorted(dict.fromkeys(str(p) for p in filtered))
+
+avail_keys = None
+try:
+    url = f"{mirror.rstrip('/')}/x86_64-repodata"
+    req = urllib.request.Request(url, headers={"User-Agent": "Zenith-OS/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        with tarfile.open(fileobj=io.BytesIO(resp.read()), mode="r:*") as tar:
+            content = tar.extractfile("index.plist").read().decode("utf-8", errors="ignore")
+            avail_keys = set(re.findall(r'<key>([^<]+)</key>', content))
+except Exception:
+    pass
+
+if avail_keys:
+    out = [p for p in all_requested if p in avail_keys]
+else:
+    custom_pkgs = {"hyprland", "xdg-desktop-portal-hyprland"}
+    out = [p for p in all_requested if p not in custom_pkgs]
+
 print(" ".join(out))
 PY
 )
