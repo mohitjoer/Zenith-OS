@@ -47,12 +47,33 @@ fi
 mkdir -p "$BUILD_DIR/config/package-lists" "$BUILD_DIR/config/hooks/normal" \
 	"$BUILD_DIR/config/includes.chroot/etc" \
 	"$BUILD_DIR/config/includes.chroot/tmp" \
-	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding"
+	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding" \
+	"$BUILD_DIR/config/includes.chroot/usr/bin"
 cp "$DEB" "$BUILD_DIR/config/includes.chroot/tmp/zenith.deb"
 cp "$REPO_ROOT/public/zenith-logo.svg" \
 	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding/"
 cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" \
 	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding/"
+
+# librsvg2-bin on resolute ships /usr/bin/rsvg-convert, but live-build's
+# lb_binary_syslinux calls "rsvg --format png ... in.svg out.png" inside chroot.
+# rsvg-convert requires "-o out.png" instead of positional output.
+# Placing the wrapper in includes.chroot guarantees it exists in /usr/bin/rsvg
+# inside the chroot filesystem for all live-build stages.
+cat >"$BUILD_DIR/config/includes.chroot/usr/bin/rsvg" <<'RSVG_CHROOT_EOF'
+#!/bin/bash
+set -e
+if [ $# -ge 2 ]; then
+	last="${!#}"
+	case "$last" in
+		*.png|*.PNG)
+			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$last"
+			;;
+	esac
+fi
+exec /usr/bin/rsvg-convert "$@"
+RSVG_CHROOT_EOF
+chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/bin/rsvg"
 
 # These are the live system's public identity. The Ubuntu base remains recorded
 # in the repository manifest and package documentation; it must not leak into
@@ -111,19 +132,16 @@ if [ ! -e /usr/lib/syslinux/vesamenu.c32 ]; then
 	fi
 fi
 # Ensure rsvg wrapper exists in chroot for live-build theme conversions
-if [ -e /usr/bin/rsvg-convert ] && [ ! -e /usr/bin/rsvg ]; then
+if [ ! -e /usr/bin/rsvg ]; then
 	cat > /usr/bin/rsvg <<'RSVG_CHROOT_EOF'
 #!/bin/bash
+set -e
 if [ $# -ge 2 ]; then
 	last="${!#}"
-	prev="${@: -2:1}"
-	case "$last" in *.png)
-		case "$prev" in *.svg)
-			out="$last"
-			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$out"
+	case "$last" in
+		*.png|*.PNG)
+			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$last"
 			;;
-		esac
-		;;
 	esac
 fi
 exec /usr/bin/rsvg-convert "$@"
@@ -144,6 +162,16 @@ if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
 	fi
 	if [ -L "$BUILD_DIR/config/bootloaders/isolinux/vesamenu.c32" ]; then
 		ln -sf /usr/lib/syslinux/modules/bios/vesamenu.c32 "$BUILD_DIR/config/bootloaders/isolinux/vesamenu.c32"
+	fi
+	# Pre-render splash.png and remove splash.svg if present so live-build picks up
+	# splash.png directly without requiring conversion during lb_binary_syslinux
+	if [ -f "$BUILD_DIR/config/bootloaders/isolinux/splash.svg" ]; then
+		if command -v rsvg-convert >/dev/null 2>&1; then
+			rsvg-convert "$BUILD_DIR/config/bootloaders/isolinux/splash.svg" -o "$BUILD_DIR/config/bootloaders/isolinux/splash.png" 2>/dev/null || true
+			if [ -s "$BUILD_DIR/config/bootloaders/isolinux/splash.png" ]; then
+				rm -f "$BUILD_DIR/config/bootloaders/isolinux/splash.svg"
+			fi
+		fi
 	fi
 else
 	# Fallback if host has no live-build bootloaders (e.g. local test)
@@ -180,6 +208,7 @@ for group, body in manifest.items():
 packages.append("gnupg")
 # Syslinux/isolinux modules, bootloaders, and zenith runtime dependencies.
 packages.extend([
+    "librsvg2-bin",
     "isolinux", "syslinux-common",
     "grub-pc-bin", "grub-efi-amd64-bin",
     "curl", "file", "imagemagick", "jq", "libnotify-bin",
@@ -206,21 +235,17 @@ chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
 # 40099593317: env: 'rsvg': No such file). rsvg-convert requires "-o out.png"
 # instead of positional output, so a symlink alone fails with
 # "Multiple SVG files are only allowed for PDF and (E)PS output."
-# This wrapper runs on the HOST because lb_binary_syslinux runs there.
-if [ -e /usr/bin/rsvg-convert ] && [ ! -e /usr/bin/rsvg ]; then
+# This wrapper runs on the HOST in case lb_binary_syslinux runs outside chroot.
+if command -v rsvg-convert >/dev/null 2>&1 && ! command -v rsvg >/dev/null 2>&1; then
 	cat > /usr/bin/rsvg <<'RSVG_EOF'
 #!/bin/bash
-# Compat wrapper: translate "rsvg [opts] in.svg out.png" -> "rsvg-convert [opts] in.svg -o out.png"
+set -e
 if [ $# -ge 2 ]; then
 	last="${!#}"
-	prev="${@: -2:1}"
-	case "$last" in *.png)
-		case "$prev" in *.svg)
-			out="$last"
-			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$out"
+	case "$last" in
+		*.png|*.PNG)
+			exec /usr/bin/rsvg-convert "${@:1:$#-1}" -o "$last"
 			;;
-		esac
-		;;
 	esac
 fi
 exec /usr/bin/rsvg-convert "$@"
