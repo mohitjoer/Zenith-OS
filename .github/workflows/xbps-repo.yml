@@ -28,10 +28,10 @@ jobs:
   build-packages:
     name: XBPS — package pipeline (xbps-src)
     timeout-minutes: 45
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Zenith XBPS packages in Void container
         run: |
@@ -42,7 +42,7 @@ jobs:
             /workspace/packaging/xbps/build-repo.sh /workspace/build/xbps-repo
 
       - name: Upload XBPS repository artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: zenith-xbps-repo
           path: build/xbps-repo/

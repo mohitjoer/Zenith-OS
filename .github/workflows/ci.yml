@@ -40,10 +40,10 @@ jobs:
   go-hardware:
     name: Go — system/hardware module
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: system/hardware/go.mod
@@ -61,10 +61,10 @@ jobs:
   go-desktop:
     name: Go — desktop module
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: desktop/go.mod
           cache-dependency-path: |
@@ -87,9 +87,9 @@ jobs:
   go-version-check:
     name: Go — module version agreement
     timeout-minutes: 5
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Both modules declare the same Go version
         run: |
           declared() { sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$1"; }
@@ -106,10 +106,10 @@ jobs:
   cli-smoke:
     name: CLI — absent-tool paths
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: desktop/go.mod
           cache-dependency-path: |
@@ -135,9 +135,9 @@ jobs:
   session-tests:
     name: Session — entry point & greeter
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: session/session_test.sh
         run: sh session/session_test.sh
       - name: session/greeter_test.sh
@@ -149,9 +149,9 @@ jobs:
   shell-tests:
     name: Shell — QML load & contract
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: shell/shell_test.sh
         run: sh shell/shell_test.sh
       - name: Branding assets
@@ -209,9 +209,9 @@ jobs:
   release-scripts:
     name: Release — script syntax
     timeout-minutes: 5
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Shell syntax check — release scripts
         run: |
           for f in release/*.sh release/build.d/*.build release/deps.d/*.deps session/*.sh session/**/*.sh installation/*.sh system/helpers/**/*.sh tests/**/*.sh; do
@@ -230,9 +230,9 @@ jobs:
   contract-tests:
     name: Contract — full suite
     timeout-minutes: 15
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Contract test suite
         run: sh tests/contract/run.sh
 
@@ -243,10 +243,10 @@ jobs:
     name: Package — deb, boundary, repository, manifest
     needs: [go-hardware, go-desktop, go-version-check]
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
@@ -279,16 +279,16 @@ jobs:
     name: M2 — update, user edit, rollback
     needs: package
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:26.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: The tools the stock image does not carry
         run: |
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
@@ -305,10 +305,10 @@ jobs:
   iso:
     name: ISO — build Zenith OS (Void Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: system/hardware/go.mod
           cache-dependency-path: |
@@ -338,7 +338,7 @@ jobs:
           echo "ISO: $iso ($(du -h "$iso" | cut -f1))"
           sha256sum "$iso" | tee "$iso.sha256"
       - name: Upload ISO artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: zenith-os-void-beta-001
           path: |
