@@ -322,4 +322,3 @@ func TestMaterializePrunesOrphansPreservingUserConfig(t *testing.T) {
 		t.Errorf(".git clobbered: %s", got)
 	}
 }
-

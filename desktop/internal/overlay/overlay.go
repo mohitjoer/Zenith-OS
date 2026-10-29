@@ -421,4 +421,3 @@ func isUserConfig(relative string) bool {
 	}
 	return false
 }
-
