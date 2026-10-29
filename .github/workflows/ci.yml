@@ -300,11 +300,10 @@ jobs:
           ZENITH_M2_ALLOW_INSTALL: "1"
 
   # ==========================================================================
-  # PART 10: ISO build
+  # PART 10: Void Linux Live ISO build
   # ==========================================================================
   iso:
-    name: ISO — build Zenith OS
-    needs: package
+    name: ISO — build Zenith OS (Void Linux)
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -319,24 +318,19 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            live-build mmdebstrap debootstrap xorriso squashfs-tools \
-            isolinux grub-pc-bin grub-efi-amd64-bin shim-signed \
-            dosfstools mtools sbsigntool openssl mokutil gnupg dpkg-dev fakeroot python3-yaml \
-            librsvg2-bin
-      - name: Validate ISO builder
-        run: sh installation/build-iso_test.sh
-      - name: Build Zenith OS ISO
-        env:
-          ZENITH_SUITE: resolute
-          ZENITH_ARCH: amd64
-        run: sudo --preserve-env=ZENITH_SUITE,ZENITH_ARCH env "PATH=$PATH" installation/build-iso.sh "$RUNNER_TEMP/zenith-iso"
+            squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
+            dosfstools mtools python3-yaml curl git tar xz-utils
+      - name: Validate Void ISO builder
+        run: sh installation/build-iso-void_test.sh
+      - name: Build Zenith OS Void ISO
+        run: sudo env "PATH=$PATH" installation/build-iso-void.sh "$RUNNER_TEMP/zenith-void-iso"
       - name: Verify ISO output
         run: |
           set -eu
-          iso="$(find "$RUNNER_TEMP/zenith-iso" -maxdepth 1 -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -maxdepth 1 -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           if [ -z "$iso" ]; then
-            echo "::error::live-build completed without producing an ISO"
-            find "$RUNNER_TEMP/zenith-iso" -maxdepth 2 -type f -print
+            echo "::error::void-mklive completed without producing an ISO"
+            find "$RUNNER_TEMP/zenith-void-iso" -maxdepth 2 -type f -print
             exit 1
           fi
           test -s "$iso"
@@ -345,9 +339,9 @@ jobs:
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zenith-os-beta-001
+          name: zenith-os-void-beta-001
           path: |
-            ${{ runner.temp }}/zenith-iso/zenith-os-beta-001.iso
-            ${{ runner.temp }}/zenith-iso/zenith-os-beta-001.iso.sha256
+            ${{ runner.temp }}/zenith-void-iso/*.iso
+            ${{ runner.temp }}/zenith-void-iso/*.iso.sha256
           if-no-files-found: error
           retention-days: 7

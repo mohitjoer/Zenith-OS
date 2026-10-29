@@ -70,10 +70,14 @@ cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/share/zenith/session/ze
 cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/share/zenith/session/zenith-activate"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/share/zenith/session/zenith-user-services"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-user-services"
+cp "$REPO_ROOT/system/helpers/prime-run" "$INCLUDE_DIR/usr/bin/prime-run"
+cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-installer"
+mkdir -p "$INCLUDE_DIR/usr/share/applications"
+cp "$REPO_ROOT/session/applications/zenith-installer.desktop" "$INCLUDE_DIR/usr/share/applications/zenith-installer.desktop"
 cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
 cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
 cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
-chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services"
+chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services" "$INCLUDE_DIR/usr/bin/prime-run" "$INCLUDE_DIR/usr/bin/zenith-installer"
 
 # Copy udev power rules, turnstile session configuration, and XBPS repository list
 cp "$REPO_ROOT/system/udev/99-zenith-power.rules" "$INCLUDE_DIR/etc/udev/rules.d/99-zenith-power.rules"
@@ -187,9 +191,28 @@ for user in anon zenith; do
 	fi
 done
 
+# Ensure user zenith exists and configure autologin
+if ! chroot "$ROOTFS" id zenith >/dev/null 2>&1; then
+	chroot "$ROOTFS" useradd -m -s /bin/bash -U -G _seatd,video,audio,input,wheel,storage,network zenith || true
+fi
+echo "zenith:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+
 # Sudo permissions for wheel group
 echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$ROOTFS/etc/sudoers.d/wheel"
 chmod 0440 "$ROOTFS/etc/sudoers.d/wheel"
+
+# Enable automatic console login on tty1
+mkdir -p "$ROOTFS/etc/sv/agetty-tty1"
+echo 'GETTY_ARGS="--autologin zenith --noclear"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+
+# Auto-start Zenith Wayland desktop on tty1 login
+mkdir -p "$ROOTFS/etc/profile.d"
+cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
+if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	exec /usr/share/zenith/session/zenith-session
+fi
+PROFILE
+chmod 0755 "$ROOTFS/etc/profile.d/zenith-autologin.sh"
 EOF
 chmod +x "$POSTSETUP_SCRIPT"
 
@@ -205,6 +228,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
+		-u zenith \
 		-S "dbus seatd elogind NetworkManager" \
 		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \

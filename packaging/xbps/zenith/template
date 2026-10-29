@@ -18,6 +18,7 @@ post_install() {
 	vinstall ../session/zenith-session 755 usr/share/zenith/session
 	vinstall ../session/zenith-activate 755 usr/share/zenith/session
 	vinstall ../session/runit/zenith-user-services 755 usr/bin
+	vinstall ../system/helpers/prime-run 755 usr/bin
 	vinstall ../session/zenith.desktop 644 usr/share/wayland-sessions
 
 	# Install runit service templates

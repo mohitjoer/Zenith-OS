@@ -20,7 +20,7 @@ if ! sh -n "$REPO_ROOT/session/runit/zenith-user-services"; then
 	exit 1
 fi
 
-for run_script in "$REPO_ROOT/session/runit/services"/*/run "$REPO_ROOT/system/runit/services"/*/run; do
+for run_script in "$REPO_ROOT/system/runit/user-services"/*/run "$REPO_ROOT/system/runit/services"/*/run "$REPO_ROOT/installation/zenith-installer.sh"; do
 	if ! sh -n "$run_script"; then
 		echo "build-iso-void_test: shell syntax check failed on $run_script" >&2
 		exit 1

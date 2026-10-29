@@ -1,0 +1,13 @@
+#!/bin/sh
+# Execute command using discrete NVIDIA / Prime render offloading
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+export DRI_PRIME=1
+
+if [ $# -eq 0 ]; then
+	echo "Usage: prime-run <command> [args...]" >&2
+	exit 2
+fi
+
+exec "$@"
