@@ -280,9 +280,10 @@ func applyPowerProfile(profile string) error {
 	}
 
 	// Trigger TLP if installed
-	if profile == "performance" || profile == "balanced" {
+	switch profile {
+	case "performance", "balanced":
 		_ = exec.Command("tlp", "ac").Run()
-	} else if profile == "power" {
+	case "power":
 		_ = exec.Command("tlp", "bat").Run()
 	}
 
