@@ -230,7 +230,7 @@ ROOTFS="$1"
 
 # Enable core system runit services
 mkdir -p "$ROOTFS/etc/runit/runsvdir/default"
-for svc in dbus seatd elogind udevd NetworkManager acpid turnstiled tlp zenith-sysd; do
+for svc in dbus seatd elogind udevd NetworkManager acpid turnstiled tlp zramen zenith-sysd; do
 	if [ -d "$ROOTFS/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
@@ -380,7 +380,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
 		-s "$REPO_ROOT/public/branding/boot-splash.png" \
-		-S "dbus seatd elogind NetworkManager" \
+		-S "dbus seatd elogind NetworkManager zramen" \
 		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \

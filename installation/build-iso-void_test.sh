@@ -69,6 +69,10 @@ grep -Fq 'wireplumber' "$MANIFEST"
 grep -Fq 'seatd' "$MANIFEST"
 grep -Fq 'turnstile' "$MANIFEST"
 grep -Fq 'tlp' "$MANIFEST"
+grep -Fq 'btrfs-progs' "$MANIFEST"
+grep -Fq 'gamemode' "$MANIFEST"
+grep -Fq 'zramen' "$MANIFEST"
+grep -Fq 'podman' "$MANIFEST"
 
 echo "build-iso-void_test: ok"
 

@@ -40,6 +40,7 @@ essential:
     - procps-ng
     - iptables
     - iproute2
+    - btrfs-progs
 
 desktop:
   packages:
@@ -118,6 +119,9 @@ power-and-hardware-services:
     - NetworkManager
     - network-manager-applet
     - wpa_supplicant
+    - gamemode
+    - zramen
+    - podman
 
 fonts-and-icons:
   packages:
