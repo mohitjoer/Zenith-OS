@@ -57,6 +57,8 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
+install_items+=" /usr/lib/plymouth/label.so /etc/fonts/fonts.conf /etc/fonts/conf.d "
+install_optional_items+=" /usr/share/fonts/* "
 EOF
 
 # Setup OS identity
@@ -167,11 +169,10 @@ cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-in
 mkdir -p "$INCLUDE_DIR/usr/share/glib-2.0/schemas"
 cp "$REPO_ROOT/shell"/org.zenith.*.gschema.xml "$INCLUDE_DIR/usr/share/glib-2.0/schemas/"
 
-# Copy systemd/user units for session targets
-mkdir -p "$INCLUDE_DIR/usr/share/zenith/session/units" "$INCLUDE_DIR/etc/systemd/user"
+# Copy session unit definitions (for reference/documentation only; runit handles supervision)
+mkdir -p "$INCLUDE_DIR/usr/share/zenith/session/units"
 if [ -d "$REPO_ROOT/session/units" ]; then
 	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/session/units/" 2>/dev/null || true
-	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/etc/systemd/user/" 2>/dev/null || true
 fi
 
 # Copy applications .desktop entries
@@ -193,9 +194,29 @@ cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/r
 
 # Stage native Void Linux Hyprland compositor stack and libraries
 echo "build-iso-void: staging native Void Linux Hyprland stack..."
-HYPR_PKGS="tomlplusplus-3.4.0_1.x86_64.xbps hyprutils-0.7.1_1.x86_64.xbps aquamarine-0.8.0_2.x86_64.xbps hyprlang-0.6.3_1.x86_64.xbps hyprcursor-0.1.12_1.x86_64.xbps hyprgraphics-0.1.3_2.x86_64.xbps hyprland-0.49.0_1.x86_64.xbps xdg-desktop-portal-hyprland-1.3.9_2.x86_64.xbps"
 HYPR_CACHE="$BUILD_DIR/hyprland-pkgs"
 mkdir -p "$HYPR_CACHE"
+
+# Dynamically resolve latest Makrennel package filenames from repo metadata to prevent version drift
+RESOLVED_PKGS=$(python3 - <<'PY' 2>/dev/null || true
+import urllib.request, plistlib, subprocess
+wanted = ['tomlplusplus', 'hyprutils', 'aquamarine', 'hyprlang', 'hyprcursor', 'hyprgraphics', 'libspng', 'sdbus-cpp', 'hyprland', 'xdg-desktop-portal-hyprland']
+url = 'https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/x86_64-repodata'
+try:
+    req = urllib.request.Request(url, headers={'User-Agent': 'Zenith-ISO-Builder'})
+    data = urllib.request.urlopen(req, timeout=10).read()
+    p = subprocess.Popen(['tar', '--zstd', '-xO', 'index.plist'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    plist_bytes, _ = p.communicate(data)
+    plist = plistlib.loads(plist_bytes)
+    res = [f"{plist[pkg]['pkgver']}.x86_64.xbps" for pkg in wanted if pkg in plist]
+    if len(res) == len(wanted):
+        print(" ".join(res))
+except Exception:
+    pass
+PY
+)
+
+HYPR_PKGS="${RESOLVED_PKGS:-tomlplusplus-3.4.0_1.x86_64.xbps hyprutils-0.7.1_1.x86_64.xbps aquamarine-0.8.0_2.x86_64.xbps hyprlang-0.6.3_1.x86_64.xbps hyprcursor-0.1.12_1.x86_64.xbps hyprgraphics-0.1.3_2.x86_64.xbps libspng-0.7.4_1.x86_64.xbps sdbus-cpp-2.1.0_1.x86_64.xbps hyprland-0.49.0_1.x86_64.xbps xdg-desktop-portal-hyprland-1.3.9_2.x86_64.xbps}"
 for hpkg in $HYPR_PKGS; do
 	if [ ! -f "$HYPR_CACHE/$hpkg" ]; then
 		curl -sSL -o "$HYPR_CACHE/$hpkg" "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/$hpkg" || true
@@ -208,12 +229,12 @@ rm -f "$INCLUDE_DIR/props.plist" "$INCLUDE_DIR/files.plist"
 if [ -f "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" ]; then
 	cp "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
 fi
+# Compatibility soname symlinks for Void libraries with newer ABI bumps
 mkdir -p "$INCLUDE_DIR/usr/lib"
-for lpath in /usr/lib/x86_64-linux-gnu/libseat.so* /usr/lib/libseat.so*; do
-	if [ -f "$lpath" ] || [ -L "$lpath" ]; then
-		cp -d "$lpath" "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
-	fi
-done
+ln -sf libdisplay-info.so.3 "$INCLUDE_DIR/usr/lib/libdisplay-info.so.2"
+ln -sf libjxl.so.0.12 "$INCLUDE_DIR/usr/lib/libjxl.so.0.11"
+ln -sf libjxl_threads.so.0.12 "$INCLUDE_DIR/usr/lib/libjxl_threads.so.0.11"
+# libseat is installed by XBPS from packages-void.yaml; no host-path staging needed
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
 mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"
@@ -404,7 +425,7 @@ if ! command -v xbps-install >/dev/null 2>&1; then
 	XBPS_STATIC_DIR="$BUILD_DIR/xbps-static"
 	if [ ! -x "$XBPS_STATIC_DIR/usr/bin/xbps-install" ]; then
 		mkdir -p "$XBPS_STATIC_DIR"
-		curl -sSL "https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz" | tar -xJ -C "$XBPS_STATIC_DIR"
+		curl -sSL "https://repo-fastly.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz" | tar -xJ -C "$XBPS_STATIC_DIR"
 	fi
 	export PATH="$XBPS_STATIC_DIR/usr/bin:$PATH"
 fi
@@ -422,6 +443,13 @@ for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen zenith-sy
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
 done
+
+# Ensure runtime library compatibility symlinks exist inside rootfs
+mkdir -p "$ROOTFS/usr/lib"
+[ -e "$ROOTFS/usr/lib/libdisplay-info.so.3" ] && ln -sf libdisplay-info.so.3 "$ROOTFS/usr/lib/libdisplay-info.so.2"
+[ -e "$ROOTFS/usr/lib/libjxl.so.0.12" ] && ln -sf libjxl.so.0.12 "$ROOTFS/usr/lib/libjxl.so.0.11"
+[ -e "$ROOTFS/usr/lib/libjxl_threads.so.0.12" ] && ln -sf libjxl_threads.so.0.12 "$ROOTFS/usr/lib/libjxl_threads.so.0.11"
+ldconfig -r "$ROOTFS" 2>/dev/null || true
 
 # Hook turnstile into PAM session stack if present
 if [ -f "$ROOTFS/etc/pam.d/system-login" ] && ! grep -q 'pam_turnstile.so' "$ROOTFS/etc/pam.d/system-login"; then

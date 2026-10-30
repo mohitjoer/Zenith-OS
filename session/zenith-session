@@ -192,8 +192,6 @@ echo "zenith-session: env ok, starting Hyprland"
 # it. A compositor started without it runs on Hyprland's own defaults, which
 # is a desktop with no keybindings at all: a launcher nobody can open and a
 # switcher nobody can drive.
-#
-# Detect compositor executable: on Void Linux the packaged binary is Hyprland,
 # Auto-detect virtual machine hypervisors and configure safe DRM/EGL defaults
 if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
    grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \

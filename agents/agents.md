@@ -20,7 +20,7 @@ Zenith's wordmark is **天** — *zenith* — healthy, robust, strong. Use it as
 project's name in prose: "Zenith", never "Zenith's" as a possessive of an acronym, never anything
 else.
 
-Zenith is a Linux distribution. Its **base layer** is Ubuntu Server 26.04 LTS; everything above that
+Zenith is a Linux distribution. Its **base layer** is Void Linux x86_64 (glibc); everything above that
 line is Zenith's own. Hyprland is the compositor and a Quickshell-drawn shell is the desktop;
 Go binaries (`zenith`, `zenithd`, `zenith-hub`) own the settings; GSettings schemas and dconf are
 the store. **There is no GNOME in Zenith** — no GNOME Shell, no GNOME daemons, no

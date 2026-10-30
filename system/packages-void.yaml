@@ -81,6 +81,9 @@ desktop:
     - xcb-util-wm
     - xcb-util-errors
     - libdisplay-info
+    - libjxl
+    - libmagic
+    - libzip
     - jemalloc
     - libunwind
   exclude:

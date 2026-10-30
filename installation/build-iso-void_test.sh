@@ -59,6 +59,20 @@ if [ ! -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 	exit 1
 fi
 
+# Verify Plymouth splash theme assets exist and are valid non-empty files
+for asset in logo.png window.png progress_box.png progress_bar.png zenith.plymouth zenith.script; do
+	if [ ! -s "$REPO_ROOT/system/plymouth/zenith/$asset" ]; then
+		echo "build-iso-void_test: system/plymouth/zenith/$asset missing or empty" >&2
+		exit 1
+	fi
+done
+
+# Verify udev power rules exist
+if [ ! -s "$REPO_ROOT/system/udev/99-zenith-power.rules" ]; then
+	echo "build-iso-void_test: system/udev/99-zenith-power.rules missing or empty" >&2
+	exit 1
+fi
+
 # Verify packages in packages-void.yaml
 grep -Fq 'base-system' "$MANIFEST"
 grep -Fq 'hyprland' "$MANIFEST"
