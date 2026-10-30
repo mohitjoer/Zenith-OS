@@ -319,8 +319,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
-            dosfstools mtools python3-yaml curl git tar xz-utils \
-            hyprland
+            dosfstools mtools python3-yaml curl git tar xz-utils
       - name: Validate Void ISO builder
         run: sh installation/build-iso-void_test.sh
       - name: Build Zenith OS Void ISO
