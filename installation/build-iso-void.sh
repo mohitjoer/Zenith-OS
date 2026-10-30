@@ -269,7 +269,9 @@ for group, body in manifest.items():
 
 filtered = [p for p in packages if p != "base-system"]
 all_requested = sorted(dict.fromkeys(str(p) for p in filtered))
-print(" ".join(all_requested))
+custom_pkgs = {"hyprland", "xdg-desktop-portal-hyprland"}
+out = [p for p in all_requested if p not in custom_pkgs]
+print(" ".join(out))
 PY
 )
 
@@ -544,7 +546,6 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-a "$ARCH" \
 		-b base-system \
 		-r "$MIRROR" \
-		-r "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
 		-s xz \
