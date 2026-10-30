@@ -43,10 +43,14 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/usr/share/zenith/shell" \
 	"$INCLUDE_DIR/usr/share/wayland-sessions"
 
-# Configure Plymouth boot splash and progress
+# Configure Plymouth boot splash, mini log window, and progress
+mkdir -p "$INCLUDE_DIR/usr/share/plymouth/themes/zenith"
+cp -r "$REPO_ROOT/system/plymouth/zenith"/* "$INCLUDE_DIR/usr/share/plymouth/themes/zenith/"
+ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
+
 cat >"$INCLUDE_DIR/etc/plymouth/plymouthd.conf" <<'EOF'
 [Daemon]
-Theme=bgrt
+Theme=zenith
 ShowDelay=0
 DeviceTimeout=5
 EOF

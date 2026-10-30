@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Zenith
+Description=Zenith OS Monochrome Boot Splash with Mini Log Window and Progress
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/zenith
+ScriptFile=/usr/share/plymouth/themes/zenith/zenith.script

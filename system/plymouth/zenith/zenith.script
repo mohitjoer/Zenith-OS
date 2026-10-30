@@ -1,0 +1,130 @@
+# Zenith OS Plymouth Boot Splash Script
+# Monochrome theme featuring a mini log terminal window and live % progress bar.
+
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+
+# Logo at upper center
+logo_img = Image("logo.png");
+logo_sprite = Sprite(logo_img);
+logo_x = screen_w / 2 - logo_img.GetWidth() / 2;
+logo_y = screen_h / 2 - 230;
+logo_sprite.SetPosition(logo_x, logo_y, 10);
+
+# Mini Log Window
+win_w = 640;
+win_h = 220;
+win_x = screen_w / 2 - win_w / 2;
+win_y = screen_h / 2 - 80;
+
+win_img = Image("window.png");
+win_sprite = Sprite(win_img);
+win_sprite.SetPosition(win_x, win_y, 5);
+
+# Log Lines
+log_lines = [];
+log_sprites = [];
+max_lines = 7;
+
+# Initial seed lines so the terminal window displays immediate boot activity
+log_lines[0] = "[  OK  ] Initializing Zenith OS low-latency kernel core";
+log_lines[1] = "[  OK  ] Mounting rootfs overlay and zstd memory pool";
+log_lines[2] = "[  OK  ] Loading ACPI, GPU drivers and input devices";
+log_lines[3] = "[  OK  ] Starting D-Bus and unprivileged seat daemon";
+log_lines[4] = "[  OK  ] Configuring NetworkManager and hardware rules";
+log_lines[5] = "[  OK  ] Initializing audio subsystem and user services";
+log_lines[6] = "[  OK  ] Launching Zenith Wayland desktop session";
+
+fun render_logs() {
+    for (i = 0; i < max_lines; i++) {
+        if (log_lines[i]) {
+            txt_img = Image.Text(log_lines[i], 0.85, 0.85, 0.85, 1.0, "Monospace 10");
+            if (!log_sprites[i]) {
+                log_sprites[i] = Sprite();
+            }
+            log_sprites[i].SetImage(txt_img);
+            log_sprites[i].SetPosition(win_x + 16, win_y + 36 + i * 24, 10);
+        }
+    }
+}
+render_logs();
+
+fun add_log(text) {
+    if (!text || text == "") return;
+    for (i = 0; i < max_lines - 1; i++) {
+        log_lines[i] = log_lines[i + 1];
+    }
+    log_lines[max_lines - 1] = "[  OK  ] " + text;
+    render_logs();
+}
+
+# Progress Bar below mini window
+bar_box_img = Image("progress_box.png");
+bar_box_sprite = Sprite(bar_box_img);
+bar_box_x = screen_w / 2 - bar_box_img.GetWidth() / 2;
+bar_box_y = win_y + win_h + 30;
+bar_box_sprite.SetPosition(bar_box_x, bar_box_y, 8);
+
+bar_fg_original = Image("progress_bar.png");
+bar_fg_sprite = Sprite();
+bar_fg_sprite.SetPosition(bar_box_x + 2, bar_box_y + 2, 9);
+
+percent_sprite = Sprite();
+percent_sprite.SetPosition(screen_w / 2 - 50, bar_box_y + 22, 10);
+
+current_progress = 0.05;
+
+fun progress_callback(duration, progress) {
+    if (progress > current_progress) {
+        current_progress = progress;
+    } else if (duration > 0) {
+        # Fallback progression when system provides no estimate (e.g. first live boot)
+        estimated = duration / 8.0;
+        if (estimated > 0.95) estimated = 0.95;
+        if (estimated > current_progress) {
+            current_progress = estimated;
+        }
+    }
+    
+    percent = Math.Int(current_progress * 100);
+    if (percent > 100) percent = 100;
+    if (percent < 5) percent = 5;
+    
+    target_w = Math.Int((bar_box_img.GetWidth() - 4) * current_progress);
+    if (target_w < 1) target_w = 1;
+    if (target_w > bar_box_img.GetWidth() - 4) target_w = bar_box_img.GetWidth() - 4;
+    
+    bar_img = bar_fg_original.Scale(target_w, bar_fg_original.GetHeight());
+    bar_fg_sprite.SetImage(bar_img);
+    
+    pct_img = Image.Text(percent + "% COMPLETED", 1.0, 1.0, 1.0, 1.0, "Monospace Bold 11");
+    percent_sprite.SetImage(pct_img);
+    percent_sprite.SetPosition(screen_w / 2 - pct_img.GetWidth() / 2, bar_box_y + 22, 10);
+}
+
+Plymouth.SetBootProgressFunction(progress_callback);
+
+fun status_callback(status) {
+    add_log(status);
+}
+Plymouth.SetUpdateStatusFunction(status_callback);
+
+fun message_callback(msg) {
+    add_log(msg);
+}
+Plymouth.SetDisplayMessageFunction(message_callback);
+
+fun quit_callback() {
+    logo_sprite.SetOpacity(0);
+    win_sprite.SetOpacity(0);
+    bar_box_sprite.SetOpacity(0);
+    bar_fg_sprite.SetOpacity(0);
+    percent_sprite.SetOpacity(0);
+    for (i = 0; i < max_lines; i++) {
+        if (log_sprites[i]) log_sprites[i].SetOpacity(0);
+    }
+}
+Plymouth.SetQuitFunction(quit_callback);
