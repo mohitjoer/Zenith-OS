@@ -136,13 +136,23 @@ func setWheelGroup(path string) {
 	}
 }
 
+func isBenignDisconnect(err error) bool {
+	if err == nil || err == io.EOF {
+		return true
+	}
+	s := err.Error()
+	return strings.Contains(s, "connection reset") ||
+		strings.Contains(s, "broken pipe") ||
+		strings.Contains(s, "closed")
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
-			if err != io.EOF && !strings.Contains(err.Error(), "connection reset") && !strings.Contains(err.Error(), "broken pipe") && !strings.Contains(err.Error(), "closed") {
+			if !isBenignDisconnect(err) {
 				fmt.Fprintf(os.Stderr, "zenith-sysd: read error: %v\n", err)
 			}
 			return

@@ -57,8 +57,6 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-add_drivers+=" bochs-drm vboxvideo simplefb efifb vesafb virtio-gpu "
-install_items+=" /usr/lib/plymouth/* /usr/lib/plymouth/renderers/* /etc/fonts/* /usr/share/fonts/* /usr/share/plymouth/* "
 EOF
 
 # Setup OS identity
@@ -207,8 +205,8 @@ for hpkg in $HYPR_PKGS; do
 	fi
 done
 rm -f "$INCLUDE_DIR/props.plist" "$INCLUDE_DIR/files.plist"
-if [ -x "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" ]; then
-	ln -sf /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
+if [ -f "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" ]; then
+	cp "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
 fi
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
@@ -270,7 +268,7 @@ echo "build-iso-void: building Zenith Go binaries..."
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-vm-ssh" ./cmd/zenith-vm/remote
 	cp -f "$REPO_ROOT/desktop/cmd/zenith-vm/zenith-vmd" "$INCLUDE_DIR/usr/bin/zenith-vmd"
 )
-chmod 0755 "$INCLUDE_DIR/usr/bin"/*
+find "$INCLUDE_DIR/usr/bin" -type f -exec chmod 0755 {} +
 # Symlinks
 ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 

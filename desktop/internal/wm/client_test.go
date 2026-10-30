@@ -95,7 +95,7 @@ wait
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	err := OpenNamed("testwm").ActContext(ctx, ActionOutputPower, "on")
 	if !errors.Is(err, context.DeadlineExceeded) {

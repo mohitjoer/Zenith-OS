@@ -76,12 +76,16 @@ func consumeHyprland(ctx context.Context, conn net.Conn, emit func(Frame), wants
 	go func() {
 		defer close(lines)
 		scan := bufio.NewScanner(conn)
+	scanLoop:
 		for scan.Scan() {
 			select {
 			case lines <- scan.Text():
 			case <-ctx.Done():
-				return
+				break scanLoop
 			}
+		}
+		if err := scan.Err(); err != nil {
+			return
 		}
 	}()
 
