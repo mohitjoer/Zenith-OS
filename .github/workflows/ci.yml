@@ -233,6 +233,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            desktop/go.mod
+            desktop/go.sum
+            system/hardware/go.mod
+            system/hardware/go.sum
       - name: Contract test suite
         run: sh tests/contract/run.sh
 
