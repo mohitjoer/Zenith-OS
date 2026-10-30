@@ -95,11 +95,21 @@ wait
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	go func() {
+		for i := 0; i < 200; i++ {
+			if _, statErr := os.Stat(childPath); statErr == nil {
+				cancel()
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		cancel()
+	}()
 	err := OpenNamed("testwm").ActContext(ctx, ActionOutputPower, "on")
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("hung provider action returned %v, want deadline exceeded", err)
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("hung provider action returned %v, want context cancellation", err)
 	}
 	raw, readErr := os.ReadFile(childPath)
 	if readErr != nil {
