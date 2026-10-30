@@ -69,6 +69,18 @@ desktop:
     - jq
     - ImageMagick
     - librsvg
+    # Compositor & shell runtime libraries
+    - pixman
+    - cairo
+    - pango
+    - re2
+    - libinput
+    - libxkbcommon
+    - xcb-util-wm
+    - xcb-util-errors
+    - libdisplay-info
+    - jemalloc
+    - libunwind
   exclude:
     # No GNOME components per project rules
     - gnome-shell: GNOME Shell is forbidden in Zenith

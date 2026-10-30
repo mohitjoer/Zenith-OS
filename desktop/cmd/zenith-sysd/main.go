@@ -142,7 +142,7 @@ func handleConnection(conn net.Conn) {
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.Contains(err.Error(), "connection reset") && !strings.Contains(err.Error(), "broken pipe") && !strings.Contains(err.Error(), "closed") {
 				fmt.Fprintf(os.Stderr, "zenith-sysd: read error: %v\n", err)
 			}
 			return

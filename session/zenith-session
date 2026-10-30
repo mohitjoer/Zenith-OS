@@ -29,6 +29,12 @@ export XDG_SESSION_TYPE=wayland
 
 # Seat management backend for Hyprland without root privileges:
 # Prefer seatd if /run/seatd.sock exists and is accessible, fallback to logind.
+if [ ! -S /run/seatd.sock ] && [ -d /etc/sv/seatd ]; then
+    for _ in 1 2 3 4 5; do
+        [ -S /run/seatd.sock ] && break
+        sleep 0.2
+    done
+fi
 if [ -w /run/seatd.sock ]; then
     export LIBSEAT_BACKEND=seatd
 elif [ -S /run/seatd.sock ] && id -Gn 2>/dev/null | grep -qw _seatd; then
@@ -38,6 +44,7 @@ elif [ -d /run/systemd/seats ] || [ -d /run/elogind ] || pgrep -x elogind >/dev/
 else
     export LIBSEAT_BACKEND="${LIBSEAT_BACKEND:-seatd}"
 fi
+export HYPRLAND_NO_SD_NOTIFY=1
 
 # Ensure XDG_RUNTIME_DIR is properly set and permissions are 0700
 if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
@@ -232,13 +239,17 @@ else
     RC=${RC:-0}
     END_TIME=$(date +%s)
     
-    if [ "$RC" -ne 0 ] && [ $((END_TIME - START_TIME)) -le 3 ] && [ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]; then
-        echo "zenith-session: compositor exited ($RC) quickly; attempting software llvmpipe fallback..."
-        export LIBGL_ALWAYS_SOFTWARE=1
-        export WLR_RENDERER_ALLOW_SOFTWARE=1
-        export AQ_NO_MODIFIERS=1
-        export WLR_NO_HARDWARE_CURSORS=1
-        exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
+    if [ "$RC" -ne 0 ]; then
+        echo "zenith-session: compositor exited ($RC)" >&2
+        if [ $((END_TIME - START_TIME)) -le 4 ] && [ -z "${ZENITH_RETRY_DONE:-}" ]; then
+            echo "zenith-session: compositor exited quickly; attempting software llvmpipe/pixman fallback..." >&2
+            export ZENITH_RETRY_DONE=1
+            export LIBGL_ALWAYS_SOFTWARE=1
+            export WLR_RENDERER_ALLOW_SOFTWARE=1
+            export AQ_NO_MODIFIERS=1
+            export WLR_NO_HARDWARE_CURSORS=1
+            exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
+        fi
     fi
     exit "$RC"
 fi

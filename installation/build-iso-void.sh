@@ -57,7 +57,8 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-install_items+=" /usr/share/fonts/* /etc/fonts/* "
+add_drivers+=" bochs-drm vboxvideo simplefb efifb vesafb virtio-gpu "
+install_items+=" /usr/lib/plymouth/* /usr/lib/plymouth/renderers/* /etc/fonts/* /usr/share/fonts/* /usr/share/plymouth/* "
 EOF
 
 # Setup OS identity
@@ -192,22 +193,46 @@ fi
 cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
 cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
 
-# Copy host quickshell and hyprland binaries if available
+# Stage native Void Linux Hyprland compositor stack and libraries
+echo "build-iso-void: staging native Void Linux Hyprland stack..."
+HYPR_PKGS="tomlplusplus-3.4.0_1.x86_64.xbps hyprutils-0.7.1_1.x86_64.xbps aquamarine-0.8.0_2.x86_64.xbps hyprlang-0.6.3_1.x86_64.xbps hyprcursor-0.1.12_1.x86_64.xbps hyprgraphics-0.1.3_2.x86_64.xbps hyprland-0.49.0_1.x86_64.xbps xdg-desktop-portal-hyprland-1.3.9_2.x86_64.xbps"
+HYPR_CACHE="$BUILD_DIR/hyprland-pkgs"
+mkdir -p "$HYPR_CACHE"
+for hpkg in $HYPR_PKGS; do
+	if [ ! -f "$HYPR_CACHE/$hpkg" ]; then
+		curl -sSL -o "$HYPR_CACHE/$hpkg" "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/$hpkg" || true
+	fi
+	if [ -f "$HYPR_CACHE/$hpkg" ]; then
+		tar -xf "$HYPR_CACHE/$hpkg" -C "$INCLUDE_DIR" 2>/dev/null || true
+	fi
+done
+rm -f "$INCLUDE_DIR/props.plist" "$INCLUDE_DIR/files.plist"
+if [ -x "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" ]; then
+	ln -sf /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
+fi
+
+# Pre-trust Makrennel repository public key in /var/db/xbps/keys
+mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"
+cat >"$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd4123678ee9a682d06dd3.plist" <<'KEYEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUFtNWk4VnhQdEpJRVU5ZERuSlNmSAo5by9PNCt1THFYc1hqemY0emZxTXFXM0RIQTJjM2pHeDE2dFVUT0dHbUdzVk1pb3l6TXl0TjUwSTZwb0J0ODBZCjlWQ25MRVBmVFFmbjlNaHV1ZGFPNjA5OGZVb2srejA4WjJsZ205NVg5Z3JDblkraEhwMC8yZ2VxNGJ5Zy9mZG0KTjlCbGVqaTlNd2dJdHFpRllJM0J4MXdWUVkzekVzWEUyeXlseHpycTFpS2p0S2dYMXAxWDFnWDBadzR2ZEIzMwo4b1luSDNNYkNMUGlobWxocm5BMTRhWm1UaHFuNFNRU1A2czAzdStQSHNuaHVKQ3EvS1N4S3AyRFhVM0JpY1dmCnY0YmdPQmV2TmYrZWhKbDJyRHdTSk9lS0NrOFhnZVYyVXNKQW4xaTM3UUpjdm9ZNWZUamFNUmxYSnRISERvN04KVzNXZHVPcWxwMHVHVVlXZVNxLzFMRVlJUDE2bGJ1dXd1a1ZrWXF5QzZMbWY0VXovOVZOYkc1anp0UUdmVkZJdgoxZmppZGg0cEpzNWEyeGx6QVpOTVpoT1VMdElnM2U5bkorYUc5dGt5K09kSjRiS1lja2NicWxRMlNiME5QTmF4CnQ4Q1Q2c2E4MHNJRU1oZWRvemUvVkhmdlNaZitLZ3FPc25BaGMvY1ZEUmhsQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==</data>
+	<key>public-key-size</key>
+	<integer>3072</integer>
+	<key>signature-by</key>
+	<string>hyprland-void-github-action</string>
+	<key>signature-type</key>
+	<string>rsa</string>
+</dict>
+</plist>
+KEYEOF
+
+# Copy host quickshell binary if available
 if [ -x /usr/bin/quickshell ]; then
 	cp /usr/bin/quickshell "$INCLUDE_DIR/usr/bin/quickshell"
-fi
-if [ -x /usr/bin/Hyprland ]; then
-	cp /usr/bin/Hyprland "$INCLUDE_DIR/usr/bin/Hyprland"
-	if [ -x /usr/bin/hyprctl ]; then cp /usr/bin/hyprctl "$INCLUDE_DIR/usr/bin/hyprctl"; fi
-	if [ -x /usr/bin/hyprpm ]; then cp /usr/bin/hyprpm "$INCLUDE_DIR/usr/bin/hyprpm"; fi
-	mkdir -p "$INCLUDE_DIR/usr/lib"
-	cp -a /usr/lib/x86_64-linux-gnu/libhypr* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
-	cp -a /usr/lib/x86_64-linux-gnu/libaquamarine* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
-fi
-if [ -x /usr/libexec/xdg-desktop-portal-hyprland ]; then
-	mkdir -p "$INCLUDE_DIR/usr/libexec"
-	cp /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/libexec/"
-	ln -sf /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
 fi
 
 # Copy udev power rules (99-zenith-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
@@ -296,8 +321,9 @@ if [ -d "$MKLIVE_DIR/data" ]; then
 	fi
 fi
 
-# Clean up void-mklive bootstrap repository flags so glibc x86_64 targets don't query 404 musl repodata
+# Clean up void-mklive bootstrap repository flags and force-include plymouth in initramfs
 if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
+	sed -i 's/--force-add "vmklive autoinstaller"/--force-add "vmklive autoinstaller plymouth"/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
 fi
@@ -346,12 +372,12 @@ MENU COLOR tabmsg       * #66666666 #00000000 none
 LABEL linux
 MENU LABEL Zenith OS (Live Session)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
 
 LABEL linuxram
 MENU LABEL Zenith OS (Copy to RAM)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ rd.live.ram
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
 
 LABEL reboot
 MENU LABEL Reboot System
@@ -528,6 +554,11 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 		echo "  Zenith graphical desktop session exited."
 		echo "  Log available at: ~/.local/state/zenith/session.log"
 		echo
+		if [ -f "$HOME/.local/state/zenith/session.log" ]; then
+			echo "--- Last 20 lines of session.log ---"
+			tail -n 20 "$HOME/.local/state/zenith/session.log"
+			echo "------------------------------------"
+		fi
 		echo "  To launch the installer directly, run: sudo zenith install"
 		echo "  To retry launching the desktop, run: zenith-session"
 		echo "================================================================"
@@ -555,7 +586,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s xz \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer vga=792 video=1024x768 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"
