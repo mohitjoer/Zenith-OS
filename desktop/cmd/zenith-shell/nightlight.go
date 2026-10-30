@@ -213,6 +213,9 @@ func (n *nightlightState) watch() {
 		return
 	}
 	defer unix.Close(fd)
+	if n.stateDir != "" {
+		_ = os.MkdirAll(n.stateDir, 0o755)
+	}
 	if _, err := unix.InotifyAddWatch(fd, n.stateDir, unix.IN_CLOSE_WRITE|unix.IN_CREATE|unix.IN_DELETE|unix.IN_MOVED_TO); err != nil {
 		log.Printf("zenith-shell: nightlight watch failed: %v", err)
 	}
@@ -265,12 +268,12 @@ func (n *nightlightState) loopNoWatch(on bool, temp int) {
 // script writes the enabled marker before `zenith wm act nightlight.on` has
 // spawned the backend, so a scan in that window sees no process and would
 // publish off. Read the marker (the script's declared intent) once, then rescan
-// /proc every 100 ms until running() agrees with it or 2 s elapse, and report
+// /proc every 100 ms until running() agrees with it or 3 s elapse, and report
 // the settled state. A bounded sleep loop on the watcher's own goroutine: no
 // timer, no subprocess, no leak.
 func (n *nightlightState) settle() bool {
 	want := n.markerEnabled()
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(3 * time.Second)
 	for {
 		got := n.running()
 		if got == want || time.Now().After(deadline) {

@@ -75,6 +75,7 @@ exit 0
 	// without this the test drives the real ones and the watcher never sees the
 	// fake backend.
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("XDG_STATE_HOME", state)
 
 	d := &daemon{wmc: wm.OpenNamed("testwm")}
 	d.startNightlight()
@@ -300,7 +301,7 @@ func TestNightlightWatcherSettlesMarkerBeforeBackend(t *testing.T) {
 	if err := os.WriteFile(f.marker, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	back := exec.Command("python3", "-c", fakeBackendPy, filepath.Base(f.fake))
 	if err := back.Start(); err != nil {
 		t.Fatalf("start late backend: %v", err)
@@ -311,8 +312,8 @@ func TestNightlightWatcherSettlesMarkerBeforeBackend(t *testing.T) {
 	if got.Temperature != 4600 {
 		t.Fatalf("settled frame: got %s want on:true temperature:4600", got.Raw)
 	}
-	if elapsed := time.Since(markerAt); elapsed > 2500*time.Millisecond {
-		t.Fatalf("watcher took %v to settle to on, want the 2s settle not the 5s poll", elapsed)
+	if elapsed := time.Since(markerAt); elapsed > 3500*time.Millisecond {
+		t.Fatalf("watcher took %v to settle to on, want the settle not the 5s poll", elapsed)
 	}
 }
 

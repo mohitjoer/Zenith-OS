@@ -225,6 +225,16 @@ if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
 fi
 
+# Patch dracut vmklive module to use zenith-os hostname, zenith user, and include _seatd/input groups
+if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
+	sed -i 's/echo void-live >/echo zenith-os >/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/-G audio,video,wheel/-G audio,video,wheel,_seatd,input,tty,storage,network/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/USERNAME=anon/USERNAME=zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/voidlinux/zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/99-void-live/99-zenith-live/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/void-live.rules/zenith-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+fi
+
 # Ensure XBPS tools are available (if running on a non-Void host, fetch xbps-static)
 if ! command -v xbps-install >/dev/null 2>&1; then
 	echo "build-iso-void: xbps-install not found on host, setting up xbps-static..."
@@ -242,9 +252,9 @@ cat >"$POSTSETUP_SCRIPT" <<'EOF'
 #!/bin/sh
 ROOTFS="$1"
 
-# Enable core system runit services
+# Enable core system runit services (dbus manages elogind on-demand via D-Bus activation)
 mkdir -p "$ROOTFS/etc/runit/runsvdir/default"
-for svc in dbus seatd elogind udevd NetworkManager acpid turnstiled tlp zramen zenith-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen zenith-sysd; do
 	if [ -d "$ROOTFS/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
@@ -403,8 +413,8 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
 		-s xz \
-		-S "dbus seatd elogind NetworkManager zramen" \
-		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
+		-S "dbus seatd NetworkManager zramen" \
+		-C "live.user=zenith live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"

@@ -28,9 +28,15 @@ export DESKTOP_SESSION=zenith
 export XDG_SESSION_TYPE=wayland
 
 # Seat management backend for Hyprland without root privileges:
-# Prefer seatd if /run/seatd.sock exists or default to seatd, fallback to logind.
-if [ -S /run/seatd.sock ] || [ -z "${LIBSEAT_BACKEND:-}" ]; then
+# Prefer seatd if /run/seatd.sock exists and is accessible, fallback to logind.
+if [ -w /run/seatd.sock ]; then
     export LIBSEAT_BACKEND=seatd
+elif [ -S /run/seatd.sock ] && id -Gn 2>/dev/null | grep -qw _seatd; then
+    export LIBSEAT_BACKEND=seatd
+elif [ -d /run/systemd/seats ] || [ -d /run/elogind ] || pgrep -x elogind >/dev/null 2>&1; then
+    export LIBSEAT_BACKEND=logind
+else
+    export LIBSEAT_BACKEND="${LIBSEAT_BACKEND:-seatd}"
 fi
 
 # Ensure XDG_RUNTIME_DIR is properly set and permissions are 0700
@@ -82,6 +88,25 @@ export WLR_NO_HARDWARE_CURSORS=1
 # and systems lacking hardware cursor planes or explicit sync modifiers.
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 export AQ_NO_MODIFIERS=1
+
+# If multiple DRM render devices exist, prioritize integrated GPU (Intel/AMD) over discrete NVIDIA
+if [ -z "${AQ_DRM_DEVICES:-}" ] && [ -e /dev/dri/card1 ] && [ -e /dev/dri/card0 ]; then
+    igpu=""
+    for card in /sys/class/drm/card[0-9]; do
+        driver=$(readlink -f "$card/device/driver" 2>/dev/null || true)
+        case "$driver" in
+            *i915*|*xe*|*amdgpu*)
+                igpu="/dev/dri/$(basename "$card")"
+                break
+                ;;
+        esac
+    done
+    if [ "$igpu" = "/dev/dri/card1" ]; then
+        export AQ_DRM_DEVICES="/dev/dri/card1:/dev/dri/card0"
+    elif [ "$igpu" = "/dev/dri/card0" ]; then
+        export AQ_DRM_DEVICES="/dev/dri/card0:/dev/dri/card1"
+    fi
+fi
 
 # Machine-level additions, then the user's overlay. Written as `if`, not as
 # `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
