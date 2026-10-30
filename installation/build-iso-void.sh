@@ -29,6 +29,7 @@ BUILD_DIR=$(CDPATH= cd -- "$BUILD_DIR" && pwd)
 INCLUDE_DIR="$BUILD_DIR/include"
 mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/etc/udev/rules.d" \
+	"$INCLUDE_DIR/etc/modprobe.d" \
 	"$INCLUDE_DIR/etc/sysctl.d" \
 	"$INCLUDE_DIR/etc/turnstile" \
 	"$INCLUDE_DIR/etc/xbps.d" \
@@ -101,16 +102,20 @@ cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/share/zenith/session/z
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/share/zenith/session/zenith-user-services"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-user-services"
 cp "$REPO_ROOT/system/helpers/prime-run" "$INCLUDE_DIR/usr/bin/prime-run"
+cp "$REPO_ROOT/system/helpers/fan-profile" "$INCLUDE_DIR/usr/bin/fan-profile"
 cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-installer"
 mkdir -p "$INCLUDE_DIR/usr/share/applications"
 cp "$REPO_ROOT/session/applications/zenith-installer.desktop" "$INCLUDE_DIR/usr/share/applications/zenith-installer.desktop"
 cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
 cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
 cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
-chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services" "$INCLUDE_DIR/usr/bin/prime-run" "$INCLUDE_DIR/usr/bin/zenith-installer"
+chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services" "$INCLUDE_DIR/usr/bin/prime-run" "$INCLUDE_DIR/usr/bin/fan-profile" "$INCLUDE_DIR/usr/bin/zenith-installer"
 
-# Copy udev power rules, sysctl performance tuning, turnstile config, and XBPS repos
-cp "$REPO_ROOT/system/udev/99-zenith-power.rules" "$INCLUDE_DIR/etc/udev/rules.d/99-zenith-power.rules"
+# Copy udev power rules (99-zenith-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
+cp "$REPO_ROOT/system/udev"/*.rules "$INCLUDE_DIR/etc/udev/rules.d/"
+if [ -d "$REPO_ROOT/system/modprobe.d" ]; then
+	cp "$REPO_ROOT/system/modprobe.d"/*.conf "$INCLUDE_DIR/etc/modprobe.d/"
+fi
 cp "$REPO_ROOT/system/sysctl.d/99-zenith-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-zenith-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
 cp "$REPO_ROOT/system/xbps.d/zenith.conf" "$INCLUDE_DIR/etc/xbps.d/zenith.conf"
@@ -205,10 +210,13 @@ if [ ! -d "$MKLIVE_DIR" ]; then
 	git clone --depth 1 https://github.com/void-linux/void-mklive.git "$MKLIVE_DIR"
 fi
 
-# Overwrite upstream mklive issue and motd data files to eliminate upstream branding
+# Overwrite upstream mklive issue, motd, and splash data files to eliminate upstream branding
 if [ -d "$MKLIVE_DIR/data" ]; then
 	cp "$INCLUDE_DIR/etc/issue" "$MKLIVE_DIR/data/issue"
 	cp "$INCLUDE_DIR/etc/motd" "$MKLIVE_DIR/data/motd"
+	if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
+		cp "$REPO_ROOT/public/branding/boot-splash.png" "$MKLIVE_DIR/data/splash.png"
+	fi
 fi
 
 # Ensure XBPS tools are available (if running on a non-Void host, fetch xbps-static)
@@ -302,6 +310,13 @@ for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit
 	fi
 done
 
+# Set 80% battery charge threshold fallback in /etc/rc.local
+if [ -f "$ROOTFS/etc/rc.local" ]; then
+	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
+		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"
+	fi
+fi
+
 # Set Zenith OS hostname and network identity
 printf 'zenith-os\n' > "$ROOTFS/etc/hostname"
 if [ -f "$ROOTFS/etc/rc.conf" ]; then
@@ -364,6 +379,7 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 fi
 PROFILE
 chmod 0755 "$ROOTFS/etc/profile.d/zenith-autologin.sh"
+exit 0
 EOF
 chmod +x "$POSTSETUP_SCRIPT"
 
@@ -373,13 +389,14 @@ FINAL_ISO="$BUILD_DIR/$ISO_NAME.iso"
 echo "build-iso-void: generating ISO with void-mklive..."
 (
 	cd "$MKLIVE_DIR"
+	export SPLASH_IMAGE="$REPO_ROOT/public/branding/boot-splash.png"
 	./mklive.sh \
 		-a "$ARCH" \
 		-b base-system \
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
-		-s "$REPO_ROOT/public/branding/boot-splash.png" \
+		-s xz \
 		-S "dbus seatd elogind NetworkManager zramen" \
 		-C "nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
 		-x "$POSTSETUP_SCRIPT" \

@@ -4,5 +4,6 @@ zenith-userd -> /usr/bin/zenith-userd
 zpm -> /usr/bin/zpm
 session/runit/zenith-user-services -> /usr/bin/zenith-user-services
 system/helpers/prime-run -> /usr/bin/prime-run
+system/helpers/fan-profile -> /usr/bin/fan-profile
 installation/zenith-installer.sh -> /usr/bin/zenith-installer
 session/applications/zenith-installer.desktop -> /usr/share/applications/zenith-installer.desktop

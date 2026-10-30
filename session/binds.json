@@ -735,6 +735,15 @@
           "argument": "off"
         }
       ]
+    },
+    {
+      "id": "fan-profile",
+      "category": "display",
+      "label": "Cycle thermal and fan profiles (Balanced, Turbo, Silent)",
+      "chord": "XF86Launch4",
+      "kind": "app",
+      "action": "fan-profile"
     }
   ]
 }
+

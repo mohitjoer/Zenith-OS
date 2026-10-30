@@ -287,6 +287,31 @@ func applyPowerProfile(profile string) error {
 		_ = exec.Command("tlp", "bat").Run()
 	}
 
+	// Apply ASUS WMI thermal policy / platform profile
+	switch profile {
+	case "performance":
+		_ = os.WriteFile("/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy", []byte("1"), 0644)
+		_ = os.WriteFile("/sys/firmware/acpi/platform_profile", []byte("performance"), 0644)
+	case "power":
+		_ = os.WriteFile("/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy", []byte("2"), 0644)
+		_ = os.WriteFile("/sys/firmware/acpi/platform_profile", []byte("low-power"), 0644)
+	case "balanced":
+		_ = os.WriteFile("/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy", []byte("0"), 0644)
+		_ = os.WriteFile("/sys/firmware/acpi/platform_profile", []byte("balanced"), 0644)
+	}
+
+	// Maintain 80% battery charge threshold for battery longevity
+	bats, _ := filepath.Glob("/sys/class/power_supply/BAT*/charge_control_end_threshold")
+	for _, b := range bats {
+		_ = os.WriteFile(b, []byte("80"), 0644)
+	}
+
+	// Enable D3cold runtime PM for discrete PCIe devices (including NVIDIA dGPU)
+	gpus, _ := filepath.Glob("/sys/bus/pci/devices/*/power/control")
+	for _, f := range gpus {
+		_ = os.WriteFile(f, []byte("auto"), 0644)
+	}
+
 	return nil
 }
 

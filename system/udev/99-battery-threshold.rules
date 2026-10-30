@@ -1,0 +1,2 @@
+# Persist 80% battery charge limit across reboots and AC plug events
+SUBSYSTEM=="power_supply", KERNEL=="BAT[0-1]", ATTR{charge_control_end_threshold}="80"
