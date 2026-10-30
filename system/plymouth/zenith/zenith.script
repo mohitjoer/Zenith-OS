@@ -13,6 +13,7 @@ logo_sprite = Sprite(logo_img);
 logo_x = screen_w / 2 - logo_img.GetWidth() / 2;
 logo_y = screen_h / 2 - 230;
 logo_sprite.SetPosition(logo_x, logo_y, 10);
+logo_sprite.SetOpacity(1);
 
 # Mini Log Window
 win_w = 640;
@@ -23,6 +24,7 @@ win_y = screen_h / 2 - 80;
 win_img = Image("window.png");
 win_sprite = Sprite(win_img);
 win_sprite.SetPosition(win_x, win_y, 5);
+win_sprite.SetOpacity(1);
 
 # Log Lines
 log_lines = [];
@@ -38,38 +40,21 @@ log_lines[4] = "[  OK  ] Configuring NetworkManager and hardware rules";
 log_lines[5] = "[  OK  ] Initializing audio subsystem and user services";
 log_lines[6] = "[  OK  ] Launching Zenith Wayland desktop session";
 
-fun make_text(str, r, g, b, font_spec) {
-    txt = Image.Text(str, r, g, b, 1.0, font_spec);
-    if (!txt) {
-        txt = Image.Text(str, r, g, b, 1.0, "Sans 10");
-    }
-    if (!txt) {
-        txt = Image.Text(str, r, g, b, 1.0, "Monospace 10");
-    }
-    if (!txt) {
-        txt = Image.Text(str, r, g, b, 1.0, "Fixed 10");
-    }
-    if (!txt) {
-        txt = Image.Text(str, r, g, b);
-    }
-    return txt;
-}
-
 fun render_logs() {
     for (i = 0; i < max_lines; i++) {
         if (log_lines[i]) {
-            txt_img = make_text(log_lines[i], 0.9, 0.9, 0.9, "DejaVu Sans Mono 10");
+            txt_img = Image.Text(log_lines[i], 0.9, 0.9, 0.9);
             if (txt_img) {
                 if (!log_sprites[i]) {
                     log_sprites[i] = Sprite();
                 }
                 log_sprites[i].SetImage(txt_img);
-                log_sprites[i].SetPosition(win_x + 16, win_y + 36 + i * 24, 10);
+                log_sprites[i].SetPosition(win_x + 16, win_y + 36 + i * 24, 1000);
+                log_sprites[i].SetOpacity(1);
             }
         }
     }
 }
-render_logs();
 
 fun add_log(text) {
     if (!text || text == "") return;
@@ -86,13 +71,16 @@ bar_box_sprite = Sprite(bar_box_img);
 bar_box_x = screen_w / 2 - bar_box_img.GetWidth() / 2;
 bar_box_y = win_y + win_h + 30;
 bar_box_sprite.SetPosition(bar_box_x, bar_box_y, 8);
+bar_box_sprite.SetOpacity(1);
 
 bar_fg_original = Image("progress_bar.png");
 bar_fg_sprite = Sprite();
 bar_fg_sprite.SetPosition(bar_box_x + 2, bar_box_y + 2, 9);
+bar_fg_sprite.SetOpacity(1);
 
 percent_sprite = Sprite();
-percent_sprite.SetPosition(screen_w / 2 - 50, bar_box_y + 22, 10);
+percent_sprite.SetPosition(screen_w / 2 - 50, bar_box_y + 22, 1000);
+percent_sprite.SetOpacity(1);
 
 current_progress = 0.05;
 boot_milestone = 0;
@@ -118,19 +106,31 @@ fun update_progress_ui() {
     
     bar_img = bar_fg_original.Scale(target_w, bar_fg_original.GetHeight());
     bar_fg_sprite.SetImage(bar_img);
+    bar_fg_sprite.SetOpacity(1);
     
-    pct_img = make_text(percent + "% COMPLETED", 1.0, 1.0, 1.0, "DejaVu Sans Mono Bold 11");
+    pct_img = Image.Text(percent + "% COMPLETED", 1.0, 1.0, 1.0);
     if (pct_img) {
         percent_sprite.SetImage(pct_img);
-        percent_sprite.SetPosition(screen_w / 2 - pct_img.GetWidth() / 2, bar_box_y + 22, 10);
+        percent_sprite.SetPosition(screen_w / 2 - pct_img.GetWidth() / 2, bar_box_y + 22, 1000);
+        percent_sprite.SetOpacity(1);
     }
 }
+
+fun display_normal_callback() {
+    logo_sprite.SetOpacity(1);
+    win_sprite.SetOpacity(1);
+    bar_box_sprite.SetOpacity(1);
+    bar_fg_sprite.SetOpacity(1);
+    percent_sprite.SetOpacity(1);
+    render_logs();
+    update_progress_ui();
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
 
 fun progress_callback(duration, progress) {
     if (progress > current_progress) {
         current_progress = progress;
     } else if (duration > 0) {
-        # Fallback progression when system provides no estimate (e.g. first live boot)
         estimated = duration / 7.0;
         if (estimated > 0.98) estimated = 0.98;
         if (estimated > current_progress) {
@@ -138,7 +138,6 @@ fun progress_callback(duration, progress) {
         }
     }
     
-    # Advance milestone logs with progress
     target_idx = Math.Int(current_progress * 8);
     if (target_idx > boot_milestone && target_idx < 8) {
         add_log(milestones[target_idx]);
@@ -147,14 +146,13 @@ fun progress_callback(duration, progress) {
     
     update_progress_ui();
 }
-
 Plymouth.SetBootProgressFunction(progress_callback);
 
 # Continuous frame refresh callback (invoked ~50 FPS by Plymouth script engine)
 fun refresh_callback() {
     boot_ticks++;
     
-    # Smooth progression over ~9 seconds during early kernel/initramfs boot
+    # Smooth progression over ~9 seconds during boot
     simulated = boot_ticks / 450.0;
     if (simulated > 0.96) simulated = 0.96;
     if (simulated > current_progress) {
@@ -180,7 +178,6 @@ fun message_callback(msg) {
     add_log(msg);
 }
 Plymouth.SetDisplayMessageFunction(message_callback);
-Plymouth.SetMessageFunction(message_callback);
 
 fun quit_callback() {
     logo_sprite.SetOpacity(0);
@@ -193,3 +190,6 @@ fun quit_callback() {
     }
 }
 Plymouth.SetQuitFunction(quit_callback);
+
+# Trigger initial display
+display_normal_callback();

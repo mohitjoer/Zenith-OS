@@ -208,6 +208,12 @@ rm -f "$INCLUDE_DIR/props.plist" "$INCLUDE_DIR/files.plist"
 if [ -f "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" ]; then
 	cp "$INCLUDE_DIR/usr/libexec/xdg-desktop-portal-hyprland" "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
 fi
+mkdir -p "$INCLUDE_DIR/usr/lib"
+for lpath in /usr/lib/x86_64-linux-gnu/libseat.so* /usr/lib/libseat.so*; do
+	if [ -f "$lpath" ] || [ -L "$lpath" ]; then
+		cp -d "$lpath" "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
+	fi
+done
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
 mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"

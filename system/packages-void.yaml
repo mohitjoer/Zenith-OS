@@ -22,6 +22,7 @@ essential:
     - polkit
     - elogind
     - seatd
+    - libseat
     - eudev
     - util-linux
     - coreutils
@@ -70,6 +71,7 @@ desktop:
     - ImageMagick
     - librsvg
     # Compositor & shell runtime libraries
+    - libseat
     - pixman
     - cairo
     - pango
