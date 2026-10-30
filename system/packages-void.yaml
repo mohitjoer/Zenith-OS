@@ -41,6 +41,8 @@ essential:
     - iptables
     - iproute2
     - btrfs-progs
+    - plymouth
+    - plymouth-data
 
 desktop:
   packages:

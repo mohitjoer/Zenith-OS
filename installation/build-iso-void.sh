@@ -33,6 +33,8 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/etc/sysctl.d" \
 	"$INCLUDE_DIR/etc/turnstile" \
 	"$INCLUDE_DIR/etc/xbps.d" \
+	"$INCLUDE_DIR/etc/plymouth" \
+	"$INCLUDE_DIR/etc/dracut.conf.d" \
 	"$INCLUDE_DIR/usr/bin" \
 	"$INCLUDE_DIR/usr/share/zenith/branding" \
 	"$INCLUDE_DIR/usr/share/zenith/session" \
@@ -40,6 +42,18 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/usr/share/zenith/hyprland" \
 	"$INCLUDE_DIR/usr/share/zenith/shell" \
 	"$INCLUDE_DIR/usr/share/wayland-sessions"
+
+# Configure Plymouth boot splash and progress
+cat >"$INCLUDE_DIR/etc/plymouth/plymouthd.conf" <<'EOF'
+[Daemon]
+Theme=bgrt
+ShowDelay=0
+DeviceTimeout=5
+EOF
+
+cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
+add_dracutmodules+=" plymouth "
+EOF
 
 # Setup OS identity
 cat >"$INCLUDE_DIR/etc/os-release" <<'EOF'
@@ -235,6 +249,58 @@ if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
 	sed -i 's/void-live.rules/zenith-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 fi
 
+# Replace cluttered multi-option isolinux menu with a clean, streamlined Zenith OS boot menu
+if [ -d "$MKLIVE_DIR/isolinux" ]; then
+	cat >"$MKLIVE_DIR/isolinux/isolinux.cfg.in" <<'BOOTCFG'
+UI vesamenu.c32
+PROMPT 0
+TIMEOUT 30
+ONTIMEOUT linux
+
+MENU TABMSG Press ENTER to boot or TAB to edit boot options
+MENU AUTOBOOT Zenith OS starts in # second{,s}...
+MENU BACKGROUND @@SPLASHIMAGE@@
+MENU WIDTH 78
+MENU MARGIN 4
+MENU ROWS 6
+MENU VSHIFT 2
+MENU TIMEOUTROW 10
+MENU TABMSGROW 2
+MENU CMDLINEROW 13
+
+MENU COLOR title        * #ffffffff *
+MENU COLOR border       * #00000000 #00000000 none
+MENU COLOR sel          * #00000000 #ffffffff *
+MENU COLOR unsel        * #ffffffff #00000000 none
+MENU COLOR timeout_msg  * #88888888 #00000000 none
+MENU COLOR timeout      * #ffffffff #00000000 none
+MENU COLOR tabmsg       * #66666666 #00000000 none
+
+LABEL linux
+MENU LABEL Zenith OS (Live Session)
+KERNEL /boot/vmlinuz
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
+
+LABEL linuxram
+MENU LABEL Zenith OS (Copy to RAM)
+KERNEL /boot/vmlinuz
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ rd.live.ram
+
+LABEL reboot
+MENU LABEL Reboot System
+COM32 reboot.c32
+
+LABEL poweroff
+MENU LABEL Power Off
+COM32 poweroff.c32
+BOOTCFG
+fi
+
+# Prune cluttered extra speech and nogfx entries from GRUB configuration
+if [ -f "$MKLIVE_DIR/grub/grub_void.cfg.pre" ]; then
+	sed -i 's/timeout=15/timeout=3/g' "$MKLIVE_DIR/grub/grub_void.cfg.pre"
+fi
+
 # Ensure XBPS tools are available (if running on a non-Void host, fetch xbps-static)
 if ! command -v xbps-install >/dev/null 2>&1; then
 	echo "build-iso-void: xbps-install not found on host, setting up xbps-static..."
@@ -414,7 +480,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s xz \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "live.user=zenith live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full quiet splash" \
+		-C "live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"
