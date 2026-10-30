@@ -8,7 +8,7 @@ set -eu
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR=${1:-"$REPO_ROOT/build/iso-void"}
 ARCH=${ZENITH_ARCH:-x86_64}
-MIRROR=${ZENITH_MIRROR:-https://repo-default.voidlinux.org/current}
+MIRROR=${ZENITH_MIRROR:-https://repo-fastly.voidlinux.org/current}
 ISO_NAME=zenith-os-beta-001
 ISO_TITLE="Zenith OS Beta 001"
 
@@ -217,6 +217,12 @@ if [ -d "$MKLIVE_DIR/data" ]; then
 	if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 		cp "$REPO_ROOT/public/branding/boot-splash.png" "$MKLIVE_DIR/data/splash.png"
 	fi
+fi
+
+# Clean up void-mklive bootstrap repository flags so glibc x86_64 targets don't query 404 musl repodata
+if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
+	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
+	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
 fi
 
 # Ensure XBPS tools are available (if running on a non-Void host, fetch xbps-static)
