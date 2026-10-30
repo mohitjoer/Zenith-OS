@@ -46,6 +46,7 @@ usr/bin/$PKG
 usr/bin/$PKG-*
 usr/bin/zpm
 usr/bin/prime-run
+usr/bin/fan-profile
 usr/bin/cliphist-thumbs.sh
 usr/bin/localsend.sh
 usr/bin/stash-*.sh"
