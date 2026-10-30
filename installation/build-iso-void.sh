@@ -131,10 +131,15 @@ cp "$REPO_ROOT/session/binds.json" "$INCLUDE_DIR/usr/share/zenith/session/binds.
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/share/zenith/session/zenith-user-services"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-user-services"
 
-# Copy all session scripts and helpers to /usr/bin/
-for s in "$REPO_ROOT/session"/zenith-*; do
-	[ -f "$s" ] || continue
-	cp "$s" "$INCLUDE_DIR/usr/bin/"
+# Copy session store wrapper, portal configuration, and session CLI scripts
+cp "$REPO_ROOT/session/zenith-store" "$INCLUDE_DIR/usr/share/zenith/session/zenith-store"
+mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal"
+cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/xdg-desktop-portal/zenith-portals.conf"
+
+for s in zenith-hub zenith-idle zenith-pin zenith-reload-cover zenith-shot zenith-vm zenith-wallpaper-ui zenith-welcome zenith-greeter; do
+	if [ -f "$REPO_ROOT/session/$s" ]; then
+		cp "$REPO_ROOT/session/$s" "$INCLUDE_DIR/usr/bin/"
+	fi
 done
 if [ -d "$REPO_ROOT/session/scripts" ]; then
 	cp "$REPO_ROOT/session/scripts"/* "$INCLUDE_DIR/usr/bin/"
@@ -193,8 +198,8 @@ if [ -x /usr/bin/quickshell ]; then
 fi
 if [ -x /usr/bin/Hyprland ]; then
 	cp /usr/bin/Hyprland "$INCLUDE_DIR/usr/bin/Hyprland"
-	[ -x /usr/bin/hyprctl ] && cp /usr/bin/hyprctl "$INCLUDE_DIR/usr/bin/hyprctl"
-	[ -x /usr/bin/hyprpm ] && cp /usr/bin/hyprpm "$INCLUDE_DIR/usr/bin/hyprpm"
+	if [ -x /usr/bin/hyprctl ]; then cp /usr/bin/hyprctl "$INCLUDE_DIR/usr/bin/hyprctl"; fi
+	if [ -x /usr/bin/hyprpm ]; then cp /usr/bin/hyprpm "$INCLUDE_DIR/usr/bin/hyprpm"; fi
 	mkdir -p "$INCLUDE_DIR/usr/lib"
 	cp -a /usr/lib/x86_64-linux-gnu/libhypr* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
 	cp -a /usr/lib/x86_64-linux-gnu/libaquamarine* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
