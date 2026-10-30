@@ -187,6 +187,18 @@ echo "zenith-session: env ok, starting Hyprland"
 # switcher nobody can drive.
 #
 # Detect compositor executable: on Void Linux the packaged binary is Hyprland,
+# Auto-detect virtual machine hypervisors and configure safe DRM/EGL defaults
+if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox"; then
+    echo "zenith-session: VM hypervisor detected, enabling software rasterizer and safe modifiers"
+    export WLR_RENDERER_ALLOW_SOFTWARE=1
+    export AQ_NO_MODIFIERS=1
+    export WLR_NO_HARDWARE_CURSORS=1
+    export LIBGL_ALWAYS_SOFTWARE=1
+fi
+
+# Detect compositor executable: on Void Linux the packaged binary is Hyprland,
 # while some distributions package a start-hyprland watchdog wrapper.
 COMPOSITOR="${ZENITH_COMPOSITOR:-}"
 if [ -z "$COMPOSITOR" ]; then
@@ -196,17 +208,37 @@ if [ -z "$COMPOSITOR" ]; then
         COMPOSITOR="Hyprland"
     elif command -v hyprland >/dev/null 2>&1; then
         COMPOSITOR="hyprland"
-    else
+    elif [ -x /usr/bin/Hyprland ]; then
         COMPOSITOR="/usr/bin/Hyprland"
+    elif [ -x /usr/local/bin/Hyprland ]; then
+        COMPOSITOR="/usr/local/bin/Hyprland"
     fi
 fi
 
-# start-hyprland expects arguments after `--`, whereas native Hyprland
-# expects flags directly.
+if [ -z "$COMPOSITOR" ] || ( ! command -v "$COMPOSITOR" >/dev/null 2>&1 && [ ! -x "$COMPOSITOR" ] ); then
+    echo "zenith-session: error: Hyprland compositor binary not found on system!" >&2
+    exit 127
+fi
+
+HYPR_CONF="${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}"
+
+# Launch Hyprland with automatic fallback if hardware EGL/DRM fails on VM
 if echo "$COMPOSITOR" | grep -q "start-hyprland"; then
-    exec "$COMPOSITOR" -- \
-        -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"
+    exec "$COMPOSITOR" -- -c "$HYPR_CONF" "$@"
 else
-    exec "$COMPOSITOR" \
-        -c "${ZENITH_HYPRLAND_CONFIG:-/usr/share/zenith/hyprland/hyprland.conf}" "$@"
+    # Run compositor, falling back to software rasterizer if first run exits immediately
+    START_TIME=$(date +%s)
+    "$COMPOSITOR" -c "$HYPR_CONF" "$@" || RC=$?
+    RC=${RC:-0}
+    END_TIME=$(date +%s)
+    
+    if [ "$RC" -ne 0 ] && [ $((END_TIME - START_TIME)) -le 3 ] && [ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]; then
+        echo "zenith-session: compositor exited ($RC) quickly; attempting software llvmpipe fallback..."
+        export LIBGL_ALWAYS_SOFTWARE=1
+        export WLR_RENDERER_ALLOW_SOFTWARE=1
+        export AQ_NO_MODIFIERS=1
+        export WLR_NO_HARDWARE_CURSORS=1
+        exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
+    fi
+    exit "$RC"
 fi

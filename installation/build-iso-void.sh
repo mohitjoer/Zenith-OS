@@ -57,6 +57,7 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
+install_items+=" /usr/share/fonts/* /etc/fonts/* "
 EOF
 
 # Setup OS identity
@@ -114,20 +115,95 @@ if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 		"$INCLUDE_DIR/usr/share/zenith/branding/boot-splash.png"
 fi
 
-# Copy session files and runit user services
+# Ensure strict permissions on sudoers.d directory (0750) and wheel rule (0440)
+chmod 0750 "$INCLUDE_DIR/etc/sudoers.d"
+echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$INCLUDE_DIR/etc/sudoers.d/wheel"
+chmod 0440 "$INCLUDE_DIR/etc/sudoers.d/wheel"
+
+# Copy session files, keybind catalogue, and desktop sessions
 cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/share/zenith/session/zenith-session"
+cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/bin/zenith-session"
 cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/share/zenith/session/zenith-activate"
+cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/bin/zenith-activate"
+cp "$REPO_ROOT/session/zenith.desktop" "$INCLUDE_DIR/usr/share/zenith/session/zenith.desktop"
+cp "$REPO_ROOT/session/zenith.desktop" "$INCLUDE_DIR/usr/share/wayland-sessions/zenith.desktop"
+cp "$REPO_ROOT/session/binds.json" "$INCLUDE_DIR/usr/share/zenith/session/binds.json"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/share/zenith/session/zenith-user-services"
 cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-user-services"
+
+# Copy all session scripts and helpers to /usr/bin/
+for s in "$REPO_ROOT/session"/zenith-*; do
+	[ -f "$s" ] || continue
+	cp "$s" "$INCLUDE_DIR/usr/bin/"
+done
+if [ -d "$REPO_ROOT/session/scripts" ]; then
+	cp "$REPO_ROOT/session/scripts"/* "$INCLUDE_DIR/usr/bin/"
+fi
+
+# Copy all shell scripts (zenith-app, zenith-cmd-*, zenith-summon, etc.) to /usr/bin/
+if [ -d "$REPO_ROOT/shell/scripts" ]; then
+	cp "$REPO_ROOT/shell/scripts"/* "$INCLUDE_DIR/usr/bin/"
+fi
+
+# Copy all system helpers (zenith-volume, zenith-restart-audio, zenith-hw-backlight, etc.)
+for hdir in audio display input perf pkg; do
+	if [ -d "$REPO_ROOT/system/helpers/$hdir" ]; then
+		for f in "$REPO_ROOT/system/helpers/$hdir"/*; do
+			if [ -f "$f" ] && [ "${f##*.}" != "sh" -o "${f##*/}" = "zenith-installer.sh" ]; then
+				cp "$f" "$INCLUDE_DIR/usr/bin/"
+			fi
+		done
+	fi
+done
 cp "$REPO_ROOT/system/helpers/prime-run" "$INCLUDE_DIR/usr/bin/prime-run"
 cp "$REPO_ROOT/system/helpers/fan-profile" "$INCLUDE_DIR/usr/bin/fan-profile"
 cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-installer"
+
+# Copy GLib GSettings schemas
+mkdir -p "$INCLUDE_DIR/usr/share/glib-2.0/schemas"
+cp "$REPO_ROOT/shell"/org.zenith.*.gschema.xml "$INCLUDE_DIR/usr/share/glib-2.0/schemas/"
+
+# Copy systemd/user units for session targets
+mkdir -p "$INCLUDE_DIR/usr/share/zenith/session/units" "$INCLUDE_DIR/etc/systemd/user"
+if [ -d "$REPO_ROOT/session/units" ]; then
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/session/units/" 2>/dev/null || true
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/etc/systemd/user/" 2>/dev/null || true
+fi
+
+# Copy applications .desktop entries
 mkdir -p "$INCLUDE_DIR/usr/share/applications"
-cp "$REPO_ROOT/session/applications/zenith-installer.desktop" "$INCLUDE_DIR/usr/share/applications/zenith-installer.desktop"
-cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
+if [ -d "$REPO_ROOT/session/applications" ]; then
+	cp "$REPO_ROOT/session/applications"/*.desktop "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
+fi
+if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
+	cp "$REPO_ROOT/apps/mimeapps"/zenith-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
+fi
+
+# Copy Hyprland configuration, runit services, and shell tree
 cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
+if [ -d "$REPO_ROOT/session/sddm" ]; then
+	cp -r "$REPO_ROOT/session/sddm" "$INCLUDE_DIR/usr/share/zenith/session/" 2>/dev/null || true
+fi
 cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
-chmod +x "$INCLUDE_DIR/usr/share/zenith/session"/* "$INCLUDE_DIR/usr/bin/zenith-user-services" "$INCLUDE_DIR/usr/bin/prime-run" "$INCLUDE_DIR/usr/bin/fan-profile" "$INCLUDE_DIR/usr/bin/zenith-installer"
+cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
+
+# Copy host quickshell and hyprland binaries if available
+if [ -x /usr/bin/quickshell ]; then
+	cp /usr/bin/quickshell "$INCLUDE_DIR/usr/bin/quickshell"
+fi
+if [ -x /usr/bin/Hyprland ]; then
+	cp /usr/bin/Hyprland "$INCLUDE_DIR/usr/bin/Hyprland"
+	[ -x /usr/bin/hyprctl ] && cp /usr/bin/hyprctl "$INCLUDE_DIR/usr/bin/hyprctl"
+	[ -x /usr/bin/hyprpm ] && cp /usr/bin/hyprpm "$INCLUDE_DIR/usr/bin/hyprpm"
+	mkdir -p "$INCLUDE_DIR/usr/lib"
+	cp -a /usr/lib/x86_64-linux-gnu/libhypr* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
+	cp -a /usr/lib/x86_64-linux-gnu/libaquamarine* "$INCLUDE_DIR/usr/lib/" 2>/dev/null || true
+fi
+if [ -x /usr/libexec/xdg-desktop-portal-hyprland ]; then
+	mkdir -p "$INCLUDE_DIR/usr/libexec"
+	cp /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/libexec/"
+	ln -sf /usr/libexec/xdg-desktop-portal-hyprland "$INCLUDE_DIR/usr/bin/xdg-desktop-portal-hyprland" 2>/dev/null || true
+fi
 
 # Copy udev power rules (99-zenith-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
 cp "$REPO_ROOT/system/udev"/*.rules "$INCLUDE_DIR/etc/udev/rules.d/"
@@ -137,16 +213,6 @@ fi
 cp "$REPO_ROOT/system/sysctl.d/99-zenith-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-zenith-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
 cp "$REPO_ROOT/system/xbps.d/zenith.conf" "$INCLUDE_DIR/etc/xbps.d/zenith.conf"
-
-# Desktop session entry for display managers
-cat >"$INCLUDE_DIR/usr/share/wayland-sessions/zenith.desktop" <<'EOF'
-[Desktop Entry]
-Name=Zenith
-Comment=Zenith OS Desktop Environment
-Exec=/usr/share/zenith/session/zenith-session
-Type=Application
-DesktopNames=Zenith
-EOF
 
 # Default environment for seatd & Wayland
 cat >"$INCLUDE_DIR/etc/environment" <<'EOF'
@@ -168,9 +234,14 @@ echo "build-iso-void: building Zenith Go binaries..."
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-shell" ./cmd/zenith-shell
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-wallpaper" ./cmd/zenith-wallpaper
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zpm" ./cmd/zpm
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-store" ./cmd/zenith-store
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-agent" ./cmd/zenith-agent
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-vm-mon" ./cmd/zenith-vm/mon
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-vm-ssh" ./cmd/zenith-vm/remote
+	cp -f "$REPO_ROOT/desktop/cmd/zenith-vm/zenith-vmd" "$INCLUDE_DIR/usr/bin/zenith-vmd"
 )
-chmod 0755 "$INCLUDE_DIR/usr/bin"/zenith* "$INCLUDE_DIR/usr/bin"/zpm
-# Symlink os-ctl to zenith for role switcher parity
+chmod 0755 "$INCLUDE_DIR/usr/bin"/*
+# Symlinks
 ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 
 # Stage system runit services (zenith-sysd)
@@ -180,11 +251,10 @@ chmod +x "$INCLUDE_DIR/etc/sv/zenith-sysd/run"
 
 # Extract package list from system/packages-void.yaml
 PACKAGES=$(python3 - "$REPO_ROOT/system/packages-void.yaml" "$MIRROR" <<'PY'
-import sys, urllib.request, tarfile, io, re, yaml
+import sys, yaml
 from pathlib import Path
 
 manifest = yaml.safe_load(Path(sys.argv[1]).read_text())
-mirror = sys.argv[2] if len(sys.argv) > 2 else "https://repo-default.voidlinux.org/current"
 
 if manifest.get("base", {}).get("distribution") != "void-linux":
     raise SystemExit("build-iso-void: system/packages-void.yaml must declare distribution: void-linux")
@@ -199,25 +269,7 @@ for group, body in manifest.items():
 
 filtered = [p for p in packages if p != "base-system"]
 all_requested = sorted(dict.fromkeys(str(p) for p in filtered))
-
-avail_keys = None
-try:
-    url = f"{mirror.rstrip('/')}/x86_64-repodata"
-    req = urllib.request.Request(url, headers={"User-Agent": "Zenith-OS/1.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        with tarfile.open(fileobj=io.BytesIO(resp.read()), mode="r:*") as tar:
-            content = tar.extractfile("index.plist").read().decode("utf-8", errors="ignore")
-            avail_keys = set(re.findall(r'<key>([^<]+)</key>', content))
-except Exception:
-    pass
-
-if avail_keys:
-    out = [p for p in all_requested if p in avail_keys]
-else:
-    custom_pkgs = {"hyprland", "xdg-desktop-portal-hyprland"}
-    out = [p for p in all_requested if p not in custom_pkgs]
-
-print(" ".join(out))
+print(" ".join(all_requested))
 PY
 )
 
@@ -370,9 +422,17 @@ echo "Zenith OS documentation is available at: https://zenithos.dev"
 DOCS
 chmod 0755 "$ROOTFS/usr/bin/void-docs"
 
-# Sudo permissions for wheel group
+# Sudo permissions for wheel group (strict 0750 dir, 0440 file)
+chmod 0750 "$ROOTFS/etc/sudoers.d"
 echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$ROOTFS/etc/sudoers.d/wheel"
 chmod 0440 "$ROOTFS/etc/sudoers.d/wheel"
+chmod 0440 "$ROOTFS/etc/sudoers.d"/* 2>/dev/null || true
+grep -q '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' "$ROOTFS/etc/sudoers" 2>/dev/null || echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' >> "$ROOTFS/etc/sudoers"
+
+# Compile GSettings schemas for Zenith Shell and Settings
+if command -v glib-compile-schemas >/dev/null 2>&1; then
+	glib-compile-schemas "$ROOTFS/usr/share/glib-2.0/schemas" 2>/dev/null || true
+fi
 
 # Enable automatic console login on tty1
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1"
@@ -484,6 +544,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-a "$ARCH" \
 		-b base-system \
 		-r "$MIRROR" \
+		-r "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
 		-s xz \

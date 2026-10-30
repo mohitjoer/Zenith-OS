@@ -102,6 +102,10 @@ languages:
 
 graphics-and-media:
   packages:
+    - mesa-dri
+    - mesa-vulkan-intel
+    - mesa-vulkan-radeon
+    - vulkan-loader
     - pipewire
     - wireplumber
     - pavucontrol
@@ -127,6 +131,7 @@ power-and-hardware-services:
 
 fonts-and-icons:
   packages:
+    - dejavu-fonts-ttf
     - font-awesome
     - noto-fonts-ttf
     - noto-fonts-cjk
