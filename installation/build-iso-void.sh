@@ -238,6 +238,10 @@ if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
 fi
+if [ -f "$MKLIVE_DIR/lib.sh" ]; then
+	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/lib.sh"
+	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/lib.sh"
+fi
 
 # Patch dracut vmklive module to use zenith-os hostname, zenith user, and include _seatd/input groups
 if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
