@@ -49,7 +49,9 @@ cp -r "$REPO_ROOT/system/plymouth/zenith"/* "$INCLUDE_DIR/usr/share/plymouth/the
 ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
 
 # Pre-stage TrueType fonts and fontconfig configuration for Plymouth label rendering
-mkdir -p "$INCLUDE_DIR/usr/share/fonts/TTF" "$INCLUDE_DIR/etc/fonts" "$INCLUDE_DIR/usr/lib/plymouth"
+mkdir -p "$INCLUDE_DIR/usr/share/fonts/TTF" "$INCLUDE_DIR/etc/fonts"
+rm -rf "$INCLUDE_DIR/usr/lib/plymouth"
+rm -f "$INCLUDE_DIR/usr/lib/libseat.so"*
 for font in DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSansMono.ttf; do
 	for src in "/usr/share/fonts/truetype/dejavu/$font" "/usr/share/fonts/TTF/$font"; do
 		if [ -f "$src" ]; then
@@ -59,18 +61,33 @@ for font in DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSansMono.ttf; do
 	done
 done
 
-for lsrc in /usr/lib/plymouth/label-pango.so /usr/lib/x86_64-linux-gnu/plymouth/label-pango.so; do
-	if [ -f "$lsrc" ]; then
-		cp -L "$lsrc" "$INCLUDE_DIR/usr/lib/plymouth/label-pango.so" 2>/dev/null || true
-		ln -sf label-pango.so "$INCLUDE_DIR/usr/lib/plymouth/label.so" 2>/dev/null || true
-		break
-	fi
-done
+cat >"$INCLUDE_DIR/etc/fonts/fonts.conf" <<'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>/usr/share/fonts</dir>
+  <dir>/usr/share/fonts/TTF</dir>
+  <cachedir>/var/cache/fontconfig</cachedir>
+  <match target="pattern">
+    <test qual="any" name="family"><string>sans-serif</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
+  </match>
+  <match target="pattern">
+    <test qual="any" name="family"><string>Sans</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
+  </match>
+  <match target="pattern">
+    <test qual="any" name="family"><string>monospace</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
+  </match>
+</fontconfig>
+EOF
 
 cat >"$INCLUDE_DIR/etc/fonts/local.conf" <<'EOF'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
+  <dir>/usr/share/fonts</dir>
   <dir>/usr/share/fonts/TTF</dir>
   <match target="pattern">
     <test qual="any" name="family"><string>Sans</string></test>
@@ -79,6 +96,10 @@ cat >"$INCLUDE_DIR/etc/fonts/local.conf" <<'EOF'
   <match target="pattern">
     <test qual="any" name="family"><string>sans-serif</string></test>
     <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
+  </match>
+  <match target="pattern">
+    <test qual="any" name="family"><string>monospace</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
   </match>
 </fontconfig>
 EOF
@@ -92,8 +113,7 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-install_items+=" /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
-install_optional_items+=" /usr/lib/plymouth/label-pango.so /usr/lib/plymouth/label-freetype.so /usr/lib/plymouth/label.so "
+install_items+=" /usr/lib/plymouth/label.so /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
 EOF
 
 # Setup OS identity
@@ -269,7 +289,12 @@ mkdir -p "$INCLUDE_DIR/usr/lib"
 ln -sf libdisplay-info.so.3 "$INCLUDE_DIR/usr/lib/libdisplay-info.so.2"
 ln -sf libjxl.so.0.12 "$INCLUDE_DIR/usr/lib/libjxl.so.0.11"
 ln -sf libjxl_threads.so.0.12 "$INCLUDE_DIR/usr/lib/libjxl_threads.so.0.11"
-# libseat is installed by XBPS from packages-void.yaml; no host-path staging needed
+# libsystemd compatibility symlinks redirecting to Void's native libelogind
+ln -sf libelogind.so.0 "$INCLUDE_DIR/usr/lib/libsystemd.so.0"
+ln -sf libelogind.so.0 "$INCLUDE_DIR/usr/lib/libsystemd.so"
+# libseat is installed natively by XBPS from packages-void.yaml; purge any foreign host binaries
+rm -f "$INCLUDE_DIR/usr/lib/libseat.so"*
+rm -rf "$INCLUDE_DIR/usr/lib/plymouth"
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
 mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"

@@ -345,6 +345,159 @@ jobs:
           test -s "$iso"
           echo "ISO: $iso ($(du -h "$iso" | cut -f1))"
           sha256sum "$iso" | tee "$iso.sha256"
+      - name: Verify Live rootfs shared libraries and binary integrity
+        run: |
+          set -eu
+          MNT="$RUNNER_TEMP/iso-mount"
+          SQUASH_MNT="$RUNNER_TEMP/squash-mount"
+          mkdir -p "$MNT" "$SQUASH_MNT"
+          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          sudo mount -o loop,ro "$iso" "$MNT"
+          sudo mount -o loop,ro "$MNT/LiveOS/squashfs.img" "$SQUASH_MNT"
+
+          echo "== Checking Hyprland, QuickShell, and Zenith binaries in rootfs =="
+          failed=0
+          check_binary() {
+            bin="$1"
+            echo "Checking $bin..."
+            if [ ! -f "$SQUASH_MNT$bin" ]; then
+              echo "::error::Binary $bin is missing from Live rootfs!"
+              failed=$((failed + 1))
+              return
+            fi
+            missing=$(LD_LIBRARY_PATH="$SQUASH_MNT/usr/lib:$SQUASH_MNT/lib" ldd "$SQUASH_MNT$bin" 2>&1 | grep "not found" || true)
+            if [ -n "$missing" ]; then
+              echo "::error::Binary $bin has missing shared libraries:"
+              echo "$missing"
+              failed=$((failed + 1))
+            else
+              echo "  OK: all shared libraries resolved for $bin"
+            fi
+          }
+
+          check_binary "/usr/bin/Hyprland"
+          check_binary "/usr/bin/zenith"
+          check_binary "/usr/bin/zenith-shell"
+          check_binary "/usr/bin/zenith-sysd"
+          if [ -f "$SQUASH_MNT/usr/bin/quickshell" ]; then
+            check_binary "/usr/bin/quickshell"
+          fi
+
+          # Verify Plymouth label plugin
+          if [ ! -f "$SQUASH_MNT/usr/lib/plymouth/label.so" ]; then
+            echo "::error::Plymouth label.so is missing from /usr/lib/plymouth!"
+            failed=$((failed + 1))
+          else
+            echo "  OK: /usr/lib/plymouth/label.so present"
+          fi
+
+          # Verify no foreign libsystemd requirement in libseat
+          if [ -f "$SQUASH_MNT/usr/lib/libseat.so.1" ]; then
+            if readelf -d "$SQUASH_MNT/usr/lib/libseat.so.1" 2>/dev/null | grep -q "libsystemd.so.0"; then
+              echo "::error::/usr/lib/libseat.so.1 is dynamically linked against libsystemd.so.0!"
+              failed=$((failed + 1))
+            else
+              echo "  OK: /usr/lib/libseat.so.1 is native (no libsystemd requirement)"
+            fi
+          fi
+
+          sudo umount "$SQUASH_MNT"
+          sudo umount "$MNT"
+
+          if [ "$failed" -gt 0 ]; then
+            echo "Rootfs library validation failed with $failed error(s)!"
+            exit 1
+          fi
+          echo "Rootfs library and binary validation passed cleanly!"
+      - name: Test ISO headless boot in QEMU
+        timeout-minutes: 5
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 netpbm
+          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+
+          mkdir -p "$RUNNER_TEMP/qemu-test"
+          SERIAL_LOG="$RUNNER_TEMP/qemu-test/serial.log"
+          QMP_SOCK="$RUNNER_TEMP/qemu-test/qmp.sock"
+          SCREENSHOT="$RUNNER_TEMP/qemu-test/boot-screen.ppm"
+          SCREENSHOT_PNG="$RUNNER_TEMP/qemu-test/boot-screen.png"
+
+          KVM_FLAG=""
+          if [ -w /dev/kvm ]; then
+            KVM_FLAG="-enable-kvm -cpu host"
+          else
+            KVM_FLAG="-cpu max"
+          fi
+
+          echo "Starting QEMU boot test ($KVM_FLAG)..."
+          qemu-system-x86_64 \
+            $KVM_FLAG \
+            -m 2048 \
+            -smp 2 \
+            -cdrom "$iso" \
+            -boot d \
+            -vga std \
+            -display none \
+            -serial file:"$SERIAL_LOG" \
+            -qmp unix:"$QMP_SOCK",server,nowait \
+            -daemonize \
+            -pidfile "$RUNNER_TEMP/qemu-test/qemu.pid"
+
+          echo "Waiting for boot sequence (~30s)..."
+          for i in $(seq 1 35); do
+            sleep 1
+            if [ -f "$SERIAL_LOG" ] && grep -qa "zenith-os login:" "$SERIAL_LOG"; then
+              echo "Detected TTY auto-login prompt in serial log at ${i}s!"
+              break
+            fi
+          done
+
+          # Capture QEMU virtual screen via QMP screendump
+          python3 - <<'PY'
+          import socket, json, time, sys
+          sock_path = sys.argv[1]
+          ppm_path = sys.argv[2]
+          time.sleep(1)
+          try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.connect(sock_path)
+            s.recv(1024)
+            s.sendall(b'{"execute": "qmp_capabilities"}\n')
+            s.recv(1024)
+            cmd = json.dumps({"execute": "screendump", "arguments": {"filename": ppm_path}}) + "\n"
+            s.sendall(cmd.encode())
+            s.recv(1024)
+            s.close()
+            print(f"Captured screenshot to {ppm_path}")
+          except Exception as e:
+            print(f"Warning: screenshot capture failed: {e}")
+          PY "$QMP_SOCK" "$SCREENSHOT" || true
+
+          if [ -f "$SCREENSHOT" ] && command -v pnmtopng >/dev/null 2>&1; then
+            pnmtopng "$SCREENSHOT" > "$SCREENSHOT_PNG" 2>/dev/null || true
+          fi
+
+          # Stop QEMU
+          if [ -f "$RUNNER_TEMP/qemu-test/qemu.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/qemu-test/qemu.pid")" 2>/dev/null || true
+          fi
+
+          echo "== Serial Console Output =="
+          head -n 40 "$SERIAL_LOG" 2>/dev/null || true
+          echo "..."
+          tail -n 40 "$SERIAL_LOG" 2>/dev/null || true
+          echo "==========================="
+      - name: Upload QEMU Boot Artifacts (Screenshot & Serial Log)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: zenith-boot-test-artifacts
+          path: |
+            ${{ runner.temp }}/qemu-test/serial.log
+            ${{ runner.temp }}/qemu-test/boot-screen.*
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v6
         with:
