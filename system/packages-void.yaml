@@ -112,7 +112,7 @@ session:
 applications:
   packages:
     - firefox
-    - thunar
+    - Thunar
     - thunar-volman
     - thunar-archive-plugin
     - gvfs
