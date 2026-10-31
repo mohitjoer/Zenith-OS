@@ -28,6 +28,7 @@ nvibrant               # NVIDIA digital vibrance tool in Devices.qml
 nvidia-smi             # NVIDIA System Management Interface in StatsFeed/LiveStats/GpuPage
 openssl                # SSL/TLS toolkit in localsend.sh
 pavucontrol            # PulseAudio/PipeWire volume control GUI fallback in VolumePanel.qml
+plymouth               # boot splash daemon, gated by command -v in session/zenith-session
 runsvdir               # runit user process supervisor, gated by command -v in zenith-user-services
 sv                     # runit service control tool, gated by command -v in zenith-user-services
 swayidle               # idle management daemon in session/runit/services/zenith-idle

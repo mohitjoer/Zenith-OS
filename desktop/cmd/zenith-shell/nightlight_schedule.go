@@ -97,11 +97,18 @@ func (n *nightlightState) setSchedule(mode string, marginMin *int) error {
 // The 5-minute cadence matches the finest resolution the window needs (sun
 // times are whole minutes); the weather poll keeps the sun window fresh.
 func (n *nightlightState) runSchedule() {
+	n.initStop()
+	defer n.wg.Done()
 	n.tickSchedule()
 	tick := time.NewTicker(nlTickEvery)
 	defer tick.Stop()
-	for range tick.C {
-		n.tickSchedule()
+	for {
+		select {
+		case <-n.stopCh:
+			return
+		case <-tick.C:
+			n.tickSchedule()
+		}
 	}
 }
 

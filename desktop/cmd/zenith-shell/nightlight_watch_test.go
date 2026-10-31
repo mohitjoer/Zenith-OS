@@ -79,6 +79,7 @@ exit 0
 
 	d := &daemon{wmc: wm.OpenNamed("testwm")}
 	d.startNightlight()
+	t.Cleanup(d.stopNightlight)
 	topic := d.topic("nightlight")
 	sub := topic.subscribe()
 	defer topic.unsubscribe(sub)
@@ -283,8 +284,10 @@ func TestNightlightWatcherSettlesMarkerBeforeBackend(t *testing.T) {
 	sub := topic.subscribe()
 	defer topic.unsubscribe(sub)
 	n := &nightlightState{topic: topic, wmc: wm.OpenNamed("testwm"), stateDir: f.state, tempFile: f.temp}
-
+	n.initStop()
+	n.wg.Add(1)
 	go n.watch()
+	t.Cleanup(n.stop)
 
 	// The startup frame is off: no marker, no backend. Consume it so the marker
 	// write below is a fresh inotify wake.

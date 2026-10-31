@@ -59,6 +59,70 @@ type nightlightState struct {
 	schedMarginMin  int
 	schedFile       string
 	schedLastDesire bool
+
+	stopOnce   sync.Once
+	stopCh     chan struct{}
+	stopR      int
+	stopW      int
+	wg         sync.WaitGroup
+	watchReady chan struct{}
+	readyOnce  sync.Once
+}
+
+func (n *nightlightState) initStop() {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if n.stopCh == nil {
+		n.stopCh = make(chan struct{})
+		n.watchReady = make(chan struct{})
+		var p [2]int
+		if err := unix.Pipe2(p[:], unix.O_CLOEXEC|unix.O_NONBLOCK); err == nil {
+			n.stopR = p[0]
+			n.stopW = p[1]
+		} else {
+			n.stopR = -1
+			n.stopW = -1
+		}
+	}
+}
+
+// stop signals the watcher and schedule goroutines to exit and waits for them to terminate.
+func (n *nightlightState) stop() {
+	if n == nil {
+		return
+	}
+	n.initStop()
+	n.stopOnce.Do(func() {
+		close(n.stopCh)
+		n.readyOnce.Do(func() { close(n.watchReady) })
+		n.mu.Lock()
+		w := n.stopW
+		n.mu.Unlock()
+		if w >= 0 {
+			_, _ = unix.Write(w, []byte{1})
+		}
+		n.wg.Wait()
+		n.mu.Lock()
+		if n.stopR >= 0 {
+			_ = unix.Close(n.stopR)
+			n.stopR = -1
+		}
+		if n.stopW >= 0 {
+			_ = unix.Close(n.stopW)
+			n.stopW = -1
+		}
+		n.mu.Unlock()
+	})
+}
+
+func (d *daemon) stopNightlight() {
+	d.mu.Lock()
+	n := d.nightlight
+	d.nightlight = nil
+	d.mu.Unlock()
+	if n != nil {
+		n.stop()
+	}
 }
 
 // nightlightPaths derives the script's state files from XDG_STATE_HOME. The
@@ -90,8 +154,14 @@ func (d *daemon) startNightlight() {
 		schedFile:      filepath.Join(dir, "zenith-nightlight-schedule.json"),
 		schedMode:      nlSchedOff,
 		schedMarginMin: nlDefaultMarginMin,
+		stopR:          -1,
+		stopW:          -1,
 	}
+	n.initStop()
 	n.loadSchedule()
+	d.mu.Lock()
+	d.nightlight = n
+	d.mu.Unlock()
 
 	d.registerCall("nightlight.toggle", func(json.RawMessage) (any, error) {
 		return nil, n.intent("toggle")
@@ -135,9 +205,10 @@ func (d *daemon) startNightlight() {
 		n.publish(n.running())
 		return
 	}
-	n.publish(n.running())
+	n.wg.Add(2)
 	go n.watch()
 	go n.runSchedule()
+	<-n.watchReady
 }
 
 // backend resolves the provider's night-light process name from caps and caches
@@ -203,30 +274,49 @@ func (n *nightlightState) run(args ...string) error {
 // timeout, a raw pkill from outside the script touched no watched file, so the
 // expiry is a plain re-check: one scan. No timer, no subprocess.
 func (n *nightlightState) watch() {
-	on, temp := n.running(), n.savedTemp()
-	n.publish(on)
+	n.initStop()
+	defer n.wg.Done()
 
 	fd, err := unix.InotifyInit1(unix.IN_CLOEXEC | unix.IN_NONBLOCK)
 	if err != nil {
+		n.readyOnce.Do(func() { close(n.watchReady) })
 		// No inotify: fall back to the settle re-check alone.
-		n.loopNoWatch(on, temp)
+		n.loopNoWatch()
 		return
 	}
 	defer unix.Close(fd)
 	if n.stateDir != "" {
 		_ = os.MkdirAll(n.stateDir, 0o755)
+		if _, err := unix.InotifyAddWatch(fd, n.stateDir, unix.IN_CLOSE_WRITE|unix.IN_CREATE|unix.IN_DELETE|unix.IN_MOVED_TO); err != nil {
+			log.Printf("zenith-shell: nightlight watch failed: %v", err)
+		}
 	}
-	if _, err := unix.InotifyAddWatch(fd, n.stateDir, unix.IN_CLOSE_WRITE|unix.IN_CREATE|unix.IN_DELETE|unix.IN_MOVED_TO); err != nil {
-		log.Printf("zenith-shell: nightlight watch failed: %v", err)
-	}
+
+	on, temp := n.running(), n.savedTemp()
+	n.publish(on)
+	n.readyOnce.Do(func() { close(n.watchReady) })
 
 	buf := make([]byte, 4096)
 	for {
 		pfds := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN | unix.POLLERR}}
+		n.mu.Lock()
+		r := n.stopR
+		n.mu.Unlock()
+		if r >= 0 {
+			pfds = append(pfds, unix.PollFd{Fd: int32(r), Events: unix.POLLIN | unix.POLLERR})
+		}
 		// The bounded poll is the outside-kill re-check: a raw pkill touches no
 		// watched file, so every expiry rescans /proc.
 		nready, err := unix.Poll(pfds, 5000)
 		if err != nil && err != unix.EINTR {
+			return
+		}
+		select {
+		case <-n.stopCh:
+			return
+		default:
+		}
+		if len(pfds) > 1 && pfds[1].Revents != 0 {
 			return
 		}
 		// Drain the inotify queue so the next poll does not fire immediately.
@@ -236,7 +326,7 @@ func (n *nightlightState) watch() {
 			}
 		}
 		var next bool
-		if nready > 0 {
+		if nready > 0 && pfds[0].Revents != 0 {
 			// Woken by a state-dir write: do not trust the first scan, settle it.
 			next = n.settle()
 		} else {
@@ -252,14 +342,21 @@ func (n *nightlightState) watch() {
 
 // loopNoWatch is the degraded watcher when inotify is unavailable: a slow tick
 // only, still fork-free.
-func (n *nightlightState) loopNoWatch(on bool, temp int) {
+func (n *nightlightState) loopNoWatch() {
+	on, temp := n.running(), n.savedTemp()
+	n.publish(on)
 	tick := time.NewTicker(5 * time.Second)
 	defer tick.Stop()
-	for range tick.C {
-		next, nextTemp := n.running(), n.savedTemp()
-		if next != on || nextTemp != temp {
-			on, temp = next, nextTemp
-			n.publish(on)
+	for {
+		select {
+		case <-n.stopCh:
+			return
+		case <-tick.C:
+			next, nextTemp := n.running(), n.savedTemp()
+			if next != on || nextTemp != temp {
+				on, temp = next, nextTemp
+				n.publish(on)
+			}
 		}
 	}
 }
@@ -279,7 +376,11 @@ func (n *nightlightState) settle() bool {
 		if got == want || time.Now().After(deadline) {
 			return got
 		}
-		time.Sleep(100 * time.Millisecond)
+		select {
+		case <-n.stopCh:
+			return got
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
 }
 

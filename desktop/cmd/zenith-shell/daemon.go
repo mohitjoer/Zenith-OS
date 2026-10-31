@@ -96,6 +96,7 @@ type daemon struct {
 	sleep        *sleepCycle // coordinated login1 suspend transaction; guarded by sleepMu
 	suspendReqMu sync.Mutex
 	suspendReq   map[string]*suspendRequest
+	nightlight   *nightlightState
 }
 
 func (d *daemon) currentSleepCycle() *sleepCycle {

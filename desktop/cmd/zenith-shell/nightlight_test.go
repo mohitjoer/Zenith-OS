@@ -68,6 +68,7 @@ func TestNightlightRegistration(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	d := &daemon{wmc: wm.OpenNamed("does-not-exist")}
 	d.startNightlight()
+	t.Cleanup(d.stopNightlight)
 
 	if d.topic("nightlight") == nil {
 		t.Fatal("nightlight topic not registered")
