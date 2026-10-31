@@ -171,6 +171,9 @@ fonts-and-icons:
   packages:
     - dejavu-fonts-ttf
     - font-awesome
+    - font-awesome6
+    - font-material-design-icons-ttf
+    - nerd-fonts-symbols-ttf
     - noto-fonts-ttf
     - noto-fonts-cjk
     - noto-fonts-emoji

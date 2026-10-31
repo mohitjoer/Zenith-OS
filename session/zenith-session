@@ -64,6 +64,20 @@ if [ ! -d "$XDG_RUNTIME_DIR" ]; then
     chmod 0700 "$XDG_RUNTIME_DIR"
 fi
 
+# Ensure D-Bus user session socket is discoverable at $XDG_RUNTIME_DIR/bus
+if [ ! -S "$XDG_RUNTIME_DIR/bus" ]; then
+    for s in /tmp/dbus-*; do
+        if [ -S "$s" ]; then
+            ln -sf "$s" "$XDG_RUNTIME_DIR/bus"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            break
+        fi
+    done
+fi
+if [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+fi
+
 # Native Wayland dialogs everywhere, so scaling and theming are the shell's
 # problem and not the app's. Set unconditionally rather than inherited: a
 # GDK_BACKEND=x11 left in /etc/environment by a GNOME-era tweak would otherwise

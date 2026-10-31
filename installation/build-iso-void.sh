@@ -61,6 +61,9 @@ for font in DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSansMono.ttf; do
 		fi
 	done
 done
+if [ -d "$REPO_ROOT/public/fonts" ]; then
+	cp -L "$REPO_ROOT/public/fonts"/* "$INCLUDE_DIR/usr/share/fonts/TTF/"
+fi
 
 cat >"$INCLUDE_DIR/etc/fonts/fonts.conf" <<'EOF'
 <?xml version="1.0"?>
@@ -330,10 +333,9 @@ cp "$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4
 cp "$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4b.plist" \
    "$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd4123678ee9a682d06dd3.plist"
 
-# Copy host quickshell binary if available
-if [ -x /usr/bin/quickshell ]; then
-	cp /usr/bin/quickshell "$INCLUDE_DIR/usr/bin/quickshell"
-fi
+# Ensure foreign host quickshell binary is never copied into Void rootfs;
+# native quickshell package is installed via packages-void.yaml
+rm -f "$INCLUDE_DIR/usr/bin/quickshell"
 
 # Copy udev power rules (99-zenith-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
 cp "$REPO_ROOT/system/udev"/*.rules "$INCLUDE_DIR/etc/udev/rules.d/"
