@@ -190,8 +190,15 @@ cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-
 
 # Copy session store wrapper, portal configuration, and session CLI scripts
 cp "$REPO_ROOT/session/zenith-store" "$INCLUDE_DIR/usr/share/zenith/session/zenith-store"
-mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal"
+mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal" "$INCLUDE_DIR/usr/share/zenith/session"
 cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/xdg-desktop-portal/zenith-portals.conf"
+cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/zenith/session/zenith-portals.conf"
+
+# Stage session units so systemd unit inspectors and doctor find them
+mkdir -p "$INCLUDE_DIR/usr/lib/systemd/user"
+if [ -d "$REPO_ROOT/session/units" ]; then
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/lib/systemd/user/"
+fi
 
 for s in zenith-hub zenith-idle zenith-pin zenith-reload-cover zenith-shot zenith-vm zenith-wallpaper-ui zenith-welcome zenith-greeter; do
 	if [ -f "$REPO_ROOT/session/$s" ]; then
@@ -299,7 +306,7 @@ rm -rf "$INCLUDE_DIR/usr/lib/plymouth"
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
 mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"
-cat >"$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd4123678ee9a682d06dd3.plist" <<'KEYEOF'
+cat >"$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726accfb04c664d1200d748d.plist" <<'KEYEOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -315,6 +322,8 @@ cat >"$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd
 </dict>
 </plist>
 KEYEOF
+cp "$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726accfb04c664d1200d748d.plist" \
+   "$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd4123678ee9a682d06dd3.plist"
 
 # Copy host quickshell binary if available
 if [ -x /usr/bin/quickshell ]; then
@@ -412,6 +421,7 @@ if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
 	sed -i 's/--force-add "vmklive autoinstaller"/--force-add "vmklive autoinstaller plymouth"/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
+	sed -i 's/loglevel=4/quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer/g' "$MKLIVE_DIR/mklive.sh"
 fi
 if [ -f "$MKLIVE_DIR/lib.sh" ]; then
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/lib.sh"
@@ -458,12 +468,12 @@ MENU COLOR tabmsg       * #66666666 #00000000 none
 LABEL linux
 MENU LABEL Zenith OS (Live Session)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
 
 LABEL linuxram
 MENU LABEL Zenith OS (Copy to RAM)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=0 rd.udev.log_level=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
 
 LABEL reboot
 MENU LABEL Reboot System
@@ -560,9 +570,43 @@ if command -v glib-compile-schemas >/dev/null 2>&1; then
 	glib-compile-schemas "$ROOTFS/usr/share/glib-2.0/schemas" 2>/dev/null || true
 fi
 
-# Enable automatic console login on tty1
-mkdir -p "$ROOTFS/etc/sv/agetty-tty1"
-echo 'GETTY_ARGS="--autologin zenith --noclear"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+# Enable automatic console login on tty1 with silent hushlogin
+mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/zenith"
+echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+touch "$ROOTFS/home/zenith/.hushlogin"
+chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
+
+# Silence runit boot messages and sysctl dump while Plymouth splash is active
+if [ -f "$ROOTFS/etc/runit/functions" ]; then
+	cat >"$ROOTFS/etc/runit/functions" <<'FNEOF'
+msg() {
+	if command -v plymouth >/dev/null 2>&1 && plymouth --ping 2>/dev/null; then
+		plymouth update --status="$*" 2>/dev/null || true
+	else
+		printf "=> %s\n" "$*"
+	fi
+}
+msg_warn() {
+	if command -v plymouth >/dev/null 2>&1 && plymouth --ping 2>/dev/null; then
+		plymouth update --status="WARNING: $*" 2>/dev/null || true
+	else
+		printf "=> WARNING: %s\n" "$*"
+	fi
+}
+msg_error() {
+	if command -v plymouth >/dev/null 2>&1 && plymouth --ping 2>/dev/null; then
+		plymouth update --status="ERROR: $*" 2>/dev/null || true
+	else
+		printf "=> ERROR: %s\n" "$*"
+	fi
+}
+FNEOF
+fi
+
+if [ -f "$ROOTFS/etc/runit/core-services/08-sysctl.sh" ]; then
+	sed -i 's/sysctl -p/sysctl -q -p/g' "$ROOTFS/etc/runit/core-services/08-sysctl.sh"
+	sed -i 's/sysctl --system/sysctl -q --system/g' "$ROOTFS/etc/runit/core-services/08-sysctl.sh"
+fi
 
 # Overwrite OS identity inside ROOTFS
 cat >"$ROOTFS/etc/os-release" <<'OSREL'
@@ -591,18 +635,7 @@ if [ -f "$ROOTFS/etc/rc.local" ]; then
 	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
 		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"
 	fi
-	echo 'if command -v plymouth >/dev/null 2>&1; then plymouth --quit 2>/dev/null || true; fi' >> "$ROOTFS/etc/rc.local"
 fi
-
-# Ensure Plymouth is stopped at the end of runit stage 1 so KMS/DRM is available
-mkdir -p "$ROOTFS/etc/runit/core-services"
-cat >"$ROOTFS/etc/runit/core-services/99-plymouth.sh" <<'PLYEOF'
-#!/bin/sh
-if command -v plymouth >/dev/null 2>&1; then
-	plymouth --quit 2>/dev/null || true
-fi
-PLYEOF
-chmod 0755 "$ROOTFS/etc/runit/core-services/99-plymouth.sh"
 
 # Set Zenith OS hostname and network identity
 printf 'zenith-os\n' > "$ROOTFS/etc/hostname"
@@ -630,7 +663,7 @@ ISSUE
 cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
      ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
          ███          https://zenithos.dev
-    █████████████
+     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
     ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
    ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
@@ -640,7 +673,7 @@ ISSUENET
 cat >"$ROOTFS/etc/motd" <<'MOTD'
      ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
          ███          https://zenithos.dev
-    █████████████
+     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
     ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
    ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
@@ -651,11 +684,10 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
-	if command -v plymouth >/dev/null 2>&1; then
-		plymouth --quit 2>/dev/null || true
-	fi
-	echo "Starting Zenith OS graphical session..."
 	if ! /usr/share/zenith/session/zenith-session; then
+		if command -v plymouth >/dev/null 2>&1; then
+			plymouth --quit 2>/dev/null || true
+		fi
 		echo
 		echo "================================================================"
 		echo "  Zenith graphical desktop session exited."
@@ -693,7 +725,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s xz \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "console=tty0 console=ttyS0,115200 live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer vga=792 video=1024x768 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer vga=792 video=1024x768 console=ttyS0,115200 console=tty0 live.user=zenith live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"

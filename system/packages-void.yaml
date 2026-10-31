@@ -51,6 +51,7 @@ desktop:
     - hyprland
     - xdg-desktop-portal
     - xdg-desktop-portal-hyprland
+    - xdg-desktop-portal-gtk
     - wl-clipboard
     - wlr-randr
     - grim
@@ -64,6 +65,9 @@ desktop:
     - qt6-multimedia
     - qt6-wayland
     - qt6-imageformats
+    - qt6-qt5compat
+    - qt6-position
+    - qt6-shadertools
     # Core utilities
     - dconf
     - glib
@@ -117,6 +121,7 @@ languages:
     - go
     - python3
     - python3-yaml
+    - git
 
 graphics-and-media:
   packages:
