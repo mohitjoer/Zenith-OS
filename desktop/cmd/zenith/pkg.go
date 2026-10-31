@@ -14,6 +14,7 @@ package main
 // one ref and not another.
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -219,14 +220,33 @@ func zenithPkg(args []string) int {
 func zenFetch() error {
 	switch pkgBackend() {
 	case "xbps":
-		argv, ok := pkgArgv("xbps", "install", []string{"zenith"}, "")
-		if !ok {
-			return fmt.Errorf("cannot build the xbps command for zenith")
+		sudo := "sudo"
+		if os.Geteuid() == 0 {
+			sudo = ""
 		}
-		command := exec.Command(argv[0], argv[1:]...)
-		command.Stdout, command.Stderr = os.Stdout, os.Stderr
-		if err := command.Run(); err != nil {
+		var syncCmd *exec.Cmd
+		if sudo != "" {
+			syncCmd = exec.Command(sudo, "xbps-install", "-S")
+		} else {
+			syncCmd = exec.Command("xbps-install", "-S")
+		}
+		syncCmd.Stdout, syncCmd.Stderr = os.Stdout, os.Stderr
+		if err := syncCmd.Run(); err != nil {
 			return fmt.Errorf("xbps-install: %w (run the update command again in a terminal to enter the password)", err)
+		}
+		// If 'zenith' package exists in the repository pool, upgrade it
+		checkCmd := exec.Command("xbps-query", "-Rs", "^zenith$")
+		if out, err := checkCmd.Output(); err == nil && len(bytes.TrimSpace(out)) > 0 {
+			var upCmd *exec.Cmd
+			if sudo != "" {
+				upCmd = exec.Command(sudo, "xbps-install", "-y", "-u", "zenith")
+			} else {
+				upCmd = exec.Command("xbps-install", "-y", "-u", "zenith")
+			}
+			upCmd.Stdout, upCmd.Stderr = os.Stdout, os.Stderr
+			if err := upCmd.Run(); err != nil {
+				return fmt.Errorf("xbps-install zenith: %w", err)
+			}
 		}
 		return nil
 	case "apt":

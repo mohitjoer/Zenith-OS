@@ -109,6 +109,19 @@ session:
     - swayidle
     - swaylock
 
+applications:
+  packages:
+    - firefox
+    - thunar
+    - thunar-volman
+    - thunar-archive-plugin
+    - gvfs
+    - tumbler
+    - neovim
+    - nano
+    - btop
+    - xdg-user-dirs
+
 terminal-and-shell:
   packages:
     - ghostty

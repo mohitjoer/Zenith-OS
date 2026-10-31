@@ -1,0 +1,12 @@
+#!/bin/sh
+exec 2>&1
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+export ZENITH_POLKIT_AGENT=1
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zenith"
+mkdir -p "$LOG_DIR"
+exec >>"$LOG_DIR/zenithd.log" 2>&1
+
+exec /usr/bin/zenith-shell daemon

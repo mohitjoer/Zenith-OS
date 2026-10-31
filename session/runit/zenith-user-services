@@ -71,7 +71,7 @@ start_services() {
 	# Method 2: Resilient background spawner fallback if runsvdir is not installed
 	echo "zenith-user-services: runsvdir not found; launching services directly"
 	mkdir -p "$STATE_DIR"
-	for svc in pipewire wireplumber portal-hyprland portal quickshell zenith-userd zenith-hubd zenith-wallpaper zenith-idle; do
+	for svc in pipewire wireplumber portal-hyprland portal zenithd quickshell zenith-userd zenith-hubd zenith-wallpaper zenith-idle; do
 		run_script="$USER_SERVICE_DIR/$svc/run"
 		if [ -x "$run_script" ]; then
 			(

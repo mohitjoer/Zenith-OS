@@ -1,8 +1,15 @@
 #!/bin/sh
 exec 2>&1
 
-# Resolve WAYLAND_DISPLAY from runtime socket if empty or invalid
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+export QT_QPA_PLATFORM=wayland
+export XDG_CURRENT_DESKTOP=Zenith
+export XDG_SESSION_DESKTOP=zenith
+export DESKTOP_SESSION=zenith
+export GDK_BACKEND=wayland
+
+# Resolve WAYLAND_DISPLAY from runtime socket if empty or invalid
 for _ in $(seq 1 50); do
 	if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -S "$RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
 		break

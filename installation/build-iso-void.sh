@@ -114,7 +114,8 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-install_items+=" /usr/lib/plymouth/label.so /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
+drivers+=" vmwgfx bochs virtio_gpu qxl cirrus simpledrm vga16fb fbcon "
+install_items+=" /usr/lib/plymouth/script.so /usr/lib/plymouth/label.so /usr/lib/plymouth/renderers/drm.so /usr/lib/plymouth/renderers/frame-buffer.so /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
 EOF
 
 # Setup OS identity
@@ -373,8 +374,14 @@ find "$INCLUDE_DIR/usr/bin" -type f -exec chmod 0755 {} +
 # Symlinks
 ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 
-# Pre-seed user skeleton configuration so any created user inherits full materialized Zenith config
-mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith"
+# Pre-seed user skeleton configuration and XDG user directories
+mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
+         "$INCLUDE_DIR/etc/skel/Desktop" \
+         "$INCLUDE_DIR/etc/skel/Documents" \
+         "$INCLUDE_DIR/etc/skel/Downloads" \
+         "$INCLUDE_DIR/etc/skel/Music" \
+         "$INCLUDE_DIR/etc/skel/Pictures" \
+         "$INCLUDE_DIR/etc/skel/Videos"
 cp -a "$INCLUDE_DIR/usr/share/zenith"/* "$INCLUDE_DIR/etc/skel/.config/zenith/"
 
 # Stage system runit services (zenith-sysd)
@@ -582,14 +589,28 @@ fi
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/zenith"
 echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
 touch "$ROOTFS/home/zenith/.hushlogin"
-# Pre-materialize user configuration for zenith user and skeleton
-mkdir -p "$ROOTFS/home/zenith/.config/zenith" "$ROOTFS/etc/skel/.config/zenith"
+# Pre-materialize user configuration for zenith user, skeleton, and XDG directories
+mkdir -p "$ROOTFS/home/zenith/.config/zenith" "$ROOTFS/etc/skel/.config/zenith" \
+         "$ROOTFS/home/zenith/Desktop" "$ROOTFS/home/zenith/Documents" \
+         "$ROOTFS/home/zenith/Downloads" "$ROOTFS/home/zenith/Music" \
+         "$ROOTFS/home/zenith/Pictures" "$ROOTFS/home/zenith/Videos"
 if [ -d "$ROOTFS/usr/share/zenith" ]; then
 	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/home/zenith/.config/zenith/"
 	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/etc/skel/.config/zenith/"
 fi
 chroot "$ROOTFS" su - zenith -c "zenith materialize" 2>/dev/null || true
+chroot "$ROOTFS" su - zenith -c "xdg-user-dirs-update" 2>/dev/null || true
 chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
+
+# Ensure Plymouth theme and configuration are active in ROOTFS
+mkdir -p "$ROOTFS/usr/share/plymouth/themes"
+ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$ROOTFS/usr/share/plymouth/themes/default.plymouth" 2>/dev/null || true
+if [ -f "$ROOTFS/etc/plymouth/plymouthd.conf" ]; then
+	sed -i 's/^Theme=.*/Theme=zenith/' "$ROOTFS/etc/plymouth/plymouthd.conf"
+fi
+if [ -f "$ROOTFS/etc/runit/1" ]; then
+	sed -i '1a exec 2>/dev/null' "$ROOTFS/etc/runit/1" 2>/dev/null || true
+fi
 
 # Silence runit boot messages and sysctl dump while Plymouth splash is active
 if [ -f "$ROOTFS/etc/runit/functions" ]; then
@@ -699,6 +720,7 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update 2>/dev/null || true
 	if [ ! -d "$HOME/.config/zenith/shell" ] && command -v zenith >/dev/null 2>&1; then
 		zenith materialize 2>/dev/null || true
 	fi

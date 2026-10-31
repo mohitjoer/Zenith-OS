@@ -35,3 +35,4 @@ swayidle               # idle management daemon in session/runit/services/zenith
 swaybg                 # Wayland wallpaper client, gated by command -v in session/hyprland/autostart.conf
 tlp                    # TLP power management utility, gated by LookPath in zenith-sysd
 xbps-install           # Void Linux package installer, gated by LookPath in zenith-sysd
+xbps-query             # Void Linux package query tool, gated in pkg.go
