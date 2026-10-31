@@ -194,10 +194,18 @@ mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal" "$INCLUDE_DIR/usr/share/zen
 cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/xdg-desktop-portal/zenith-portals.conf"
 cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/zenith/session/zenith-portals.conf"
 
-# Stage session units so systemd unit inspectors and doctor find them
-mkdir -p "$INCLUDE_DIR/usr/lib/systemd/user"
+# Stage session units into /usr/share/zenith/units and systemd user directory
+mkdir -p "$INCLUDE_DIR/usr/share/zenith/units" "$INCLUDE_DIR/usr/share/zenith/session/units" "$INCLUDE_DIR/usr/lib/systemd/user"
 if [ -d "$REPO_ROOT/session/units" ]; then
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/units/"
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/session/units/"
 	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/lib/systemd/user/"
+fi
+
+# Copy default wallpapers to /usr/share/zenith/backgrounds/
+mkdir -p "$INCLUDE_DIR/usr/share/zenith/backgrounds"
+if [ -d "$REPO_ROOT/public/wallpapers" ]; then
+	cp "$REPO_ROOT/public/wallpapers"/* "$INCLUDE_DIR/usr/share/zenith/backgrounds/"
 fi
 
 for s in zenith-hub zenith-idle zenith-pin zenith-reload-cover zenith-shot zenith-vm zenith-wallpaper-ui zenith-welcome zenith-greeter; do
@@ -231,12 +239,6 @@ cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-in
 # Copy GLib GSettings schemas
 mkdir -p "$INCLUDE_DIR/usr/share/glib-2.0/schemas"
 cp "$REPO_ROOT/shell"/org.zenith.*.gschema.xml "$INCLUDE_DIR/usr/share/glib-2.0/schemas/"
-
-# Copy session unit definitions (for reference/documentation only; runit handles supervision)
-mkdir -p "$INCLUDE_DIR/usr/share/zenith/session/units"
-if [ -d "$REPO_ROOT/session/units" ]; then
-	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/session/units/" 2>/dev/null || true
-fi
 
 # Copy applications .desktop entries
 mkdir -p "$INCLUDE_DIR/usr/share/applications"
@@ -306,7 +308,7 @@ rm -rf "$INCLUDE_DIR/usr/lib/plymouth"
 
 # Pre-trust Makrennel repository public key in /var/db/xbps/keys
 mkdir -p "$INCLUDE_DIR/var/db/xbps/keys"
-cat >"$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726accfb04c664d1200d748d.plist" <<'KEYEOF'
+cat >"$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4b.plist" <<'KEYEOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -322,7 +324,9 @@ cat >"$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726a
 </dict>
 </plist>
 KEYEOF
-cp "$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726accfb04c664d1200d748d.plist" \
+cp "$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4b.plist" \
+   "$INCLUDE_DIR/var/db/xbps/keys/00649994a2d04d020cdb1119ff53e712be6b5c3e726accfb04c664d1200d748d.plist"
+cp "$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4b.plist" \
    "$INCLUDE_DIR/var/db/xbps/keys/1293d0c27380d795a88fdbd007356dae84090282b5bd4123678ee9a682d06dd3.plist"
 
 # Copy host quickshell binary if available
@@ -574,6 +578,8 @@ fi
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/zenith"
 echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
 touch "$ROOTFS/home/zenith/.hushlogin"
+# Pre-materialize user configuration for zenith user
+chroot "$ROOTFS" su - zenith -c "zenith materialize" 2>/dev/null || true
 chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
 
 # Silence runit boot messages and sysctl dump while Plymouth splash is active

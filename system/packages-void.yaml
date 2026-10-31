@@ -49,9 +49,11 @@ desktop:
   packages:
     # Wayland Compositor & helpers
     - hyprland
+    - quickshell
     - xdg-desktop-portal
     - xdg-desktop-portal-hyprland
     - xdg-desktop-portal-gtk
+    - xdg-desktop-portal-lxqt
     - wl-clipboard
     - wlr-randr
     - grim
