@@ -1,6 +1,23 @@
 #!/bin/sh
 exec 2>&1
-while [ -z "${WAYLAND_DISPLAY:-}" ]; do
+
+# Resolve WAYLAND_DISPLAY from runtime socket if empty or invalid
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+for _ in $(seq 1 50); do
+	if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -S "$RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+		break
+	fi
+	for sock in "$RUNTIME_DIR"/wayland-[0-9]*; do
+		if [ -S "$sock" ]; then
+			export WAYLAND_DISPLAY="$(basename "$sock")"
+			break 2
+		fi
+	done
 	sleep 0.1
 done
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zenith"
+mkdir -p "$LOG_DIR"
+exec >>"$LOG_DIR/zenith-wallpaper.log" 2>&1
+
 exec zenith-wallpaper

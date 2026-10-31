@@ -44,7 +44,7 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/usr/share/zenith/shell" \
 	"$INCLUDE_DIR/usr/share/wayland-sessions"
 
-# Configure Plymouth boot splash, mini log window, and progress
+# Configure Plymouth boot splash with logo and loading progress bar animation
 mkdir -p "$INCLUDE_DIR/usr/share/plymouth/themes/zenith"
 cp -r "$REPO_ROOT/system/plymouth/zenith"/* "$INCLUDE_DIR/usr/share/plymouth/themes/zenith/"
 ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
@@ -256,7 +256,7 @@ mkdir -p "$HYPR_CACHE"
 # Dynamically resolve latest Makrennel package filenames from repo metadata to prevent version drift
 RESOLVED_PKGS=$(python3 - <<'PY' 2>/dev/null || true
 import urllib.request, plistlib, subprocess
-wanted = ['tomlplusplus', 'hyprutils', 'aquamarine', 'hyprlang', 'hyprcursor', 'hyprgraphics', 'libspng', 'sdbus-cpp', 'hyprland', 'xdg-desktop-portal-hyprland']
+wanted = ['tomlplusplus', 'hyprutils', 'aquamarine', 'hyprlang', 'hyprcursor', 'hyprgraphics', 'libspng', 'sdbus-cpp', 'hyprland', 'xdg-desktop-portal-hyprland', 'hyprland-qtutils']
 url = 'https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/x86_64-repodata'
 try:
     req = urllib.request.Request(url, headers={'User-Agent': 'Zenith-ISO-Builder'})
@@ -272,7 +272,7 @@ except Exception:
 PY
 )
 
-HYPR_PKGS="${RESOLVED_PKGS:-tomlplusplus-3.4.0_1.x86_64.xbps hyprutils-0.7.1_1.x86_64.xbps aquamarine-0.8.0_2.x86_64.xbps hyprlang-0.6.3_1.x86_64.xbps hyprcursor-0.1.12_1.x86_64.xbps hyprgraphics-0.1.3_2.x86_64.xbps libspng-0.7.4_1.x86_64.xbps sdbus-cpp-2.1.0_1.x86_64.xbps hyprland-0.49.0_1.x86_64.xbps xdg-desktop-portal-hyprland-1.3.9_2.x86_64.xbps}"
+HYPR_PKGS="${RESOLVED_PKGS:-tomlplusplus-3.4.0_1.x86_64.xbps hyprutils-0.7.1_1.x86_64.xbps aquamarine-0.8.0_2.x86_64.xbps hyprlang-0.6.3_1.x86_64.xbps hyprcursor-0.1.12_1.x86_64.xbps hyprgraphics-0.1.3_2.x86_64.xbps libspng-0.7.4_1.x86_64.xbps sdbus-cpp-2.1.0_1.x86_64.xbps hyprland-0.49.0_1.x86_64.xbps xdg-desktop-portal-hyprland-1.3.9_2.x86_64.xbps hyprland-qtutils-0.1.4_1.x86_64.xbps}"
 for hpkg in $HYPR_PKGS; do
 	if [ ! -f "$HYPR_CACHE/$hpkg" ]; then
 		curl -sSL -o "$HYPR_CACHE/$hpkg" "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/$hpkg" || true

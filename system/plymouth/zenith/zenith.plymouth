@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=Zenith
-Description=Zenith OS Monochrome Boot Splash with Mini Log Window and Progress
+Description=Zenith OS Monochrome Boot Splash with Logo and Progress Bar Animation
 ModuleName=script
 Font=DejaVu Sans 10
 TitleFont=DejaVu Sans Bold 10

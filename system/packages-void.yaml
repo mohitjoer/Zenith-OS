@@ -55,6 +55,7 @@ desktop:
     - wlr-randr
     - grim
     - slurp
+    - swaybg
     - xorg-server-xwayland
     # Qt6 & QML runtime for Quickshell
     - qt6-base

@@ -32,5 +32,6 @@ plymouth               # boot splash daemon, gated by command -v in session/zeni
 runsvdir               # runit user process supervisor, gated by command -v in zenith-user-services
 sv                     # runit service control tool, gated by command -v in zenith-user-services
 swayidle               # idle management daemon in session/runit/services/zenith-idle
+swaybg                 # Wayland wallpaper client, gated by command -v in session/hyprland/autostart.conf
 tlp                    # TLP power management utility, gated by LookPath in zenith-sysd
 xbps-install           # Void Linux package installer, gated by LookPath in zenith-sysd
