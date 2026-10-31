@@ -2,6 +2,9 @@
 Name=Zenith
 Description=Zenith OS Monochrome Boot Splash with Mini Log Window and Progress
 ModuleName=script
+Font=DejaVu Sans 10
+TitleFont=DejaVu Sans Bold 10
+MonospaceFont=DejaVu Sans Mono 10
 
 [script]
 ImageDir=/usr/share/plymouth/themes/zenith

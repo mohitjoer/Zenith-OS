@@ -18,6 +18,15 @@ exec >>"$LOG" 2>&1
 
 echo "--- zenith-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
 
+# Stop Plymouth boot splash so Hyprland has exclusive access to DRM master
+if command -v plymouth >/dev/null 2>&1; then
+    plymouth --quit 2>/dev/null || true
+    for _ in 1 2 3 4 5; do
+        plymouth --ping 2>/dev/null || break
+        sleep 0.1
+    done
+fi
+
 # The two desktop names are different strings and both are deliberate.
 # XDG_CURRENT_DESKTOP is what the portal dispatcher lower-cases to derive its
 # per-desktop configuration file name, so "Zenith" finds "zenith-portals.conf".
@@ -173,6 +182,9 @@ if [ ! -e "$USER_HYPRLAND_CONF" ]; then
 # source does not exist.
 USERCONF
 fi
+for user_cfg in monitors-auto.conf monitors-user.conf settings.conf rebinds.conf user.conf; do
+    [ -e "$USER_HYPRLAND_DIR/$user_cfg" ] || touch "$USER_HYPRLAND_DIR/$user_cfg"
+done
 
 # First-boot wallpaper seed: establish the current/background fallback symlink
 # pointing to the default wallpaper. Idempotent — only creates when absent,

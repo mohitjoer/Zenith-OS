@@ -48,6 +48,41 @@ mkdir -p "$INCLUDE_DIR/usr/share/plymouth/themes/zenith"
 cp -r "$REPO_ROOT/system/plymouth/zenith"/* "$INCLUDE_DIR/usr/share/plymouth/themes/zenith/"
 ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
 
+# Pre-stage TrueType fonts and fontconfig configuration for Plymouth label rendering
+mkdir -p "$INCLUDE_DIR/usr/share/fonts/TTF" "$INCLUDE_DIR/etc/fonts" "$INCLUDE_DIR/usr/lib/plymouth"
+for font in DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSansMono.ttf; do
+	for src in "/usr/share/fonts/truetype/dejavu/$font" "/usr/share/fonts/TTF/$font"; do
+		if [ -f "$src" ]; then
+			cp -L "$src" "$INCLUDE_DIR/usr/share/fonts/TTF/$font"
+			break
+		fi
+	done
+done
+
+for lsrc in /usr/lib/plymouth/label-pango.so /usr/lib/x86_64-linux-gnu/plymouth/label-pango.so; do
+	if [ -f "$lsrc" ]; then
+		cp -L "$lsrc" "$INCLUDE_DIR/usr/lib/plymouth/label-pango.so" 2>/dev/null || true
+		ln -sf label-pango.so "$INCLUDE_DIR/usr/lib/plymouth/label.so" 2>/dev/null || true
+		break
+	fi
+done
+
+cat >"$INCLUDE_DIR/etc/fonts/local.conf" <<'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>/usr/share/fonts/TTF</dir>
+  <match target="pattern">
+    <test qual="any" name="family"><string>Sans</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
+  </match>
+  <match target="pattern">
+    <test qual="any" name="family"><string>sans-serif</string></test>
+    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
+  </match>
+</fontconfig>
+EOF
+
 cat >"$INCLUDE_DIR/etc/plymouth/plymouthd.conf" <<'EOF'
 [Daemon]
 Theme=zenith
@@ -57,8 +92,8 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-install_items+=" /usr/lib/plymouth/label.so /etc/fonts/fonts.conf /etc/fonts/conf.d "
-install_optional_items+=" /usr/share/fonts/* "
+install_items+=" /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
+install_optional_items+=" /usr/lib/plymouth/label-pango.so /usr/lib/plymouth/label-freetype.so /usr/lib/plymouth/label.so "
 EOF
 
 # Setup OS identity
@@ -530,7 +565,18 @@ if [ -f "$ROOTFS/etc/rc.local" ]; then
 	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
 		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"
 	fi
+	echo 'if command -v plymouth >/dev/null 2>&1; then plymouth --quit 2>/dev/null || true; fi' >> "$ROOTFS/etc/rc.local"
 fi
+
+# Ensure Plymouth is stopped at the end of runit stage 1 so KMS/DRM is available
+mkdir -p "$ROOTFS/etc/runit/core-services"
+cat >"$ROOTFS/etc/runit/core-services/99-plymouth.sh" <<'PLYEOF'
+#!/bin/sh
+if command -v plymouth >/dev/null 2>&1; then
+	plymouth --quit 2>/dev/null || true
+fi
+PLYEOF
+chmod 0755 "$ROOTFS/etc/runit/core-services/99-plymouth.sh"
 
 # Set Zenith OS hostname and network identity
 printf 'zenith-os\n' > "$ROOTFS/etc/hostname"
@@ -579,6 +625,9 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	if command -v plymouth >/dev/null 2>&1; then
+		plymouth --quit 2>/dev/null || true
+	fi
 	echo "Starting Zenith OS graphical session..."
 	if ! /usr/share/zenith/session/zenith-session; then
 		echo

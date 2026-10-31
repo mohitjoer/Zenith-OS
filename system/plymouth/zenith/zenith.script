@@ -43,7 +43,7 @@ log_lines[6] = "[  OK  ] Launching Zenith Wayland desktop session";
 fun render_logs() {
     for (i = 0; i < max_lines; i++) {
         if (log_lines[i]) {
-            txt_img = Image.Text(log_lines[i], 0.9, 0.9, 0.9, 1.0, "Sans 10", "left");
+            txt_img = Image.Text(log_lines[i], 0.9, 0.9, 0.9, 1.0, "DejaVu Sans 10", "left");
             if (txt_img) {
                 if (!log_sprites[i]) {
                     log_sprites[i] = Sprite();
@@ -108,7 +108,7 @@ fun update_progress_ui() {
     bar_fg_sprite.SetImage(bar_img);
     bar_fg_sprite.SetOpacity(1);
     
-    pct_img = Image.Text(percent + "% COMPLETED", 1.0, 1.0, 1.0, 1.0, "Sans Bold 10", "center");
+    pct_img = Image.Text(percent + "% COMPLETED", 1.0, 1.0, 1.0, 1.0, "DejaVu Sans Bold 10", "center");
     if (pct_img) {
         percent_sprite.SetImage(pct_img);
         percent_sprite.SetPosition(screen_w / 2 - pct_img.GetWidth() / 2, bar_box_y + 22, 1000);
@@ -154,7 +154,7 @@ fun refresh_callback() {
     
     # Smooth progression over ~9 seconds during boot
     simulated = boot_ticks / 450.0;
-    if (simulated > 0.96) simulated = 0.96;
+    if (simulated > 1.0) simulated = 1.0;
     if (simulated > current_progress) {
         current_progress = simulated;
         
@@ -165,6 +165,12 @@ fun refresh_callback() {
         }
         
         update_progress_ui();
+    }
+
+    # Safe fallback: if boot has progressed past 11 seconds (~550 ticks), auto-fade
+    # all sprites to ensure console, DRM master, and Wayland desktop are never obscured
+    if (boot_ticks > 550) {
+        quit_callback();
     }
 }
 Plymouth.SetRefreshFunction(refresh_callback);

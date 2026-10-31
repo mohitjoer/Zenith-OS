@@ -52,6 +52,8 @@ grep -Fq 'nowatchdog mitigations=off preempt=full' "$SCRIPT"
 grep -Fq 'os-ctl' "$SCRIPT"
 grep -Fq 'etc/issue' "$SCRIPT"
 grep -Fq 'etc/motd' "$SCRIPT"
+grep -Fq 'DejaVuSans.ttf' "$SCRIPT"
+grep -Fq 'plymouth --quit' "$SCRIPT"
 
 # Verify boot splash asset exists
 if [ ! -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
