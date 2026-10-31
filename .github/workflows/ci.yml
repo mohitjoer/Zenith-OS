@@ -350,22 +350,47 @@ jobs:
           set -eu
           MNT="$RUNNER_TEMP/iso-mount"
           SQUASH_MNT="$RUNNER_TEMP/squash-mount"
-          mkdir -p "$MNT" "$SQUASH_MNT"
+          ROOTFS_MNT="$RUNNER_TEMP/rootfs-mount"
+          mkdir -p "$MNT" "$SQUASH_MNT" "$ROOTFS_MNT"
           iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           sudo mount -o loop,ro "$iso" "$MNT"
           sudo mount -o loop,ro "$MNT/LiveOS/squashfs.img" "$SQUASH_MNT"
 
-          echo "== Checking Hyprland, QuickShell, and Zenith binaries in rootfs =="
+          cleanup() {
+            if [ -d "$ROOTFS_MNT" ] && mountpoint -q "$ROOTFS_MNT"; then
+              sudo umount "$ROOTFS_MNT" || true
+            fi
+            if [ -d "$SQUASH_MNT" ] && mountpoint -q "$SQUASH_MNT"; then
+              sudo umount "$SQUASH_MNT" || true
+            fi
+            if [ -d "$MNT" ] && mountpoint -q "$MNT"; then
+              sudo umount "$MNT" || true
+            fi
+          }
+          trap cleanup EXIT
+
+          TARGET_ROOT="$SQUASH_MNT"
+          if [ -f "$SQUASH_MNT/LiveOS/rootfs.img" ]; then
+            sudo mount -o loop,ro "$SQUASH_MNT/LiveOS/rootfs.img" "$ROOTFS_MNT"
+            TARGET_ROOT="$ROOTFS_MNT"
+          fi
+
+          echo "== Checking Hyprland, QuickShell, and Zenith binaries in rootfs ($TARGET_ROOT) =="
           failed=0
           check_binary() {
             bin="$1"
             echo "Checking $bin..."
-            if [ ! -f "$SQUASH_MNT$bin" ]; then
+            if [ ! -f "$TARGET_ROOT$bin" ]; then
               echo "::error::Binary $bin is missing from Live rootfs!"
               failed=$((failed + 1))
               return
             fi
-            missing=$(LD_LIBRARY_PATH="$SQUASH_MNT/usr/lib:$SQUASH_MNT/lib" ldd "$SQUASH_MNT$bin" 2>&1 | grep "not found" || true)
+            ldso="$(find "$TARGET_ROOT/usr/lib"* "$TARGET_ROOT/lib"* -name 'ld-linux*.so*' 2>/dev/null | head -n 1 || true)"
+            if [ -n "$ldso" ] && [ -x "$ldso" ]; then
+              missing=$(LD_LIBRARY_PATH="$TARGET_ROOT/usr/lib:$TARGET_ROOT/lib" "$ldso" --list "$TARGET_ROOT$bin" 2>&1 | grep "not found" || true)
+            else
+              missing=$(LD_LIBRARY_PATH="$TARGET_ROOT/usr/lib:$TARGET_ROOT/lib" ldd "$TARGET_ROOT$bin" 2>&1 | grep "not found" || true)
+            fi
             if [ -n "$missing" ]; then
               echo "::error::Binary $bin has missing shared libraries:"
               echo "$missing"
@@ -379,12 +404,12 @@ jobs:
           check_binary "/usr/bin/zenith"
           check_binary "/usr/bin/zenith-shell"
           check_binary "/usr/bin/zenith-sysd"
-          if [ -f "$SQUASH_MNT/usr/bin/quickshell" ]; then
+          if [ -f "$TARGET_ROOT/usr/bin/quickshell" ]; then
             check_binary "/usr/bin/quickshell"
           fi
 
           # Verify Plymouth label plugin
-          if [ ! -f "$SQUASH_MNT/usr/lib/plymouth/label.so" ]; then
+          if [ ! -f "$TARGET_ROOT/usr/lib/plymouth/label.so" ]; then
             echo "::error::Plymouth label.so is missing from /usr/lib/plymouth!"
             failed=$((failed + 1))
           else
@@ -392,8 +417,8 @@ jobs:
           fi
 
           # Verify no foreign libsystemd requirement in libseat
-          if [ -f "$SQUASH_MNT/usr/lib/libseat.so.1" ]; then
-            if readelf -d "$SQUASH_MNT/usr/lib/libseat.so.1" 2>/dev/null | grep -q "libsystemd.so.0"; then
+          if [ -f "$TARGET_ROOT/usr/lib/libseat.so.1" ]; then
+            if readelf -d "$TARGET_ROOT/usr/lib/libseat.so.1" 2>/dev/null | grep -q "libsystemd.so.0"; then
               echo "::error::/usr/lib/libseat.so.1 is dynamically linked against libsystemd.so.0!"
               failed=$((failed + 1))
             else
@@ -401,8 +426,8 @@ jobs:
             fi
           fi
 
-          sudo umount "$SQUASH_MNT"
-          sudo umount "$MNT"
+          cleanup
+          trap - EXIT
 
           if [ "$failed" -gt 0 ]; then
             echo "Rootfs library validation failed with $failed error(s)!"
@@ -410,7 +435,7 @@ jobs:
           fi
           echo "Rootfs library and binary validation passed cleanly!"
       - name: Test ISO headless boot in QEMU
-        timeout-minutes: 5
+        timeout-minutes: 6
         run: |
           set -eu
           sudo apt-get update -qq
@@ -444,14 +469,15 @@ jobs:
             -daemonize \
             -pidfile "$RUNNER_TEMP/qemu-test/qemu.pid"
 
-          echo "Waiting for boot sequence (~30s)..."
-          for i in $(seq 1 35); do
-            sleep 1
+          echo "Waiting for boot sequence (~60-90s in software emulation)..."
+          for i in $(seq 1 60); do
+            sleep 2
             if [ -f "$SERIAL_LOG" ] && grep -qa "zenith-os login:" "$SERIAL_LOG"; then
-              echo "Detected TTY auto-login prompt in serial log at ${i}s!"
+              echo "Detected TTY auto-login prompt in serial log at ~$((i * 2))s!"
               break
             fi
           done
+
 
           # Capture QEMU virtual screen via QMP screendump
           python3 - <<'PY'

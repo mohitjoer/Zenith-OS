@@ -692,7 +692,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s xz \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer vga=792 video=1024x768 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "console=tty0 console=ttyS0,115200 live.user=zenith live.autologin splash quiet loglevel=0 rd.udev.log_level=0 vt.global_cursor_default=0 fbcon=nodefer vga=792 video=1024x768 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"
