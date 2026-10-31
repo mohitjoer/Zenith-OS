@@ -413,6 +413,12 @@ func isUserConfig(relative string) bool {
 	if parts[0] == "current" || parts[0] == "agent" {
 		return true
 	}
+	if parts[0] == "hyprland" && len(parts) == 2 {
+		switch parts[1] {
+		case "monitors-auto.conf", "monitors-user.conf", "settings.conf", "rebinds.conf", "zenith.conf", "user.conf":
+			return true
+		}
+	}
 	if len(parts) == 1 {
 		ext := filepath.Ext(relative)
 		if ext == ".json" || ext == ".toml" || ext == ".lock" {

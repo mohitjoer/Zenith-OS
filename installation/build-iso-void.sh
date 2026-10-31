@@ -373,6 +373,10 @@ find "$INCLUDE_DIR/usr/bin" -type f -exec chmod 0755 {} +
 # Symlinks
 ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 
+# Pre-seed user skeleton configuration so any created user inherits full materialized Zenith config
+mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith"
+cp -a "$INCLUDE_DIR/usr/share/zenith"/* "$INCLUDE_DIR/etc/skel/.config/zenith/"
+
 # Stage system runit services (zenith-sysd)
 mkdir -p "$INCLUDE_DIR/etc/sv/zenith-sysd"
 cp "$REPO_ROOT/system/runit/services/zenith-sysd/run" "$INCLUDE_DIR/etc/sv/zenith-sysd/run"
@@ -578,7 +582,12 @@ fi
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/zenith"
 echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
 touch "$ROOTFS/home/zenith/.hushlogin"
-# Pre-materialize user configuration for zenith user
+# Pre-materialize user configuration for zenith user and skeleton
+mkdir -p "$ROOTFS/home/zenith/.config/zenith" "$ROOTFS/etc/skel/.config/zenith"
+if [ -d "$ROOTFS/usr/share/zenith" ]; then
+	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/home/zenith/.config/zenith/"
+	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/etc/skel/.config/zenith/"
+fi
 chroot "$ROOTFS" su - zenith -c "zenith materialize" 2>/dev/null || true
 chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
 
@@ -690,6 +699,9 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	if [ ! -d "$HOME/.config/zenith/shell" ] && command -v zenith >/dev/null 2>&1; then
+		zenith materialize 2>/dev/null || true
+	fi
 	if ! /usr/share/zenith/session/zenith-session; then
 		if command -v plymouth >/dev/null 2>&1; then
 			plymouth --quit 2>/dev/null || true
