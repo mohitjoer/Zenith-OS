@@ -27,6 +27,7 @@ fi
 mkdir -p "$BUILD_DIR"
 BUILD_DIR=$(CDPATH= cd -- "$BUILD_DIR" && pwd)
 INCLUDE_DIR="$BUILD_DIR/include"
+rm -rf "$INCLUDE_DIR"
 mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/etc/udev/rules.d" \
 	"$INCLUDE_DIR/etc/modprobe.d" \
