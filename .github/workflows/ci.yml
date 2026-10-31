@@ -480,25 +480,27 @@ jobs:
 
 
           # Capture QEMU virtual screen via QMP screendump
-          python3 - <<'PY'
-          import socket, json, time, sys
-          sock_path = sys.argv[1]
-          ppm_path = sys.argv[2]
-          time.sleep(1)
-          try:
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.connect(sock_path)
-            s.recv(1024)
-            s.sendall(b'{"execute": "qmp_capabilities"}\n')
-            s.recv(1024)
-            cmd = json.dumps({"execute": "screendump", "arguments": {"filename": ppm_path}}) + "\n"
-            s.sendall(cmd.encode())
-            s.recv(1024)
-            s.close()
-            print(f"Captured screenshot to {ppm_path}")
-          except Exception as e:
-            print(f"Warning: screenshot capture failed: {e}")
-          PY "$QMP_SOCK" "$SCREENSHOT" || true
+          python3 -c '
+            import socket, json, time, sys
+            sock_path = sys.argv[1]
+            ppm_path = sys.argv[2]
+            time.sleep(1)
+            try:
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.connect(sock_path)
+                s.recv(1024)
+                s.sendall(b"{\"execute\": \"qmp_capabilities\"}\n")
+                s.recv(1024)
+                cmd = json.dumps({"execute": "screendump", "arguments": {"filename": ppm_path}}) + "\n"
+                s.sendall(cmd.encode())
+                s.recv(1024)
+                s.close()
+                print("Captured screenshot to " + ppm_path)
+            except Exception as e:
+                print("Warning: screenshot capture failed: " + str(e))
+            ' "$QMP_SOCK" "$SCREENSHOT" || true
+
+
 
           if [ -f "$SCREENSHOT" ] && command -v pnmtopng >/dev/null 2>&1; then
             pnmtopng "$SCREENSHOT" > "$SCREENSHOT_PNG" 2>/dev/null || true
