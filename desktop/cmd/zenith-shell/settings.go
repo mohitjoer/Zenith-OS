@@ -722,7 +722,10 @@ func buildSettings(raw map[string]any, strict bool) (*settings, error) {
 			return nil, fmt.Errorf("%s: %w", k, err)
 		}
 		if err := json.Unmarshal(b, ptr); err != nil {
-			return nil, fmt.Errorf("%s: %w", k, err)
+			if strict {
+				return nil, fmt.Errorf("%s: %w", k, err)
+			}
+			continue
 		}
 	}
 	if err := s.normalize(strict); err != nil {
@@ -826,7 +829,7 @@ func loadSettingsPatchBase(path string, fallback map[string]any) (map[string]any
 	}
 	cur, err := buildSettings(raw, false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("validate settings: %w", err)
+		cur = defaultSettings()
 	}
 	writeContract(raw, cur)
 	resolveThemePalette(raw, cur.Theme.Theme)
