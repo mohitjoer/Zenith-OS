@@ -168,13 +168,8 @@ Singleton {
     readonly property int space5: 20
     readonly property int space6: 24
 
-    // --------------------------------------------------------------- typography
-    //
-    // Zenith's interface font ships from Zenith's own repository and is not
-    // in the tree yet, so the shell draws in the base layer's Noto. The token
-    // names are the contract: when the shipped font arrives it replaces
-    // fontFamily and nothing else changes.
-    readonly property string fontFamily: "Noto Sans"
+    // Zenith's interface font: Space Grotesk geometric modernist grotesque
+    readonly property string fontFamily: "Space Grotesk"
     readonly property string fontMonoFamily: "JetBrains Mono"
 
     readonly property int typeDisplaySize: 32
@@ -198,14 +193,13 @@ Singleton {
     // without being a line, and a divider is a rule inside a surface, so it
     // has to clear the 3:1 floor on its own.
     readonly property int hairlineWidth: 1
-    readonly property color hairline: Qt.rgba(inkPrimary.r, inkPrimary.g, inkPrimary.b, 0.12)
+    readonly property color hairline: Qt.rgba(inkPrimary.r, inkPrimary.g, inkPrimary.b, 0.16)
 
     // ------------------------------------------------------------ the panel fill
     //
-    // A raised surface over the wallpaper: the surface's own colour at most
-    // opacity, so the picture shows through faintly and the border says
-    // where the panel ends.
-    readonly property color panelFill: Qt.rgba(surface.r, surface.g, surface.b, 0.86)
+    // A raised surface over the wallpaper: frosted acrylic translucent fill (0.72)
+    // so the wallpaper blurs through softly with a subtle glassmorphism ambient glow.
+    readonly property color panelFill: Qt.rgba(surface.r, surface.g, surface.b, 0.72)
 
     // ================================================== the wallpaper palette
     //
