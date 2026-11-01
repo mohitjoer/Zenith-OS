@@ -9,10 +9,20 @@ if [ ! -x /usr/bin/scx_lavd ]; then
 	pause
 fi
 
+# sched_ext requires kernel support (CONFIG_SCHED_CLASS_EXT=y)
+# Available on Zenith CachyOS/BORE custom kernel; absent on generic stock kernels
+if [ ! -d /sys/kernel/sched_ext ]; then
+	echo "scx-lavd: kernel lacks sched_ext support (/sys/kernel/sched_ext not found; requires CONFIG_SCHED_CLASS_EXT=y), pausing service"
+	pause
+fi
+
 # Ensure eBPF filesystem is mounted
 if ! mountpoint -q /sys/fs/bpf; then
 	mount -t bpf bpffs /sys/fs/bpf 2>/dev/null || true
 fi
 
-# Run scx_lavd with autopower policy
-exec /usr/bin/scx_lavd --autopower
+# Run scx_lavd; if it exits (e.g. unsupported BTF or emulation), pause instead of crash-looping
+if ! /usr/bin/scx_lavd --autopower; then
+	echo "scx-lavd: scx_lavd exited with error, pausing service"
+	pause
+fi

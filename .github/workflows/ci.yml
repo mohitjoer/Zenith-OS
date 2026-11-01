@@ -463,7 +463,7 @@ jobs:
             -cdrom "$iso" \
             -boot d \
             -vga std \
-            -display none \
+            -display vnc=127.0.0.1:0 \
             -serial file:"$SERIAL_LOG" \
             -qmp unix:"$QMP_SOCK",server,nowait \
             -daemonize \
@@ -472,8 +472,8 @@ jobs:
           echo "Waiting for boot sequence (~60-90s in software emulation)..."
           for i in $(seq 1 60); do
             sleep 2
-            if [ -f "$SERIAL_LOG" ] && grep -qa "zenith-os login:" "$SERIAL_LOG"; then
-              echo "Detected TTY auto-login prompt in serial log at ~$((i * 2))s!"
+            if [ -f "$SERIAL_LOG" ] && grep -qaE "runit: enter stage: /etc/runit/2|zenith-os login:|turnstiled: Initializing" "$SERIAL_LOG"; then
+              echo "Detected Stage 2 init / desktop runtime in serial log at ~$((i * 2))s!"
               break
             fi
           done
