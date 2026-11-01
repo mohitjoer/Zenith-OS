@@ -1,4 +1,5 @@
-# Zenith OS Direct Hardware PWM Fan & Thermal Policy Sysfs Rules
+# Zento OS Direct Hardware PWM Fan & Thermal Policy Sysfs Rules
+
 # Layer 2 Tuning: Grants unprivileged session power daemons direct sysfs control
 # over PWM fan speed curves, target RPMs, and platform thermal profiles.
 

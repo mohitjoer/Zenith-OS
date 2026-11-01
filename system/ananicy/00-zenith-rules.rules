@@ -1,4 +1,5 @@
-# Zenith OS Auto-Nice Rules for Compilers, Scanners, UI, and Games
+# Zento OS Auto-Nice Rules for Compilers, Scanners, UI, and Games
+
 # Background compilers: low priority (nice 19, idle I/O)
 {"name": "gcc", "type": "compiler"}
 {"name": "g++", "type": "compiler"}

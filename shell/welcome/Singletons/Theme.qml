@@ -21,7 +21,8 @@ Singleton {
     readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u5929"
     readonly property string markSource: brandAdapter.markImage
     readonly property bool markTint: brandAdapter.markTint
-    readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Zenith"
+    readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Zento"
+
 
     // brand identity master (mark + name), the same ~/.config/zenith/brand.json the
     // rest of the shell and the Hub read. read-only here: the always-on

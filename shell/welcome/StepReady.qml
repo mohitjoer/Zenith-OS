@@ -56,7 +56,8 @@ Column {
 
     WelcomeButton {
         kind: "outline"
-        label: I18n.tr("Open Zenith Settings")
+        label: I18n.tr("Open Zento Settings")
         onClicked: step.openSettings()
     }
+
 }

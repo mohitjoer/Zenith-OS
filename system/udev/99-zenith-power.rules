@@ -1,4 +1,5 @@
-# Zenith OS Udev Power Rules
+# Zento OS Udev Power Rules
+
 # Automatically switches system power profiles and manages NVIDIA dGPU D3cold state.
 
 # 1. AC Adapter status changes

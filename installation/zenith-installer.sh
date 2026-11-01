@@ -1,6 +1,6 @@
 #!/bin/sh
-# Zenith OS Guided System Installer
-# Installs Zenith OS onto target drive.
+# Zento OS Guided System Installer
+# Installs Zento OS onto target drive.
 set -eu
 
 BOLD="\033[1m"
@@ -14,7 +14,7 @@ clear 2>/dev/null || true
 
 cat <<EOF
 ${WHITE}┌──────────────────────────────────────────────────────────┐
-│                      ${BOLD}天  ZENITH OS${RESET}${WHITE}                       │
+│                       ${BOLD}天  ZENTO OS${RESET}${WHITE}                       │
 │               Guided System Installer                    │
 └──────────────────────────────────────────────────────────┘${RESET}
 
@@ -27,7 +27,7 @@ fi
 
 # Pre-flight: Check UEFI firmware
 if [ ! -d /sys/firmware/efi ]; then
-	printf "${DIM}Boot Mode: Legacy BIOS (Warning: Zenith OS recommends UEFI for full Wayland power features)${RESET}\n\n"
+	printf "${DIM}Boot Mode: Legacy BIOS (Warning: Zento OS recommends UEFI for full Wayland power features)${RESET}\n\n"
 	IS_UEFI=0
 else
 	printf "${GREEN}Boot Mode: UEFI (Verified)${RESET}\n\n"
@@ -45,7 +45,7 @@ printf "${DIM}──────────────────────
 if [ $# -ge 1 ]; then
 	TARGET_DISK="$1"
 else
-	printf "${WHITE}Select target disk to install Zenith OS to (e.g. /dev/nvme0n1 or /dev/vda):${RESET} "
+	printf "${WHITE}Select target disk to install Zento OS to (e.g. /dev/nvme0n1 or /dev/vda):${RESET} "
 	read -r TARGET_DISK
 fi
 
@@ -64,9 +64,10 @@ read -r FS_CHOICE || FS_CHOICE="1"
 
 # Hostname & User Configuration
 printf "\n${WHITE}${BOLD}System Identity:${RESET}\n"
-printf "Enter hostname (default: zenith-os): "
-read -r HOSTNAME_INPUT || HOSTNAME_INPUT="zenith-os"
-[ -z "$HOSTNAME_INPUT" ] && HOSTNAME_INPUT="zenith-os"
+printf "Enter hostname (default: zento-os): "
+read -r HOSTNAME_INPUT || HOSTNAME_INPUT="zento-os"
+[ -z "$HOSTNAME_INPUT" ] && HOSTNAME_INPUT="zento-os"
+
 
 printf "Enter default username (default: zenith): "
 read -r USERNAME_INPUT || USERNAME_INPUT="zenith"
@@ -160,7 +161,7 @@ ROOT_UUID=$(blkid -s UUID -o value "$PART_ROOT")
 EFI_UUID=$(blkid -s UUID -o value "$PART_EFI")
 
 cat >"$TARGET_DIR/etc/fstab" <<EOF
-# /etc/fstab: static file system information for Zenith OS
+# /etc/fstab: static file system information for Zento OS
 UUID=$ROOT_UUID / $FS_TYPE $FS_OPTS 0 0
 UUID=$EFI_UUID /boot/efi vfat defaults,noatime,umask=0077 0 2
 tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
@@ -221,13 +222,14 @@ cat <<EOF
 ${GREEN}┌──────────────────────────────────────────────────────────┐
 │               Installation Complete! [✓]                 │
 │                                                          │
-│   Zenith OS is now installed on your system.             │
+│   Zento OS is now installed on your system.              │
 │   You can now reboot and remove the live USB media.      │
 └──────────────────────────────────────────────────────────┘${RESET}
 
 EOF
 
-printf "Would you like to reboot into Zenith OS now? [y/N]: "
+printf "Would you like to reboot into Zento OS now? [y/N]: "
+
 read -r REBOOT_CHOICE || REBOOT_CHOICE="n"
 case "$REBOOT_CHOICE" in
 	[yY]|[yY][eE][sS])

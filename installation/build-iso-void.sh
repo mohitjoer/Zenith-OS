@@ -10,7 +10,7 @@ BUILD_DIR=${1:-"$REPO_ROOT/build/iso-void"}
 ARCH=${ZENITH_ARCH:-x86_64}
 MIRROR=${ZENITH_MIRROR:-https://repo-fastly.voidlinux.org/current}
 ISO_NAME=zenith-os-beta-001
-ISO_TITLE="Zenith OS Beta 001"
+ISO_TITLE="Zento OS Beta 001"
 
 for tool in python3 git curl; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -123,9 +123,9 @@ EOF
 
 # Setup OS identity
 cat >"$INCLUDE_DIR/etc/os-release" <<'EOF'
-NAME="Zenith OS"
-PRETTY_NAME="Zenith OS Beta 001"
-ID=zenith
+NAME="Zento OS"
+PRETTY_NAME="Zento OS Beta 001"
+ID=zento
 ID_LIKE="linux"
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
@@ -134,10 +134,10 @@ SUPPORT_URL="https://zenithos.dev/support"
 BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
 EOF
 
-printf 'zenith-os\n' >"$INCLUDE_DIR/etc/hostname"
+printf 'zento-os\n' >"$INCLUDE_DIR/etc/hostname"
 
 cat >"$INCLUDE_DIR/etc/issue" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001 (\m)
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001 (\m)
          ███          Kernel \r on an \m (\l)
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -147,7 +147,7 @@ cat >"$INCLUDE_DIR/etc/issue" <<'EOF'
 EOF
 
 cat >"$INCLUDE_DIR/etc/issue.net" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
          ███          https://zenithos.dev
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -157,7 +157,7 @@ cat >"$INCLUDE_DIR/etc/issue.net" <<'EOF'
 EOF
 
 cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
          ███          https://zenithos.dev
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -165,6 +165,7 @@ cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
    ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
 
 EOF
+
 
 # Copy branding assets
 cp "$REPO_ROOT/public/zenith-logo.svg" \
@@ -439,9 +440,10 @@ cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
   },
   "modules": [
     {
-      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mZENITH OS\u001b[0m",
+      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mZENTO OS\u001b[0m",
       "type": "custom"
     },
+
     "break",
     {
       "format": "\u001b[38;2;230;230;230m──\u001b[0m \u001b[1;38;2;243;237;225mSYSTEM\u001b[0m \u001b[38;2;58;46;36m──────────────────────────\u001b[0m",
@@ -590,7 +592,7 @@ fi
 
 # Patch dracut vmklive module to use zenith-os hostname, zenith user, and include _seatd/input groups
 if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
-	sed -i 's/echo void-live >/echo zenith-os >/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/echo void-live >/echo zento-os >/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/-G audio,video,wheel/-G audio,video,wheel,_seatd,input,tty,storage,network/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/USERNAME=anon/USERNAME=zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/voidlinux/zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
@@ -599,7 +601,7 @@ if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
 	sed -i 's/-s \/bin\/bash/-s \/bin\/zsh/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 fi
 
-# Replace cluttered multi-option isolinux menu with a clean, streamlined Zenith OS boot menu
+# Replace cluttered multi-option isolinux menu with a clean, streamlined Zento OS boot menu
 if [ -d "$MKLIVE_DIR/isolinux" ]; then
 	cat >"$MKLIVE_DIR/isolinux/isolinux.cfg.in" <<'BOOTCFG'
 UI vesamenu.c32
@@ -608,7 +610,7 @@ TIMEOUT 30
 ONTIMEOUT linux
 
 MENU TABMSG Press ENTER to boot or TAB to edit boot options
-MENU AUTOBOOT Zenith OS starts in # second{,s}...
+MENU AUTOBOOT Zento OS starts in # second{,s}...
 MENU BACKGROUND @@SPLASHIMAGE@@
 MENU WIDTH 78
 MENU MARGIN 4
@@ -627,12 +629,13 @@ MENU COLOR timeout      * #ffffffff #00000000 none
 MENU COLOR tabmsg       * #66666666 #00000000 none
 
 LABEL linux
-MENU LABEL Zenith OS (Live Session)
+MENU LABEL Zento OS (Live Session)
 KERNEL /boot/vmlinuz
 APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
 
 LABEL linuxram
-MENU LABEL Zenith OS (Copy to RAM)
+MENU LABEL Zento OS (Copy to RAM)
+
 KERNEL /boot/vmlinuz
 APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
 
@@ -798,9 +801,9 @@ fi
 
 # Overwrite OS identity inside ROOTFS
 cat >"$ROOTFS/etc/os-release" <<'OSREL'
-NAME="Zenith OS"
-PRETTY_NAME="Zenith OS Beta 001"
-ID=zenith
+NAME="Zento OS"
+PRETTY_NAME="Zento OS Beta 001"
+ID=zento
 ID_LIKE="linux"
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
@@ -809,12 +812,12 @@ SUPPORT_URL="https://zenithos.dev/support"
 BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
 OSREL
 
-# Branding replacement: Change Welcome to Void! to Welcome to Zenith OS! in the boot sequence
+# Branding replacement: Change Welcome to Void! to Welcome to Zento OS! in the boot sequence
 for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit/3" "$ROOTFS/etc/rc.local"; do
 	if [ -f "$runit_file" ]; then
-		sed -i 's/Welcome to Void!/Welcome to Zenith OS!/g' "$runit_file"
-		sed -i 's/Welcome to Void Linux!/Welcome to Zenith OS!/g' "$runit_file"
-		sed -i 's/Void Linux/Zenith OS/g' "$runit_file"
+		sed -i 's/Welcome to Void!/Welcome to Zento OS!/g' "$runit_file"
+		sed -i 's/Welcome to Void Linux!/Welcome to Zento OS!/g' "$runit_file"
+		sed -i 's/Void Linux/Zento OS/g' "$runit_file"
 	fi
 done
 
@@ -825,21 +828,21 @@ if [ -f "$ROOTFS/etc/rc.local" ]; then
 	fi
 fi
 
-# Set Zenith OS hostname and network identity
-printf 'zenith-os\n' > "$ROOTFS/etc/hostname"
+# Set Zento OS hostname and network identity
+printf 'zento-os\n' > "$ROOTFS/etc/hostname"
 if [ -f "$ROOTFS/etc/rc.conf" ]; then
-	sed -i 's/^#\?HOSTNAME=.*/HOSTNAME="zenith-os"/' "$ROOTFS/etc/rc.conf"
+	sed -i 's/^#\?HOSTNAME=.*/HOSTNAME="zento-os"/' "$ROOTFS/etc/rc.conf"
 	if ! grep -q '^HOSTNAME=' "$ROOTFS/etc/rc.conf"; then
-		echo 'HOSTNAME="zenith-os"' >> "$ROOTFS/etc/rc.conf"
+		echo 'HOSTNAME="zento-os"' >> "$ROOTFS/etc/rc.conf"
 	fi
 fi
 if [ -f "$ROOTFS/etc/hosts" ]; then
-	sed -i 's/void-live/zenith-os/g' "$ROOTFS/etc/hosts"
+	sed -i 's/void-live/zento-os/g' "$ROOTFS/etc/hosts"
 fi
 
-# Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Zenith OS wordmark and logo
+# Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Zento OS wordmark and logo
 cat >"$ROOTFS/etc/issue" <<'ISSUE'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001 (\m)
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001 (\m)
          ███          Kernel \r on an \m (\l)
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -849,7 +852,7 @@ cat >"$ROOTFS/etc/issue" <<'ISSUE'
 ISSUE
 
 cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
          ███          https://zenithos.dev
      █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -859,7 +862,7 @@ cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
 ISSUENET
 
 cat >"$ROOTFS/etc/motd" <<'MOTD'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zenith OS Beta 001
+     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
          ███          https://zenithos.dev
      █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
@@ -867,6 +870,7 @@ cat >"$ROOTFS/etc/motd" <<'MOTD'
    ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
 
 MOTD
+
 
 # Auto-start Zenith Wayland desktop on tty1 login (with safe fallback if compositor exits)
 mkdir -p "$ROOTFS/etc/profile.d"

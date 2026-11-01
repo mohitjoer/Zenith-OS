@@ -201,9 +201,11 @@ rules.
 
 ## Rules
 
+- [2026-11-01] The user-facing name of the operating system is Zento OS (or Zento). All user-visible branding across bootloader, Plymouth, os-release, motd, issue, Welcome tour, Fastfetch, settings headers, and installer must use Zento OS.
 - [2026-10-29] The OS must not mention anything about Void Linux/Void OS; completely hide all upstream base branding across boot sequences, motd, issue, os-release, hostnames, and greetings.
-- [2026-10-29] Zenith OS uses Void Linux x86_64 (glibc) as its base operating system.
+- [2026-10-29] Zento OS uses Void Linux x86_64 (glibc) as its base operating system.
 - [2026-10-27] Never use or ship kitty in this OS; Ghostty is the sole supported terminal emulator.
+
 
 ## Branches
 

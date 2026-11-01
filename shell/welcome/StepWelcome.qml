@@ -30,7 +30,8 @@ Column {
             model: [
                 I18n.tr("One shell, one look - the bar, panels, and launcher all speak the same language."),
                 I18n.tr("Your colours follow your wallpaper, automatically."),
-                I18n.tr("Every choice lives in Zenith Settings, a keystroke away.")
+                I18n.tr("Every choice lives in Zento Settings, a keystroke away.")
+
             ]
 
             delegate: Row {

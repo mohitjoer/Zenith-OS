@@ -11,7 +11,7 @@ Column {
 
     Repeater {
         model: [
-            { "combo": "Super + ,",      "desc": I18n.tr("Zenith Settings - every knob, in one place") },
+            { "combo": "Super + ,",      "desc": I18n.tr("Zento Settings - every knob, in one place") },
             { "combo": "Super + Space",  "desc": I18n.tr("App launcher & command palette") },
             { "combo": "Super + Return", "desc": I18n.tr("A terminal") },
             { "combo": "Super + Tab",    "desc": I18n.tr("Overview - every workspace at a glance") },
@@ -83,7 +83,7 @@ Column {
             id: note
             width: step.width - 26
             wrapMode: Text.WordWrap
-            text: I18n.tr("Open Zenith Settings (Super + ,) for the full shortcut list - and to rebind any of them.")
+            text: I18n.tr("Open Zento Settings (Super + ,) for the full shortcut list - and to rebind any of them.")
             color: Tokens.inkFaint
             font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall

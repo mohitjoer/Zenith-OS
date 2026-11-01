@@ -1,7 +1,8 @@
 [Desktop Entry]
-Name=Install Zenith OS
-Comment=Install Zenith OS to your hard drive
-Exec=ghostty --title="Zenith OS Installer" -e sudo /usr/bin/zenith-installer
+Name=Install Zento OS
+Comment=Install Zento OS to your hard drive
+Exec=ghostty --title="Zento OS Installer" -e sudo /usr/bin/zenith-installer
+
 Icon=system-software-install
 Terminal=false
 Type=Application

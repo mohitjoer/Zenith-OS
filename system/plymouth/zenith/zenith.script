@@ -1,5 +1,6 @@
-# Zenith OS Plymouth Boot Splash Script
+# Zento OS Plymouth Boot Splash Script
 # Monochrome theme featuring a centered logo and animated progress bar.
+
 
 Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
 Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);

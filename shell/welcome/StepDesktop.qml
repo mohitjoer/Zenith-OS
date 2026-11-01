@@ -19,7 +19,8 @@ Grid {
             { "name": I18n.tr("The bar"),       "reach": I18n.tr("Screen edges"), "desc": I18n.tr("Frame bars carry the launcher, workspaces, clock, tray and status.") },
             { "name": I18n.tr("The launcher"),  "reach": "Super + Space", "desc": I18n.tr("Search apps, run commands, or ask a quick question.") },
             { "name": I18n.tr("The frame"),     "reach": I18n.tr("Screen edge"),   "desc": I18n.tr("The rounded border holds the power and service surfaces.") },
-            { "name": I18n.tr("Zenith Settings"),"reach": "Super + ,",     "desc": I18n.tr("Displays, appearance, keybinds, the shell - every knob in one place.") }
+            { "name": I18n.tr("Zento Settings"), "reach": "Super + ,",     "desc": I18n.tr("Displays, appearance, keybinds, the shell - every knob in one place.") }
+
         ]
 
         delegate: Rectangle {
