@@ -386,10 +386,34 @@ mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
          "$INCLUDE_DIR/etc/skel/Videos"
 cp -a "$INCLUDE_DIR/usr/share/zenith"/* "$INCLUDE_DIR/etc/skel/.config/zenith/"
 
-# Stage system runit services (zenith-sysd)
+# Stage system runit services (zenith-sysd, scx-lavd, ananicy-cpp)
 mkdir -p "$INCLUDE_DIR/etc/sv/zenith-sysd"
-cp "$REPO_ROOT/system/runit/services/zenith-sysd/run" "$INCLUDE_DIR/etc/sv/zenith-sysd/run"
-chmod +x "$INCLUDE_DIR/etc/sv/zenith-sysd/run"
+for svc_dir in "$REPO_ROOT/system/runit/services"/*; do
+	if [ -d "$svc_dir" ]; then
+		svc_name=$(basename "$svc_dir")
+		mkdir -p "$INCLUDE_DIR/etc/sv/$svc_name"
+		cp -r "$svc_dir"/* "$INCLUDE_DIR/etc/sv/$svc_name/"
+		chmod +x "$INCLUDE_DIR/etc/sv/$svc_name/run" 2>/dev/null || true
+	fi
+done
+
+# Stage Layer 3: zramen zstd RAM compression configuration
+mkdir -p "$INCLUDE_DIR/etc/sv/zramen"
+cat >"$INCLUDE_DIR/etc/sv/zramen/conf" <<'EOF'
+export ZRAM_COMP_ALGORITHM=zstd
+export ZRAM_SIZE=100
+export ZRAM_PRIORITY=32767
+EOF
+
+# Stage Layer 3: mimalloc global lock-free allocator preload
+echo "/usr/lib/libmimalloc.so.3" > "$INCLUDE_DIR/etc/ld.so.preload"
+
+# Stage Layer 3: ananicy-cpp auto-nice rules for compilers, scanners, UI, and games
+mkdir -p "$INCLUDE_DIR/etc/ananicy.d" "$INCLUDE_DIR/etc/ananicy-cpp"
+if [ -d "$REPO_ROOT/system/ananicy" ]; then
+	cp "$REPO_ROOT/system/ananicy"/* "$INCLUDE_DIR/etc/ananicy.d/" 2>/dev/null || true
+	cp "$REPO_ROOT/system/ananicy"/* "$INCLUDE_DIR/etc/ananicy-cpp/" 2>/dev/null || true
+fi
 
 # Extract package list from system/packages-void.yaml
 PACKAGES=$(python3 - "$REPO_ROOT/system/packages-void.yaml" "$MIRROR" <<'PY'
@@ -524,9 +548,9 @@ cat >"$POSTSETUP_SCRIPT" <<'EOF'
 #!/bin/sh
 ROOTFS="$1"
 
-# Enable core system runit services (dbus manages elogind on-demand via D-Bus activation)
+# Enable core system runit services (Layer 1 seatd, Layer 3 scx-lavd, ananicy-cpp, zramen)
 mkdir -p "$ROOTFS/etc/runit/runsvdir/default"
-for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen zenith-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp zenith-sysd; do
 	if [ -d "$ROOTFS/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
@@ -766,7 +790,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
 		-s xz \
-		-S "dbus seatd NetworkManager zramen" \
+		-S "dbus seatd NetworkManager zramen scx-lavd ananicy-cpp" \
 		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer vga=792 video=1024x768 console=ttyS0,115200 console=tty0 live.user=zenith live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \

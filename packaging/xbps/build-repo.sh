@@ -56,11 +56,20 @@ install -m 644 "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/wayland-ses
 cp -r "$REPO_ROOT/system/runit/user-services/"* "$STAGE/usr/share/zenith/runit/services/"
 find "$STAGE/usr/share/zenith/runit/services" -name "run" -exec chmod 755 {} +
 
-# Install system runit service (zenith-sysd)
-install -m 755 "$REPO_ROOT/system/runit/services/zenith-sysd/run" "$STAGE/etc/sv/zenith-sysd/run"
+# Install system runit services (zenith-sysd, scx-lavd, ananicy-cpp)
+for svc_dir in "$REPO_ROOT/system/runit/services"/*; do
+	if [ -d "$svc_dir" ]; then
+		svc_name=$(basename "$svc_dir")
+		mkdir -p "$STAGE/etc/sv/$svc_name"
+		cp -r "$svc_dir"/* "$STAGE/etc/sv/$svc_name/"
+		chmod +x "$STAGE/etc/sv/$svc_name/run" 2>/dev/null || true
+	fi
+done
 
-# Install udev rules and license
-install -m 644 "$REPO_ROOT/system/udev/99-zenith-power.rules" "$STAGE/usr/lib/udev/rules.d/99-zenith-power.rules"
+# Install all system udev rules and license
+for rule in "$REPO_ROOT/system/udev"/*.rules; do
+	[ -f "$rule" ] && install -m 644 "$rule" "$STAGE/usr/lib/udev/rules.d/$(basename "$rule")"
+done
 install -m 644 "$REPO_ROOT/LICENSE" "$STAGE/usr/share/licenses/zenith/LICENSE"
 
 echo "build-repo: creating XBPS binary package..."

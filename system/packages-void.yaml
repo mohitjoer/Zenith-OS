@@ -165,6 +165,9 @@ power-and-hardware-services:
     - wpa_supplicant
     - gamemode
     - zramen
+    - scx
+    - scx-loader
+    - mimalloc
     - podman
 
 fonts-and-icons:

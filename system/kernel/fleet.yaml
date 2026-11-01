@@ -34,6 +34,17 @@ flavours:
       - A profile names it
       - Newer hardware that the baseline does not recognise
 
+  - key: cachyos-bore
+    upstream: linux-cachyos-bore
+    role: >-
+      Custom high-performance Linux kernel with CachyOS / BORE scheduler patchset,
+      1000Hz timer frequency, Full Preemption (CONFIG_PREEMPT=y), and sched_ext (scx)
+      eBPF scheduling engine. Engineered for maximum 1% low gaming framerates and
+      sub-millisecond desktop UI response.
+    when_to_use:
+      - High-performance gaming and workstation rigs
+      - Hardware requiring ultra-low latency interactive response
+
   - key: oem
     upstream: null    # Profile-specific; the profile supplies the exact flavour
     role: >-

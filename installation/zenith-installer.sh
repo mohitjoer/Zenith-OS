@@ -125,13 +125,26 @@ UUID=$EFI_UUID /boot/efi vfat defaults,noatime,umask=0077 0 2
 tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
 EOF
 
-# Ensure system runit services are active on target
+# Ensure system runit services are active on target (Layer 1 seatd, Layer 3 scx_lavd, ananicy-cpp, zramen)
 mkdir -p "$TARGET_DIR/etc/runit/runsvdir/default"
-for svc in dbus seatd elogind udevd NetworkManager acpid turnstiled tlp zenith-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp zenith-sysd; do
 	if [ -d "$TARGET_DIR/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$TARGET_DIR/etc/runit/runsvdir/default/$svc"
 	fi
 done
+
+# Layer 3 Tuning: Configure zramen zstd compression
+mkdir -p "$TARGET_DIR/etc/sv/zramen"
+cat >"$TARGET_DIR/etc/sv/zramen/conf" <<'ZRAMCONF'
+export ZRAM_COMP_ALGORITHM=zstd
+export ZRAM_SIZE=100
+export ZRAM_PRIORITY=32767
+ZRAMCONF
+
+# Layer 3 Tuning: Configure global mimalloc lock-free allocator LD_PRELOAD
+if [ -f "$TARGET_DIR/usr/lib/libmimalloc.so.3" ]; then
+	echo "/usr/lib/libmimalloc.so.3" > "$TARGET_DIR/etc/ld.so.preload"
+fi
 
 echo "[6/6] Installing bootloader (GRUB EFI)..."
 if [ "$IS_UEFI" -eq 1 ]; then

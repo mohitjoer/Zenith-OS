@@ -1,0 +1,12 @@
+# Zenith OS Direct Hardware PWM Fan & Thermal Policy Sysfs Rules
+# Layer 2 Tuning: Grants unprivileged session power daemons direct sysfs control
+# over PWM fan speed curves, target RPMs, and platform thermal profiles.
+
+# Hardware Monitor (hwmon) PWM fan speed & target controls
+ACTION=="add|change", SUBSYSTEM=="hwmon", ATTR{pwm[0-9]*}!="", RUN+="/bin/chmod 0666 %S%p/pwm*"
+ACTION=="add|change", SUBSYSTEM=="hwmon", ATTR{pwm[0-9]*_enable}!="", RUN+="/bin/chmod 0666 %S%p/pwm*_enable"
+ACTION=="add|change", SUBSYSTEM=="hwmon", ATTR{fan[0-9]*_target}!="", RUN+="/bin/chmod 0666 %S%p/fan*_target"
+
+# ACPI platform profile & ASUS notebook WMI thermal policy direct sysfs access
+ACTION=="add|change", SUBSYSTEM=="platform", KERNEL=="asus-nb-wmi", ATTR{throttle_thermal_policy}!="", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="acpi", ATTR{platform_profile}!="", MODE="0666"

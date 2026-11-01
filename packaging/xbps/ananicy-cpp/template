@@ -1,0 +1,29 @@
+# Template file for 'ananicy-cpp'
+pkgname=ananicy-cpp
+version=1.1.1
+revision=1
+build_style=cmake
+configure_args="-DVERSION_STRING=${version} -DENABLE_SYSTEMD=OFF -DUSE_SYSTEM_SPDLOG=OFF -DUSE_SYSTEM_FMT=OFF -DUSE_SYSTEM_NLOHMANN_JSON=OFF"
+hostmakedepends="pkg-config git"
+makedepends="libnl3-devel"
+depends="libnl3"
+short_desc="C++ auto-nice daemon for managing process priorities, compilers, scanners, and games"
+maintainer="Zenith OS Project <dev@zenithos.dev>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/EvoXCX/ananicy-cpp"
+distfiles="https://github.com/EvoXCX/ananicy-cpp/archive/refs/tags/v${version}.tar.gz"
+checksum=1e2bceb2681fdfccac7eb4cfb57506aa30981c10b8f2a0d2c730148f9964fb7f
+
+pre_configure() {
+	echo "" > src/platform/systemd/service.cpp
+	find . -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" \) -exec sed -i 's/struct sched_attr/struct custom_sched_attr/g' {} +
+	find . -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cpp" \) -exec sed -i 's/\bsched_attr\b/custom_sched_attr/g' {} +
+}
+
+post_install() {
+	vmkdir etc/ananicy.d
+	if [ -d assets/rules ]; then
+		vcopy "assets/rules/*" etc/ananicy.d
+	fi
+	vsv ananicy-cpp
+}
