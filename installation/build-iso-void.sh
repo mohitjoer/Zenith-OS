@@ -254,6 +254,22 @@ mkdir -p "$INCLUDE_DIR/usr/share/applications"
 if [ -d "$REPO_ROOT/session/applications" ]; then
 	cp "$REPO_ROOT/session/applications"/*.desktop "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi
+# Install Zed code editor desktop entry on ISO
+cat > "$INCLUDE_DIR/usr/share/applications/dev.zed.Zed.desktop" <<'EOF'
+[Desktop Entry]
+Name=Zed
+Comment=A high-performance, multiplayer code editor.
+GenericName=Text Editor
+Exec=zed %F
+Icon=zed
+Type=Application
+StartupNotify=true
+StartupWMClass=dev.zed.Zed
+Categories=TextEditor;Development;IDE;
+MimeType=text/plain;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-rust;text/x-python;text/x-go;application/json;application/xml;text/markdown;
+Keywords=Text;Editor;Development;
+EOF
+ln -sf dev.zed.Zed.desktop "$INCLUDE_DIR/usr/share/applications/zed.desktop"
 if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
 	cp "$REPO_ROOT/apps/mimeapps"/zenith-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi

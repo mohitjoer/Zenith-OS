@@ -36,3 +36,4 @@ swaybg                 # Wayland wallpaper client, gated by command -v in sessio
 tlp                    # TLP power management utility, gated by LookPath in zenith-sysd
 xbps-install           # Void Linux package installer, gated by LookPath in zenith-sysd
 xbps-query             # Void Linux package query tool, gated in pkg.go
+zed                    # code editor, gated in zenith-app
