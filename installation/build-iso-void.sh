@@ -253,6 +253,12 @@ if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
 	cp "$REPO_ROOT/apps/mimeapps"/zenith-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi
 
+# Copy Zenith apps (ghostty, starship, zsh configurations)
+if [ -d "$REPO_ROOT/apps" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/share/zenith/apps"
+	cp -r "$REPO_ROOT/apps"/* "$INCLUDE_DIR/usr/share/zenith/apps/"
+fi
+
 # Copy Hyprland configuration, runit services, and shell tree
 cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
 if [ -d "$REPO_ROOT/session/sddm" ]; then
@@ -378,6 +384,8 @@ ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
 
 # Pre-seed user skeleton configuration and XDG user directories
 mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
+         "$INCLUDE_DIR/etc/skel/.config/ghostty" \
+         "$INCLUDE_DIR/etc/skel/.config/fastfetch" \
          "$INCLUDE_DIR/etc/skel/Desktop" \
          "$INCLUDE_DIR/etc/skel/Documents" \
          "$INCLUDE_DIR/etc/skel/Downloads" \
@@ -385,6 +393,113 @@ mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
          "$INCLUDE_DIR/etc/skel/Pictures" \
          "$INCLUDE_DIR/etc/skel/Videos"
 cp -a "$INCLUDE_DIR/usr/share/zenith"/* "$INCLUDE_DIR/etc/skel/.config/zenith/"
+
+# Pre-seed Ghostty terminal configuration in skeleton
+cat >"$INCLUDE_DIR/etc/skel/.config/ghostty/config" <<'EOF'
+config-file = ?~/.config/zenith/apps/ghostty/config
+EOF
+
+# Pre-seed zsh configuration in skeleton
+cat >"$INCLUDE_DIR/etc/skel/.zshrc" <<'EOF'
+# Zenith OS Zsh configuration
+[ -r "$HOME/.config/zenith/apps/zsh/zenith.zsh" ] && . "$HOME/.config/zenith/apps/zsh/zenith.zsh"
+EOF
+
+# Pre-seed fastfetch ASCII logo and configuration
+mkdir -p "$INCLUDE_DIR/usr/share/zenith/branding"
+cat >"$INCLUDE_DIR/usr/share/zenith/branding/fastfetch-ascii.txt" <<'EOF'
+     ▄████████████████▄
+            ████
+            ████
+     ▄████████████████▄
+       ███  ████  ███
+      ███   ████   ███
+     ███    ████    ███
+    ███     ████     ███
+EOF
+
+cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/zenith/branding/fastfetch-ascii.txt",
+    "padding": {
+      "right": 4
+    }
+  },
+  "display": {
+    "color": {
+      "keys": "38;2;230;230;230"
+    }
+  },
+  "modules": [
+    {
+      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mZENITH OS\u001b[0m",
+      "type": "custom"
+    },
+    "break",
+    {
+      "format": "\u001b[38;2;230;230;230m──\u001b[0m \u001b[1;38;2;243;237;225mSYSTEM\u001b[0m \u001b[38;2;58;46;36m──────────────────────────\u001b[0m",
+      "type": "custom"
+    },
+    {
+      "key": "OS",
+      "type": "os"
+    },
+    {
+      "key": "KERNEL",
+      "type": "kernel"
+    },
+    {
+      "key": "UPTIME",
+      "type": "uptime"
+    },
+    {
+      "key": "PACKAGES",
+      "type": "packages"
+    },
+    {
+      "key": "SHELL",
+      "type": "shell"
+    },
+    {
+      "key": "WM",
+      "type": "wm"
+    },
+    "break",
+    {
+      "format": "\u001b[38;2;230;230;230m──\u001b[0m \u001b[1;38;2;243;237;225mHARDWARE\u001b[0m \u001b[38;2;58;46;36m────────────────────────\u001b[0m",
+      "type": "custom"
+    },
+    {
+      "key": "HOST",
+      "type": "host"
+    },
+    {
+      "key": "CPU",
+      "type": "cpu"
+    },
+    {
+      "key": "GPU",
+      "type": "gpu"
+    },
+    {
+      "key": "MEMORY",
+      "type": "memory"
+    },
+    {
+      "key": "DISPLAY",
+      "type": "display"
+    },
+    "break",
+    {
+      "type": "colors",
+      "symbol": "circle"
+    }
+  ]
+}
+EOF
 
 # Stage system runit services (zenith-sysd, scx-lavd, ananicy-cpp)
 mkdir -p "$INCLUDE_DIR/etc/sv/zenith-sysd"
@@ -477,6 +592,7 @@ if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
 	sed -i 's/voidlinux/zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/99-void-live/99-zenith-live/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/void-live.rules/zenith-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/-s \/bin\/bash/-s \/bin\/zsh/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 fi
 
 # Replace cluttered multi-option isolinux menu with a clean, streamlined Zenith OS boot menu
@@ -575,9 +691,11 @@ for user in anon zenith; do
 	fi
 done
 
-# Ensure user zenith exists and configure autologin
+# Ensure user zenith exists with zsh login shell and configure autologin
 if ! chroot "$ROOTFS" id zenith >/dev/null 2>&1; then
-	chroot "$ROOTFS" useradd -m -s /bin/bash -U -G _seatd,video,audio,input,wheel,storage,network zenith || true
+	chroot "$ROOTFS" useradd -m -s /bin/zsh -U -G _seatd,video,audio,input,wheel,storage,network zenith || true
+else
+	chroot "$ROOTFS" usermod -s /bin/zsh zenith || true
 fi
 echo "zenith:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 
@@ -617,6 +735,7 @@ echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/age
 touch "$ROOTFS/home/zenith/.hushlogin"
 # Pre-materialize user configuration for zenith user, skeleton, and XDG directories
 mkdir -p "$ROOTFS/home/zenith/.config/zenith" "$ROOTFS/etc/skel/.config/zenith" \
+         "$ROOTFS/home/zenith/.config/ghostty" "$ROOTFS/home/zenith/.config/fastfetch" \
          "$ROOTFS/home/zenith/Desktop" "$ROOTFS/home/zenith/Documents" \
          "$ROOTFS/home/zenith/Downloads" "$ROOTFS/home/zenith/Music" \
          "$ROOTFS/home/zenith/Pictures" "$ROOTFS/home/zenith/Videos"
@@ -624,6 +743,9 @@ if [ -d "$ROOTFS/usr/share/zenith" ]; then
 	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/home/zenith/.config/zenith/"
 	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/etc/skel/.config/zenith/"
 fi
+cp -a "$ROOTFS/etc/skel/.config/ghostty"/* "$ROOTFS/home/zenith/.config/ghostty/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.config/fastfetch"/* "$ROOTFS/home/zenith/.config/fastfetch/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.zshrc" "$ROOTFS/home/zenith/.zshrc" 2>/dev/null || true
 chroot "$ROOTFS" su - zenith -c "zenith materialize" 2>/dev/null || true
 chroot "$ROOTFS" su - zenith -c "xdg-user-dirs-update" 2>/dev/null || true
 chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
