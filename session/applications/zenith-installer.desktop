@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Install Zenith OS
 Comment=Install Zenith OS to your hard drive
-Exec=ghostty -e sudo /usr/bin/zenith-installer
+Exec=ghostty --title="Zenith OS Installer" -e sudo /usr/bin/zenith-installer
 Icon=system-software-install
 Terminal=false
 Type=Application

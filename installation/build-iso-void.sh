@@ -239,6 +239,10 @@ done
 cp "$REPO_ROOT/system/helpers/prime-run" "$INCLUDE_DIR/usr/bin/prime-run"
 cp "$REPO_ROOT/system/helpers/fan-profile" "$INCLUDE_DIR/usr/bin/fan-profile"
 cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-installer"
+chmod 755 "$INCLUDE_DIR/usr/bin/zenith-installer"
+touch "$INCLUDE_DIR/etc/zenith-live"
+
+
 
 # Copy GLib GSettings schemas
 mkdir -p "$INCLUDE_DIR/usr/share/glib-2.0/schemas"
