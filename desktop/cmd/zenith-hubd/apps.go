@@ -43,10 +43,11 @@ var appRoleDefs = []struct {
 		{"Ghostty", "ghostty"}, {"Alacritty", "alacritty"}, {"Foot", "foot"},
 		{"WezTerm", "wezterm"}, {"Konsole", "konsole"},
 	}},
-	{"editor", "Editor", "ghostty -e nvim", [][2]string{
-		{"Neovim", "ghostty -e nvim"}, {"Helix", "ghostty -e hx"}, {"Vim", "ghostty -e vim"},
-		{"VS Code", "code"}, {"VSCodium", "codium"}, {"Zed", "zed"}, {"Sublime Text", "subl"},
+	{"editor", "Editor", "zed", [][2]string{
+		{"Zed", "zed|zed-editor"}, {"Neovim", "ghostty -e nvim"}, {"Helix", "ghostty -e hx"}, {"Vim", "ghostty -e vim"},
+		{"VS Code", "code"}, {"VSCodium", "codium"}, {"Sublime Text", "subl"},
 	}},
+
 	{"files", "File manager", "nautilus", [][2]string{
 		{"Files (Nautilus)", "nautilus"}, {"Thunar", "thunar"}, {"Dolphin", "dolphin"},
 		{"Nemo", "nemo"}, {"PCManFM", "pcmanfm-qt"}, {"Yazi", "ghostty -e yazi"},
@@ -98,6 +99,12 @@ func appRoles() []appRole {
 				fallback = cmd
 			}
 		}
+		if d.Role == "editor" {
+			if cmd, ok := resolveCandidate("zed|zed-editor"); ok {
+				fallback = cmd
+			}
+		}
+
 		r := appRole{Role: d.Role, Label: d.Label, Fallback: fallback, Combo: combos[d.Role]}
 		for _, c := range d.Cands {
 			cmd, installed := resolveCandidate(c[1])

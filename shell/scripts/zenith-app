@@ -115,14 +115,25 @@ fallback() {
 	browser) default_browser ;;
 	terminal) terminal_command ;;
 	editor)
+		if have zed; then
+			printf 'zed'
+			return 0
+		elif have zed-editor; then
+			printf 'zed-editor'
+			return 0
+		elif [ -x "$HOME/.local/bin/zed" ]; then
+			printf '%s' "$HOME/.local/bin/zed"
+			return 0
+		fi
 		ed="$(cli_editor || true)"
 		term="$(terminal_command || true)"
 		if [ -n "$ed" ] && [ -n "$term" ]; then
 			printf '%s -e %s' "$term" "$ed"
 		else
-			first_of gnome-text-editor gedit kate mousepad code || true
+			first_of zed zed-editor code gnome-text-editor gedit kate mousepad || true
 		fi
 		;;
+
 	files)
 		first_of nautilus nemo thunar dolphin pcmanfm-qt pcmanfm caja && return 0
 		have xdg-open && printf 'xdg-open %s' "${HOME:-/}"
