@@ -15,7 +15,7 @@ Item {
     property bool busy: false
     readonly property var media: ReloadCoverModel.normalize(descriptor)
     readonly property url rendererSource: ReloadCoverModel.rendererSource(
-        Quickshell.env("ZENITH_SHELL_DIR"),
+        Quickshell.env("ASURA_SHELL_DIR"),
         Quickshell.env("XDG_CONFIG_HOME"),
         Quickshell.env("HOME"))
 
@@ -197,7 +197,7 @@ Item {
             Text {
                 Layout.fillWidth: true
                 visible: renderer.status === Loader.Error
-                text: I18n.tr("Preview unavailable; reload still falls back to the Zenith wordmark.")
+                text: I18n.tr("Preview unavailable; reload still falls back to the Asura wordmark.")
                 color: Tokens.ink
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall
@@ -207,7 +207,7 @@ Item {
             Text {
                 Layout.fillWidth: true
                 visible: renderer.status === Loader.Ready && renderer.item && renderer.item.mediaError
-                text: I18n.tr("Couldn't preview this asset; shell reload will use the Zenith wordmark.")
+                text: I18n.tr("Couldn't preview this asset; shell reload will use the Asura wordmark.")
                 color: Tokens.ink
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall

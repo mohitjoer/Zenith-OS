@@ -6,7 +6,7 @@ pragma ComponentBehavior: Bound
 // walks the list the other way. Each press moves to the next window in
 // most-recently-used order and the overlay shows what happened.
 //
-// The MRU order comes from `zenith windows`, never from here. Hyprland already
+// The MRU order comes from `asura windows`, never from here. Hyprland already
 // tracks it in `focusHistoryID`, and the id is inverted from what it looks like
 // — lower is more recent — so it is parsed and sorted in Go where there are
 // tests. A sort in QML that is one line and backwards is the worst kind.
@@ -56,7 +56,7 @@ PanelWindow {
 
     Process {
         id: load
-        command: ["zenith", "windows"]
+        command: ["asura", "windows"]
         running: switcher.token !== ""
 
         stdout: StdioCollector {
@@ -89,7 +89,7 @@ PanelWindow {
 
     // Focus is a one-line dispatch, not a CLI subcommand. Unlike the parsers
     // there is nothing to interpret, so nothing to test and nothing to wrap.
-    // `address:` is hyprlang syntax and Zenith ships Hyprland 0.53.3; 0.55 and
+    // `address:` is hyprlang syntax and Asura ships Hyprland 0.53.3; 0.55 and
     // later wrap dispatch differently under a Lua Config.
     Process {
         id: focus

@@ -200,7 +200,7 @@ Item {
             if (page.reloadCoverImportBusy || !page.pendingReloadCoverRow) return;
             page.reloadCoverImportGeneration++;
             reloadCoverImport.requestGeneration = page.reloadCoverImportGeneration;
-            reloadCoverImport.command = ["zenith-hubd", "reload-cover", "import", "" + p];
+            reloadCoverImport.command = ["asura-hubd", "reload-cover", "import", "" + p];
             page.reloadCoverImportBusy = true;
             reloadCoverImport.running = true;
         }

@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // QML view of the daemon `tray` topic. The StatusNotifier host lives in
-// zenith-shell (tray.go), so QML never speaks D-Bus itself: `subscribe tray`
+// asura-shell (tray.go), so QML never speaks D-Bus itself: `subscribe tray`
 // streams a full {items:[...]} frame on every change, and click intents ride
 // back over a second connection. The icon precedence chain (item themed path,
 // then theme name, then the nearest-24px ARGB->RGBA pixmap, then the generic
@@ -16,7 +16,7 @@ Singleton {
     id: root
 
     property var items: []
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function apply(line) {
         try {

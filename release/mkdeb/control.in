@@ -1,25 +1,25 @@
-Package: zenith
+Package: asura
 Version: @VERSION@
 Architecture: @ARCH@
-Maintainer: Zenith OS <zenith@localhost>
+Maintainer: Asura OS <asura@localhost>
 Installed-Size: @SIZE@
 Section: admin
 Priority: optional
-Homepage: https://github.com/mohitjoer/Zenith-OS
+Homepage: https://github.com/mohitjoer/Asura-OS
 @RELATIONS@
-Description: Zenith OS desktop
- The Zenith session for Ubuntu: a Hyprland configuration, the Quickshell shell
+Description: Asura OS desktop
+ The Asura session for Ubuntu: a Hyprland configuration, the Quickshell shell
  that draws the bar, dock, launcher, settings and every other window, the
  daemons it talks to, and the control tool that reads machine hardware out of
  sysfs, resolves which hardware profile claims the machine and manages the
  overlay that makes an update safe: a user's override wins at its mirrored path
  and no update can clobber it.
  .
- Quickshell itself is not an archive package. Zenith builds it, and this
+ Quickshell itself is not an archive package. Asura builds it, and this
  package expects /usr/bin/quickshell to be there.
  .
  This package is configuration data, scripts and binaries. It installs no
  kernel, no bootloader and no driver, it does not touch the login manager, and
- it writes outside /usr/share/zenith/ and /etc/zenith/ only to the fixed places
+ it writes outside /usr/share/asura/ and /etc/asura/ only to the fixed places
  listed in docs/architecture.md: the session and portal registrations, the user
  units, the GSettings schemas, the desktop entries and the programs in /usr/bin.

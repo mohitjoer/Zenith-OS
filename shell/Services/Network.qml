@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 import "../utils/menupoll.js" as MenuPoll
 
-// QML view of the daemon `network` topic. NetworkManager lives in zenith-shell
+// QML view of the daemon `network` topic. NetworkManager lives in asura-shell
 // (network.go), so QML never shells out to nmcli nor speaks D-Bus itself.
 // `subscribe network` streams a full frame; Wi-Fi, WireGuard, and DNS changes use
 // `call network.*` intents on a second connection. The status derivations the
@@ -69,7 +69,7 @@ Singleton {
     signal replied(int id, bool ok, string error)
     property int nextCallId: 1
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function apply(line) {
         try {

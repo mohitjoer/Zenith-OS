@@ -218,10 +218,10 @@ QtObject {
         call("wall.preheat", {path: path})
     }
     // The system palette lives in the shell's matugen knob store
-    // (~/.config/zenith/matugen.json), which zenith-shell watches and retints on
-    // change. The zenith-wallpaper daemon does not run matugen, so the old wall.retheme
+    // (~/.config/asura/matugen.json), which asura-shell watches and retints on
+    // change. The asura-wallpaper daemon does not run matugen, so the old wall.retheme
     // RPC was a no-op and light/dark never left the picker. Hand the knobs to
-    // the one writer the Hub also uses ("zenith-hubd desktop matugen set", a merge),
+    // the one writer the Hub also uses ("asura-hubd desktop matugen set", a merge),
     // so mode/scheme/index retint the whole desktop.
     property var _rethemeProc: Process {}
     function retheme(scheme, mode, colorIndex, callback) {
@@ -234,7 +234,7 @@ QtObject {
         if (scheme) knobs.schemeType = scheme
         if (typeof colorIndex === "number") knobs.sourceColorIndex = colorIndex | 0
         _rethemeProc.running = false
-        _rethemeProc.command = ["zenith-hubd", "desktop", "matugen", "set", JSON.stringify(knobs)]
+        _rethemeProc.command = ["asura-hubd", "desktop", "matugen", "set", JSON.stringify(knobs)]
         _rethemeProc.running = true
         if (callback) callback({ ok: true }, null)
     }
@@ -347,44 +347,44 @@ QtObject {
         client.eventReceived(event, data)
 
         switch (event) {
-        case "zenith-wallpaper.wall.file_added":
+        case "asura-wallpaper.wall.file_added":
             client.fileAdded(data.name || "", data.path || "", data.type || "static"); break
-        case "zenith-wallpaper.wall.file_removed":
+        case "asura-wallpaper.wall.file_removed":
             client.fileRemoved(data.name || "", data.type || "static"); break
-        case "zenith-wallpaper.wall.file_renamed":
+        case "asura-wallpaper.wall.file_renamed":
             client.fileRenamed(data.old_name || "", data.new_name || ""); break
-        case "zenith-wallpaper.wall.folder_removed":
+        case "asura-wallpaper.wall.folder_removed":
             client.folderRemoved(data.names || []); break
-        case "zenith-wallpaper.wall.we_added":
+        case "asura-wallpaper.wall.we_added":
             client.weItemAdded(data.we_id || "", data.we_dir || ""); break
-        case "zenith-wallpaper.wall.we_removed":
+        case "asura-wallpaper.wall.we_removed":
             client.weItemRemoved(data.we_id || ""); break
-        case "zenith-wallpaper.wall.scan_done":
+        case "asura-wallpaper.wall.scan_done":
             client.scanDone(); break
-        case "zenith-wallpaper.wall.cache":
+        case "asura-wallpaper.wall.cache":
             client.cacheRunning = (data.status === "started" || data.status === "progress")
             client.cacheProgress = data.progress || 0
             client.cacheTotal = data.total || 0
             if (data.status === "ready") client.cacheReady()
             break
-        case "zenith-wallpaper.wall.cached":
+        case "asura-wallpaper.wall.cached":
             client.itemCached(data); break
-        case "zenith-wallpaper.wall.applied":
+        case "asura-wallpaper.wall.applied":
             client.wallpaperApplied(data.type || "", data.name || "", data.path || "", data.we_id || "", data.key || "")
             client.refreshAudioState()
             break
-        case "zenith-wallpaper.wall.toggle":
+        case "asura-wallpaper.wall.toggle":
             client.wallpaperToggle(); break
-        case "zenith-wallpaper.wall.show":
+        case "asura-wallpaper.wall.show":
             client.wallpaperShow(); break
-        case "zenith-wallpaper.wall.hide":
+        case "asura-wallpaper.wall.hide":
             client.wallpaperHide(); break
-        case "zenith-wallpaper.wall.random_started":
+        case "asura-wallpaper.wall.random_started":
             client.randomRunning = true
             client.rotationActive = true
             client.randomInterval = data.interval || 0
             client.randomStarted(client.randomInterval); break
-        case "zenith-wallpaper.wall.random_stopped":
+        case "asura-wallpaper.wall.random_stopped":
             client.randomRunning = false
             client.randomInterval = 0
             client.rotationStatus()
@@ -393,7 +393,7 @@ QtObject {
     }
 
     property var _socket: Socket {
-        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-wallpaper.sock"
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-wallpaper.sock"
 
         connected: false
 
@@ -404,7 +404,7 @@ QtObject {
         onConnectionStateChanged: {
             if (connected) {
                 console.log("DaemonClient: connected")
-                client.subscribe(["zenith-wallpaper."])
+                client.subscribe(["asura-wallpaper."])
                 client.ready = true
                 client.randomStatus()
                 client.rotationStatus()

@@ -8,12 +8,12 @@ config_home="${XDG_CONFIG_HOME:-${HOME}/.config}"
 state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
 app_dir="${data_home}/applications"
 xbel="${data_home}/recently-used.xbel"
-launcher_config_dir="${config_home}/zenith"
-launcher_state_dir="${state_home}/zenith"
-recent_path="/tmp/zenith-launcher-qa-recent.txt"
+launcher_config_dir="${config_home}/asura"
+launcher_state_dir="${state_home}/asura"
+recent_path="/tmp/asura-launcher-qa-recent.txt"
 
 fixture_name() {
-    printf 'zenith-launcher-qa-actions-%s.desktop' "$1"
+    printf 'asura-launcher-qa-actions-%s.desktop' "$1"
 }
 
 desktop_backup() {
@@ -55,7 +55,7 @@ write_desktop_fixture() {
     {
         printf '[Desktop Entry]\n'
         printf 'Type=Application\n'
-        printf 'Name=Zenith QA Options %s\n' "$count"
+        printf 'Name=Asura QA Options %s\n' "$count"
         printf 'GenericName=Shutter action fixture\n'
         printf 'Exec=/usr/bin/true\n'
         printf 'Icon=application-x-executable\n'
@@ -64,7 +64,7 @@ write_desktop_fixture() {
         for index in $(seq 1 "$count"); do
             printf '\n[Desktop Action Option%s]\n' "$index"
             printf 'Name=Option %02d\n' "$index"
-            printf 'Exec=/usr/bin/touch /tmp/zenith-launcher-qa-option-%s-%02d\n' \
+            printf 'Exec=/usr/bin/touch /tmp/asura-launcher-qa-option-%s-%02d\n' \
                 "$count" "$index"
         done
     } >"$target"
@@ -94,8 +94,8 @@ setup() {
     {
         printf '<?xml version="1.0"?>\n'
         printf '<xbel version="1.0">\n'
-        printf '  <bookmark href="file:///tmp/zenith-launcher-qa-recent.txt" modified="2026-07-24T12:00:00Z">\n'
-        printf '    <title>Zenith QA Recent</title>\n'
+        printf '  <bookmark href="file:///tmp/asura-launcher-qa-recent.txt" modified="2026-07-24T12:00:00Z">\n'
+        printf '    <title>Asura QA Recent</title>\n'
         printf '  </bookmark>\n'
         printf '</xbel>\n'
     } >"$xbel"
@@ -123,7 +123,7 @@ teardown() {
     restore_file "$launcher_state_dir/launcher-usage.json" "launcher-usage.json"
     restore_file "$launcher_config_dir/launcher.json" "launcher.json"
     rm -f -- "$recent_path"
-    rm -f -- /tmp/zenith-launcher-qa-option-*
+    rm -f -- /tmp/asura-launcher-qa-option-*
 
     if command -v update-desktop-database >/dev/null 2>&1; then
         update-desktop-database "$app_dir" >/dev/null 2>&1 || true

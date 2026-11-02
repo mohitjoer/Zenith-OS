@@ -17,8 +17,8 @@
 set -u
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SCRIPT="$REPO_ROOT/shell/scripts/zenith-reload-cover"
-WRAPPER="$REPO_ROOT/session/zenith-reload-cover"
+SCRIPT="$REPO_ROOT/shell/scripts/asura-reload-cover"
+WRAPPER="$REPO_ROOT/session/asura-reload-cover"
 
 TMP="$(mktemp -d)"
 FAILED=0
@@ -77,7 +77,7 @@ fi
 # started as the cover: `-p ENTRY`
 [[ ${FAKE_MODE:-normal} == crash ]] && { echo "module \"qs.Ui\" is not installed" >&2; exit 3; }
 echo $$ >"$d/pid"
-printf '%s' "${ZENITH_RELOAD_COVER_TOKEN:-}" >"$d/token"
+printf '%s' "${ASURA_RELOAD_COVER_TOKEN:-}" >"$d/token"
 echo closing >"$d/phase"
 echo "$*" >"$d/argv"
 if [[ ${FAKE_MODE:-normal} == stuck ]]; then sleep 30; exit 0; fi
@@ -93,8 +93,8 @@ chmod +x "$TMP/bin/quickshell"
 
 # One run of the launcher in its own runtime directory and its own fake.
 export WAYLAND_DISPLAY=wayland-test
-export ZENITH_SHELL_DIR="$REPO_ROOT/shell"
-export ZENITH_QUICKSHELL="$TMP/bin/quickshell"
+export ASURA_SHELL_DIR="$REPO_ROOT/shell"
+export ASURA_QUICKSHELL="$TMP/bin/quickshell"
 
 fresh() {
     n=${n:-0}; n=$((n + 1))
@@ -103,7 +103,7 @@ fresh() {
     export FAKE_MODE=${1:-normal}
     mkdir -p "$XDG_RUNTIME_DIR"
 }
-statefile() { echo "$XDG_RUNTIME_DIR/zenith-reload-cover.json"; }
+statefile() { echo "$XDG_RUNTIME_DIR/asura-reload-cover.json"; }
 # Read one field of the state file the way the QML does: as JSON.
 field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$(statefile)" "$1"; }
 gone() {
@@ -160,7 +160,7 @@ check "the cover process ends" gone "$pid"
 for _ in $(seq 1 60); do [ -e "$(statefile)" ] || break; sleep 0.05; done
 check "the state file is removed once the cover is gone" test ! -e "$(statefile)"
 check "no lock outlives begin (the next begin is not refused)" \
-    flock -n "$XDG_RUNTIME_DIR/zenith-reload-cover.lock" true
+    flock -n "$XDG_RUNTIME_DIR/asura-reload-cover.lock" true
 
 # ------------------------------------------------- two begins at the same time
 fresh
@@ -207,7 +207,7 @@ check "...prints no token" test ! -s "$TMP/c.out"
 check "...and leaves no state behind" test ! -e "$(statefile)"
 
 fresh
-ZENITH_QUICKSHELL=/nonexistent/quickshell "$SCRIPT" begin >"$TMP/d.out" 2>"$TMP/d.err"
+ASURA_QUICKSHELL=/nonexistent/quickshell "$SCRIPT" begin >"$TMP/d.out" 2>"$TMP/d.err"
 check "begin fails when Quickshell is missing" test $? -ne 0
 check "...and says which program" grep -q "nonexistent/quickshell" "$TMP/d.err"
 
@@ -217,7 +217,7 @@ check "begin fails with no display, rather than waiting" test $? -ne 0
 check "...and says there is no display" grep -q "no Wayland display" "$TMP/e.err"
 
 fresh
-ZENITH_SHELL_DIR="$TMP/empty" "$SCRIPT" begin >"$TMP/f.out" 2>"$TMP/f.err"
+ASURA_SHELL_DIR="$TMP/empty" "$SCRIPT" begin >"$TMP/f.out" 2>"$TMP/f.err"
 check "begin fails when the entry file is missing" test $? -ne 0
 
 # A cover that never reaches the curtain stage is stopped, after the deadline.

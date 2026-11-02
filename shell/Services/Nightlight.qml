@@ -4,8 +4,8 @@ import Quickshell
 import Quickshell.Io
 
 // QML view of the daemon `nightlight` topic. hyprsunset's state lives in
-// zenith-shell (nightlight.go), so QML never pgreps or shells out to
-// zenith-cmd-nightlight for state: `subscribe nightlight` streams
+// asura-shell (nightlight.go), so QML never pgreps or shells out to
+// asura-cmd-nightlight for state: `subscribe nightlight` streams
 // {on, temperature} on every change, and `call nightlight.toggle` /
 // `nightlight.set` send the intent back. The daemon publishes an off frame at
 // startup, so the tile is never blank before the first event.
@@ -15,7 +15,7 @@ Singleton {
     property bool on: false
     property int temperature: 4000
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function toggle() {
         root.call("nightlight.toggle", {});

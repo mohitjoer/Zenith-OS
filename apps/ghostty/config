@@ -1,5 +1,5 @@
-# Zenith's ghostty base. ghostty reads ~/.config/ghostty/config, which includes this
-# file; `zenith apps defaults` prints the one line to add. Included files load after
+# Asura's ghostty base. ghostty reads ~/.config/ghostty/config, which includes this
+# file; `asura apps defaults` prints the one line to add. Included files load after
 # the file that includes them, so put overrides in a later include (user.conf), not
 # in ~/.config/ghostty/config itself.
 
@@ -26,7 +26,7 @@ mouse-hide-while-typing = true
 gtk-titlebar = false
 window-theme = ghostty
 
-# zsh is the login shell and the zenith package depends on it. A known shell here is
+# zsh is the login shell and the asura package depends on it. A known shell here is
 # also what lets shell-integration = detect inject itself.
 command = /usr/bin/zsh
 shell-integration = detect

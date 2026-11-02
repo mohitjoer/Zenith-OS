@@ -84,16 +84,16 @@
       "label": "Lock the screen",
       "chord": "SUPER + L",
       "kind": "app",
-      "action": "zenith-shell",
+      "action": "asura-shell",
       "argument": "lock"
     },
     {
       "id": "settings",
       "category": "desktop",
-      "label": "Open Zenith Settings",
+      "label": "Open Asura Settings",
       "chord": "SUPER + comma",
       "kind": "app",
-      "action": "zenith-shell",
+      "action": "asura-shell",
       "argument": "hub open"
     },
     {
@@ -102,7 +102,7 @@
       "label": "Voice typing (press again to stop)",
       "chord": "SUPER + grave",
       "kind": "app",
-      "action": "zenith-shell",
+      "action": "asura-shell",
       "argument": "voice"
     },
     {
@@ -111,7 +111,7 @@
       "label": "Choose a wallpaper",
       "chord": "SUPER + W",
       "kind": "app",
-      "action": "zenith-wallpaper",
+      "action": "asura-wallpaper",
       "argument": "wallpaper ui"
     },
     {
@@ -120,7 +120,7 @@
       "label": "Random wallpaper",
       "chord": "SUPER + SHIFT + W",
       "kind": "app",
-      "action": "zenith-wallpaper",
+      "action": "asura-wallpaper",
       "argument": "wallpaper random"
     },
     {
@@ -191,7 +191,7 @@
       "label": "Open a terminal",
       "chord": "SUPER + T",
       "kind": "app",
-      "action": "zenith-app",
+      "action": "asura-app",
       "argument": "terminal",
       "also": [
         {
@@ -205,7 +205,7 @@
       "label": "Open the file manager",
       "chord": "SUPER + E",
       "kind": "app",
-      "action": "zenith-app",
+      "action": "asura-app",
       "argument": "files"
     },
     {
@@ -214,7 +214,7 @@
       "label": "Open the browser",
       "chord": "SUPER + B",
       "kind": "app",
-      "action": "zenith-app",
+      "action": "asura-app",
       "argument": "browser"
     },
     {
@@ -223,7 +223,7 @@
       "label": "Open the editor",
       "chord": "SUPER + N",
       "kind": "app",
-      "action": "zenith-app",
+      "action": "asura-app",
       "argument": "editor"
     },
     {
@@ -232,7 +232,7 @@
       "label": "Open the notes",
       "chord": "SUPER + O",
       "kind": "app",
-      "action": "zenith-app",
+      "action": "asura-app",
       "argument": "notes"
     },
     {
@@ -241,8 +241,8 @@
       "label": "Open the virtual machine manager",
       "chord": "SUPER + SHIFT + V",
       "kind": "app",
-      "action": "zenith-summon",
-      "argument": "zenith-vm flock -n -o /tmp/zenith-vm.lock zenith-vm"
+      "action": "asura-summon",
+      "argument": "asura-vm flock -n -o /tmp/asura-vm.lock asura-vm"
     },
     {
       "id": "close",
@@ -418,7 +418,7 @@
       "label": "Switch to a workspace of this desktop",
       "chord": "SUPER + {n}",
       "kind": "app",
-      "action": "zenith-workspace",
+      "action": "asura-workspace",
       "argument": "focus {n}"
     },
     {
@@ -427,7 +427,7 @@
       "label": "Send the window to a workspace and follow it",
       "chord": "SUPER + ALT + {n}",
       "kind": "app",
-      "action": "zenith-workspace",
+      "action": "asura-workspace",
       "argument": "move {n}"
     },
     {
@@ -436,7 +436,7 @@
       "label": "Send the window to a workspace",
       "chord": "SUPER + SHIFT + {n}",
       "kind": "app",
-      "action": "zenith-workspace",
+      "action": "asura-workspace",
       "argument": "movesilent {n}"
     },
     {
@@ -491,7 +491,7 @@
       "label": "Hide the window in the scratchpad, or bring it back",
       "chord": "SUPER + H",
       "kind": "app",
-      "action": "zenith-workspace",
+      "action": "asura-workspace",
       "argument": "hide"
     },
     {
@@ -500,7 +500,7 @@
       "label": "Show or hide the scratchpad",
       "chord": "SUPER + ALT + H",
       "kind": "app",
-      "action": "zenith-workspace",
+      "action": "asura-workspace",
       "argument": "scratch"
     },
     {
@@ -578,7 +578,7 @@
       "label": "Mirror or extend the displays",
       "chord": "SUPER + P",
       "kind": "app",
-      "action": "zenith-monitor",
+      "action": "asura-monitor",
       "argument": "toggle"
     },
     {
@@ -587,7 +587,7 @@
       "label": "Capture, annotate and beautify a screenshot",
       "chord": "Print",
       "kind": "app",
-      "action": "zenith-shot",
+      "action": "asura-shot",
       "also": [
         {
           "chord": "XF86Print"
@@ -604,7 +604,7 @@
       "chord": "SHIFT + Print",
       "kind": "app",
       "action": "env",
-      "argument": "ZENITH_SHOT_MODE=monitor zenith-shot"
+      "argument": "ASURA_SHOT_MODE=monitor asura-shot"
     },
     {
       "id": "color-picker",
@@ -612,7 +612,7 @@
       "label": "Pick a colour from the screen",
       "chord": "SUPER + SHIFT + C",
       "kind": "app",
-      "action": "zenith-cmd-color-picker"
+      "action": "asura-cmd-color-picker"
     },
     {
       "id": "volume-up",
@@ -620,7 +620,7 @@
       "label": "Raise the volume",
       "chord": "XF86AudioRaiseVolume",
       "kind": "app",
-      "action": "zenith-volume",
+      "action": "asura-volume",
       "argument": "up"
     },
     {
@@ -629,7 +629,7 @@
       "label": "Lower the volume",
       "chord": "XF86AudioLowerVolume",
       "kind": "app",
-      "action": "zenith-volume",
+      "action": "asura-volume",
       "argument": "down"
     },
     {
@@ -679,7 +679,7 @@
       "label": "Recover the audio when sound stops",
       "chord": "SUPER + SHIFT + A",
       "kind": "app",
-      "action": "zenith-restart-audio"
+      "action": "asura-restart-audio"
     },
     {
       "id": "brightness-up",
@@ -687,7 +687,7 @@
       "label": "Brighten the screen",
       "chord": "XF86MonBrightnessUp",
       "kind": "app",
-      "action": "zenith-cmd-brightness",
+      "action": "asura-cmd-brightness",
       "argument": "+5"
     },
     {
@@ -696,7 +696,7 @@
       "label": "Dim the screen",
       "chord": "XF86MonBrightnessDown",
       "kind": "app",
-      "action": "zenith-cmd-brightness",
+      "action": "asura-cmd-brightness",
       "argument": "-5"
     },
     {
@@ -705,7 +705,7 @@
       "label": "Brighten the keyboard backlight",
       "chord": "XF86KbdBrightnessUp",
       "kind": "app",
-      "action": "zenith",
+      "action": "asura",
       "argument": "brightness up --device kbd"
     },
     {
@@ -714,7 +714,7 @@
       "label": "Dim the keyboard backlight",
       "chord": "XF86KbdBrightnessDown",
       "kind": "app",
-      "action": "zenith",
+      "action": "asura",
       "argument": "brightness down --device kbd"
     },
     {
@@ -723,7 +723,7 @@
       "label": "Toggle the touchpad",
       "chord": "XF86TouchpadToggle",
       "kind": "app",
-      "action": "zenith-touchpad",
+      "action": "asura-touchpad",
       "argument": "toggle",
       "also": [
         {

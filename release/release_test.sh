@@ -50,15 +50,15 @@ echo "checking the boundary"
 STAGE="$WORK/stage"
 mkdir -p "$STAGE"
 dpkg-deb -x "$WORK"/a/*.deb "$STAGE"
-rc=0; "$REPO_ROOT/release/check-boundary.sh" "$STAGE" zenith >/dev/null 2>&1 || rc=$?
+rc=0; "$REPO_ROOT/release/check-boundary.sh" "$STAGE" asura >/dev/null 2>&1 || rc=$?
 check "the package installs only inside the boundary" $rc
 
 # A package that gains another package's file must be refused, or the check is
 # decorative.
 BAD="$WORK/bad"
-mkdir -p "$BAD/usr/share/zenith" "$BAD/etc/NetworkManager"
-touch "$BAD/usr/share/zenith/ok.conf" "$BAD/etc/NetworkManager/NetworkManager.conf"
-if "$REPO_ROOT/release/check-boundary.sh" "$BAD" zenith >/dev/null 2>&1; then
+mkdir -p "$BAD/usr/share/asura" "$BAD/etc/NetworkManager"
+touch "$BAD/usr/share/asura/ok.conf" "$BAD/etc/NetworkManager/NetworkManager.conf"
+if "$REPO_ROOT/release/check-boundary.sh" "$BAD" asura >/dev/null 2>&1; then
     check "a boundary violation is refused" 1
 else
     check "a boundary violation is refused" 0
@@ -82,7 +82,7 @@ echo "checking the vendored tree"
 #
 # The tree is the whole of shell/ except what is checkout-only: the vendored
 # sync tool and its notes, the shell test, the translation sources (installed
-# at /usr/share/zenith/i18n by W16.build) and the Hub's two model tests.
+# at /usr/share/asura/i18n by W16.build) and the Hub's two model tests.
 shell_files() {
     ( cd "$REPO_ROOT/shell" && find . -type f ! -path './vendor/*' ! -path './i18n/*' \
         ! -name shell_test.sh ! -regex './hub/[^/]*\.test\.mjs' | sort )
@@ -90,7 +90,7 @@ shell_files() {
 rc=0
 while read -r file; do
     [ -n "$file" ] || continue
-    if [ ! -f "$STAGE/usr/share/zenith/shell/$file" ]; then
+    if [ ! -f "$STAGE/usr/share/asura/shell/$file" ]; then
         echo "    missing from the package: $file" >&2
         rc=1
     fi
@@ -106,10 +106,10 @@ check "every file of the vendored tree is installed" $rc
 rc=0
 while read -r file; do
     [ -n "$file" ] || continue
-    if [ ! -f "$STAGE/usr/share/zenith/shell/$file" ]; then
+    if [ ! -f "$STAGE/usr/share/asura/shell/$file" ]; then
         continue
     fi
-    cmp -s "$REPO_ROOT/shell/$file" "$STAGE/usr/share/zenith/shell/$file" || {
+    cmp -s "$REPO_ROOT/shell/$file" "$STAGE/usr/share/asura/shell/$file" || {
         echo "    differs from the repository: $file" >&2
         rc=1
     }
@@ -124,7 +124,7 @@ check "every vendored file is byte-identical to the repository" $rc
 # found nothing.
 rc=0
 cmp -s "$REPO_ROOT/shell/vendor/manifest.yaml" \
-       "$STAGE/usr/share/zenith/shell/vendor/manifest.yaml" || rc=$?
+       "$STAGE/usr/share/asura/shell/vendor/manifest.yaml" || rc=$?
 check "the vendored tree's manifest is installed" $rc
 
 # The attribution. It is installed at the path the manifest names and in the
@@ -134,8 +134,8 @@ check "the vendored tree's manifest is installed" $rc
 # per-file credits inside the tree — the MIT and Apache-2.0 code that other
 # projects contributed to it — are facts the manifest does not carry.
 rc=0
-cmp -s "$STAGE/usr/share/zenith/shell/vendor/notices.md" \
-       "$STAGE/usr/share/doc/zenith/vendor-manifest.md" || rc=$?
+cmp -s "$STAGE/usr/share/asura/shell/vendor/notices.md" \
+       "$STAGE/usr/share/doc/asura/vendor-manifest.md" || rc=$?
 check "the attribution manifest is installed in both places" $rc
 
 # ------------------------------------------------------------------ licences
@@ -146,8 +146,8 @@ echo "checking the licences"
 # licensecheck look for them in the documentation directory.
 rc=0
 for text in GPL-3 Apache-2.0; do
-    if [ ! -s "$STAGE/usr/share/doc/zenith/$text" ]; then
-        echo "    missing: usr/share/doc/zenith/$text" >&2
+    if [ ! -s "$STAGE/usr/share/doc/asura/$text" ]; then
+        echo "    missing: usr/share/doc/asura/$text" >&2
         rc=1
     fi
 done
@@ -157,7 +157,7 @@ check "the licence texts are installed" $rc
 # the repository's own are the same document, and a package that ships two
 # different GPL-3 texts is shipping a licence nobody has read.
 rc=0
-cmp -s "$REPO_ROOT/LICENSE" "$STAGE/usr/share/doc/zenith/GPL-3" || rc=$?
+cmp -s "$REPO_ROOT/LICENSE" "$STAGE/usr/share/doc/asura/GPL-3" || rc=$?
 check "the GPL-3 text the package ships is the repository's own" $rc
 
 # The copyright file, and what it claims.
@@ -169,7 +169,7 @@ check "the GPL-3 text the package ships is the repository's own" $rc
 #
 # The licence each file is claimed under comes from the manifest: a file the
 # manifest lists belongs to the component that lists it, and a file it does
-# not list is Zenith's own — except the two licence texts, below. The short
+# not list is Asura's own — except the two licence texts, below. The short
 # names are the format's, and the mapping from the manifest's SPDX identifiers
 # to them is written out rather than derived, because the format's names are
 # the format's business — an identifier this table does not know is a failure,
@@ -192,7 +192,7 @@ manifest_claims() {
             printf "unknown licence identifier: %s\n", spdx > "/dev/stderr"
             exit 1
         }
-        printf "usr/share/zenith/shell/%s\t%s\n", path, name
+        printf "usr/share/asura/shell/%s\t%s\n", path, name
     }
     ' "$REPO_ROOT/shell/vendor/manifest.yaml"
 }
@@ -200,7 +200,7 @@ manifest_claims() {
 # What the copyright file says about each path it is asked about. One parse
 # of the file, then one answer per path, in the order the paths arrived.
 copyright_claims() {
-    awk -v copyright="$STAGE/usr/share/doc/zenith/copyright" '
+    awk -v copyright="$STAGE/usr/share/doc/asura/copyright" '
     function glob_to_regex(pattern,   out, i, c) {
         out = "^"
         for (i = 1; i <= length(pattern); i++) {
@@ -264,19 +264,19 @@ MANIFEST_PATHS="$WORK/manifest-paths"
 manifest_claims | cut -f1 | sort -u > "$MANIFEST_PATHS"
 
 # The two licence texts are the exception to "not in the manifest, therefore
-# Zenith's". The manifest lists what each vendored component is made of, and
+# Asura's". The manifest lists what each vendored component is made of, and
 # the component's licence text is shipped beside the tree rather than listed in
-# it: it is the same document as the one in /usr/share/doc/zenith, which is
-# where the format expects a licence to be read. It is also not Zenith's to
+# it: it is the same document as the one in /usr/share/doc/asura, which is
+# where the format expects a licence to be read. It is also not Asura's to
 # license — a copyright file that called the GPL-3 text itself
 # GPL-3.0-or-later would be making a claim about a document instead of about
 # the code it ships with.
 licence_of() {
     case "$1" in
-    usr/share/zenith/shell/vendor/COPYING)
+    usr/share/asura/shell/vendor/COPYING)
         printf '%s' "GPL-3"
         ;;
-    usr/share/zenith/shell/vendor/LICENSE.apache-2.0)
+    usr/share/asura/shell/vendor/LICENSE.apache-2.0)
         printf '%s' "Apache-2.0"
         ;;
     *)
@@ -288,7 +288,7 @@ licence_of() {
 EXPECTED="$WORK/expected-licences"
 {
     manifest_claims
-    ( cd "$STAGE" && find usr/share/zenith/shell -type f ) |
+    ( cd "$STAGE" && find usr/share/asura/shell -type f ) |
         grep -Fxv -f "$MANIFEST_PATHS" |
         while IFS= read -r file; do
             printf '%s\t%s\n' "$file" "$(licence_of "$file")"
@@ -312,13 +312,13 @@ rc=0
 cmp -s "$WORK/gen-copyright" "$REPO_ROOT/release/mkdeb/copyright" || rc=1
 check "the repository's copyright file is the generator's output" $rc
 
-# Every licence group, and no others. The package is under three: Zenith's
+# Every licence group, and no others. The package is under three: Asura's
 # own GPL-3.0-or-later, the vendored GPL-3.0-only component, and the vendored
 # Apache-2.0 component. A copyright file that names one licence for a package
 # under three tells a reader the package is under a licence it is not entirely
 # under.
 rc=0
-named=$(grep '^License: ' "$STAGE/usr/share/doc/zenith/copyright" |
+named=$(grep '^License: ' "$STAGE/usr/share/doc/asura/copyright" |
     sed 's/^License: //' | sort -u | tr '\n' ' ')
 if [ "$named" != "Apache-2.0 GPL-3 GPL-3+ " ]; then
     echo "    the copyright file names: $named" >&2
@@ -331,7 +331,7 @@ check "the copyright file names every licence group, and no others" $rc
 # that read it.
 rc=0
 grep -q '^Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/$' \
-    "$STAGE/usr/share/doc/zenith/copyright" || rc=$?
+    "$STAGE/usr/share/doc/asura/copyright" || rc=$?
 check "the copyright file declares the Debian copyright format" $rc
 
 # ------------------------------------------------------------- permissions
@@ -346,16 +346,16 @@ check "installed files carry 0644, 0755 or directories at 0755" $rc
 # non-executable one fails on every login rather than at build time.
 MODES=$(dpkg-deb -c "$WORK"/a/*.deb)
 
-rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*zenith-session$' || rc=$?
+rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*asura-session$' || rc=$?
 check "the session entry point is executable" $rc
 
-rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*/zenith$' || rc=$?
+rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q '^-rwxr-xr-x .*/asura$' || rc=$?
 check "the control tool is executable" $rc
 
 # The two that shipped broken. The generic mode check above passes on 0644, and
 # a file that is non-executable in the .deb is executable in the checkout, so
 # nothing else in this suite notices.
-for program in zenith-hub zenith-greeter; do
+for program in asura-hub asura-greeter; do
     rc=0; printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/$program\$" || rc=$?
     check "$program is executable" $rc
 done
@@ -445,7 +445,7 @@ check "every executable file in session/ ships executable" $rc
 
 # The same for programs: a main package under desktop/cmd with no build line is
 # a binary that builds in CI and is not on the machine. The packages are found by
-# what they are rather than by where they sit, so zenith-vm's two helpers, which
+# what they are rather than by where they sit, so asura-vm's two helpers, which
 # are one directory down, are covered along with the top-level programs.
 rc=0
 for dir in $(grep -rl '^package main' "$REPO_ROOT/desktop/cmd" --include='*.go' |
@@ -463,7 +463,7 @@ check "every program under desktop/cmd has a build line" $rc
 # points at, which is what the doctor compares.
 rc=0
 for unit in "$REPO_ROOT"/session/units/*; do
-    for dir in usr/lib/systemd/user usr/share/zenith/units; do
+    for dir in usr/lib/systemd/user usr/share/asura/units; do
         [ -f "$STAGE/$dir/$(basename "$unit")" ] || {
             echo "    missing: $dir/$(basename "$unit")" >&2
             rc=1
@@ -487,7 +487,7 @@ while read -r program; do
     case "$program" in
         \#*|"") continue ;;
     esac
-    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/usr/share/zenith/shell/$program\$" || {
+    printf '%s\n' "$MODES" 2>/dev/null | grep -q "^-rwxr-xr-x .*/usr/share/asura/shell/$program\$" || {
         echo "    not executable in the package: $program" >&2
         rc=1
     }
@@ -520,7 +520,7 @@ rc=0
 if dpkg-deb -f "$DEB_A" Depends Recommends Suggests | grep -qiw quickshell; then rc=1; fi
 check "no relation names quickshell, which the archive does not carry" $rc
 
-# What is on the Recommends line is installed by every `apt install zenith`, and
+# What is on the Recommends line is installed by every `apt install asura`, and
 # these are the ones that are not for every machine: a login manager (installing
 # one next to gdm3 asks which is the default), the VM engine and a second icon
 # theme. They are suggestions.
@@ -537,23 +537,23 @@ check "the login manager, the VM engine and a second icon theme are only suggest
 # daemon, wants it, and the daemon is not "started" until its socket exists.
 UNITS="$STAGE/usr/lib/systemd/user"
 rc=0
-grep -qE '^After=.*\bzenithd\.service\b' "$UNITS/zenith-shell.service" || rc=1
-grep -qE '^Wants=.*\bzenithd\.service\b' "$UNITS/zenith-shell.service" || rc=1
-grep -q '^ExecStartPost=.*zenith-shell\.sock' "$UNITS/zenithd.service" || rc=1
+grep -qE '^After=.*\basurad\.service\b' "$UNITS/asura-shell.service" || rc=1
+grep -qE '^Wants=.*\basurad\.service\b' "$UNITS/asura-shell.service" || rc=1
+grep -q '^ExecStartPost=.*asura-shell\.sock' "$UNITS/asurad.service" || rc=1
 check "the shell is ordered after the daemon, and the daemon is ready when its socket is" $rc
 
 # The default-on set is what the session target wants: the daemon, the
 # wallpaper engine, the idle clock and the usage timer. The agent is installed
 # and not started.
 rc=0
-for unit in zenith-portal zenith-shell zenithd zenith-wallpaper zenith-idle; do
-    grep -qE "^Wants=.*\\b$unit\\.service\\b" "$UNITS/zenith-session.target" || {
-        echo "    zenith-session.target does not want $unit.service" >&2
+for unit in asura-portal asura-shell asurad asura-wallpaper asura-idle; do
+    grep -qE "^Wants=.*\\b$unit\\.service\\b" "$UNITS/asura-session.target" || {
+        echo "    asura-session.target does not want $unit.service" >&2
         rc=1
     }
 done
-grep -qE '^Wants=.*\bzenith-ai-usage\.timer\b' "$UNITS/zenith-session.target" || rc=1
-if grep -qE '^(Wants|Requires|Requisite|BindsTo)=.*zenith-agent' "$UNITS/zenith-session.target" "$UNITS/zenith-shell.service"; then
+grep -qE '^Wants=.*\basura-ai-usage\.timer\b' "$UNITS/asura-session.target" || rc=1
+if grep -qE '^(Wants|Requires|Requisite|BindsTo)=.*asura-agent' "$UNITS/asura-session.target" "$UNITS/asura-shell.service"; then
     echo "    the agent is wanted by the session; it is installed, not started" >&2
     rc=1
 fi
@@ -571,19 +571,19 @@ check "no WirePlumber tuning is shipped" $rc
 
 # The compositor's configuration, as installed, parsed by Hyprland itself. The
 # home and the runtime directory are empty ones, so the optional files under
-# ~/.config/zenith/hyprland do not exist and the user's own cannot be what is
+# ~/.config/asura/hyprland do not exist and the user's own cannot be what is
 # being judged. `source` globbing errors for those optional files are expected.
 if command -v Hyprland >/dev/null 2>&1; then
     mkdir -p "$WORK/hypr-home/run"
     chmod 700 "$WORK/hypr-home/run"
     rc=0
     out=$(HOME="$WORK/hypr-home" XDG_RUNTIME_DIR="$WORK/hypr-home/run" \
-        Hyprland --verify-config -c "$STAGE/usr/share/zenith/hyprland/hyprland.conf" 2>&1 || true)
+        Hyprland --verify-config -c "$STAGE/usr/share/asura/hyprland/hyprland.conf" 2>&1 || true)
     if echo "$out" | grep -q 'config ok'; then
         rc=0
     else
         # Hyprland >= 0.50 deprecated windowrulev2 and changed layerrule fields,
-        # while Zenith OS ships native Hyprland 0.49 from Makrennel repo.
+        # while Asura OS ships native Hyprland 0.49 from Makrennel repo.
         # Ensure that on newer host test environments, only expected 0.50+ deprecations occur.
         errors=$(echo "$out" | grep -E '^Config error' | grep -v 'windowrulev2 is deprecated' | grep -v 'invalid field' || true)
         if [ -z "$errors" ]; then
@@ -601,7 +601,7 @@ fi
 # The shell tree as installed, loaded by Quickshell in a sandbox with no display
 # and no bus (tests/contract/load.sh). It is the check for the empty bar: a tree
 # that imports qs.Services and does not ship Services/ fails here in a second.
-rc=0; sh "$REPO_ROOT/tests/contract/load.sh" "$STAGE/usr/share/zenith/shell" >"$WORK/load.out" 2>&1 || rc=$?
+rc=0; sh "$REPO_ROOT/tests/contract/load.sh" "$STAGE/usr/share/asura/shell" >"$WORK/load.out" 2>&1 || rc=$?
 [ "$rc" -eq 0 ] || cat "$WORK/load.out" >&2
 check "the installed shell tree resolves every module it imports" $rc
 
@@ -609,25 +609,25 @@ check "the installed shell tree resolves every module it imports" $rc
 echo "building the repository"
 # One secret keyring, reused for both builds, exactly as a release process
 # would. It sits beside the served tree rather than inside it.
-SECRET="$WORK/.zenith-archive-secret.gpg"
+SECRET="$WORK/.asura-archive-secret.gpg"
 rc=0
-ZENITH_SECRET_KEYRING="$SECRET" \
+ASURA_SECRET_KEYRING="$SECRET" \
     "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo" >/dev/null 2>&1 || rc=$?
 check "the repository builds" $rc
 
 rc=0; [ -f "$WORK/repo/dists/stable/InRelease" ] || rc=$?
 check "the repository publishes an InRelease" $rc
 
-rc=0; gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
+rc=0; gpgv --keyring "$WORK/repo/asura-archive-keyring.gpg" \
      "$WORK/repo/dists/stable/Release.gpg" \
      "$WORK/repo/dists/stable/Release" >/dev/null 2>&1 || rc=$?
 check "the shipped keyring validates the detached signature" $rc
 
-rc=0; gpgv --keyring "$WORK/repo/zenith-archive-keyring.gpg" \
+rc=0; gpgv --keyring "$WORK/repo/asura-archive-keyring.gpg" \
      "$WORK/repo/dists/stable/InRelease" >/dev/null 2>&1 || rc=$?
 check "the shipped keyring validates InRelease" $rc
 
-rc=0; grep -q '^Signed-By:' "$WORK/repo/zenith.sources" || rc=$?
+rc=0; grep -q '^Signed-By:' "$WORK/repo/asura.sources" || rc=$?
 check "the sources line names a keyring rather than a keyserver" $rc
 
 # A Release file whose checksums do not match its indexes is exactly the failure
@@ -704,27 +704,27 @@ keyid_of() {
     gpg --batch --with-colons --import-options show-only --import "$1" 2>/dev/null \
         | awk -F: '/^fpr:/ {print $10; exit}'
 }
-FIRST_KEY=$(keyid_of "$WORK/repo/zenith-archive-keyring.gpg")
+FIRST_KEY=$(keyid_of "$WORK/repo/asura-archive-keyring.gpg")
 
 # The second build must not merely succeed; it must succeed with the same key.
 # A rebuild that quietly makes a new one still produces a valid InRelease that
 # verifies against its own new keyring, and every machine that trusted the old
 # key now rejects the repository. Only the key comparison catches that.
-rc=0; ZENITH_SECRET_KEYRING="$SECRET" \
+rc=0; ASURA_SECRET_KEYRING="$SECRET" \
     "$REPO_ROOT/release/mkrepo.sh" "$WORK/a" "$WORK/repo-again" >/dev/null 2>&1 || rc=$?
 check "a second build signs" $rc
 
 rc=0; [ -s "$WORK/repo-again/dists/stable/InRelease" ] || rc=$?
 check "a second build publishes an InRelease" $rc
 
-rc=0; [ "$FIRST_KEY" = "$(keyid_of "$WORK/repo-again/zenith-archive-keyring.gpg")" ] || rc=$?
+rc=0; [ "$FIRST_KEY" = "$(keyid_of "$WORK/repo-again/asura-archive-keyring.gpg")" ] || rc=$?
 check "a rebuild publishes the same key, not a new one" $rc
 
-rc=0; gpgv --keyring "$WORK/repo-again/zenith-archive-keyring.gpg" \
+rc=0; gpgv --keyring "$WORK/repo-again/asura-archive-keyring.gpg" \
     "$WORK/repo-again/dists/stable/InRelease" >/dev/null 2>&1 || rc=$?
 check "a rebuilt repository verifies against its own keyring" $rc
 
-rc=0; [ ! -e "$WORK/repo/.zenith-archive-secret.gpg" ] || rc=$?
+rc=0; [ ! -e "$WORK/repo/.asura-archive-secret.gpg" ] || rc=$?
 check "the secret key is not inside the served tree" $rc
 
 echo

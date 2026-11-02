@@ -1,5 +1,5 @@
 #!/bin/sh
-# zenith-pkg-add against stand-in apt tools: the refusals happen before any
+# asura-pkg-add against stand-in apt tools: the refusals happen before any
 # prompt, an allowed change reaches pkexec, and "cancel" on stdin stops a
 # download. The root half needs fakeroot (id -u must read 0) and says so when it
 # is missing.
@@ -44,18 +44,18 @@ export LOG=$log PATH="$bin:$here:$PATH"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 code() { rc=0; "$@" >/dev/null 2>&1 </dev/null || rc=$?; echo $rc; }
 
-[ "$(code zenith-pkg-add -x)" = 2 ] || fail "a name that looks like an option was accepted"
-[ "$(code zenith-pkg-add snapstub)" = 12 ] || fail "a snap launcher was installable"
-[ "$(code zenith-pkg-add conflicting)" = 13 ] || fail "an install that removes other packages went ahead"
+[ "$(code asura-pkg-add -x)" = 2 ] || fail "a name that looks like an option was accepted"
+[ "$(code asura-pkg-add snapstub)" = 12 ] || fail "a snap launcher was installable"
+[ "$(code asura-pkg-add conflicting)" = 13 ] || fail "an install that removes other packages went ahead"
 ! grep -q '^pkexec' "$log" || fail "a refused change still asked for a password"
 
 command -v fakeroot >/dev/null || { echo "skip the root half: fakeroot is not installed"; echo ok; exit 0; }
 
-zenith-pkg-add plain >/dev/null 2>&1 || fail "a plain install failed"
-grep -q '^pkexec .*zenith-pkg-add plain' "$log" || fail "the change did not go through pkexec"
+asura-pkg-add plain >/dev/null 2>&1 || fail "a plain install failed"
+grep -q '^pkexec .*asura-pkg-add plain' "$log" || fail "the change did not go through pkexec"
 grep -q '^apt-get -y .* install -- plain' "$log" || fail "apt-get was not given the package"
 
 start=$(date +%s)
-(printf 'cancel\n'; sleep 1) | zenith-pkg-add --status plain >/dev/null 2>&1 || true
+(printf 'cancel\n'; sleep 1) | asura-pkg-add --status plain >/dev/null 2>&1 || true
 [ $(($(date +%s) - start)) -lt 3 ] || fail "cancel did not stop the download"
 echo ok

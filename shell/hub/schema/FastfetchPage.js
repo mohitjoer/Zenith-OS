@@ -12,7 +12,7 @@ var rows = [
         "label": "Emblem kind",
         "desc": "Art beside the readout: image, ASCII, logo or none",
         "ctl": "seg",
-        "src": "config.jsonc), written by `zenith-hubd fastfetch save <json>`",
+        "src": "config.jsonc), written by `asura-hubd fastfetch save <json>`",
         "opts": [
             "image",
             "ascii",

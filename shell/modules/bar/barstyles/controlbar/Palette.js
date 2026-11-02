@@ -5,7 +5,7 @@
 // of the system rather than diverging. The theme daemon is the sole author of
 // colour: a fixed named theme publishes its palette into shell.json's
 // themePalette, and follow-the-wallpaper mode writes the live palette to
-// ~/.cache/zenith/colors.json. Both carry the sixteen terminal colours
+// ~/.cache/asura/colors.json. Both carry the sixteen terminal colours
 // (color0..color15) and the Material roles; the semantic slots take the Material
 // roles verbatim (primary is the accent the whole desktop uses, surface /
 // onSurface / onSurfaceVariant are its surface ramp), and the base16 keys are
@@ -97,7 +97,7 @@ function setColor(theme, key, value) {
 
 // Write a parsed palette onto a Theme.qml instance. Missing slots are left at
 // their current value so a partial or malformed palette never blanks the live
-// theme. Zenith colors.json values are #RRGGBB; #RRGGBBAA is accepted too.
+// theme. Asura colors.json values are #RRGGBB; #RRGGBBAA is accepted too.
 function apply(theme, palette) {
     if (!palette) return;
     setColor(theme, "paper",      palette.paper);

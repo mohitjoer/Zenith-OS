@@ -16,7 +16,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-volume"
+    WlrLayershell.namespace: "asura-volume"
 
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6
@@ -678,5 +678,5 @@ PanelWindow {
         }
     }
 
-    Process { id: audioRunner; command: ["bash", "-c", "command -v pavucontrol >/dev/null 2>&1 && exec pavucontrol || notify-send -a Zenith 'Audio settings' 'pavucontrol is not installed'"] }
+    Process { id: audioRunner; command: ["bash", "-c", "command -v pavucontrol >/dev/null 2>&1 && exec pavucontrol || notify-send -a Asura 'Audio settings' 'pavucontrol is not installed'"] }
 }

@@ -8,12 +8,12 @@ import qs.Ui.Singletons
 // adds the reduced-motion gate every sibling surface carries (launcher,
 // overview). reduceMotion / lowPowerMode collapse every duration to an instant
 // cut so a weak GPU stops repainting through transitions. Read from
-// performance.json, the same file Zenith Settings and the shell singletons use.
+// performance.json, the same file Asura Settings and the shell singletons use.
 Singleton {
     readonly property bool reduce: perf.lowPowerMode || perf.reduceMotion
 
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/performance.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/performance.json"
         watchChanges: true
         printErrors: false
         onFileChanged: reload()

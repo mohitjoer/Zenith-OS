@@ -4,7 +4,7 @@ pragma ComponentBehavior: Bound
 //
 // Widgets come from bar-widgets as a list of names, and each name is looked up
 // in the catalogue below. A name that is not in the catalogue is skipped, and
-// `zenith doctor` reports it — which is the point: a typo in a settings key
+// `asura doctor` reports it — which is the point: a typo in a settings key
 // should leave a visible gap and a diagnostic, not a bar that is quietly one
 // widget shorter.
 //
@@ -362,7 +362,7 @@ PanelWindow {
         "network": "Network"
     })
 
-    // The names the shell knows about. `zenith doctor` compares this against the
+    // The names the shell knows about. `asura doctor` compares this against the
     // schema's default so that a key naming a widget that no longer exists is
     // reported before the user sees a gap.
     function knownWidgets() {

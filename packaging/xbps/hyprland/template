@@ -10,7 +10,7 @@ makedepends="wayland-protocols wayland-devel cairo-devel pango-devel
  hyprlang-devel hyprutils-devel hyprcursor-devel aquamarine-devel
  tomlplusplus"
 short_desc="Dynamic tiling Wayland compositor that doesn't sacrifice on its looks"
-maintainer="Zenith OS Project <dev@zenithos.dev>"
+maintainer="Asura OS Project <dev@asuraos.dev>"
 license="BSD-3-Clause"
 homepage="https://hyprland.org"
 distfiles="https://github.com/hyprwm/Hyprland/releases/download/v${version}/source-v${version}.tar.gz"

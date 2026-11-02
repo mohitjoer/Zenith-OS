@@ -4,10 +4,10 @@ import QtQuick.Controls
 import qs.Ui
 import qs.Ui.Singletons
 
-// The harbour rail: zenith-vm's one always-present chrome. A framed masthead seal,
+// The harbour rail: asura-vm's one always-present chrome. A framed masthead seal,
 // the fleet nav (Latin name and kanji seal side by side, the live berth taking
 // the sheet's // lead on a bone plate), and a scannable foot plate. The same
-// title-block grammar the Hub rail carries, flying zenith-vm's colours.
+// title-block grammar the Hub rail carries, flying asura-vm's colours.
 Item {
     id: rail
 
@@ -48,7 +48,7 @@ Item {
                     spacing: 1
                     anchors.verticalCenter: parent.verticalCenter
                     Text {
-                        text: I18n.tr("ZENITH VM"); color: Tokens.ink; font.family: Tokens.ui
+                        text: I18n.tr("ASURA VM"); color: Tokens.ink; font.family: Tokens.ui
                         font.pixelSize: 14; font.weight: Font.Medium; font.letterSpacing: 2.4
                     }
                     Text {
@@ -190,7 +190,7 @@ Item {
         Barcode {
             id: plate
             anchors { left: parent.left; bottom: parent.bottom }
-            text: I18n.tr("ZENITH VM")
+            text: I18n.tr("ASURA VM")
             unit: 1.1
             barHeight: 14
         }

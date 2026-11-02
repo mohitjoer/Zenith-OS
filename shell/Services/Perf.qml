@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 // Perf is the shell's one performance-policy singleton and the single reader of
-// ~/.config/zenith/performance.json (the file Zenith Settings' Performance page
+// ~/.config/asura/performance.json (the file Asura Settings' Performance page
 // writes). It folds four inputs into the effective switches every surface obeys:
 //
 //   1. the explicit user toggles in performance.json (lowPowerMode is the master),
@@ -148,7 +148,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/performance.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/performance.json"
         watchChanges: true
         atomicWrites: true
         printErrors: false

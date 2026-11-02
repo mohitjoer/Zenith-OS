@@ -1,24 +1,24 @@
 # The Hub backend
 
-`zenith-hubd` is the data plane of Zenith Settings. The Hub's QML never edits a file: it runs
-`zenith-hubd <verb>`, which prints JSON or changes one store, and that is the only writer of
+`asura-hubd` is the data plane of ASURA Settings. The Hub's QML never edits a file: it runs
+`asura-hubd <verb>`, which prints JSON or changes one store, and that is the only writer of
 what it edits. It is ported from Ryoku's `ryoku-hub` with the same verbs and the same shapes;
-`desktop/cmd/zenith-hubd/CONTRACT.md` lists every place that differs and every verb that is
+`desktop/cmd/asura-hubd/CONTRACT.md` lists every place that differs and every verb that is
 dropped, and is what the Hub pages are written against.
 
 | Piece | Where | Job |
 |---|---|---|
-| the verbs | `desktop/cmd/zenith-hubd/*.go` | one file per area: `desktop`, `outputs`, `keybinds`, `rice`, `import`, `lighting`, `gpu`, `cpu`, `fastfetch`, `profile`, ... |
-| the compositor seam | `desktop/cmd/zenith-hubd/internal/wm` | what the compositor can do, the neutral store, and the hyprlang it is rendered into |
-| the stores | `~/.config/zenith/` | `desktop.json` (window and input settings), `hub.toml` (Hub state), `outputs-applied.json`, `anim-preset` |
-| the output | `~/.config/zenith/hyprland/` | `settings.conf` and `rebinds.conf`, generated; `user.conf`, the user's, wins |
+| the verbs | `desktop/cmd/asura-hubd/*.go` | one file per area: `desktop`, `outputs`, `keybinds`, `rice`, `import`, `lighting`, `gpu`, `cpu`, `fastfetch`, `profile`, ... |
+| the compositor seam | `desktop/cmd/asura-hubd/internal/wm` | what the compositor can do, the neutral store, and the hyprlang it is rendered into |
+| the stores | `~/.config/asura/` | `desktop.json` (window and input settings), `hub.toml` (Hub state), `outputs-applied.json`, `anim-preset` |
+| the output | `~/.config/asura/hyprland/` | `settings.conf` and `rebinds.conf`, generated; `user.conf`, the user's, wins |
 
 ## From a setting to the compositor
 
-Ryoku ran a provider binary per compositor and rendered Lua. Zenith runs Hyprland 0.53 only, so
+Ryoku ran a provider binary per compositor and rendered Lua. ASURA runs Hyprland 0.53 only, so
 the provider is the `wm` package, called in process, and it renders hyprlang. A save writes
 `desktop.json`, renders it to `settings.conf` and `rebinds.conf`, mirrors both into
-`user_edits/hyprland/` so `zenith materialize` cannot replace them with the packaged seeds, and
+`user_edits/hyprland/` so `asura materialize` cannot replace them with the packaged seeds, and
 reloads. A slider drag renders the same options as `hyprctl keyword` calls and writes nothing.
 
 Only what differs from the defaults is written. The defaults table (`store.go`) mirrors the
@@ -47,4 +47,4 @@ whatever environment it is started in.
 
 A verb with no backend on Ubuntu (dictation, GPU passthrough, the MUX switch, QMK lighting)
 answers `{"available":false,"reason":"..."}` instead of erroring, so a page can say what is
-missing. Calls out to `zenith-power` and `zenith-gpu` are detected the same way.
+missing. Calls out to `asura-power` and `asura-gpu` are detected the same way.

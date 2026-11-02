@@ -19,7 +19,7 @@ Flow {
 
     Process {
         running: true
-        command: ["zenith-hubd", "wm", "list"]
+        command: ["asura-hubd", "wm", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {

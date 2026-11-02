@@ -21,7 +21,7 @@ const (
 	ActionInstall ActionKind = "install"
 	// ActionRemove runs apt-get remove. Needs root.
 	ActionRemove ActionKind = "remove"
-	// ActionRegister copies content from /usr/share/zenith/ to a registration
+	// ActionRegister copies content from /usr/share/asura/ to a registration
 	// path. Needs root, and is the only kind that writes outside the user's own
 	// tree.
 	ActionRegister ActionKind = "register"
@@ -32,7 +32,7 @@ const (
 	// ActionPortal writes the user's portal preference. The only kind that has
 	// to exist per-user rather than per-machine.
 	ActionPortal ActionKind = "write-portals"
-	// ActionImport carries a value from a GNOME key to a Zenith one.
+	// ActionImport carries a value from a GNOME key to a Asura one.
 	ActionImport ActionKind = "import-setting"
 	// ActionAlternative repoints an update-alternatives group, which is the
 	// only way to change what x-terminal-emulator means without editing the
@@ -123,7 +123,7 @@ func (p Plan) NeedsRoot() bool { return p.RootActions > 0 }
 // String renders the plan for a dry run.
 func (p Plan) String() string {
 	var out strings.Builder
-	fmt.Fprintf(&out, "zenith adopt would take %d step(s):\n\n", len(p.Actions))
+	fmt.Fprintf(&out, "asura adopt would take %d step(s):\n\n", len(p.Actions))
 	for i, action := range p.Actions {
 		fmt.Fprintf(&out, "  %2d. %s\n", i+1, action)
 	}
@@ -141,28 +141,28 @@ func (p Plan) String() string {
 //
 // The whole design in one table: every path here is a fixed directory that a
 // third-party binary scans and nowhere else, and every target is content under
-// /usr/share/zenith/. Adoption writes pointers; it never writes content outside
+// /usr/share/asura/. Adoption writes pointers; it never writes content outside
 // its own tree, and never edits a shipped file in place.
 var registrationSources = []Registration{
-	{Path: "/usr/share/wayland-sessions/zenith.desktop",
-		MaterializedFrom: "/usr/share/zenith/session/zenith.desktop"},
-	{Path: "/usr/lib/systemd/user/zenith-shell.service",
-		MaterializedFrom: "/usr/share/zenith/units/zenith-shell.service"},
-	{Path: "/usr/lib/systemd/user/zenith-portal.service",
-		MaterializedFrom: "/usr/share/zenith/units/zenith-portal.service"},
-	{Path: "/usr/lib/systemd/user/zenith-session.target",
-		MaterializedFrom: "/usr/share/zenith/units/zenith-session.target"},
+	{Path: "/usr/share/wayland-sessions/asura.desktop",
+		MaterializedFrom: "/usr/share/asura/session/asura.desktop"},
+	{Path: "/usr/lib/systemd/user/asura-shell.service",
+		MaterializedFrom: "/usr/share/asura/units/asura-shell.service"},
+	{Path: "/usr/lib/systemd/user/asura-portal.service",
+		MaterializedFrom: "/usr/share/asura/units/asura-portal.service"},
+	{Path: "/usr/lib/systemd/user/asura-session.target",
+		MaterializedFrom: "/usr/share/asura/units/asura-session.target"},
 }
 
 // sessionPackages is what adoption installs.
 //
-// The session stack, and nothing else. Quickshell is Zenith-built and arrives
+// The session stack, and nothing else. Quickshell is Asura-built and arrives
 // with the package; the rest come from the base layer's repository, because rule
 // 2 in the manifest header is that anything the archive carries is not
 // repackaged — and a session that installs its own compositor would be a
 // session nobody tested against the base layer.
 var sessionPackages = []string{
-	"zenith",
+	"asura",
 	"hyprland",
 	"xdg-desktop-portal",
 	"xdg-desktop-portal-hyprland",
@@ -170,20 +170,20 @@ var sessionPackages = []string{
 	"xdg-desktop-portal-lxqt",
 }
 
-// settingImports carries values across from GNOME to Zenith.
+// settingImports carries values across from GNOME to Asura.
 //
 // The `to` half is a key this project owns and the Hub has a page for. An
 // import whose destination has no page would write a setting the user cannot
 // see or change, which is worse than not importing it.
 var settingImports = []Import{
 	{From: "org.gnome.desktop.interface color-scheme",
-		To: "org.zenith.desktop color-scheme"},
+		To: "org.asura.desktop color-scheme"},
 	{From: "org.gnome.desktop.background picture-uri",
-		To: "org.zenith.shell wallpaper-path"},
+		To: "org.asura.shell wallpaper-path"},
 	{From: "org.gnome.shell favorite-apps",
-		To: "org.zenith.shell favorites"},
+		To: "org.asura.shell favorites"},
 	{From: "org.gnome.desktop.wm.preferences button-layout",
-		To: "org.zenith.shell dock-position"},
+		To: "org.asura.shell dock-position"},
 }
 
 // PlanEnv is what the plan is built from.
@@ -257,7 +257,7 @@ func BuildPlan(env PlanEnv) Plan {
 				Kind:   ActionRegister,
 				Target: registration.Path,
 				Detail: registration.MaterializedFrom,
-				Why:    "a pointer from a fixed directory; the content stays under /usr/share/zenith/",
+				Why:    "a pointer from a fixed directory; the content stays under /usr/share/asura/",
 			})
 			plan.Registrations = append(plan.Registrations, registration)
 			continue
@@ -269,7 +269,7 @@ func BuildPlan(env PlanEnv) Plan {
 			Kind:   ActionRegister,
 			Target: registration.Path,
 			Detail: registration.MaterializedFrom,
-			Why:    "a pointer from a fixed directory; the content stays under /usr/share/zenith/",
+			Why:    "a pointer from a fixed directory; the content stays under /usr/share/asura/",
 		})
 		plan.Registrations = append(plan.Registrations, registration)
 	}
@@ -281,7 +281,7 @@ func BuildPlan(env PlanEnv) Plan {
 		Kind:   ActionSchemaCompile,
 		Target: "/usr/share/glib-2.0/schemas",
 		Why: "GSettings reads gschemas.compiled, not the XML beside it; " +
-			"without this every Zenith setting falls back to its default",
+			"without this every Asura setting falls back to its default",
 	})
 
 	// 5. Point x-terminal-emulator at the shipped terminal. The archive is a
@@ -313,7 +313,7 @@ func BuildPlan(env PlanEnv) Plan {
 			value, exists := env.GSettings(schema, key)
 			if !exists {
 				// A GNOME key that is not set is not an import. Writing the
-				// Zenith default over it would be indistinguishable from
+				// Asura default over it would be indistinguishable from
 				// having imported nothing, and would show up in the state file
 				// as a change that did not change anything.
 				continue

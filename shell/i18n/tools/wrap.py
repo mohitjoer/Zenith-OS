@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AST-based i18n wrapper for Zenith QML (tree-sitter-qmljs).
+"""AST-based i18n wrapper for Asura QML (tree-sitter-qmljs).
 
 Wraps user-facing string literals in I18n.tr(...) so a page translates. Works on
 the QML AST, not regex:
@@ -81,7 +81,7 @@ def is_brand(s):
 # name, a key's engraving, and a unit or column head whose "translation" would
 # be wrong in every locale. Kept in step with sync.py's VERBATIM, which stops
 # the same strings reaching the catalog from Go and shell.
-VERBATIM = {"ZENITH", "Zenith", "zenith", "Super", "SUPER", "Shift", "Ctrl", "Alt",
+VERBATIM = {"ASURA", "Asura", "asura", "Super", "SUPER", "Shift", "Ctrl", "Alt",
             "Meta", "Hyper", "Enter", "Esc", "Tab", "Fn", "AM", "PM",
             "GB", "MB", "KB", "TB", "KiB", "MiB", "GiB", "Hz", "kHz", "MHz",
             "GHz", "ms", "px", "dpi", "fps", "W", "mW", "V", "mV",
@@ -232,7 +232,7 @@ def collect(src, text):
 
 
 def has_import(text):
-    return "Zenith.Ui.Singletons" in text
+    return "Asura.Ui.Singletons" in text
 
 
 def add_import(text):

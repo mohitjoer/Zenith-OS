@@ -2,8 +2,8 @@
 //
 // Ported from Ryoku's wall-ui (itself the skwd-wall picker, see wallpaper-ui/LICENSE).
 // The entry file sits at the shell root so that `qs.*` imports resolve; the picker's
-// own tree is wallpaper-ui/. session/zenith-wallpaper-ui starts it with
-// `quickshell -p`, and the zenith-wallpaper daemon keeps one instance resident and
+// own tree is wallpaper-ui/. session/asura-wallpaper-ui starts it with
+// `quickshell -p`, and the asura-wallpaper daemon keeps one instance resident and
 // flips it over the event socket.
 import Quickshell
 import Quickshell.Wayland
@@ -89,8 +89,8 @@ ShellRoot {
     // MB) is built on show and torn down once the hide animation is over. A
     // rebuild costs about a quarter of a second; holding it costs that memory
     // all day. A crashed instance relaunched by the verb starts visible
-    // (ZENITH_WALLPAPER_START_VISIBLE).
-    property bool _startVisible: Quickshell.env("ZENITH_WALLPAPER_START_VISIBLE") === "1"
+    // (ASURA_WALLPAPER_START_VISIBLE).
+    property bool _startVisible: Quickshell.env("ASURA_WALLPAPER_START_VISIBLE") === "1"
     property bool _pendingShow: false
 
     function _load() {

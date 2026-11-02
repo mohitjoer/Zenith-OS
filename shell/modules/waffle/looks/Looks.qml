@@ -8,7 +8,7 @@ import qs.modules.common
 // Looks.transition.scroll, and its `import qs.modules.waffle.looks` has to
 // resolve or Quickshell's import scanner reports it on every start.
 //
-// Zenith does not ship that look, so this is an overlay at the import path the
+// Asura does not ship that look, so this is an overlay at the import path the
 // vendored file expects: the same motion every other vendored widget uses, taken
 // from Appearance rather than upstream's separate waffle curves.
 Singleton {

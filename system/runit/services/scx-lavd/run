@@ -10,7 +10,7 @@ if [ ! -x /usr/bin/scx_lavd ]; then
 fi
 
 # sched_ext requires kernel support (CONFIG_SCHED_CLASS_EXT=y)
-# Available on Zenith CachyOS/BORE custom kernel; absent on generic stock kernels
+# Available on Asura CachyOS/BORE custom kernel; absent on generic stock kernels
 if [ ! -d /sys/kernel/sched_ext ]; then
 	echo "scx-lavd: kernel lacks sched_ext support (/sys/kernel/sched_ext not found; requires CONFIG_SCHED_CLASS_EXT=y), pausing service"
 	pause

@@ -5,9 +5,9 @@ import qs.Ui.Singletons
 import "Singletons"
 
 // The desktop brand seal, 天 by default. Users swap it globally (their own
-// glyph/text, or an image) from Zenith Settings -> Shell -> Global; stored in
-// ~/.config/zenith/brand.json. Zenith's own apps (the Hub) never use this and
-// keep the 天 brand. Ink, not an accent: Zenith is strictly monochrome.
+// glyph/text, or an image) from Asura Settings -> Shell -> Global; stored in
+// ~/.config/asura/brand.json. Asura's own apps (the Hub) never use this and
+// keep the 天 brand. Ink, not an accent: Asura is strictly monochrome.
 Item {
     id: mark
 

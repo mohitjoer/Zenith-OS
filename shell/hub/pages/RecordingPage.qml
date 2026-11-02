@@ -8,7 +8,7 @@ import qs.Ui
 import qs.Ui.Singletons
 
 // Recording (DESIGN.md section 11, SYSTEM). The quality knobs behind the bar's
-// one-tap screen recorder, read by zenith-cmd-screenrecord (env vars still
+// one-tap screen recorder, read by asura-cmd-screenrecord (env vars still
 // override at record time). Constant framerate is the default because
 // variable-framerate files often import or play back as ~30fps and look choppy.
 //
@@ -23,7 +23,7 @@ import qs.Ui.Singletons
 // the adapter property is `int` and the Step control emits an int, so the file
 // stays numeric ("fps": 60, not "60") for the consumer's `cfg_get '.fps' 60`.
 // These six defaults are mirrored in the shell consumer's cfg_get/cfg_bool
-// fallbacks (zenith-cmd-screenrecord) and must not drift.
+// fallbacks (asura-cmd-screenrecord) and must not drift.
 Item {
     id: pg
 
@@ -65,7 +65,7 @@ Item {
     property bool keyActive: false
     property string keyBackendStatus: "disabled"
     property string keyBackendError: ""
-    readonly property string shellSockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string shellSockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
     property real keyPreviewRevision: 0
     property int keyCallSerial: 0
     property int pendingKeySaveId: 0
@@ -222,7 +222,7 @@ Item {
     // it is absent, so the recorder always has a file to read.
     FileView {
         id: cfg
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/recording.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/recording.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -249,7 +249,7 @@ Item {
 
     FileView {
         id: keyCfg
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/keypresses.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/keypresses.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -260,7 +260,7 @@ Item {
 
     FileView {
         id: performanceCfg
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/performance.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/performance.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -377,14 +377,14 @@ Item {
 
     // Whether apps can actually be offered a source to pick. Screen sharing can
     // be entirely dead with nothing on screen to show for it, so ask the portal
-    // and say so; the repair lives in zenith doctor.
+    // and say so; the repair lives in asura doctor.
     property bool shareKnown: false
     property bool shareReady: false
     property string shareDetail: ""
     property bool repairing: false
     Process {
         id: shareInfo
-        command: ["zenith-hubd", "share", "status"]
+        command: ["asura-hubd", "share", "status"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -401,14 +401,14 @@ Item {
     }
     Process {
         id: shareRepair
-        command: ["zenith", "doctor"]
+        command: ["asura", "doctor"]
         stdout: StdioCollector { onStreamFinished: shareInfo.running = true }
         stderr: StdioCollector { onStreamFinished: shareInfo.running = true }
         onExited: pg.repairing = false
     }
     Process {
         id: info
-        command: ["zenith-cmd-screenrecord", "--info"]
+        command: ["asura-cmd-screenrecord", "--info"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -459,7 +459,7 @@ Item {
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: I18n.tr("How Zenith records: quality, encoder, and where files land.")
+            text: I18n.tr("How Asura records: quality, encoder, and where files land.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }

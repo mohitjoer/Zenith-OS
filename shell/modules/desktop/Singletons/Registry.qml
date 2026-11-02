@@ -9,7 +9,7 @@ import Quickshell.Io
 // and Store revision state, so Settings edits and product install/update/remove
 // transactions retune the running shell without a restart.
 //
-// discover.sh path = ZENITH_SHELL_DIR in dev, else the installed quickshell
+// discover.sh path = ASURA_SHELL_DIR in dev, else the installed quickshell
 // tree.
 Singleton {
     id: root
@@ -20,7 +20,7 @@ Singleton {
     readonly property string _script: Quickshell.shellPath("plugins/discover.sh")
     readonly property string _stateHome: Quickshell.env("XDG_STATE_HOME")
         || ((Quickshell.env("HOME") + "/.local/state"))
-    readonly property string _revision: root._stateHome + "/zenith/store/revision.json"
+    readonly property string _revision: root._stateHome + "/asura/store/revision.json"
 
     // one sweep per burst. a dragged tile writes placement on release, a resize
     // writes it again as the wheel settles, and a Store transaction writes its
@@ -69,7 +69,7 @@ Singleton {
     // change re-discovers, so the shell retunes live like the rest of the
     // desktop.
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/plugins.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/plugins.json"
         watchChanges: true
         printErrors: false
         onFileChanged: root.reload()

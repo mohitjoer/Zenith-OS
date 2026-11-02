@@ -17,7 +17,7 @@ var rows = [
         "ctl": "pick",
         "src": "shell",
         // the list is not written here: `set` points the picker at the one
-        // language table (zenith/i18n/langs.json, via I18n), so adding a
+        // language table (asura/i18n/langs.json, via I18n), so adding a
         // language never means editing this file.
         "set": "languages"
     }, {

@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 
 // Where the shipped decor art set lives on a user box: ~/Pictures/ryodecors,
-// seeded by the installer and kept current by `zenith doctor`, so it sits beside
+// seeded by the installer and kept current by `asura doctor`, so it sits beside
 // Wallpapers and livewalls where a user can see and swap it. Decor and Placard
 // resolve their baked art through `dir`; a custom pick keeps its own absolute
 // path, so it never routes through here.

@@ -13,7 +13,7 @@
 #     recommends is a dependency; a recommendation and a suggestion is a
 #     recommendation. Nothing is listed twice.
 #   - Recommends is where the desktop's features come from, because apt installs
-#     Recommends by default: one `apt install zenith` brings the screenshot,
+#     Recommends by default: one `apt install asura` brings the screenshot,
 #     clipboard and recorder tools, and `--no-install-recommends` gives the
 #     bare session. Depends is only what the session cannot start without, or
 #     what is small enough that a missing one is not worth a degraded mode.
@@ -24,8 +24,8 @@
 #     a second icon theme. The deps files say so themselves; this script does
 #     not carry a list of exceptions.
 #
-# Quickshell is not here. It is not in the archive: Zenith builds it, and
-# system/packages.yaml records that under `zenith_built`.
+# Quickshell is not here. It is not in the archive: Asura builds it, and
+# system/packages.yaml records that under `asura_built`.
 #
 # Hyprland is pinned to the series the configuration was written against. Window
 # and layer rule syntax changed between 0.53 and 0.54, so a newer Hyprland is a

@@ -62,7 +62,7 @@ else
 fi
 check "$(cat "$work/pkexec.log")" "apt-get install -y $s1/foo.deb" \
   ".deb handed to pkexec apt-get install"
-absent "$work/home/.local/share/zenith-apps/foo" ".deb NOT extracted into ~/.local"
+absent "$work/home/.local/share/asura-apps/foo" ".deb NOT extracted into ~/.local"
 absent "$s1/foo.deb" "source removed from the stash after a successful install"
 if grep -qx "@AUTH" "$work/out"; then
   echo "  ok: .deb install signals the deck to step aside (@AUTH)"
@@ -99,11 +99,11 @@ else
 fi
 check "$(cat "$work/pkexec.log")" "" "flatpak never escalated"
 
-# case 4: ZENITH_STASH_KEEP=1 keeps the source after a successful install.
+# case 4: ASURA_STASH_KEEP=1 keeps the source after a successful install.
 s4="$work/stash4"; mkdir -p "$s4"
 mkdeb "$s4/keep.deb" keep
-ZENITH_STASH_KEEP=1 STASH_DIR="$s4" run_stash
-present "$s4/keep.deb" "ZENITH_STASH_KEEP=1 keeps the source in the stash"
+ASURA_STASH_KEEP=1 STASH_DIR="$s4" run_stash
+present "$s4/keep.deb" "ASURA_STASH_KEEP=1 keeps the source in the stash"
 
 # case 5: a failed install (polkit denied, apt error) leaves the source in place.
 s5="$work/stash5"; mkdir -p "$s5"

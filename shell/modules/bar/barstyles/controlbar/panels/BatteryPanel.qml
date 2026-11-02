@@ -3,7 +3,7 @@ import "../modules"
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import "../ZenithPower.js" as ZenithPower
+import "../AsuraPower.js" as AsuraPower
 import qs.Ui.Singletons
 
 PanelWindow {
@@ -16,7 +16,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-battery"
+    WlrLayershell.namespace: "asura-battery"
 
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6
@@ -199,7 +199,7 @@ PanelWindow {
 
     Process {
         id: batData
-        command: ["bash", "-c", ZenithPower.batteryDataCmd]
+        command: ["bash", "-c", AsuraPower.batteryDataCmd]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

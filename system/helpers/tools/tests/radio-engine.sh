@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture test for zenith-cmd-radio: the start/stop/status/aside contract the
+# Fixture test for asura-cmd-radio: the start/stop/status/aside contract the
 # launcher's "@" provider builds on. Runs the real script with a stub mpv
 # (writes the URL it was handed, then sleeps) and a stub yt-dlp whose behavior
 # a marker file controls, so both the happy path and the fall-back-to-direct
@@ -7,7 +7,7 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
-radio="$here/../../../../shell/scripts/zenith-cmd-radio"
+radio="$here/../../../../shell/scripts/asura-cmd-radio"
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq required" >&2; exit 0; }
 
@@ -17,12 +17,12 @@ work="$(mktemp -d)"
 # stub player for its full 600s nap whenever a case aborts mid-broadcast.
 trap '"$radio" stop >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
 
-export ZENITH_RADIO_STATE_FILE="$work/state.json"
-export ZENITH_RADIO_ASIDE_FILE="$work/aside.json"
-export ZENITH_RADIO_LOCK_FILE="$work/lock"
-export ZENITH_RADIO_MPV="$work/bin/mpv"
-export ZENITH_RADIO_YTDLP="$work/bin/yt-dlp"
-export ZENITH_RADIO_RESOLVE_TIMEOUT=5
+export ASURA_RADIO_STATE_FILE="$work/state.json"
+export ASURA_RADIO_ASIDE_FILE="$work/aside.json"
+export ASURA_RADIO_LOCK_FILE="$work/lock"
+export ASURA_RADIO_MPV="$work/bin/mpv"
+export ASURA_RADIO_YTDLP="$work/bin/yt-dlp"
+export ASURA_RADIO_RESOLVE_TIMEOUT=5
 
 mkdir -p "$work/bin"
 cat >"$work/bin/mpv" <<EOF
@@ -176,7 +176,7 @@ fi
 # ---- one title prefix across the stack ----------------------------------------
 # the engine's forced title, the launcher's matcher and the media service's copy
 # must agree, or the broadcast dress silently falls off a surface.
-eng="$here/../../../../shell/scripts/zenith-cmd-radio"
+eng="$here/../../../../shell/scripts/asura-cmd-radio"
 if grep -q 'force-media-title="LIVE · ' "$eng" \
   && grep -q 'TITLE_PREFIX = "LIVE · "' "$here/../../../../shell/modules/launcher/shared/lib/radio.js" \
   && grep -q '"LIVE · "' "$here/../../../../shell/Services/Media.qml"; then

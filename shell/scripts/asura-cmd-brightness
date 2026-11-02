@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Brightness for the keys, the daemon and the sliders.
+#
+#   asura-cmd-brightness +5    raise 5 points
+#   asura-cmd-brightness -5    lower 5 points
+#   asura-cmd-brightness 40%   go to 40%
+#
+# The write goes through systemd-logind (see `asura brightness --help`). The
+# archive's brightnessctl cannot do it: its sysfs file is group video, the user is
+# not in video, and that build has no logind support of its own.
+exec asura brightness set "${1:?usage: asura-cmd-brightness <+N|-N|N%>}"

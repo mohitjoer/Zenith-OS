@@ -1,9 +1,9 @@
 .pragma library
 
-// PluginsPage as data: the Hyprland compositor plugins Zenith bundles, one tab
+// PluginsPage as data: the Hyprland compositor plugins Asura bundles, one tab
 // each, paired with the status and rebuild card the page draws for it. The tab
-// titles are the names `zenith-hubd desktop plugins list` reports. The settings
-// rows now live with the provider (zenith-wm-hyprland schema, page "plugins"), so
+// titles are the names `asura-hubd desktop plugins list` reports. The settings
+// rows now live with the provider (asura-wm-hyprland schema, page "plugins"), so
 // this file only names which bundled plugins get a card.
 //
 // A plugin the user adds from git gets its rows from the settings the backend

@@ -1,10 +1,10 @@
-// Package adopt implements `zenith adopt` — moving an existing GNOME desktop
-// on the base layer over to the Zenith session, in place.
+// Package adopt implements `asura adopt` — moving an existing GNOME desktop
+// on the base layer over to the Asura session, in place.
 //
-// This file is the preflight: `zenith adopt --check`. It changes nothing, needs
+// This file is the preflight: `asura adopt --check`. It changes nothing, needs
 // no root, and is safe to run as often as the user likes. That is not a
 // convenience — it is the property that makes the command trustworthy enough to
-// run before deciding anything, and `zenith adopt` re-runs it as its own step
+// run before deciding anything, and `asura adopt` re-runs it as its own step
 // zero rather than reimplementing a single check.
 //
 // Every absolute path and every external command comes from an Env, for the same
@@ -27,7 +27,7 @@ import (
 type Severity string
 
 const (
-	// Blocker means `zenith adopt` will refuse. A hard blocker is a machine this
+	// Blocker means `asura adopt` will refuse. A hard blocker is a machine this
 	// project cannot switch safely, and pretending otherwise is worse than
 	// refusing.
 	Blocker Severity = "blocker"
@@ -196,7 +196,7 @@ func checkBaseRelease(env Env) Finding {
 
 // checkSession reads $XDG_CURRENT_DESKTOP.
 //
-// A non-GNOME session is either already a Zenith session or something else
+// A non-GNOME session is either already a Asura session or something else
 // entirely. Both are worth refusing rather than switching.
 func checkSession(env Env) Finding {
 	finding := Finding{Check: "Session", Severity: OK}
@@ -337,7 +337,7 @@ func checkComposite(env Env) Finding {
 // checkPortals asks apt whether both portal backends are installable.
 //
 // This is a hard blocker and the only one that is about the future rather than
-// the present: Zenith's shell has no portal backend of its own, so a machine
+// the present: Asura's shell has no portal backend of its own, so a machine
 // that cannot install these gets a desktop where file choosers and screen
 // sharing silently do not work.
 func checkPortals(env Env) Finding {
@@ -510,9 +510,9 @@ var neverWrite = []string{
 	"/usr/share/xsessions/",
 	"/etc/fstab",
 	// One exception, and it is the whole first step of adoption: writing the
-	// session file is what makes the Zenith session appear at the login screen,
+	// session file is what makes the Asura session appear at the login screen,
 	// and it is reversible by picking the other session.
-	"/usr/share/wayland-sessions/", // except zenith.desktop
+	"/usr/share/wayland-sessions/", // except asura.desktop
 	"/etc/default/grub",
 	"/usr/share/gnome-session/",
 	"/etc/kernel/",
@@ -528,11 +528,11 @@ var neverWrite = []string{
 // neverWriteExceptions are the paths inside a never-write prefix that adoption
 // does write, each with the reason it is the exception rather than an oversight.
 //
-// There is exactly one, and it is the entire first step of adoption: the Zenith
+// There is exactly one, and it is the entire first step of adoption: the Asura
 // session file in the fixed wayland-sessions directory, which is what makes the
 // session appear at the login screen and is reversible by picking the other one.
 var neverWriteExceptions = map[string]string{
-	"/usr/share/wayland-sessions/zenith.desktop": "the Zenith session registration — the whole first step, reversible by " +
+	"/usr/share/wayland-sessions/asura.desktop": "the Asura session registration — the whole first step, reversible by " +
 		"choosing the other session at the login screen",
 }
 

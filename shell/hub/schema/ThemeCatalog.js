@@ -5,7 +5,7 @@
 // The two dynamic variants (Default, Wallpaper) then the 57 static themes, each with a
 // 7-swatch preview projection [surface, onSurface, primary, secondary, tertiary, error,
 // outline] and a dark flag (surface luma < 0.5). This is picker cosmetics ONLY: the daemon
-// owns the authoritative 30-role palettes (zenith/shell/ipc/themes_gen.go) and resolves the
+// owns the authoritative 30-role palettes (asura/shell/ipc/themes_gen.go) and resolves the
 // selected theme into shell.json `themePalette`, which every surface consumes. The id is the
 // theme.theme value written through the settings seam -- the same key the sidebar theme
 // picker (pill MenuTheme) reads and writes, so the two stay one truth on the selection.

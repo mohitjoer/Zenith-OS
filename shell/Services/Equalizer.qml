@@ -5,7 +5,7 @@ import Quickshell.Io
 import qs.Services
 import qs.Ui.Singletons
 
-// The desktop's 10-band equalizer, as the now-playing card sees it. `zenith-eq`
+// The desktop's 10-band equalizer, as the now-playing card sees it. `asura-eq`
 // owns the audio graph (a WirePlumber smart filter in front of the default sink,
 // see the script's header); this owns the state the UI binds to.
 //
@@ -16,9 +16,9 @@ import qs.Ui.Singletons
 Singleton {
     id: root
 
-    readonly property string bin: (Quickshell.env("ZENITH_SHELL_DIR") || "").length > 0
-        ? Quickshell.env("ZENITH_SHELL_DIR") + "/scripts/zenith-eq"
-        : "zenith-eq"
+    readonly property string bin: (Quickshell.env("ASURA_SHELL_DIR") || "").length > 0
+        ? Quickshell.env("ASURA_SHELL_DIR") + "/scripts/asura-eq"
+        : "asura-eq"
 
     readonly property int bandCount: 10
     // ISO octave centres, the labels the card prints under each slider.
@@ -101,7 +101,7 @@ Singleton {
         root.gains = g;
         root.preset = ("" + (d.preset || "Flat"));
         root.on = d.on === true;
-        // `running` is the graph's answer, which only `zenith-eq get` reports; the
+        // `running` is the graph's answer, which only `asura-eq get` reports; the
         // state file has no opinion on it and must not clear it.
         if (d.running !== undefined)
             root.running = d.running === true;
@@ -134,12 +134,12 @@ Singleton {
     // The script is the state's owner, and it is drivable from a shell, a keybind
     // or a second monitor's card. Watching the file it writes is what keeps every
     // reader honest: without it the card only ever showed the curve it had set
-    // itself, and a `zenith-eq preset ...` from anywhere else left it displaying a
+    // itself, and a `asura-eq preset ...` from anywhere else left it displaying a
     // curve the speakers had stopped playing.
     FileView {
         id: stateFile
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config"))
-            + "/zenith/equalizer.json"
+            + "/asura/equalizer.json"
         watchChanges: true
         printErrors: false
         onFileChanged: stateFile.reload()

@@ -27,7 +27,7 @@ var ErrNoProvider = errors.New("no window manager provider available")
 var ErrUnsupported = errors.New("window manager does not support this action")
 
 // provider is the four verbs a compositor implements. Hyprland is built in;
-// execProvider speaks the same four to a `zenith-wm-<name>` executable.
+// execProvider speaks the same four to a `asura-wm-<name>` executable.
 type provider interface {
 	available() bool
 	caps(ctx context.Context) (Caps, error)
@@ -73,7 +73,7 @@ func providerFor(name string) provider {
 	case ProviderHyprland:
 		return hyprland{}
 	}
-	return execProvider{bin: "zenith-wm-" + name}
+	return execProvider{bin: "asura-wm-" + name}
 }
 
 func (c *Client) Detection() Detection { return c.detection }

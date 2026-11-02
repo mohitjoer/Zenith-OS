@@ -1,5 +1,0 @@
-#!/bin/sh
-mkdir -p /var/log
-exec >>/var/log/zenith-sysd.log 2>&1
-# Start the Zenith privileged system daemon
-exec /usr/bin/zenith-sysd run

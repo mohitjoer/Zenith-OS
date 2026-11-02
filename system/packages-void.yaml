@@ -1,4 +1,4 @@
-# Zenith package manifest for Void Linux base layer.
+# Asura package manifest for Void Linux base layer.
 #
 # Base layer: Void Linux x86_64 (glibc).
 # Package manager: XBPS.
@@ -95,10 +95,10 @@ desktop:
     - libunwind
   exclude:
     # No GNOME components per project rules
-    - gnome-shell: GNOME Shell is forbidden in Zenith
-    - gnome-control-center: Zenith uses Zenith Hub and Hyprland
-    - xdg-desktop-portal-gnome: Zenith uses xdg-desktop-portal-hyprland
-    - mutter: Zenith uses Hyprland
+    - gnome-shell: GNOME Shell is forbidden in Asura
+    - gnome-control-center: Asura uses Asura Hub and Hyprland
+    - xdg-desktop-portal-gnome: Asura uses xdg-desktop-portal-hyprland
+    - mutter: Asura uses Hyprland
 
 session:
   packages:
@@ -129,7 +129,7 @@ terminal-and-shell:
     - starship
     - fastfetch
   exclude:
-    - kitty: Kitty is strictly forbidden in Zenith per agent rules
+    - kitty: Kitty is strictly forbidden in Asura per agent rules
 
 languages:
   packages:

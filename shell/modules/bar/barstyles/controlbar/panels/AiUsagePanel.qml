@@ -22,7 +22,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-ai-usage"
+    WlrLayershell.namespace: "asura-ai-usage"
 
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6

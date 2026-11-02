@@ -79,7 +79,7 @@ Item {
             spacing: Tokens.s2
 
             Plate {
-                objectName: "zenith-store-provider-all"
+                objectName: "asura-store-provider-all"
                 visible: tabs.allLabel !== ""
                 label: tabs.allLabel
                 on: tabs.active === ""
@@ -93,14 +93,14 @@ Item {
                             ? String(modelData.key) : String(modelData)
                     readonly property string entryLabel: (modelData && modelData.label !== undefined)
                             ? String(modelData.label) : String(modelData)
-                    objectName: "zenith-store-provider-" + entryKey
+                    objectName: "asura-store-provider-" + entryKey
                     label: entryLabel.toUpperCase()
                     on: tabs.active === entryKey
                     onChose: tabs.picked(entryKey)
                 }
             }
             Plate {
-                objectName: "zenith-store-provider-mine"
+                objectName: "asura-store-provider-mine"
                 visible: tabs.trailingLabel !== ""
                 label: tabs.trailingLabel
                 on: tabs.active === tabs.trailingKey && tabs.trailingKey !== ""
@@ -111,7 +111,7 @@ Item {
 
     Btn {
         id: installAllBtn
-        objectName: "zenith-store-provider-install-all"
+        objectName: "asura-store-provider-install-all"
         anchors { right: parent.right; rightMargin: Tokens.s6; verticalCenter: parent.verticalCenter }
         visible: tabs.active !== "" && tabs.active !== "__mine__" && tabs.installableCount > 0
         text: tabs.busy ? I18n.tr("INSTALLING") : (I18n.tr("INSTALL ALL / ") + tabs.installableCount)

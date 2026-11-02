@@ -27,13 +27,13 @@ Singleton {
         return (n && typeof PwNodeType !== "undefined") ? PwNodeType.toString(n.type) : "";
     }
 
-    // The equalizer's filter pair (see zenith-eq). WirePlumber splices it in front
+    // The equalizer's filter pair (see asura-eq). WirePlumber splices it in front
     // of the real device and never treats it as a default node, so it is plumbing
     // rather than a device or an app: listing it would show the speakers twice in
-    // the mixer and offer a "Zenith Equalizer" output nobody should pick. Matched on
+    // the mixer and offer a "Asura Equalizer" output nobody should pick. Matched on
     // node.name, a constant, so this never reads an untracked property.
     function isShellFilter(n) {
-        return ((n && n.name) + "").indexOf("zenith_equalizer") === 0;
+        return ((n && n.name) + "").indexOf("asura_equalizer") === 0;
     }
 
     // a real, switchable output/input device (not a stream).

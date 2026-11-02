@@ -4,7 +4,7 @@ import Quickshell.Io
 import qs.Ui.Singletons
 import "store"
 
-// The store window. A normal floating window, started by session/zenith-store
+// The store window. A normal floating window, started by session/asura-store
 // with `quickshell -p` on this file: the file sits at the shell root because a
 // Quickshell configuration's root is the directory of its entry file, and the
 // kit under qs.Ui only resolves from there.
@@ -12,7 +12,7 @@ ShellRoot {
     FloatingWindow {
         id: win
         // Literal, not translated: the compositor's float rule matches this title.
-        title: "Zenith Store"
+        title: "Asura Store"
         // A screen object that dangles during a monitor switch reports size 0;
         // sizing from it would hand the compositor a zero-size window that is
         // invisible and click-dead while its lock stays held.

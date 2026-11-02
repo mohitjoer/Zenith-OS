@@ -12,7 +12,7 @@ var rows = [
         "label": "Hotspot",
         "desc": "Shares this connection over Wi-Fi",
         "ctl": "sw",
-        "src": "down); nothing is written to any Zenith config file"
+        "src": "down); nothing is written to any Asura config file"
     },
     {
         "tab": "Hotspot",
@@ -21,7 +21,7 @@ var rows = [
         "label": "Network name",
         "desc": "The name nearby devices see",
         "ctl": "text",
-        "src": "ZenithHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g 802-11-wireless.ssid,802-11-wireless-security.psk connection show ZenithHotspot`)"
+        "src": "AsuraHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g 802-11-wireless.ssid,802-11-wireless-security.psk connection show AsuraHotspot`)"
     },
     {
         "tab": "Hotspot",
@@ -30,7 +30,7 @@ var rows = [
         "label": "Password",
         "desc": "WPA2 key to join; under 8 characters is dropped",
         "ctl": "text",
-        "src": "ZenithHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g \u2026802-11-wireless-security.psk connection show ZenithHotspot` - the -s secrets flag is required)",
+        "src": "AsuraHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g \u2026802-11-wireless-security.psk connection show AsuraHotspot` - the -s secrets flag is required)",
         "lo": 8.0,
         "unit": "characters"
     }

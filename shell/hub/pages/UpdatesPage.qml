@@ -8,16 +8,16 @@ import qs.Ui
 import qs.Ui.Singletons
 import "../Singletons"
 
-// System > Updates (DESIGN.md section 8, SYSTEM). Zenith's update channel as a
+// System > Updates (DESIGN.md section 8, SYSTEM). Asura's update channel as a
 // paper-and-ink instrument: the packages the archive is holding for this box, the
-// release line it runs, and a one-click update that runs `zenith update` in a
+// release line it runs, and a one-click update that runs `asura update` in a
 // terminal and mirrors its progress here when the run publishes any.
 //
 // This is a full-bleed page -- the shell hides its side panel and global action
 // bar and keeps the rail -- so it draws its own head, content and action bar.
 // The data is the Updates singleton (the daemon's apt-backed `updates` topic), the
-// run-state file `zenith update` may publish, and `zenith rollback`. `zenith
-// update` fetches Zenith's own packages and re-materializes the base; the rest of
+// run-state file `asura update` may publish, and `asura rollback`. `asura
+// update` fetches Asura's own packages and re-materializes the base; the rest of
 // the archive is apt's, and this page says so rather than pretending to move it.
 // Ink on black, inversion for emphasis, the shared progress spec (a hairline
 // track + a square ink fill) for advancement and the 600ms heartbeat dot for the
@@ -65,13 +65,13 @@ Item {
         if (pg.interval === k)
             return;
         pg.interval = k;
-        saveInterval.command = ["zenith-hubd", "config", "set", "update_interval", k];
+        saveInterval.command = ["asura-hubd", "config", "set", "update_interval", k];
         saveInterval.running = true;
     }
 
     Process {
         id: loadInterval
-        command: ["zenith-hubd", "config", "get", "update_interval"]
+        command: ["asura-hubd", "config", "get", "update_interval"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -100,7 +100,7 @@ Item {
         onTriggered: Updates.check()
     }
 
-    // ── live run state (published by `zenith update`) ────────────────────────
+    // ── live run state (published by `asura update`) ────────────────────────
     property string phase: "idle"   // idle | running | prompt | done | error
     property real progress: 0
     property string label: ""
@@ -111,10 +111,10 @@ Item {
     property string promptTitle: ""
     property string promptDetail: ""
     property var promptOptions: []
-    readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-update.json"
-    readonly property string answerPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-update-answer"
+    readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-update.json"
+    readonly property string answerPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-update-answer"
 
-    // the fill fraction for the shared progress track. `zenith update` may report
+    // the fill fraction for the shared progress track. `asura update` may report
     // an explicit progress, but even when it only advances the stage list we can
     // read completion off the stages, so the track never sits dead at 0 while
     // work is plainly happening. done pins it full.
@@ -197,7 +197,7 @@ Item {
         pg.checkOwner();
     }
 
-    // answer a prompt phase: write the choice to the back-channel `zenith update`
+    // answer a prompt phase: write the choice to the back-channel `asura update`
     // is polling (positional args, so a quote in the label can't break out),
     // then optimistically resume the running view so the buttons clear.
     function answer(choice) {
@@ -206,26 +206,26 @@ Item {
     }
 
     // Runs a command in the user's terminal and holds the window after it exits.
-    // zenith-app owns which terminal that is; the hold is there because nothing
+    // asura-app owns which terminal that is; the hold is there because nothing
     // else tells the user whether the command worked, and a window that closes
     // with the answer in it is a window that hid the answer.
     function inTerminal(script) {
-        Spawn.run(["zenith-app", "terminal", "--", "sh", "-c",
+        Spawn.run(["asura-app", "terminal", "--", "sh", "-c",
             script + "; printf '\\npress enter to close '; read -r _"]);
     }
 
-    // `zenith rollback` re-materializes the previous revision of the base and
+    // `asura rollback` re-materializes the previous revision of the base and
     // keeps the user's edits. It prints what it restored, so it runs where that
     // can be read. A failed run is cleared afterwards: the rollback is the answer
     // to it.
     function rollback() {
-        pg.inTerminal("zenith rollback");
+        pg.inTerminal("asura rollback");
         if (pg.phase === "error")
             pg.dismiss();
     }
 
-    // The rest of the archive is apt's, not Zenith's: `zenith update` moves the
-    // Zenith packages only. apt asks for the root password and for confirmation
+    // The rest of the archive is apt's, not Asura's: `asura update` moves the
+    // Asura packages only. apt asks for the root password and for confirmation
     // itself, in the terminal.
     function upgradeSystem() {
         pg.inTerminal("sudo apt update && sudo apt upgrade");
@@ -240,10 +240,10 @@ Item {
     }
 
     function startUpdate() {
-        pg.inTerminal("zenith update");
+        pg.inTerminal("asura update");
     }
 
-    // idle list: Zenith's own change list when the channel publishes one (incoming
+    // idle list: Asura's own change list when the channel publishes one (incoming
     // when behind, else the recent history the installed version contains). The
     // apt packages have a section of their own below, so a box whose channel
     // publishes no change list shows only that.
@@ -354,7 +354,7 @@ Item {
                         // the channel has moved on ("Onogoro -> Amaterasu").
                         Text {
                             visible: Updates.currentName !== ""
-                            text: "Zenith " + Updates.currentName
+                            text: "Asura " + Updates.currentName
                                   + (Updates.available && Updates.latestName !== "" && Updates.latestName !== Updates.currentName
                                      ? "  \u2192  " + Updates.latestName : "")
                             color: Tokens.ink; font.family: Tokens.display
@@ -427,7 +427,7 @@ Item {
                 }
             }
 
-            // ── Zenith's change list, when the channel publishes one ──
+            // ── Asura's change list, when the channel publishes one ──
             Column {
                 width: idleCol.width
                 spacing: 0
@@ -609,12 +609,12 @@ Item {
                     }
                 }
 
-                // Most of these come from Ubuntu's archive, not from Zenith:
-                // `zenith update` fetches Zenith's packages and nothing else, so
+                // Most of these come from Ubuntu's archive, not from Asura:
+                // `asura update` fetches Asura's packages and nothing else, so
                 // the section has to name what moves the rest.
                 Text {
                     width: idleCol.width
-                    text: I18n.tr("From Ubuntu's archive, kernel included. `zenith update` moves Zenith's own packages; take the rest with:  sudo apt update && sudo apt upgrade")
+                    text: I18n.tr("From Ubuntu's archive, kernel included. `asura update` moves Asura's own packages; take the rest with:  sudo apt update && sudo apt upgrade")
                     color: Tokens.inkFaint
                     font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                     wrapMode: Text.WordWrap
@@ -918,8 +918,8 @@ Item {
         }
     }
 
-    // ── prompt: the editorial question `zenith update` is blocked on -- an ink
-    // rule + title + detail, with the option stamps `zenith update` offers. ──
+    // ── prompt: the editorial question `asura update` is blocked on -- an ink
+    // rule + title + detail, with the option stamps `asura update` offers. ──
     Item {
         visible: pg.phase === "prompt"
         anchors {

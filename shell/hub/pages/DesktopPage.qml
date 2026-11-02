@@ -112,7 +112,7 @@ Item {
 
     Process {
         id: clipStatsProc
-        command: ["zenith-hubd", "clipboard", "stats"]
+        command: ["asura-hubd", "clipboard", "stats"]
         stdout: StdioCollector { id: clipStatsOut }
         stderr: StdioCollector { id: clipStatsErr }
         onExited: (code) => {
@@ -135,7 +135,7 @@ Item {
     // command instead of two racing ones.
     Process {
         id: clipPruneProc
-        command: ["zenith-hubd", "clipboard", "prune"]
+        command: ["asura-hubd", "clipboard", "prune"]
         stdout: StdioCollector { id: clipPruneOut }
         stderr: StdioCollector { id: clipPruneErr }
         onExited: (code) => {

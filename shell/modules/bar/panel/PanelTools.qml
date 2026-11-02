@@ -55,9 +55,9 @@ Item {
     readonly property bool engineNeedsSetup: Stash.dockerState === "setup" || Stash.dockerState === "missing"
     readonly property string engineSub: {
         if (Stash.setupState === "running") return I18n.tr("Setting up…");
-        if (Stash.dockerState === "missing") return I18n.tr("Needs Docker. `zenith update` installs it");
+        if (Stash.dockerState === "missing") return I18n.tr("Needs Docker. `asura update` installs it");
         if (Stash.dockerState === "setup") return I18n.tr("One-time setup: flip the switch to run it");
-        if (Stash.dockerState === "denied") return I18n.tr("Docker is unreachable and the zenith-docker helper is missing");
+        if (Stash.dockerState === "denied") return I18n.tr("Docker is unreachable and the asura-docker helper is missing");
         switch (Stash.cobaltState) {
         case "starting": return Stash.cobaltMsg === "pulling"
             ? I18n.tr("Downloading cobalt image — first launch takes a minute and uses some memory & CPU")

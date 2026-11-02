@@ -10,7 +10,7 @@ import qs.Ui.Singletons
 // (src/frontend/playlists). Index of playlists + a detail editor (name, dwell,
 // kind, smart source, member list with reorder/remove, per-output assignment,
 // play-now, delete) and a catalog picker for adding curated members. All state
-// lives in the zenith-wallpaper daemon behind the playlist.* RPC verbs.
+// lives in the asura-wallpaper daemon behind the playlist.* RPC verbs.
 Flow {
   id: root
   property var colors
@@ -32,7 +32,7 @@ Flow {
   Connections {
     target: DaemonClient
     function onEventReceived(event, data) {
-      if (event === "zenith-wallpaper.playlist.changed") {
+      if (event === "asura-wallpaper.playlist.changed") {
         root.refresh()
         if (root._selected >= 0) root.refreshMembers()
       }

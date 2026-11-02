@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture test for zenith-monitor's display persistence across a reboot and a
+# Fixture test for asura-monitor's display persistence across a reboot and a
 # power-cycled TV (issue #152). A layout saved from the Displays page must come
 # back at the next login even when the external display is absent, reports a
 # different serial, or returns on a different connector -- the reported case is
@@ -7,20 +7,20 @@
 # hazards: an EDID-less display must key on its connector (never the bare "||"),
 # and booting the same disk on another machine must not drape one panel's
 # settings over a different panel on the same port. Runs in fixture mode
-# (ZENITH_MONITOR_JSON), so no live compositor is needed.
+# (ASURA_MONITOR_JSON), so no live compositor is needed.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
-mon="$here/zenith-monitor"
+mon="$here/asura-monitor"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 conf="$tmp/monitors-auto.conf"
-export ZENITH_MONITORS_CONF="$conf"
-export ZENITH_MONITORS_DIR="$tmp/profiles"
-export ZENITH_MONITORS_APPLIED="$tmp/applied.json"
-export ZENITH_MONITORS_USER="$tmp/none-user.conf"
-export ZENITH_MONITOR_VM=0
+export ASURA_MONITORS_CONF="$conf"
+export ASURA_MONITORS_DIR="$tmp/profiles"
+export ASURA_MONITORS_APPLIED="$tmp/applied.json"
+export ASURA_MONITORS_USER="$tmp/none-user.conf"
+export ASURA_MONITOR_VM=0
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 has() { grep -qF -- "$2" "$1" || fail "$3"; }
@@ -64,8 +64,8 @@ layout='[
   {"id":"LG Electronics|LG TV SSCR2|","output":"HDMI-A-1","mode":"1920x1080@60","position":"2560x0","scale":1,"transform":0,"vrr":0,"mirror":"none","disabled":false}
 ]'
 
-apply_both() { ZENITH_MONITOR_JSON="$tmp/both.json" "$mon" apply "$layout" >/dev/null; }
-login() { ZENITH_MONITOR_JSON="$tmp/$1" "$mon" autoscale >/dev/null 2>&1; }
+apply_both() { ASURA_MONITOR_JSON="$tmp/both.json" "$mon" apply "$layout" >/dev/null; }
+login() { ASURA_MONITOR_JSON="$tmp/$1" "$mon" autoscale >/dev/null 2>&1; }
 
 # --- missing output: an absent TV keeps its saved stanza, and the panel keeps
 # its own applied settings (the "HDMI reverts, laptop is fine" report). ---------
@@ -106,11 +106,11 @@ cat >"$tmp/noedid.json" <<'JSON'
   {"name":"HDMI-A-1","make":"","model":"","serial":"","width":1920,"height":1080,"refreshRate":60.0,"x":0,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","physicalWidth":0,"physicalHeight":0,"availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"srgb","sdrBrightness":1.0}
 ]
 JSON
-idval="$(ZENITH_MONITOR_JSON="$tmp/noedid.json" "$mon" list | jq -r '.[0].id')"
+idval="$(ASURA_MONITOR_JSON="$tmp/noedid.json" "$mon" list | jq -r '.[0].id')"
 [[ $idval == "HDMI-A-1" ]] || fail "an EDID-less display keyed on '$idval', not its connector"
 noedid_layout='[{"id":"HDMI-A-1","output":"HDMI-A-1","mode":"1920x1080@60","position":"0x0","scale":1,"transform":0,"vrr":0,"mirror":"none","disabled":false}]'
-ZENITH_MONITORS_APPLIED="$tmp/noedid-applied.json" ZENITH_MONITOR_JSON="$tmp/noedid.json" "$mon" apply "$noedid_layout" >/dev/null
-ZENITH_MONITORS_APPLIED="$tmp/noedid-applied.json" ZENITH_MONITOR_JSON="$tmp/noedid.json" "$mon" autoscale >/dev/null 2>&1
+ASURA_MONITORS_APPLIED="$tmp/noedid-applied.json" ASURA_MONITOR_JSON="$tmp/noedid.json" "$mon" apply "$noedid_layout" >/dev/null
+ASURA_MONITORS_APPLIED="$tmp/noedid-applied.json" ASURA_MONITOR_JSON="$tmp/noedid.json" "$mon" autoscale >/dev/null 2>&1
 has "$conf" 'monitor = HDMI-A-1,1920x1080@60,' \
   "an EDID-less display did not recall its connector-keyed layout"
 
@@ -136,7 +136,7 @@ hub='[
   {"id":"A|B|4","output":"DP-4,disable\nmonitor = ,preferred,auto,9","mode":"1920x1080@60","position":"0x0","scale":1,"disabled":false}
 ]'
 # (no cvt: a mode the fixture panel does not advertise would become a modeline)
-ZENITH_MONITOR_CVT=/nonexistent ZENITH_MONITOR_JSON="$tmp/both.json" "$mon" apply "$hub" >/dev/null
+ASURA_MONITOR_CVT=/nonexistent ASURA_MONITOR_JSON="$tmp/both.json" "$mon" apply "$hub" >/dev/null
 has "$conf" 'monitor = DP-1,3840x2160@60,0x0,1,transform,1,vrr,1,bitdepth,10,cm,hdr,sdrbrightness,1.3' "the rotated VRR HDR monitor lost an argument"
 has "$conf" 'monitor = DP-2,1920x1080@60,2160x0,1,mirror,DP-1,bitdepth,8,cm,srgb,sdrbrightness,1' "the mirror or the sRGB reset was not written"
 has "$conf" 'monitor = DP-3,disable' "a disabled output was not written as disable"
@@ -170,8 +170,8 @@ custom='[
   {"id":"A|P|1","output":"eDP-1","mode":"2560x1440@120","position":"0x0","scale":1,"transform":0,"vrr":0,"mirror":"none","disabled":false},
   {"id":"B|Q|2","output":"DP-1","mode":"1920x1080@60","position":"2560x0","scale":1,"transform":0,"vrr":0,"mirror":"none","disabled":false}
 ]'
-ZENITH_MONITOR_JSON="$tmp/live.json" ZENITH_MONITOR_CVT="$tmp/cvt" \
-  ZENITH_MONITORS_APPLIED="$tmp/custom-applied.json" "$mon" apply "$custom" >/dev/null
+ASURA_MONITOR_JSON="$tmp/live.json" ASURA_MONITOR_CVT="$tmp/cvt" \
+  ASURA_MONITORS_APPLIED="$tmp/custom-applied.json" "$mon" apply "$custom" >/dev/null
 has "$conf" 'monitor = eDP-1,modeline 241.50 2560 2608 2640 2720 1440 1443 1448 1481 +hsync -vsync,0x0,1' \
   "custom non-advertised 2560x1440@120 was not rewritten to a CVT modeline"
 hasnt "$conf" 'eDP-1,2560x1440@120' "the non-advertised WxH@rate mode was written verbatim (Hyprland would ignore it)"
@@ -188,13 +188,13 @@ echo "monitor-custom-mode: all checks passed"
 
 # --- autoscale at login is opt-in: nothing is written until it is switched on ---
 flag="$tmp/autoscale-flag"
-export ZENITH_MONITOR_AUTOSCALE_FLAG="$flag"
+export ASURA_MONITOR_AUTOSCALE_FLAG="$flag"
 rm -f "$conf"
-ZENITH_MONITOR_JSON="$tmp/both.json" "$mon" autoscale --at-login >/dev/null 2>&1
+ASURA_MONITOR_JSON="$tmp/both.json" "$mon" autoscale --at-login >/dev/null 2>&1
 [[ ! -e $conf ]] || fail "autoscale wrote monitors-auto.conf at login without being switched on"
 [[ "$("$mon" autoscale status)" == off ]] || fail "autoscale at login is not off by default"
 "$mon" autoscale on >/dev/null
-ZENITH_MONITOR_JSON="$tmp/both.json" "$mon" autoscale --at-login >/dev/null 2>&1
+ASURA_MONITOR_JSON="$tmp/both.json" "$mon" autoscale --at-login >/dev/null 2>&1
 [[ -e $conf ]] || fail "autoscale did not run at login after being switched on"
 "$mon" autoscale off >/dev/null
 [[ "$("$mon" autoscale status)" == off ]] || fail "autoscale off did not switch it off"

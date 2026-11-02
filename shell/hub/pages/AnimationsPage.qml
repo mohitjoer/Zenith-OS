@@ -8,7 +8,7 @@ import "../Singletons"
 import ".."
 
 // Animations, ported to the monochrome instrument. The Hyprland animation tree
-// (its inventory comes from the provider defaults, `zenith-hubd desktop defaults`)
+// (its inventory comes from the provider defaults, `asura-hubd desktop defaults`)
 // plus a bezier curve editor; per-leaf overrides and user curves persist through
 // the shell's hypr store, which previews them live on the desktop and restores
 // on revert.
@@ -668,7 +668,7 @@ Item {
                     width: parent.width
                     leftPadding: Tokens.s4; rightPadding: Tokens.s4
                     topPadding: Tokens.s3; bottomPadding: Tokens.s1
-                    text: I18n.tr("How fast the shell's own panels, menus and transitions move. Speed scales every Zenith animation live; Reduce motion snaps them into place for comfort.") + (pg.hasWindowAnims ? " " + I18n.tr("Separate from the window animations below.") : "")
+                    text: I18n.tr("How fast the shell's own panels, menus and transitions move. Speed scales every Asura animation live; Reduce motion snaps them into place for comfort.") + (pg.hasWindowAnims ? " " + I18n.tr("Separate from the window animations below.") : "")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }

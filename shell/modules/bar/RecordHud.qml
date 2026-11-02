@@ -146,7 +146,7 @@ Item {
     function launchRyomotion() {
         Recorder.chooserOpen = false;
         Quickshell.execDetached(["sh", "-c",
-            "command -v ryomotion >/dev/null 2>&1 && exec ryomotion --edit || notify-send 'Zenith' 'Not installed yet'"]);
+            "command -v ryomotion >/dev/null 2>&1 && exec ryomotion --edit || notify-send 'Asura' 'Not installed yet'"]);
     }
     // studio: our island is the toolbar, so ryomotion records headless (its HUD
     // hidden) with the chooser's options and we drive the stop from the control bar.

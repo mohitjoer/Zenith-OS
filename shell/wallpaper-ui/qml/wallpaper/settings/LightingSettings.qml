@@ -7,7 +7,7 @@ import qs.Ui.Singletons
 
 // Lighting: peripheral RGB (OpenRGB), folded from the Hub's Appearance > Lighting
 // tab. Master switch plus per-device controls (managed, mode, colour source,
-// brightness, speed, save, release), driven by `zenith-hubd lighting`. State comes
+// brightness, speed, save, release), driven by `asura-hubd lighting`. State comes
 // from `lighting state`; per-device mode lists from `lighting scan`.
 Column {
     id: root
@@ -27,7 +27,7 @@ Column {
     property string _sBuf: ""
     Process {
         id: stateProc
-        command: ["zenith-hubd", "lighting", "state"]
+        command: ["asura-hubd", "lighting", "state"]
         stdout: SplitParser { splitMarker: ""; onRead: function(d) { root._sBuf += d } }
         onExited: {
             try {
@@ -43,7 +43,7 @@ Column {
     property string _cBuf: ""
     Process {
         id: scanProc
-        command: ["zenith-hubd", "lighting", "scan"]
+        command: ["asura-hubd", "lighting", "scan"]
         stdout: SplitParser { splitMarker: ""; onRead: function(d) { root._cBuf += d } }
         onExited: {
             try {
@@ -70,10 +70,10 @@ Column {
         }
     }
 
-    function _enable(on) { Quickshell.execDetached(["zenith-hubd", "lighting", on ? "enable" : "disable"]); root._enabled = on; refreshTimer.restart() }
-    function _set(key, obj) { Quickshell.execDetached(["zenith-hubd", "lighting", "set", key, JSON.stringify(obj)]); refreshTimer.restart() }
-    function _save(key) { Quickshell.execDetached(["zenith-hubd", "lighting", "save", key]) }
-    function _release(key) { Quickshell.execDetached(["zenith-hubd", "lighting", "release", key]); refreshTimer.restart() }
+    function _enable(on) { Quickshell.execDetached(["asura-hubd", "lighting", on ? "enable" : "disable"]); root._enabled = on; refreshTimer.restart() }
+    function _set(key, obj) { Quickshell.execDetached(["asura-hubd", "lighting", "set", key, JSON.stringify(obj)]); refreshTimer.restart() }
+    function _save(key) { Quickshell.execDetached(["asura-hubd", "lighting", "save", key]) }
+    function _release(key) { Quickshell.execDetached(["asura-hubd", "lighting", "release", key]); refreshTimer.restart() }
 
     SettingsCard {
         colors: root.colors
@@ -101,7 +101,7 @@ Column {
             RowToggle {
                 colors: root.colors
                 title: I18n.tr("Managed")
-                description: I18n.tr("Let Zenith drive this device's colour.")
+                description: I18n.tr("Let Asura drive this device's colour.")
                 checked: !!modelData.managed
                 onToggle: function(v) { root._set(modelData.key, { managed: v }) }
             }

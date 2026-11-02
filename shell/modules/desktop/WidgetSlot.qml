@@ -11,7 +11,7 @@ import "Singletons"
 // desktop interaction: drag to move (grid-snapped, with a press bump),
 // right-click for the menu, and a per-widget lock that freezes everything.
 // dragging persists a "free" position to the widgets Config; the menu and
-// Zenith Settings write the same file. the grip takes the press over the
+// Asura Settings write the same file. the grip takes the press over the
 // desktop catcher beneath it, so a right-click on the widget opens its
 // menu, not the desktop one.
 Item {
@@ -151,7 +151,7 @@ Item {
     transformOrigin: Item.Center
     Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutExpo } }
 
-    // per-widget opacity (the menu and Zenith Settings write <widget>Opacity),
+    // per-widget opacity (the menu and Asura Settings write <widget>Opacity),
     // clamped so a widget can fade back but never vanish or lose its clicks.
     opacity: Math.max(0.2, Math.min(1, Config[slot.widget + "Opacity"]))
 

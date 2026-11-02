@@ -7,7 +7,7 @@ import "Singletons"
 
 // The INSTANT lane's right pane: pick a prebuilt cloud OS, choose burn vs keeper,
 // pick the toolset baked in on first boot, and press one key to get an ssh-able
-// machine with the zenith burn account, no installer. Reuses the create download
+// machine with the asura burn account, no installer. Reuses the create download
 // bar (instant streams the same phases). The sheet is the taxonomy: a disposable
 // sw cell, the toolset as a true multi, an extra-packages field.
 Item {
@@ -53,7 +53,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             width: 320
             wrapMode: Text.WordWrap
-            text: I18n.tr("Pick a system for an instant machine: prebuilt, no installer, logs in as zenith.")
+            text: I18n.tr("Pick a system for an instant machine: prebuilt, no installer, logs in as asura.")
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: 12
@@ -110,7 +110,7 @@ Item {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: (pane.os ? "~" + pane.os.size + " · " : "") + I18n.tr("logs in as zenith / zenith")
+                    text: (pane.os ? "~" + pane.os.size + " · " : "") + I18n.tr("logs in as asura / asura")
                     color: Tokens.inkFaint
                     font.family: Tokens.mono
                     font.pixelSize: 10
@@ -149,7 +149,7 @@ Item {
                         label: I18n.tr("Disposable")
                         value: pane.disposableRun ? I18n.tr("BURN") : I18n.tr("KEEP")
                         desc: pane.disposableRun
-                            ? I18n.tr("Every boot re-provisions the zenith account, factory-fresh.")
+                            ? I18n.tr("Every boot re-provisions the asura account, factory-fresh.")
                             : I18n.tr("A normal machine you can seal and reuse.")
                         Sw {
                             anchors.right: parent.right

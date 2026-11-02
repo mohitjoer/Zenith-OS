@@ -115,18 +115,18 @@ jobs:
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-      - name: Build and smoke-test zenith
+      - name: Build and smoke-test asura
         working-directory: desktop
         run: |
-          go build -o "$RUNNER_TEMP/zenith" ./cmd/zenith
+          go build -o "$RUNNER_TEMP/asura" ./cmd/asura
           for command in state windows; do
-            if ! output="$("$RUNNER_TEMP/zenith" "$command")"; then
-              echo "::error::zenith $command exited non-zero"; exit 1
+            if ! output="$("$RUNNER_TEMP/asura" "$command")"; then
+              echo "::error::asura $command exited non-zero"; exit 1
             fi
             if ! printf '%s' "$output" | python3 -c 'import json,sys; json.load(sys.stdin)'; then
-              echo "::error::zenith $command did not emit valid JSON"; exit 1
+              echo "::error::asura $command did not emit valid JSON"; exit 1
             fi
-            echo "zenith $command ok"
+            echo "asura $command ok"
           done
 
   # ==========================================================================
@@ -160,8 +160,8 @@ jobs:
           import re, sys, xml.etree.ElementTree as ET
           from pathlib import Path
           SVG = "{http://www.w3.org/2000/svg}"
-          LIGHT = Path("public/zenith-logo.svg")
-          DARK = Path("public/zenith-logo-on-dark.svg")
+          LIGHT = Path("public/asura-logo.svg")
+          DARK = Path("public/asura-logo-on-dark.svg")
           problems = []
           def parse(path):
             try:
@@ -274,7 +274,7 @@ jobs:
           stage="$RUNNER_TEMP/stage"
           rm -rf "$stage"; mkdir -p "$stage"
           dpkg-deb -x $RUNNER_TEMP/debs/*.deb "$stage"
-          sh release/check-boundary.sh "$stage" zenith
+          sh release/check-boundary.sh "$stage" asura
       - name: release/release_test.sh
         run: sh release/release_test.sh
       - name: release/doctor_test.sh
@@ -302,16 +302,16 @@ jobs:
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-      - name: zenith update, a user edit, and a rollback — for real
+      - name: asura update, a user edit, and a rollback — for real
         run: sh release/update_test.sh
         env:
-          ZENITH_M2_ALLOW_INSTALL: "1"
+          ASURA_M2_ALLOW_INSTALL: "1"
 
   # ==========================================================================
   # PART 10: Void Linux Live ISO build
   # ==========================================================================
   iso:
-    name: ISO — build Zenith OS (Void Linux)
+    name: ISO — build Asura OS (Void Linux)
     timeout-minutes: 60
     runs-on: ubuntu-24.04
     steps:
@@ -330,16 +330,16 @@ jobs:
             dosfstools mtools python3-yaml curl git tar xz-utils
       - name: Validate Void ISO builder
         run: sh installation/build-iso-void_test.sh
-      - name: Build Zenith OS Void ISO
-        run: sudo env "PATH=$PATH" installation/build-iso-void.sh "$RUNNER_TEMP/zenith-void-iso"
+      - name: Build Asura OS Void ISO
+        run: sudo env "PATH=$PATH" installation/build-iso-void.sh "$RUNNER_TEMP/asura-void-iso"
       - name: Verify ISO output
         run: |
           set -eu
-          sudo chmod -R a+rwX "$RUNNER_TEMP/zenith-void-iso"
-          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          sudo chmod -R a+rwX "$RUNNER_TEMP/asura-void-iso"
+          iso="$(find "$RUNNER_TEMP/asura-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           if [ -z "$iso" ]; then
             echo "::error::void-mklive completed without producing an ISO"
-            ls -laR "$RUNNER_TEMP/zenith-void-iso"
+            ls -laR "$RUNNER_TEMP/asura-void-iso"
             exit 1
           fi
           test -s "$iso"
@@ -352,7 +352,7 @@ jobs:
           SQUASH_MNT="$RUNNER_TEMP/squash-mount"
           ROOTFS_MNT="$RUNNER_TEMP/rootfs-mount"
           mkdir -p "$MNT" "$SQUASH_MNT" "$ROOTFS_MNT"
-          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          iso="$(find "$RUNNER_TEMP/asura-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
           sudo mount -o loop,ro "$iso" "$MNT"
           sudo mount -o loop,ro "$MNT/LiveOS/squashfs.img" "$SQUASH_MNT"
 
@@ -375,7 +375,7 @@ jobs:
             TARGET_ROOT="$ROOTFS_MNT"
           fi
 
-          echo "== Checking Hyprland, QuickShell, and Zenith binaries in rootfs ($TARGET_ROOT) =="
+          echo "== Checking Hyprland, QuickShell, and Asura binaries in rootfs ($TARGET_ROOT) =="
           failed=0
           check_binary() {
             bin="$1"
@@ -401,9 +401,9 @@ jobs:
           }
 
           check_binary "/usr/bin/Hyprland"
-          check_binary "/usr/bin/zenith"
-          check_binary "/usr/bin/zenith-shell"
-          check_binary "/usr/bin/zenith-sysd"
+          check_binary "/usr/bin/asura"
+          check_binary "/usr/bin/asura-shell"
+          check_binary "/usr/bin/asura-sysd"
           if [ -f "$TARGET_ROOT/usr/bin/quickshell" ]; then
             check_binary "/usr/bin/quickshell"
           fi
@@ -440,7 +440,7 @@ jobs:
           set -eu
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends qemu-system-x86 netpbm
-          iso="$(find "$RUNNER_TEMP/zenith-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
+          iso="$(find "$RUNNER_TEMP/asura-void-iso" -type f \( -name '*.iso' -o -name '*.hybrid.iso' \) -print -quit)"
 
           mkdir -p "$RUNNER_TEMP/qemu-test"
           SERIAL_LOG="$RUNNER_TEMP/qemu-test/serial.log"
@@ -472,7 +472,7 @@ jobs:
           echo "Waiting for boot sequence (~60-90s in software emulation)..."
           for i in $(seq 1 60); do
             sleep 2
-            if [ -f "$SERIAL_LOG" ] && grep -qaE "runit: enter stage: /etc/runit/2|zenith-os login:|turnstiled: Initializing" "$SERIAL_LOG"; then
+            if [ -f "$SERIAL_LOG" ] && grep -qaE "runit: enter stage: /etc/runit/2|asura-os login:|turnstiled: Initializing" "$SERIAL_LOG"; then
               echo "Detected Stage 2 init / desktop runtime in serial log at ~$((i * 2))s!"
               break
             fi
@@ -520,7 +520,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: zenith-boot-test-artifacts
+          name: asura-boot-test-artifacts
           path: |
             ${{ runner.temp }}/qemu-test/serial.log
             ${{ runner.temp }}/qemu-test/boot-screen.*
@@ -529,9 +529,9 @@ jobs:
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v6
         with:
-          name: zenith-os-beta-001
+          name: asura-os-beta-001
           path: |
-            ${{ runner.temp }}/zenith-void-iso/*.iso
-            ${{ runner.temp }}/zenith-void-iso/*.iso.sha256
+            ${{ runner.temp }}/asura-void-iso/*.iso
+            ${{ runner.temp }}/asura-void-iso/*.iso.sha256
           if-no-files-found: error
           retention-days: 7

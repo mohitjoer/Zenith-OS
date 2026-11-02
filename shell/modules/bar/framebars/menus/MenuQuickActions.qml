@@ -12,9 +12,9 @@ import "../../../../components"
 // menu; command actions run and close. Icons are 24px Material Symbols.
 //
 // Divergence recorded: the reference wraps Logout/Reboot/Shutdown in a
-// ConfirmationDialog first; Zenith fires them through the same immediate path its
+// ConfirmationDialog first; Asura fires them through the same immediate path its
 // bar power actions already use (runBarAction), so behaviour matches the rest of
-// the Zenith shell. A ConfirmationDialog (contract 16 sec 2.2) is the follow-up.
+// the Asura shell. A ConfirmationDialog (contract 16 sec 2.2) is the follow-up.
 Item {
     id: root
 
@@ -50,9 +50,9 @@ Item {
         switch (id) {
         case "airplane": Toggles.toggleWifi(); return;
         case "night-light": Toggles.toggleNight(); return;
-        case "color": Quickshell.execDetached(["zenith-cmd-color-picker"]); root.requestClose(); return;
-        case "settings": Quickshell.execDetached(["zenith-shell", "hub", "open"]); root.requestClose(); return;
-        case "lock": Quickshell.execDetached(["zenith-shell", "lock"]); root.requestClose(); return;
+        case "color": Quickshell.execDetached(["asura-cmd-color-picker"]); root.requestClose(); return;
+        case "settings": Quickshell.execDetached(["asura-shell", "hub", "open"]); root.requestClose(); return;
+        case "lock": Quickshell.execDetached(["asura-shell", "lock"]); root.requestClose(); return;
         case "logout": SessionActions.run("logout"); return;
         case "reboot": Quickshell.execDetached(["systemctl", "reboot"]); return;
         case "shutdown": Quickshell.execDetached(["systemctl", "poweroff"]); return;

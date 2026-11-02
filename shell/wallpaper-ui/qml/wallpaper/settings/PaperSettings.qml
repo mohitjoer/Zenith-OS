@@ -140,17 +140,17 @@ Column {
     SettingsCard {
         colors: root.colors
         title: I18n.tr("Live wallpapers")
-        subtitle: I18n.tr("How video wallpapers play: the default engine decodes a cached transcode through zenith-wallpaper-live; the in-shell engine decodes the clip through the shell.")
+        subtitle: I18n.tr("How video wallpapers play: the default engine decodes a cached transcode through asura-wallpaper-live; the in-shell engine decodes the clip through the shell.")
 
         SettingsRow {
             colors: root.colors
             title: I18n.tr("Video engine")
-            description: I18n.tr("zenith-wallpaper = the C player (cached transcode, low resources); in-shell = the shell's QtMultimedia player.")
+            description: I18n.tr("asura-wallpaper = the C player (cached transcode, low resources); in-shell = the shell's QtMultimedia player.")
             Row {
                 spacing: 4
                 Repeater {
                     model: [
-                        { key: "zenith-wallpaper",  label: "zenith-wallpaper" },
+                        { key: "asura-wallpaper",  label: "asura-wallpaper" },
                         { key: "in_shell", label: "in-shell" }
                     ]
                     FilterButton {

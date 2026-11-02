@@ -4,7 +4,7 @@ import qs.Ui
 import "Singletons"
 
 // The desktop spectrum: geometry and colour only. Motion eases cava into levels,
-// Zenith.Ui.SpectrumField draws them in one GPU pass, and this decides what the
+// Asura.Ui.SpectrumField draws them in one GPU pass, and this decides what the
 // wallpaper behind should make them look like. Eight ramp stops are lit slice by
 // slice across the region the look covers, so a spectrum crossing a bright sky
 // and a dark tree stays legible along its whole width.

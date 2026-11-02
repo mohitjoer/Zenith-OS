@@ -1,9 +1,9 @@
 #!/bin/sh
-# Build Zenith Linux Kernel with CachyOS / BORE patchset, 1000Hz, and Full Preempt
+# Build Asura Linux Kernel with CachyOS / BORE patchset, 1000Hz, and Full Preempt
 set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-DOTCONFIG="$REPO_ROOT/system/kernel/x86_64-dotconfig-zenith"
+DOTCONFIG="$REPO_ROOT/system/kernel/x86_64-dotconfig-asura"
 BUILD_DIR="${1:-$REPO_ROOT/build/kernel}"
 CONF_FILE="$REPO_ROOT/packaging/xbps/conf/xbps-v3.conf"
 

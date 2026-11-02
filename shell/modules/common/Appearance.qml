@@ -2,18 +2,18 @@ import QtQuick
 import Quickshell
 import qs
 
-// The vendored components' theme, drawn in Zenith's tokens.
+// The vendored components' theme, drawn in Asura's tokens.
 //
 // This is an overlay: it sits at upstream's path, under upstream's name, and
 // speaks upstream's property names — `m3colors.m3background`,
 // `colors.colLayer1`, `rounding.normal`, `font.pixelSize.small` — so a
-// vendored file that reads a colour reads Zenith's colour without being
+// vendored file that reads a colour reads Asura's colour without being
 // edited. That is the whole of the re-theme.
 //
 // Two things follow from that, and they are the reason this file is shaped
 // the way it is.
 //
-// First, every value here is a Zenith token. There is no wallpaper palette,
+// First, every value here is a Asura token. There is no wallpaper palette,
 // no quantiser, no Material colour scheme: the upstream file derives a
 // palette from the wallpaper with `ColorQuantizer`, and a derived palette is
 // a second theme that changes when the wallpaper does. This desktop is
@@ -119,7 +119,7 @@ Singleton {
         property color m3onSuccessContainer: Theme.inkPrimary
 
         // Terminal colours. The vendored tree carries an ANSI palette for a
-        // terminal widget Zenith does not adopt; it is mapped to the ink ramp
+        // terminal widget Asura does not adopt; it is mapped to the ink ramp
         // so that a terminal drawn with it would still be monochrome.
         property color term0: Theme.inkPrimary
         property color term1: Theme.error
@@ -278,7 +278,7 @@ Singleton {
             property string reading: Theme.fontFamily
             property string expressive: Theme.fontFamily
         }
-        // Zenith's faces are not variable fonts, so there are no axes to set.
+        // Asura's faces are not variable fonts, so there are no axes to set.
         property QtObject variableAxes: QtObject {
             property var main: ({})
             property var numbers: ({})
@@ -301,7 +301,7 @@ Singleton {
     // Motion.
     //
     // The curves are upstream's: they are the components' own easing, and a
-    // curve is a shape, not a colour or a corner. The durations are Zenith's,
+    // curve is a shape, not a colour or a corner. The durations are Asura's,
     // because the design system says how long a state change takes, and a
     // vendored animation is a state change.
     property QtObject animationCurves: QtObject {
@@ -445,7 +445,7 @@ Singleton {
     // These are sizes, not colours: upstream's components are laid out to
     // these numbers, and a bar that is 8 pixels tall because the token it
     // read did not exist is worse than a bar that is upstream's height. The
-    // two that Zenith's own design system pins — the bar's height and the
+    // two that Asura's own design system pins — the bar's height and the
     // body's type size — are the tokens, and the rest are upstream's.
     property QtObject sizes: QtObject {
         property real baseBarHeight: 40
@@ -475,7 +475,7 @@ Singleton {
         property real wallpaperSelectorItemPadding: 6
     }
 
-    // Panels are drawn with Zenith's own fill — an opaque surface with a
+    // Panels are drawn with Asura's own fill — an opaque surface with a
     // hairline — rather than by compositing a partially transparent panel
     // over the wallpaper. So nothing here is transparent, and the two
     // properties upstream's components read to ask "how transparent is this

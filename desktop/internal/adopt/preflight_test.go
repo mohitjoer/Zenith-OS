@@ -367,7 +367,7 @@ func TestAPTLockIsAWarningNotABlocker(t *testing.T) {
 	}
 
 	m = ready(t)
-	m.commands["dpkg --audit"] = "zenith: half-configured\n"
+	m.commands["dpkg --audit"] = "asura: half-configured\n"
 	if finding := findingNamed(m.check(t), "APT"); finding.Severity != Blocker {
 		t.Errorf("dpkg --audit output produced %q, want a blocker", finding.Detail)
 	}
@@ -485,7 +485,7 @@ func TestNeverWritePromises(t *testing.T) {
 		"/usr/share/gnome-shell/theme.css",
 		"/usr/share/wayland-sessions/gnome.desktop",
 		"/var/lib/dpkg/lock",
-		"/var/lib/dpkg/info/zenith.postinst",
+		"/var/lib/dpkg/info/asura.postinst",
 		// A full install writes this one; adoption does not. Adoption is not an
 		// installer, and putting a boot configuration on its never-write list is
 		// the point rather than an accident.
@@ -501,11 +501,11 @@ func TestNeverWritePromises(t *testing.T) {
 
 	// The paths adoption does own, and the one exception the design names.
 	for _, path := range []string{
-		"/usr/share/zenith/session/zenith-session",
-		"/etc/zenith/config.toml",
-		"/usr/share/wayland-sessions/zenith.desktop",
-		"/usr/share/xdg-desktop-portal/zenith-portals.conf",
-		"/etc/sddm.conf.d/10-zenith.conf",
+		"/usr/share/asura/session/asura-session",
+		"/etc/asura/config.toml",
+		"/usr/share/wayland-sessions/asura.desktop",
+		"/usr/share/xdg-desktop-portal/asura-portals.conf",
+		"/etc/sddm.conf.d/10-asura.conf",
 	} {
 		if prefix, blocked := ForbiddenWrite(path); blocked {
 			t.Errorf("ForbiddenWrite(%q) = %q; it is on the sanctioned list", path, prefix)

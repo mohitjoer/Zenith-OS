@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// QML view of the daemon `settings` topic (zenith/shell/ipc/settings.go). The
+// QML view of the daemon `settings` topic (asura/shell/ipc/settings.go). The
 // settings schema, its defaults, validation, clamping and migration for
 // shell.json live in the daemon, so the Hub never parses or writes that file:
 // `subscribe settings` streams the full settings tree as one JSON frame on
@@ -44,7 +44,7 @@ Singleton {
     // is kept.
     function modelsKey(key) { return !key || root.deadKeys.indexOf(key) < 0; }
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // Nested read by dotted path; undefined for any missing segment.
     function get(path) {

@@ -1,0 +1,279 @@
+#!/bin/sh
+# Asura session entry point.
+#
+# Packaged at /usr/share/asura/session/asura-session. It is a shell script
+# because it runs before anything else exists and it must be readable when the
+# disk is having a bad day.
+#
+# The exec at the end is what makes a failure safe: anything that goes wrong
+# before it exits with the compositor never started, and the display manager puts
+# the user back on the login screen. A broken session that exits before the
+# compositor is a safe failure mode by construction.
+
+set -eu
+
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/asura/session.log"
+mkdir -p "$(dirname "$LOG")"
+exec >>"$LOG" 2>&1
+
+echo "--- asura-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
+
+# Stop Plymouth boot splash so Hyprland has exclusive access to DRM master
+if command -v plymouth >/dev/null 2>&1; then
+    plymouth --quit 2>/dev/null || true
+    for _ in 1 2 3 4 5; do
+        plymouth --ping 2>/dev/null || break
+        sleep 0.1
+    done
+fi
+
+# The two desktop names are different strings and both are deliberate.
+# XDG_CURRENT_DESKTOP is what the portal dispatcher lower-cases to derive its
+# per-desktop configuration file name, so "Asura" finds "asura-portals.conf".
+# XDG_SESSION_DESKTOP is the lower-case name the login manager records.
+export XDG_SESSION_DESKTOP=asura
+export XDG_CURRENT_DESKTOP=Asura
+export DESKTOP_SESSION=asura
+export XDG_SESSION_TYPE=wayland
+
+# Seat management backend for Hyprland without root privileges:
+# Prefer seatd if /run/seatd.sock exists and is accessible, fallback to logind.
+if [ ! -S /run/seatd.sock ] && [ -d /etc/sv/seatd ]; then
+    for _ in 1 2 3 4 5; do
+        [ -S /run/seatd.sock ] && break
+        sleep 0.2
+    done
+fi
+if [ -w /run/seatd.sock ]; then
+    export LIBSEAT_BACKEND=seatd
+elif [ -S /run/seatd.sock ] && id -Gn 2>/dev/null | grep -qw _seatd; then
+    export LIBSEAT_BACKEND=seatd
+elif [ -d /run/systemd/seats ] || [ -d /run/elogind ] || pgrep -x elogind >/dev/null 2>&1; then
+    export LIBSEAT_BACKEND=logind
+else
+    export LIBSEAT_BACKEND="${LIBSEAT_BACKEND:-seatd}"
+fi
+export HYPRLAND_NO_SD_NOTIFY=1
+
+# Ensure XDG_RUNTIME_DIR is properly set and permissions are 0700
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+    mkdir -p "$XDG_RUNTIME_DIR"
+    chmod 0700 "$XDG_RUNTIME_DIR"
+fi
+
+# Ensure D-Bus user session socket is discoverable at $XDG_RUNTIME_DIR/bus
+if [ ! -S "$XDG_RUNTIME_DIR/bus" ]; then
+    for s in /tmp/dbus-*; do
+        if [ -S "$s" ]; then
+            ln -sf "$s" "$XDG_RUNTIME_DIR/bus"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            break
+        fi
+    done
+fi
+if [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+fi
+
+# Native Wayland dialogs everywhere, so scaling and theming are the shell's
+# problem and not the app's. Set unconditionally rather than inherited: a
+# GDK_BACKEND=x11 left in /etc/environment by a GNOME-era tweak would otherwise
+# give every GTK4 app an XWayland dialog at the wrong scale, and a GDK_BACKEND
+# left set at all is how the GNOME portal backend decides it is not on a real
+# GNOME session and silently drops interfaces.
+#
+# Similarly, unset stray global PRIME offload from /etc/environment so the desktop
+# session renders on the energy-efficient integrated GPU, letting the discrete
+# GPU enter dynamic sleep (RTD3).
+unset __NV_PRIME_RENDER_OFFLOAD
+unset DRI_PRIME
+export GDK_BACKEND=wayland
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM=wayland
+export QT_QPA_PLATFORMTHEME=gtk3
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
+# Cursor sizing and theming for the XWayland apps that do not read GTK.
+export XCURSOR_SIZE=24
+export XCURSOR_THEME=Adwaita
+
+# No hardware cursors.
+#
+# The proprietary NVIDIA driver draws the cursor itself on a wlroots
+# compositor, and the two disagree about where it is: the cursor lands a few
+# pixels from the pointer, or nowhere near it, and it is a crash on some
+# drivers. Software cursors are a little slower and are always in the right
+# place.
+#
+# Set unconditionally rather than only on a machine with an NVIDIA card,
+# because the condition is not the presence of the card but the presence of
+# the driver, and the driver is loaded by a service nobody checks before the
+# session starts.
+export WLR_NO_HARDWARE_CURSORS=1
+
+# Software renderer and scanout fallbacks for virtual machines (VirtualBox, QEMU)
+# and systems lacking hardware cursor planes or explicit sync modifiers.
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+export AQ_NO_MODIFIERS=1
+
+# If multiple DRM render devices exist, prioritize integrated GPU (Intel/AMD) over discrete NVIDIA
+if [ -z "${AQ_DRM_DEVICES:-}" ] && [ -e /dev/dri/card1 ] && [ -e /dev/dri/card0 ]; then
+    igpu=""
+    for card in /sys/class/drm/card[0-9]; do
+        driver=$(readlink -f "$card/device/driver" 2>/dev/null || true)
+        case "$driver" in
+            *i915*|*xe*|*amdgpu*)
+                igpu="/dev/dri/$(basename "$card")"
+                break
+                ;;
+        esac
+    done
+    if [ "$igpu" = "/dev/dri/card1" ]; then
+        export AQ_DRM_DEVICES="/dev/dri/card1:/dev/dri/card0"
+    elif [ "$igpu" = "/dev/dri/card0" ]; then
+        export AQ_DRM_DEVICES="/dev/dri/card0:/dev/dri/card1"
+    fi
+fi
+
+# Machine-level additions, then the user's overlay. Written as `if`, not as
+# `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
+# session before the compositor ever starts, which is a confusing way to fail.
+if [ -r /etc/asura/session/asura-session.env ]; then
+    . /etc/asura/session/asura-session.env
+fi
+if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/asura/session/asura-session.env" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/asura/session/asura-session.env"
+fi
+
+# Make dbus-activated user services and anything the compositor spawns see the
+# desktop identity, or apps probe for GNOME and get confused.
+#
+# The environment is published twice, to two different consumers.
+# systemctl --user import-environment reaches the per-user manager, so every unit
+# started from the manager inherits it. dbus-update-activation-environment
+# --systemd reaches the bus's activation environment, so a service activated on
+# demand inherits it. A backend that is D-Bus activated rather than started as a
+# unit sees nothing without the second one.
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
+fi
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY 2>/dev/null || \
+    dbus-update-activation-environment --all 2>/dev/null || true
+fi
+
+# The user's own compositor configuration.
+#
+# The packaged configuration sources it, and Hyprland treats a source that
+# resolves to nothing as a configuration error — the compositor refuses to
+# start rather than starting without the user's half. So the file has to exist
+# before the compositor reads it, and it is created here, empty, in the
+# user's own configuration directory.
+#
+# It is theirs: it is sourced after the packaged file, so it can override
+# anything and add anything, and nothing in the packaged tree is edited to
+# make room for it.
+#
+# The path is under $HOME and not under XDG_CONFIG_HOME, because the packaged
+# configuration names it with `~` and Hyprland expands nothing else. The
+# session's own environment file is read from XDG_CONFIG_HOME, which is the
+# right place for it and the one place the two differ.
+USER_HYPRLAND_DIR="$HOME/.config/asura/hyprland"
+USER_HYPRLAND_CONF="$USER_HYPRLAND_DIR/asura.conf"
+if [ ! -e "$USER_HYPRLAND_CONF" ]; then
+    mkdir -p "$USER_HYPRLAND_DIR"
+    cat > "$USER_HYPRLAND_CONF" <<'USERCONF'
+# Asura's compositor configuration — yours.
+#
+# This file is sourced after the packaged one, so anything here overrides it
+# and anything here is added to it. It was created empty when you first logged
+# in, because the compositor refuses to start when the file it is told to
+# source does not exist.
+USERCONF
+fi
+for user_cfg in monitors-auto.conf monitors-user.conf settings.conf rebinds.conf user.conf; do
+    [ -e "$USER_HYPRLAND_DIR/$user_cfg" ] || touch "$USER_HYPRLAND_DIR/$user_cfg"
+done
+
+# First-boot wallpaper seed: establish the current/background fallback symlink
+# pointing to the default wallpaper. Idempotent — only creates when absent,
+# never clobbers a user's choice (which replaces the symlink).
+USER_WALLPAPER_DIR="$HOME/.config/asura/current"
+USER_WALLPAPER_LINK="$USER_WALLPAPER_DIR/background"
+DEFAULT_WALLPAPER="/usr/share/asura/backgrounds/galaxy.png"
+if [ ! -e "$USER_WALLPAPER_LINK" ]; then
+    mkdir -p "$USER_WALLPAPER_DIR"
+    ln -sf "$DEFAULT_WALLPAPER" "$USER_WALLPAPER_LINK"
+fi
+
+echo "asura-session: env ok, starting Hyprland"
+
+# The compositor's configuration. Asura ships one — the keybinds are the only
+# place the keyboard is described — and the session is what points Hyprland at
+# it. A compositor started without it runs on Hyprland's own defaults, which
+# is a desktop with no keybindings at all: a launcher nobody can open and a
+# switcher nobody can drive.
+# Auto-detect virtual machine hypervisors and configure safe DRM/EGL defaults
+if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox"; then
+    echo "asura-session: VM hypervisor detected, enabling software rasterizer and safe modifiers"
+    export WLR_RENDERER_ALLOW_SOFTWARE=1
+    export AQ_NO_MODIFIERS=1
+    export WLR_NO_HARDWARE_CURSORS=1
+    export LIBGL_ALWAYS_SOFTWARE=1
+fi
+
+# Detect compositor executable: on Void Linux the packaged binary is Hyprland,
+# while some distributions package a start-hyprland watchdog wrapper.
+COMPOSITOR="${ASURA_COMPOSITOR:-}"
+if [ -z "$COMPOSITOR" ]; then
+    if command -v start-hyprland >/dev/null 2>&1; then
+        COMPOSITOR="start-hyprland"
+    elif command -v Hyprland >/dev/null 2>&1; then
+        COMPOSITOR="Hyprland"
+    elif command -v hyprland >/dev/null 2>&1; then
+        COMPOSITOR="hyprland"
+    elif [ -x /usr/bin/Hyprland ]; then
+        COMPOSITOR="/usr/bin/Hyprland"
+    elif [ -x /usr/local/bin/Hyprland ]; then
+        COMPOSITOR="/usr/local/bin/Hyprland"
+    fi
+fi
+
+if [ -z "$COMPOSITOR" ] || ( ! command -v "$COMPOSITOR" >/dev/null 2>&1 && [ ! -x "$COMPOSITOR" ] ); then
+    echo "asura-session: error: Hyprland compositor binary not found on system!" >&2
+    exit 127
+fi
+
+HYPR_CONF="${ASURA_HYPRLAND_CONFIG:-/usr/share/asura/hyprland/hyprland.conf}"
+
+# Launch Hyprland with automatic fallback if hardware EGL/DRM fails on VM
+if echo "$COMPOSITOR" | grep -q "start-hyprland"; then
+    exec "$COMPOSITOR" -- -c "$HYPR_CONF" "$@"
+else
+    # Run compositor, falling back to software rasterizer if first run exits immediately
+    START_TIME=$(date +%s)
+    "$COMPOSITOR" -c "$HYPR_CONF" "$@" || RC=$?
+    RC=${RC:-0}
+    END_TIME=$(date +%s)
+    
+    if [ "$RC" -ne 0 ]; then
+        echo "asura-session: compositor exited ($RC)" >&2
+        if [ $((END_TIME - START_TIME)) -le 4 ] && [ -z "${ASURA_RETRY_DONE:-}" ]; then
+            echo "asura-session: compositor exited quickly; attempting software llvmpipe/pixman fallback..." >&2
+            export ASURA_RETRY_DONE=1
+            export LIBGL_ALWAYS_SOFTWARE=1
+            export WLR_RENDERER_ALLOW_SOFTWARE=1
+            export AQ_NO_MODIFIERS=1
+            export WLR_NO_HARDWARE_CURSORS=1
+            exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
+        fi
+    fi
+    exit "$RC"
+fi

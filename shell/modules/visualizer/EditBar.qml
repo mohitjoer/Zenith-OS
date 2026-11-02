@@ -8,7 +8,7 @@ import "Singletons"
 // where you can see it rather than in the Hub with the desktop behind a window.
 //
 // Fixed to an edge of the screen, never to the box: a readout of the thing being
-// moved must not move with it. Controls come from Zenith.Ui and metrics from Tokens;
+// moved must not move with it. Controls come from Asura.Ui and metrics from Tokens;
 // the tray is the Hub's gallery with the Hub's painter, so one catalogue draws what
 // the eleven looks look like.
 Item {

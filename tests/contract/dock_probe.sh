@@ -1,5 +1,5 @@
 #!/bin/sh
-# The dock is built with something in it on a stock Zenith box.
+# The dock is built with something in it on a stock Asura box.
 #
 #   dock_probe.sh [TREE]    TREE is a shell tree (default shell/); a copy is probed
 #

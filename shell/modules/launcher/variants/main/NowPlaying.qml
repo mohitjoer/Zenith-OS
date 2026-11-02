@@ -24,7 +24,7 @@ Item {
 
     readonly property bool hasPlayer: player !== null && player !== undefined
     readonly property bool playing: hasPlayer && player.isPlaying
-    // The zenith radio wears a different coat: ON AIR eyebrow, station name, a
+    // The asura radio wears a different coat: ON AIR eyebrow, station name, a
     // LIVE pulse where a track would show elapsed/total, and no seekbar - a
     // broadcast has no position to scrub.
     readonly property bool radio: hasPlayer && RadioLib.isRadioPlayer(player.dbusName, player.trackTitle)

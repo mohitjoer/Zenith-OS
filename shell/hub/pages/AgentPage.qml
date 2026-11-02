@@ -7,12 +7,12 @@ import Quickshell.Io
 import qs.Ui
 import qs.Ui.Singletons
 
-// Zenith Agent (ADVANCED). The optional local assistant: a machine-generated
+// Asura Agent (ADVANCED). The optional local assistant: a machine-generated
 // vault, memory, skills, agents and chat. The agent engine that answers is the
 // user's own, named by one config key (engine.command), and this page says plainly
 // when there is none. It keeps the master switch and the dashboard link (the web
-// dashboard at 127.0.0.1:3600, served from desktop/cmd/zenith-agent/web). Live
-// state comes from `zenith-agent status --json`. The assistant is off until you
+// dashboard at 127.0.0.1:3600, served from desktop/cmd/asura-agent/web). Live
+// state comes from `asura-agent status --json`. The assistant is off until you
 // switch it on.
 Item {
     id: pg
@@ -50,7 +50,7 @@ Item {
     property bool daemonEnabled: false
     property bool running: false
     // the port the daemon reports, not a literal: a user who changed it in
-    // ~/.config/zenith/agent/config.json still gets a link that resolves.
+    // ~/.config/asura/agent/config.json still gets a link that resolves.
     property int port: 3600
     property bool vaultExists: false
     property int vaultFiles: 0
@@ -61,11 +61,11 @@ Item {
     property string engineCommand: ""
     property string engineReason: ""
     property string engineKey: "engine.command"
-    property string engineConfig: "~/.config/zenith/agent/config.json"
+    property string engineConfig: "~/.config/asura/agent/config.json"
     property int agentsPresent: 0
     property int agentsWired: 0
     // manifest: the full agent surface (paths + agents), from
-    // `zenith-agent paths --json`. Drives the Agents and Connect sections.
+    // `asura-agent paths --json`. Drives the Agents and Connect sections.
     property var agentList: []
     property string skillPath: ""
     property string prowlPath: ""
@@ -80,9 +80,9 @@ Item {
 
     Process {
         id: statusProc
-        // sh-wrapped so a missing zenith-agent still closes stdout and fires
+        // sh-wrapped so a missing asura-agent still closes stdout and fires
         // onStreamFinished; empty/unparseable output reads as "not installed".
-        command: ["sh", "-c", "zenith-agent status --json"]
+        command: ["sh", "-c", "asura-agent status --json"]
         stderr: StdioCollector {}
         stdout: StdioCollector {
             onStreamFinished: {
@@ -129,7 +129,7 @@ Item {
     Process { id: disableProc; onExited: pg.refresh() }
     function setEnabled(on) {
         var p = on ? enableProc : disableProc;
-        p.command = ["zenith-agent", on ? "enable" : "disable"];
+        p.command = ["asura-agent", on ? "enable" : "disable"];
         p.running = true;
     }
 
@@ -137,7 +137,7 @@ Item {
     // user to a browser error they read as a 404: the port was hardcoded here
     // while the daemon reads it from its own config, and the button opened the
     // URL even with nothing listening. Take the port from `status --json` and
-    // start the daemon first when it is down; `zenith-agent serve` returns once
+    // start the daemon first when it is down; `asura-agent serve` returns once
     // the socket is up, so the browser never races it.
     function openDashboard() {
         var url = "http://127.0.0.1:" + pg.port;
@@ -146,9 +146,9 @@ Item {
             return;
         }
         openProc.command = ["sh", "-c",
-            "zenith-agent serve --if-enabled >/dev/null 2>&1 & "
+            "asura-agent serve --if-enabled >/dev/null 2>&1 & "
             + "for i in 1 2 3 4 5 6 7 8 9 10; do "
-            + "zenith-agent status --json 2>/dev/null | grep -q '\"running\":true' && break; sleep 0.3; done; "
+            + "asura-agent status --json 2>/dev/null | grep -q '\"running\":true' && break; sleep 0.3; done; "
             + "xdg-open " + url];
         openProc.running = true;
     }
@@ -158,7 +158,7 @@ Item {
     // leaves the sections empty rather than erroring.
     Process {
         id: manifestProc
-        command: ["sh", "-c", "zenith-agent paths --json"]
+        command: ["sh", "-c", "asura-agent paths --json"]
         stderr: StdioCollector {}
         stdout: StdioCollector {
             onStreamFinished: {
@@ -173,12 +173,12 @@ Item {
         }
     }
     Process { id: wireProc; onExited: pg.refresh() }
-    // Wiring drops the pointer + the zenith skill + prowl's skills into an
+    // Wiring drops the pointer + the asura skill + prowl's skills into an
     // agent (or every present one).
-    function wireAgent(id) { wireProc.command = ["zenith-agent", "wire", id]; wireProc.running = true; }
-    function wireAll() { wireProc.command = ["zenith-agent", "wire"]; wireProc.running = true; }
+    function wireAgent(id) { wireProc.command = ["asura-agent", "wire", id]; wireProc.running = true; }
+    function wireAll() { wireProc.command = ["asura-agent", "wire"]; wireProc.running = true; }
     // Copy the paste snippet for an agent the daemon does not wire directly.
-    function copySnippet() { Quickshell.execDetached(["sh", "-c", "zenith-agent paths --snippet | wl-copy"]); }
+    function copySnippet() { Quickshell.execDetached(["sh", "-c", "asura-agent paths --snippet | wl-copy"]); }
     // ── reusable poster parts ────────────────────────────────────────────────
 
     // a stamped-ink status chip: hairline box, tracked mono caps, tinted.
@@ -454,7 +454,7 @@ Item {
                     anchors { left: parent.left; bottom: parent.bottom; leftMargin: Tokens.s5; bottomMargin: Tokens.s4 }
                     spacing: 3
                     Text {
-                        text: I18n.tr("ZENITH AGENT"); color: hx.ink; font.family: pg.fDisplay
+                        text: I18n.tr("ASURA AGENT"); color: hx.ink; font.family: pg.fDisplay
                         font.pixelSize: Math.round(Math.min(pg.bodyW * 0.05, 40))
                     }
                     Row {
@@ -520,7 +520,7 @@ Item {
                             text: pg.installed
                                 ? (pg.running ? I18n.tr("Running \u00b7 127.0.0.1:%1").arg(pg.port)
                                    : (pg.daemonEnabled ? I18n.tr("Enabled \u00b7 starting\u2026") : I18n.tr("Off \u00b7 switch on to start it with the desktop")))
-                                : I18n.tr("Not installed \u00b7 install zenith-agent")
+                                : I18n.tr("Not installed \u00b7 install asura-agent")
                             color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 11; elide: Text.ElideRight
                         }
                     }
@@ -621,7 +621,7 @@ Item {
                 Head { kanji: "\u4e94\u4eba\u8846"; title: I18n.tr("YOUR AGENTS") }
                 Text {
                     width: parent.width
-                    text: I18n.tr("Wire any coding agent to the same living map of this machine. One click drops a pointer into its instructions, links the zenith skill, and installs prowl's code-intelligence skill.")
+                    text: I18n.tr("Wire any coding agent to the same living map of this machine. One click drops a pointer into its instructions, links the asura skill, and installs prowl's code-intelligence skill.")
                     color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.4
                 }
                 Column {
@@ -697,9 +697,9 @@ Item {
                 width: parent.width
                 spacing: Tokens.s3
                 Head { kanji: "\u4f8b"; title: I18n.tr("TRY") }
-                TryRow { cmd: "zenith-agent status"; note: I18n.tr("the daemon, the engine and the vault at a glance") }
-                TryRow { cmd: "zenith-agent setup"; note: I18n.tr("where the engine is set, and how") }
-                TryRow { cmd: "zenith-agent paths"; note: I18n.tr("every path an agent can read") }
+                TryRow { cmd: "asura-agent status"; note: I18n.tr("the daemon, the engine and the vault at a glance") }
+                TryRow { cmd: "asura-agent setup"; note: I18n.tr("where the engine is set, and how") }
+                TryRow { cmd: "asura-agent paths"; note: I18n.tr("every path an agent can read") }
                 TryRow { cmd: "prowl overview"; note: I18n.tr("code intelligence on any repo") }
             }
 

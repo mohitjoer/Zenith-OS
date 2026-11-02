@@ -9,7 +9,7 @@ import qs.Ui.Singletons
 // target and a mode, take the shot and be done. The delay / save choices persist
 // (capture.json) so the card remembers them across sessions, shared across every
 // daemon that reads this singleton. The annotating editor is a separate tool,
-// zenith-shot, bound to its own keys.
+// asura-shot, bound to its own keys.
 //
 // Screen RECORDING is deliberately NOT owned here. The card's record zone drives
 // the existing Recorder singleton (gpu-screen-recorder with a wf-recorder
@@ -19,7 +19,7 @@ import qs.Ui.Singletons
 //
 // Divergence: the capture backend shells out to grim + wl-copy rather than a
 // bespoke zwlr_screencopy_v1 client -- grim speaks exactly that protocol, and
-// Zenith already shells out to wl-copy / wf-recorder for the same reasons.
+// Asura already shells out to wl-copy / wf-recorder for the same reasons.
 Singleton {
     id: root
 
@@ -42,8 +42,8 @@ Singleton {
     property var _recordAudio: []          // extra Recorder args for a targeted record
     property var _pending: null            // { flag, val } grim target for the pending shot
 
-    // Zenith owns its screenshot location; the filename pattern is the reference
-    // UTC stamp. XDG_PICTURES_DIR honoured, else ~/Pictures, matching zenith-shot.
+    // Asura owns its screenshot location; the filename pattern is the reference
+    // UTC stamp. XDG_PICTURES_DIR honoured, else ~/Pictures, matching asura-shot.
     readonly property string shotsDir: (Quickshell.env("XDG_PICTURES_DIR") || (Quickshell.env("HOME") + "/Pictures")) + "/Screenshots"
 
     // Persisted card options, shared across daemons and surviving a restart. Same
@@ -51,7 +51,7 @@ Singleton {
     // on a real first run so a slow load never clobbers a present file.
     FileView {
         id: prefsFile
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith/capture.json"
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura/capture.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -135,7 +135,7 @@ Singleton {
         onTriggered: root._run()
     }
 
-    // UTC capture stamp, matching zenith-shot's filename pattern.
+    // UTC capture stamp, matching asura-shot's filename pattern.
     function _stamp() {
         var d = new Date();
         function p(n) { return (n < 10 ? "0" : "") + n; }
@@ -151,7 +151,7 @@ Singleton {
         var saveToFolder = root._save !== "clipboard";
         root._outPath = saveToFolder
             ? (root.shotsDir + "/" + root._stamp() + "_screenshot.png")
-            : "/tmp/zenith-shot-clipboard.png";
+            : "/tmp/asura-shot-clipboard.png";
         // Detached so wl-copy's clipboard daemon outlives this call: a managed
         // Process reaps its child tree on exit, which kills that daemon and the
         // selection vanishes even though grim's file is written. grim, the
@@ -162,19 +162,19 @@ Singleton {
             'FLAG="$1"; VAL="$2"; OUT="$3"; MODE="$4"; CLIP="$5"',
             'mkdir -p "$(dirname "$OUT")" 2>/dev/null || true',
             'if [ -n "$FLAG" ]; then grim "$FLAG" "$VAL" "$OUT"; else grim "$OUT"; fi || {',
-            '  notify-send -a zenith "Screenshots need grim" "Install it with: sudo apt install grim" >/dev/null 2>&1',
+            '  notify-send -a asura "Screenshots need grim" "Install it with: sudo apt install grim" >/dev/null 2>&1',
             '  exit 0',
             '}',
-            'if [ -n "$CLIP" ] && ! { zenith-shell clip-copy image/png "$OUT" || wl-copy --type image/png < "$OUT"; } >/dev/null 2>&1; then',
-            '  notify-send -a zenith "Screenshot not copied" "Install wl-clipboard: sudo apt install wl-clipboard" >/dev/null 2>&1',
+            'if [ -n "$CLIP" ] && ! { asura-shell clip-copy image/png "$OUT" || wl-copy --type image/png < "$OUT"; } >/dev/null 2>&1; then',
+            '  notify-send -a asura "Screenshot not copied" "Install wl-clipboard: sudo apt install wl-clipboard" >/dev/null 2>&1',
             '  [ "$MODE" = clipboard ] && exit 0',
             '  MODE=file',
             'fi',
-            'zenith-shell sound shutter >/dev/null 2>&1 || true',
+            'asura-shell sound shutter >/dev/null 2>&1 || true',
             'case "$MODE" in',
-            'clipboard) notify-send -a zenith "Screenshot copied to clipboard" >/dev/null 2>&1 || true ;;',
-            'file) notify-send -a zenith "Screenshot saved" "Saved to $OUT" >/dev/null 2>&1 || true ;;',
-            '*) notify-send -a zenith "Screenshot saved & copied" "Saved to $OUT" >/dev/null 2>&1 || true ;;',
+            'clipboard) notify-send -a asura "Screenshot copied to clipboard" >/dev/null 2>&1 || true ;;',
+            'file) notify-send -a asura "Screenshot saved" "Saved to $OUT" >/dev/null 2>&1 || true ;;',
+            '*) notify-send -a asura "Screenshot saved & copied" "Saved to $OUT" >/dev/null 2>&1 || true ;;',
             'esac'
         ].join("\n");
         Spawn.run(["sh", "-c", script, "sh",

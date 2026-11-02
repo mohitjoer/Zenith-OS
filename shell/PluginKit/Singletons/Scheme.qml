@@ -5,9 +5,9 @@ import Quickshell.Io
 import qs
 
 // Thin reader of the daemon palette for the plugin kit. The theme daemon is the
-// sole author of colour in Zenith: a fixed named theme publishes its palette into
+// sole author of colour in Asura: a fixed named theme publishes its palette into
 // shell.json's themePalette key, and follow-the-wallpaper mode writes the live
-// palette to ~/.cache/zenith/colors.json. This resolves each role the pill's
+// palette to ~/.cache/asura/colors.json. This resolves each role the pill's
 // way -- a named scheme wins, then the live wallpaper palette, then the compiled
 // default -- so a plugin's card, ink and accent retint on ANY scheme change
 // (static named theme or wallpaper-follow) with no colour math of its own.
@@ -99,7 +99,7 @@ Singleton {
 
     FileView {
         id: wallFile
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/colors.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -108,7 +108,7 @@ Singleton {
     }
     FileView {
         id: shellFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -117,7 +117,7 @@ Singleton {
     }
     FileView {
         id: themeFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

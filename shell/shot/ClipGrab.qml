@@ -39,7 +39,7 @@ Item {
         var handle = function (result) {
             var ok = false;
             try { ok = result ? result.saveToFile(path) : false; }
-            catch (e) { console.log("zenith-shot: saveToFile failed: " + e); }
+            catch (e) { console.log("asura-shot: saveToFile failed: " + e); }
             if (ok) { if (cb) cb(true); return; }
             if (n < clip.retries) { clip.schedule(path, cb, targetSize, n + 1); return; }
             if (cb) cb(false);

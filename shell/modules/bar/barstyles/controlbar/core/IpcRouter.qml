@@ -90,7 +90,7 @@ Item {
     }
 
     IpcHandler {
-        target: "zenith.system-update"
+        target: "asura.system-update"
         function refresh(): void { router.systemRefresh() }
     }
 

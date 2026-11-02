@@ -4,13 +4,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The one place Zenith's look is defined. Everything that draws imports this;
+// The one place Asura's look is defined. Everything that draws imports this;
 // nothing hardcodes a hex, a size or a duration.
 //
 // Colour resolves live from the daemon palette the same way the pill's Theme
 // does: a fixed named colour scheme (shell.json themePalette) wins, then the
-    // live wallpaper palette (~/.cache/zenith/colors.json Material roles), then the
-// compiled signature default. So every Zenith app (the Hub, Ryowalls, ...)
+    // live wallpaper palette (~/.cache/asura/colors.json Material roles), then the
+// compiled signature default. So every Asura app (the Hub, Ryowalls, ...)
 // retints on ANY scheme change, a named theme or a wallpaper switch, with no
 // colour math of its own. The kit's role names are kept; only their source moved
 // onto the Material roles.
@@ -329,7 +329,7 @@ Singleton {
 
     FileView {
         id: themeFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -338,7 +338,7 @@ Singleton {
     }
     FileView {
         id: shellFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -347,7 +347,7 @@ Singleton {
     }
     FileView {
         id: paletteFile
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/colors.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

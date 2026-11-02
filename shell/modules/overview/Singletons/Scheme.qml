@@ -6,9 +6,9 @@ import Quickshell.Io
 /**
  * The live palette, mirrored for the overview surface the same way the
  * pill and launcher mirror it (each qs config has its own singleton root). Used
- * only when Match wallpaper is on. matugen rewrites ~/.cache/zenith/colors.json
+ * only when Match wallpaper is on. matugen rewrites ~/.cache/asura/colors.json
  * on every wallpaper change; this watches it so the overview's fill and accent
- * track whatever is on screen. Defaults are the Zenith brand palette so it looks
+ * track whatever is on screen. Defaults are the Asura brand palette so it looks
  * right before the first matugen run.
  */
 Singleton {
@@ -71,7 +71,7 @@ Singleton {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/colors.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

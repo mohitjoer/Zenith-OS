@@ -92,7 +92,7 @@ Item {
 
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config"))
-            + "/zenith/plugins.json"
+            + "/asura/plugins.json"
         watchChanges: true
         printErrors: false
         onFileChanged: root.reload()
@@ -101,7 +101,7 @@ Item {
     // A store install/remove bumps the revision; re-scan so a freshly installed
     // bar plugin appears without a shell restart.
     FileView {
-        path: root._stateHome + "/zenith/store/revision.json"
+        path: root._stateHome + "/asura/store/revision.json"
         watchChanges: true
         atomicWrites: true
         printErrors: false

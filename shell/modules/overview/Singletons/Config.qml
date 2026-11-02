@@ -12,12 +12,12 @@ Singleton {
     property alias fontFamily:     adapter.fontFamily
     property alias fontScale:      adapter.fontScale
 
-    // brand: the desktop's mark + name, user-overridable from Zenith Settings ->
+    // brand: the desktop's mark + name, user-overridable from Asura Settings ->
     // Shell -> Global. a small cross-cutting identity master (like theme.json).
     // markText is the glyph/short-text seal (default 天); markImage an optional
     // image path that wins over the text; markTint recolours a single-colour
-    // image to the accent; name is the wordmark ("Zenith") shown in chrome copy.
-    // Zenith's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
+    // image to the accent; name is the wordmark ("Asura") shown in chrome copy.
+    // Asura's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
     property alias markText:  brandAdapter.markText
     property alias markImage: brandAdapter.markImage
     property alias markTint:  brandAdapter.markTint
@@ -25,7 +25,7 @@ Singleton {
 
     // Current wallpaper path, so the workspace cells can render the real desktop
     // background behind their window previews. The daemon writes the absolute
-    // path (+ newline) to ~/.local/state/zenith-wallpaper on every change; watch
+    // path (+ newline) to ~/.local/state/asura-wallpaper on every change; watch
     // it and expose a file:// url (empty until it resolves).
     // The workspace cells render this as a still Image backdrop, so a live (video)
     // wallpaper has no frame to decode: feeding its path to Image just logs
@@ -41,7 +41,7 @@ Singleton {
     }
     FileView {
         id: wallFile
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith-wallpaper"
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura-wallpaper"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -49,7 +49,7 @@ Singleton {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -64,7 +64,7 @@ Singleton {
     // The colour-source master (single source shared with the daemon, window
     // borders, and shell chrome): true = follow the wallpaper palette.
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -76,7 +76,7 @@ Singleton {
     // Hub's Shell -> Global editor. read-only here; the always-on pill seeds it.
     FileView {
         id: brandFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/brand.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/brand.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -86,7 +86,7 @@ Singleton {
             property string markText: "天"
             property string markImage: ""
             property bool markTint: true
-            property string name: "Zenith"
+            property string name: "Asura"
         }
     }
 }

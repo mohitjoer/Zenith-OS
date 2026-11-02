@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Ui.Singletons
 
-// What the curtain shows: the Zenith mark by default, or the still, animated
+// What the curtain shows: the Asura mark by default, or the still, animated
 // image or muted video the user chose on the Hub's Reload cover page.
 //
 // This file is also the Hub's live preview of that page, loaded into a frame
@@ -82,8 +82,8 @@ Item {
     // source, then lettering. The SVG is the one copy of the mark, so it is not
     // duplicated into this directory where it could stop matching the original.
     readonly property var markSources: [
-        "file:///usr/share/zenith/branding/zenith-logo-on-dark.svg",
-        Qt.resolvedUrl("../../public/zenith-logo-on-dark.svg")
+        "file:///usr/share/asura/branding/asura-logo-on-dark.svg",
+        Qt.resolvedUrl("../../public/asura-logo-on-dark.svg")
     ]
     property int markTry: 0
     readonly property bool markLettering: root.markTry >= root.markSources.length
@@ -108,7 +108,7 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: root.showingDefault && root.markLettering
-        text: "ZENITH"
+        text: "ASURA"
         color: Tokens.keycapOnDark
         font.family: Tokens.ui
         font.weight: Font.DemiBold

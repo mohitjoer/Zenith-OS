@@ -7,7 +7,7 @@ import "calc.js" as Calc
 import "../requeststate.js" as RequestState
 import ".."
 
-// Calculator provider: evaluates the query with zenith-cmd-calc (qalc, or its own
+// Calculator provider: evaluates the query with asura-cmd-calc (qalc, or its own
 // fallback when qalc is absent). Routed by the "=" prefix,
 // and offered in the default fan-out when the query looks numeric. qalc runs
 // async, so query() returns the cached row for the current text and starts a
@@ -136,7 +136,7 @@ Provider {
 
     Process {
         id: availProc
-        command: ["sh", "-c", "command -v zenith-cmd-calc >/dev/null 2>&1"]
+        command: ["sh", "-c", "command -v asura-cmd-calc >/dev/null 2>&1"]
         onExited: (code) => { if (code === 0) Dispatcher.register(calc); }
     }
 
@@ -147,7 +147,7 @@ Provider {
         property bool inFlight: false
         property bool didStart: false
         property string out: ""
-        command: ["zenith-cmd-calc", expr]
+        command: ["asura-cmd-calc", expr]
         stdout: SplitParser {
             onRead: data => proc.out += data + "\n"
         }

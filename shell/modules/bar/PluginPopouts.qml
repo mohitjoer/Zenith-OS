@@ -56,7 +56,7 @@ Item {
     readonly property string _script: Quickshell.shellPath("plugins/discover.sh")
     readonly property string _stateHome: Quickshell.env("XDG_STATE_HOME")
         || (Quickshell.env("HOME") + "/.local/state")
-    readonly property string _revision: root._stateHome + "/zenith/store/revision.json"
+    readonly property string _revision: root._stateHome + "/asura/store/revision.json"
 
     function reload() { discoverProc.running = false; discoverProc.running = true; }
     function syncPlugins(all) {
@@ -91,7 +91,7 @@ Item {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/plugins.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/plugins.json"
         watchChanges: true
         printErrors: false
         onFileChanged: root.reload()

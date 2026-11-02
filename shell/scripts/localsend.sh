@@ -1,5 +1,5 @@
 #!/bin/bash
-# LocalSend helper for the Zenith shell file stash: LAN device discovery and send.
+# LocalSend helper for the Asura shell file stash: LAN device discovery and send.
 # Usage: localsend.sh discover | send <file> <ip> | send-all <dir> <ip>
 set -u
 
@@ -11,11 +11,11 @@ do_send() {
   [ -n "$TARGET" ] || return 1
   local PORT=53317 FILENAME FILESIZE FILETYPE FILE_ID FP_FILE FINGERPRINT BODY RESP SESSION TOKEN
   FILENAME=$(basename "$FILE"); FILESIZE=$(stat -c%s "$FILE"); FILETYPE=$(file -b --mime-type "$FILE"); FILE_ID="qs_$(date +%s%N | md5sum | head -c8)"
-  FP_FILE="$HOME/.cache/zenith_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"; FINGERPRINT=$(cat "$FP_FILE")
+  FP_FILE="$HOME/.cache/asura_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"; FINGERPRINT=$(cat "$FP_FILE")
   BODY=$(python3 - "$FILENAME" "$FILESIZE" "$FILETYPE" "$FILE_ID" "$FINGERPRINT" "$PORT" <<'PYEOF'
 import json,sys
 fn,sz,ft,fid,fp,port=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4],sys.argv[5],int(sys.argv[6])
-print(json.dumps({"info":{"alias":"Zenith Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":fp,"port":port,"protocol":"https","download":False},"files":{fid:{"id":fid,"fileName":fn,"size":sz,"fileType":ft,"sha256":None,"preview":None,"metadata":None}}}))
+print(json.dumps({"info":{"alias":"Asura Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":fp,"port":port,"protocol":"https","download":False},"files":{fid:{"id":fid,"fileName":fn,"size":sz,"fileType":ft,"sha256":None,"preview":None,"metadata":None}}}))
 PYEOF
 )
   RESP=$(curl -sk --max-time 30 -X POST "https://$TARGET:$PORT/api/localsend/v2/prepare-upload" -H "Content-Type: application/json" -d "$BODY")
@@ -48,7 +48,7 @@ rx.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,mreq); rx.settimeout(0.
 tx=socket.socket(socket.AF_INET,socket.SOCK_DGRAM,socket.IPPROTO_UDP)
 tx.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL,4)
 if lan_ip: tx.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_IF,socket.inet_aton(lan_ip))
-announce=json.dumps({"alias":"Zenith Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":"zenith_stash_discover","port":PORT,"protocol":"https","download":False,"announce":True}).encode()
+announce=json.dumps({"alias":"Asura Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":"asura_stash_discover","port":PORT,"protocol":"https","download":False,"announce":True}).encode()
 tx.sendto(announce,(MCAST,PORT)); deadline=time.time()+2.0; sent_second=False
 while time.time()<deadline:
     if not sent_second and time.time()>deadline-1.0:
@@ -58,7 +58,7 @@ while time.time()<deadline:
         if ip in local_ips: continue
         try: info=json.loads(data.decode())
         except Exception: continue
-        if info.get('fingerprint')=='zenith_stash_discover': continue
+        if info.get('fingerprint')=='asura_stash_discover': continue
         emit(ip,info.get('alias','Unknown'))
     except socket.timeout: pass
 if not lan_ip:
@@ -105,18 +105,18 @@ receive)
   # Run a LocalSend v2 receiver: announce over multicast so other LocalSend apps
   # list us, then hold each incoming transfer at prepare-upload until the shell
   # sends back a verdict on stdin (ACCEPT<tab>sid / DECLINE<tab>sid; auto-declines
-  # after ZENITH_LS_ACCEPT_TIMEOUT seconds, default 60). Accepted files save into
+  # after ASURA_LS_ACCEPT_TIMEOUT seconds, default 60). Accepted files save into
   # the stash. Status lines the shell parses (READY/OFFER/SAVED/DECLINED/ERROR)
   # stream out tab-separated and flushed.
-  ALIAS="${2:-Zenith Stash}"
+  ALIAS="${2:-Asura Stash}"
   STASH="${STASH_DIR:-${XDG_DOWNLOAD_DIR:-$HOME/Downloads}/Stash}"
   mkdir -p "$STASH"
-  CERT="$HOME/.cache/zenith_localsend_cert.pem"; KEY="$HOME/.cache/zenith_localsend_key.pem"
+  CERT="$HOME/.cache/asura_localsend_cert.pem"; KEY="$HOME/.cache/asura_localsend_key.pem"
   if [ ! -s "$CERT" ] || [ ! -s "$KEY" ]; then
-    openssl req -x509 -newkey rsa:2048 -keyout "$KEY" -out "$CERT" -days 3650 -nodes -subj "/CN=Zenith Stash" >/dev/null 2>&1 \
+    openssl req -x509 -newkey rsa:2048 -keyout "$KEY" -out "$CERT" -days 3650 -nodes -subj "/CN=Asura Stash" >/dev/null 2>&1 \
       || { echo -e "ERROR\tcould not create certificate"; exit 1; }
   fi
-  FP_FILE="$HOME/.cache/zenith_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"
+  FP_FILE="$HOME/.cache/asura_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"
   # exec so the receiver IS this process: when the shell stops it (SIGTERM), the
   # signal reaches python directly and the port is released. Without exec, python
   # is a bash child that gets orphaned on stop and keeps holding port 53317, so
@@ -128,7 +128,7 @@ import os, ssl, json, socket, struct, threading, time, signal, http.server
 from urllib.parse import urlparse, parse_qs
 ALIAS=os.environ['ALIAS']; STASH=os.environ['STASH']; FP=os.environ['FINGERPRINT']
 CERT=os.environ['CERT']; KEY=os.environ['KEY']; PORT=53317; MCAST='224.0.0.167'
-INFO={"alias":ALIAS,"version":"2.1","deviceModel":"Zenith","deviceType":"headless","fingerprint":FP,"download":False}
+INFO={"alias":ALIAS,"version":"2.1","deviceModel":"Asura","deviceType":"headless","fingerprint":FP,"download":False}
 sessions={}
 pending={}   # sid -> threading.Event, set when the shell's verdict arrives
 verdict={}   # sid -> True (accept) / False (decline)
@@ -183,7 +183,7 @@ class H(http.server.BaseHTTPRequestHandler):
             # fileId without a token, so declined bytes never cross the wire.
             ev=threading.Event(); pending[sid]=ev; verdict[sid]=False
             out("OFFER", "%s\t%d\t%s" % (alias, len(files), sid))
-            accepted = ev.wait(float(os.environ.get("ZENITH_LS_ACCEPT_TIMEOUT","60"))) and verdict.get(sid, False)
+            accepted = ev.wait(float(os.environ.get("ASURA_LS_ACCEPT_TIMEOUT","60"))) and verdict.get(sid, False)
             pending.pop(sid, None); verdict.pop(sid, None)
             if not accepted:
                 out("DECLINED", sid); self._send(403); return

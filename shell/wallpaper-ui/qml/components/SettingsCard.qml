@@ -1,7 +1,7 @@
 import QtQuick
 import ".."
 
-// A titled group of settings, drawn Zenith-style: a flat sheet with a hairline
+// A titled group of settings, drawn Asura-style: a flat sheet with a hairline
 // border and no shadow ("the Hub is print"), a //TRACKED_ header with an
 // optional kana seal, closed by a hairline rule, then the rows. Replaces skwd's
 // chamfered, filled, drop-shadowed card with the accent corner-tick.
@@ -88,7 +88,7 @@ Item {
         }
       }
 
-      // the rule that closes the header, Zenith's print divider
+      // the rule that closes the header, Asura's print divider
       Rectangle {
         visible: headerItem.visible
         width: parent.width; height: 1

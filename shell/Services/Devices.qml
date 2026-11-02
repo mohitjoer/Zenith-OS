@@ -12,7 +12,7 @@ import qs.Ui.Singletons
 Singleton {
     id: root
 
-    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith/nvibrant-value"
+    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura/nvibrant-value"
 
     property int vibrance: 40
 
@@ -123,13 +123,13 @@ Singleton {
     function setBacklight(pct) {
         var p = Math.max(1, Math.min(100, Math.round(pct)));
         root.backlightPct = p;
-        // Resolve the panel through zenith-hw-backlight, the same selector the
+        // Resolve the panel through asura-hw-backlight, the same selector the
         // media keys and the OSD daemon use, so the fader drives the connected
         // internal panel. brightnessctl's own default pick lands on a phantom
         // nvidia_*/acpi_video device on a laptop with a discrete GPU, and the
         // write then succeeds against a device that changes nothing (#221).
         Quickshell.execDetached(["bash", "-c",
-            "BL=$(zenith-hw-backlight 2>/dev/null); brightnessctl ${BL:+-d \"$BL\"} set \"$1%\" >/dev/null 2>&1",
+            "BL=$(asura-hw-backlight 2>/dev/null); brightnessctl ${BL:+-d \"$BL\"} set \"$1%\" >/dev/null 2>&1",
             "_", String(p)]);
     }
 
@@ -181,7 +181,7 @@ Singleton {
 
     Process {
         id: blRead
-        command: ["bash", "-c", "BL=$(zenith-hw-backlight 2>/dev/null); brightnessctl ${BL:+-d \"$BL\"} -m 2>/dev/null | awk -F, 'NR==1{print substr($4,1,length($4)-1)}'"]
+        command: ["bash", "-c", "BL=$(asura-hw-backlight 2>/dev/null); brightnessctl ${BL:+-d \"$BL\"} -m 2>/dev/null | awk -F, 'NR==1{print substr($4,1,length($4)-1)}'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

@@ -64,7 +64,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Zenith"
+                text: "Asura"
                 color: Theme.inkSecondary
                 font.pixelSize: 12
             }

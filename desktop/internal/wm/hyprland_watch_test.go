@@ -276,8 +276,8 @@ func TestEnsureSignatureRebindsToLiveInstance(t *testing.T) {
 // capabilities, one state snapshot and the first frames of a watch. Read-only,
 // and gated so the default `go test` needs no session.
 func TestLiveHyprland(t *testing.T) {
-	if os.Getenv("ZENITH_LIVE_HYPRLAND") == "" {
-		t.Skip("set ZENITH_LIVE_HYPRLAND=1 to read the running Hyprland")
+	if os.Getenv("ASURA_LIVE_HYPRLAND") == "" {
+		t.Skip("set ASURA_LIVE_HYPRLAND=1 to read the running Hyprland")
 	}
 	c := Open()
 	if !c.Detection().Live {

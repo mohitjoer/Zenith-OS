@@ -364,7 +364,7 @@ var rows = [
         "group": "WIDGET",
         "key": "musicApp",
         "label": "Music app",
-        "desc": "App the corner button opens; blank uses zenith-tunes",
+        "desc": "App the corner button opens; blank uses asura-tunes",
         "ctl": "app",
         "src": "widgets.json"
     },

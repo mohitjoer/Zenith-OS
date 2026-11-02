@@ -15,12 +15,12 @@ if ! sh -n "$SCRIPT"; then
 	exit 1
 fi
 
-if ! sh -n "$REPO_ROOT/session/runit/zenith-user-services"; then
-	echo "build-iso-void_test: shell syntax check failed on zenith-user-services" >&2
+if ! sh -n "$REPO_ROOT/session/runit/asura-user-services"; then
+	echo "build-iso-void_test: shell syntax check failed on asura-user-services" >&2
 	exit 1
 fi
 
-for run_script in "$REPO_ROOT/system/runit/user-services"/*/run "$REPO_ROOT/system/runit/services"/*/run "$REPO_ROOT/installation/zenith-installer.sh"; do
+for run_script in "$REPO_ROOT/system/runit/user-services"/*/run "$REPO_ROOT/system/runit/services"/*/run "$REPO_ROOT/installation/asura-installer.sh"; do
 	if ! sh -n "$run_script"; then
 		echo "build-iso-void_test: shell syntax check failed on $run_script" >&2
 		exit 1
@@ -34,20 +34,20 @@ fi
 
 grep -Fq 'system/packages-void.yaml' "$SCRIPT"
 grep -Fq 'void-linux' "$SCRIPT"
-grep -Fq 'zenith-os-beta-001' "$SCRIPT"
+grep -Fq 'asura-os-beta-001' "$SCRIPT"
 grep -Fq 'LIBSEAT_BACKEND=seatd' "$SCRIPT"
 grep -Fq 'void-mklive' "$SCRIPT"
-grep -Fq 'zenith-user-services' "$SCRIPT"
-grep -Fq 'zenith-sysd' "$SCRIPT"
-grep -Fq 'zenith-userd' "$SCRIPT"
-grep -Fq 'etc/sv/zenith-sysd' "$SCRIPT"
+grep -Fq 'asura-user-services' "$SCRIPT"
+grep -Fq 'asura-sysd' "$SCRIPT"
+grep -Fq 'asura-userd' "$SCRIPT"
+grep -Fq 'etc/sv/asura-sysd' "$SCRIPT"
 grep -Fq 'NVreg_DynamicPowerManagement=0x02' "$SCRIPT"
-grep -Fq '99-zenith-power.rules' "$SCRIPT"
-grep -Fq '99-zenith-performance.conf' "$SCRIPT"
+grep -Fq '99-asura-power.rules' "$SCRIPT"
+grep -Fq '99-asura-performance.conf' "$SCRIPT"
 grep -Fq 'turnstile.conf' "$SCRIPT"
-grep -Fq 'system/xbps.d/zenith.conf' "$SCRIPT"
+grep -Fq 'system/xbps.d/asura.conf' "$SCRIPT"
 grep -Fq 'boot-splash.png' "$SCRIPT"
-grep -Fq 'Welcome to Zento OS!' "$SCRIPT"
+grep -Fq 'Welcome to Asura OS!' "$SCRIPT"
 grep -Fq 'nowatchdog mitigations=off preempt=full' "$SCRIPT"
 grep -Fq 'os-ctl' "$SCRIPT"
 grep -Fq 'etc/issue' "$SCRIPT"
@@ -62,16 +62,16 @@ if [ ! -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 fi
 
 # Verify Plymouth splash theme assets exist and are valid non-empty files
-for asset in logo.png window.png progress_box.png progress_bar.png zenith.plymouth zenith.script; do
-	if [ ! -s "$REPO_ROOT/system/plymouth/zenith/$asset" ]; then
-		echo "build-iso-void_test: system/plymouth/zenith/$asset missing or empty" >&2
+for asset in logo.png window.png progress_box.png progress_bar.png asura.plymouth asura.script; do
+	if [ ! -s "$REPO_ROOT/system/plymouth/asura/$asset" ]; then
+		echo "build-iso-void_test: system/plymouth/asura/$asset missing or empty" >&2
 		exit 1
 	fi
 done
 
 # Verify udev power rules exist
-if [ ! -s "$REPO_ROOT/system/udev/99-zenith-power.rules" ]; then
-	echo "build-iso-void_test: system/udev/99-zenith-power.rules missing or empty" >&2
+if [ ! -s "$REPO_ROOT/system/udev/99-asura-power.rules" ]; then
+	echo "build-iso-void_test: system/udev/99-asura-power.rules missing or empty" >&2
 	exit 1
 fi
 
@@ -94,10 +94,10 @@ grep -Fq 'mimalloc' "$MANIFEST"
 grep -Fq 'podman' "$MANIFEST"
 
 # LAYER 2: Verify Compiler, Kernel & Direct Hardware sysfs/udev
-grep -Fq 'CONFIG_SCHED_BORE=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-zenith"
-grep -Fq 'CONFIG_HZ=1000' "$REPO_ROOT/system/kernel/x86_64-dotconfig-zenith"
-grep -Fq 'CONFIG_PREEMPT=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-zenith"
-grep -Fq 'CONFIG_SCHED_CLASS_EXT=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-zenith"
+grep -Fq 'CONFIG_SCHED_BORE=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-asura"
+grep -Fq 'CONFIG_HZ=1000' "$REPO_ROOT/system/kernel/x86_64-dotconfig-asura"
+grep -Fq 'CONFIG_PREEMPT=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-asura"
+grep -Fq 'CONFIG_SCHED_CLASS_EXT=y' "$REPO_ROOT/system/kernel/x86_64-dotconfig-asura"
 grep -Fq 'cachyos-bore' "$REPO_ROOT/system/kernel/fleet.yaml"
 grep -Fq 'march=x86-64-v3' "$REPO_ROOT/packaging/xbps/conf/xbps-v3.conf"
 grep -Fq 'flto=auto' "$REPO_ROOT/packaging/xbps/conf/xbps-v3.conf"
@@ -113,13 +113,13 @@ grep -Fq 'scx_lavd' "$REPO_ROOT/system/runit/services/scx-lavd/run"
 grep -Fq 'scx-lavd' "$SCRIPT"
 grep -Fq 'ananicy-cpp' "$REPO_ROOT/system/runit/services/ananicy-cpp/run"
 grep -Fq 'ananicy-cpp' "$SCRIPT"
-grep -Fq 'compiler' "$REPO_ROOT/system/ananicy/00-zenith-rules.rules"
-grep -Fq 'scanner' "$REPO_ROOT/system/ananicy/00-zenith-rules.rules"
+grep -Fq 'compiler' "$REPO_ROOT/system/ananicy/00-asura-rules.rules"
+grep -Fq 'scanner' "$REPO_ROOT/system/ananicy/00-asura-rules.rules"
 grep -Fq 'libmimalloc.so.3' "$SCRIPT"
-grep -Fq 'libmimalloc.so.3' "$REPO_ROOT/installation/zenith-installer.sh"
+grep -Fq 'libmimalloc.so.3' "$REPO_ROOT/installation/asura-installer.sh"
 grep -Fq 'ZRAM_COMP_ALGORITHM=zstd' "$SCRIPT"
-grep -Fq 'ZRAM_COMP_ALGORITHM=zstd' "$REPO_ROOT/installation/zenith-installer.sh"
-grep -Fq 'compress=zstd:1' "$REPO_ROOT/installation/zenith-installer.sh"
+grep -Fq 'ZRAM_COMP_ALGORITHM=zstd' "$REPO_ROOT/installation/asura-installer.sh"
+grep -Fq 'compress=zstd:1' "$REPO_ROOT/installation/asura-installer.sh"
 grep -Fq 'kyber' "$REPO_ROOT/system/udev/60-io-schedulers.rules"
 grep -Fq 'bfq' "$REPO_ROOT/system/udev/60-io-schedulers.rules"
 

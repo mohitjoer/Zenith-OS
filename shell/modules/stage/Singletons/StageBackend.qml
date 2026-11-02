@@ -5,15 +5,15 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 
-// The single door to the daemon `stage` topic and the `zenith-stage` engine
+// The single door to the daemon `stage` topic and the `asura-stage` engine
 // (docs/stage.md): it subscribes to the per-wallpaper frame, turns editor
-// gestures into `zenith-shell stage` intents, and reads the engine directly.
+// gestures into `asura-shell stage` intents, and reads the engine directly.
 Singleton {
     id: root
 
     readonly property string bin: {
-        const d = Quickshell.env("ZENITH_SHELL_DIR");
-        return (d && d.length > 0) ? d + "/scripts/zenith-stage" : "zenith-stage";
+        const d = Quickshell.env("ASURA_SHELL_DIR");
+        return (d && d.length > 0) ? d + "/scripts/asura-stage" : "asura-stage";
     }
     property bool available: false
     property bool checked: false
@@ -89,7 +89,7 @@ Singleton {
         onExited: { root.removing = false; root.recheck(); }
     }
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
     property var frame: ({ current: "", busy: false, stage: "", percent: 0, walls: {} })
 
     readonly property string current: root.frame.current || ""
@@ -176,7 +176,7 @@ Singleton {
 
     // Verbs (fire-and-forget; the topic republish is the confirmation).
     function call(verb) {
-        const cmd = ["zenith-shell", "stage", verb];
+        const cmd = ["asura-shell", "stage", verb];
         for (var i = 1; i < arguments.length; i++) cmd.push("" + arguments[i]);
         Quickshell.execDetached(cmd);
     }

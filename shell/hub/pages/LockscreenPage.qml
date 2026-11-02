@@ -25,7 +25,7 @@ Item {
         running: true
         command: ["sh", "-c",
             "for t in hyprlock hypridle; do command -v $t >/dev/null || echo $t; done; "
-            + "systemctl --user is-active --quiet zenith-idle.service || echo idle-off"]
+            + "systemctl --user is-active --quiet asura-idle.service || echo idle-off"]
         stdout: StdioCollector {
             onStreamFinished: pg.missing = text.trim().split("\n").filter(s => s !== "")
         }
@@ -84,7 +84,7 @@ Item {
         Btn {
             text: I18n.tr("LOCK NOW")
             armed: pg.canLock
-            onAct: Quickshell.execDetached(["zenith-shell", "lock"])
+            onAct: Quickshell.execDetached(["asura-shell", "lock"])
         }
     }
 }

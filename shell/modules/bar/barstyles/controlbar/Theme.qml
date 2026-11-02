@@ -11,13 +11,13 @@ Item {
     id: theme
     // The single qsbar bar system; the bar form lives in `barShellStyle`.
 
-    property string omarchyCurrentRoot: Quickshell.env("HOME") + "/.config/zenith/current"
-    property string omarchyInstallRoot: Quickshell.env("HOME") + "/.local/share/zenith"
+    property string omarchyCurrentRoot: Quickshell.env("HOME") + "/.config/asura/current"
+    property string omarchyInstallRoot: Quickshell.env("HOME") + "/.local/share/asura"
     property bool omarchyCurrentRootResolved: false
     readonly property string themeNamePath: omarchyCurrentRoot + "/theme.name"
-    readonly property string colorsPath: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
-    readonly property string shellConfigPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
-    readonly property string themeJsonPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+    readonly property string colorsPath: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/colors.json"
+    readonly property string shellConfigPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
+    readonly property string themeJsonPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
     // Palette resolution state (the desktop Scheme's chain): the live wallpaper
     // roles, the fixed named scheme, the follow-the-wallpaper master, and the
     // compiled base captured before the daemon's first write so turning the
@@ -446,7 +446,7 @@ Item {
             var man = p.manifest || ({})
             var pl = p.placement || ({})
             var psi = _sectionIndexOf(L, p.id)
-            // `official` is the manifest's own claim; Zenith's plugins ship it
+            // `official` is the manifest's own claim; Asura's plugins ship it
             // true, so anything else is a community widget and the panel parts it.
             out.push({
                 id: p.id, gid: "",
@@ -600,10 +600,10 @@ Item {
         }
     }
 
-    readonly property string _pluginShellDir: Quickshell.env("ZENITH_SHELL_DIR")
+    readonly property string _pluginShellDir: Quickshell.env("ASURA_SHELL_DIR")
     readonly property string _pluginPlaceTool: (_pluginShellDir && _pluginShellDir.length > 0)
-        ? _pluginShellDir + "/quickshell/plugins/zenith-plugins-place"
-        : "zenith-plugins-place"
+        ? _pluginShellDir + "/quickshell/plugins/asura-plugins-place"
+        : "asura-plugins-place"
     function _placePlugin(args) { Quickshell.execDetached([_pluginPlaceTool].concat(args)) }
 
     function activatePopupScreen(screen) {
@@ -1452,7 +1452,7 @@ Item {
     // periodic Timer below only re-reads; this is the only path that refetches.
     Process {
         id: aiCollectProc
-        command: ["systemctl", "--user", "start", "zenith-ai-usage.service"]
+        command: ["systemctl", "--user", "start", "asura-ai-usage.service"]
         onExited: {
             aiRefreshTimeout.stop()
             theme.refreshAiUsage(false)
@@ -2144,31 +2144,31 @@ Item {
     property bool stayAwake: false            // idle lock disabled / stay-awake indicator
     readonly property bool hypridleAwake: stayAwake // compatibility alias for older modules
     property bool _idleBackendChecked: false
-    property bool _idleZenithShellBackend: false
-    property bool _idleZenithShellSystem: false
+    property bool _idleAsuraShellBackend: false
+    property bool _idleAsuraShellSystem: false
     property bool _omarchyBackendReprobePending: false
     property int _omarchyBackendRetryIndex: 0
     readonly property var _omarchyBackendRetryDelays: [2000, 5000, 15000]
-    readonly property string omarchyShellConfigPath: Quickshell.env("HOME") + "/.config/zenith/shell.json"
-    readonly property string idleStatePath: Quickshell.env("HOME") + "/.local/state/zenith/indicators/stay-awake"
+    readonly property string omarchyShellConfigPath: Quickshell.env("HOME") + "/.config/asura/shell.json"
+    readonly property string idleStatePath: Quickshell.env("HOME") + "/.local/state/asura/indicators/stay-awake"
     property bool notifSilenced: false        // notification do-not-disturb mode
     property bool _notifBackendChecked: false
-    property bool _notifZenithShellBackend: false
-    property bool _notifZenithShellSystem: false
+    property bool _notifAsuraShellBackend: false
+    property bool _notifAsuraShellSystem: false
     // Whether `makoctl` (the external mako DND source used in Omarchy-compat mode)
-    // is on PATH. Zenith runs its own notification server and never ships mako, so
+    // is on PATH. Asura runs its own notification server and never ships mako, so
     // this stays false there and the makoctl DND probe is skipped instead of
     // failing to spawn on every status refresh (endless "binary not found" log
     // spam). Detected once by makoDetectProc below.
     property bool _makoAvailable: false
-    readonly property string notificationsStatePath: Quickshell.env("HOME") + "/.local/state/zenith/notifications.json"
+    readonly property string notificationsStatePath: Quickshell.env("HOME") + "/.local/state/asura/notifications.json"
     property bool screenRecording: false
     property int screenRecordingElapsed: 0
     property string _screenRecordingPid: ""
     property string _screenRecordingElapsedProbePid: ""
     property int _screenRecordingBaseElapsed: 0
     property real _screenRecordingBaseMs: 0
-    readonly property string screenRecordingStatePath: "/tmp/zenith-screenrecord-filename"
+    readonly property string screenRecordingStatePath: "/tmp/asura-screenrecord-filename"
     property bool _recordingRefreshPending: false
     property string voxState: "idle"          // idle/recording/transcribing
     property string voxHint: ""
@@ -2178,7 +2178,7 @@ Item {
 
     function refreshIdleStatus() {
         if (!_idleBackendChecked) return
-        if (_idleZenithShellSystem) {
+        if (_idleAsuraShellSystem) {
             idleStateFile.reload()
             return
         }
@@ -2188,7 +2188,7 @@ Item {
         refreshIdleStatus()
         refreshNotificationStatus()
     }
-    function reprobeZenithShellBackends() {
+    function reprobeAsuraShellBackends() {
         if (idleBackendProc.running || notifBackendProc.running) {
             _omarchyBackendReprobePending = true
             return
@@ -2197,19 +2197,19 @@ Item {
         idleBackendProc.running = true
         notifBackendProc.running = true
     }
-    function finishZenithBackendReprobe() {
+    function finishAsuraBackendReprobe() {
         if (idleBackendProc.running || notifBackendProc.running) return
         if (_omarchyBackendReprobePending) {
             omarchyBackendProbeDebounce.restart()
             return
         }
-        scheduleZenithBackendRetry()
+        scheduleAsuraBackendRetry()
     }
     function omarchyBackendRetryNeeded() {
-        return (_idleZenithShellSystem && !_idleZenithShellBackend)
-            || (_notifZenithShellSystem && !_notifZenithShellBackend)
+        return (_idleAsuraShellSystem && !_idleAsuraShellBackend)
+            || (_notifAsuraShellSystem && !_notifAsuraShellBackend)
     }
-    function scheduleZenithBackendRetry() {
+    function scheduleAsuraBackendRetry() {
         if (!omarchyBackendRetryNeeded()) {
             omarchyBackendRetryTimer.stop()
             _omarchyBackendRetryIndex = 0
@@ -2221,7 +2221,7 @@ Item {
         _omarchyBackendRetryIndex++
         omarchyBackendRetryTimer.restart()
     }
-    function resetZenithBackendProbes() {
+    function resetAsuraBackendProbes() {
         omarchyBackendRetryTimer.stop()
         _omarchyBackendRetryIndex = 0
         omarchyBackendProbeDebounce.restart()
@@ -2238,13 +2238,13 @@ Item {
     }
     function refreshNotificationStatus() {
         if (!_notifBackendChecked) return
-        if (_notifZenithShellSystem) {
+        if (_notifAsuraShellSystem) {
             notificationsStateFile.reload()
             return
         }
-        // No Zenith notification backend: read DND from mako, but only if it is
+        // No Asura notification backend: read DND from mako, but only if it is
         // actually installed. Without this guard the Process fails to spawn on
-        // every refresh (mako is not a Zenith dependency), spamming the log.
+        // every refresh (mako is not a Asura dependency), spamming the log.
         if (_makoAvailable && !dndProc.running) dndProc.running = true
     }
     function refreshRecordingStatus() {
@@ -2292,55 +2292,55 @@ Item {
 
     Process {
         id: idleBackendProc
-        command: ["bash", "-c", "root=${ZENITH_PATH:-/usr/share/zenith}; [[ -f $root/shell/plugins/services/idle/manifest.json ]] || exit 2; command -v true >/dev/null 2>&1 && ZENITH_PATH=$root true idle status >/dev/null 2>&1"]
+        command: ["bash", "-c", "root=${ASURA_PATH:-/usr/share/asura}; [[ -f $root/shell/plugins/services/idle/manifest.json ]] || exit 2; command -v true >/dev/null 2>&1 && ASURA_PATH=$root true idle status >/dev/null 2>&1"]
         running: true
         onExited: (exitCode) => {
-            theme._idleZenithShellSystem = exitCode !== 2
-            theme._idleZenithShellBackend = exitCode === 0
+            theme._idleAsuraShellSystem = exitCode !== 2
+            theme._idleAsuraShellBackend = exitCode === 0
             theme._idleBackendChecked = true
             theme.refreshIdleStatus()
-            theme.finishZenithBackendReprobe()
+            theme.finishAsuraBackendReprobe()
         }
     }
 
     FileView {
         id: idleStateFile
         path: theme.idleStatePath
-        watchChanges: theme._idleZenithShellSystem
+        watchChanges: theme._idleAsuraShellSystem
         printErrors: false
         onFileChanged: idleStateFile.reload()
         onLoaded: {
-            if (theme._idleZenithShellSystem) theme.stayAwake = true
+            if (theme._idleAsuraShellSystem) theme.stayAwake = true
         }
         onLoadFailed: {
-            if (theme._idleZenithShellSystem) theme.stayAwake = false
+            if (theme._idleAsuraShellSystem) theme.stayAwake = false
         }
     }
 
     Process {
         id: notifBackendProc
-        command: ["bash", "-c", "root=${ZENITH_PATH:-/usr/share/zenith}; [[ -f $root/shell/plugins/notifications/manifest.json ]] || exit 2; command -v true >/dev/null 2>&1 && ZENITH_PATH=$root true notifications ping 2>/dev/null | grep -Fxq ok"]
+        command: ["bash", "-c", "root=${ASURA_PATH:-/usr/share/asura}; [[ -f $root/shell/plugins/notifications/manifest.json ]] || exit 2; command -v true >/dev/null 2>&1 && ASURA_PATH=$root true notifications ping 2>/dev/null | grep -Fxq ok"]
         running: true
         onExited: (exitCode) => {
-            theme._notifZenithShellSystem = exitCode !== 2
-            theme._notifZenithShellBackend = exitCode === 0
+            theme._notifAsuraShellSystem = exitCode !== 2
+            theme._notifAsuraShellBackend = exitCode === 0
             theme._notifBackendChecked = true
             theme.refreshNotificationStatus()
-            theme.finishZenithBackendReprobe()
+            theme.finishAsuraBackendReprobe()
         }
     }
 
     FileView {
         id: notificationsStateFile
         path: theme.notificationsStatePath
-        watchChanges: theme._notifZenithShellSystem
+        watchChanges: theme._notifAsuraShellSystem
         printErrors: false
         onFileChanged: notificationsStateFile.reload()
         onLoaded: {
-            if (theme._notifZenithShellSystem) theme.parseNotificationsState(notificationsStateFile.text())
+            if (theme._notifAsuraShellSystem) theme.parseNotificationsState(notificationsStateFile.text())
         }
         onLoadFailed: {
-            if (theme._notifZenithShellSystem) theme.notifSilenced = false
+            if (theme._notifAsuraShellSystem) theme.notifSilenced = false
         }
     }
 
@@ -2348,13 +2348,13 @@ Item {
         id: omarchyBackendProbeDebounce
         interval: 250
         repeat: false
-        onTriggered: theme.reprobeZenithShellBackends()
+        onTriggered: theme.reprobeAsuraShellBackends()
     }
 
     Timer {
         id: omarchyBackendRetryTimer
         repeat: false
-        onTriggered: theme.reprobeZenithShellBackends()
+        onTriggered: theme.reprobeAsuraShellBackends()
     }
 
     Timer {
@@ -2363,7 +2363,7 @@ Item {
         repeat: false
         onTriggered: {
             theme._omarchyBackendRetryIndex = Math.max(1, theme._omarchyBackendRetryIndex)
-            theme.reprobeZenithShellBackends()
+            theme.reprobeAsuraShellBackends()
         }
     }
 
@@ -2374,7 +2374,7 @@ Item {
         printErrors: false
         onFileChanged: {
             omarchyShellConfigFile.reload()
-            theme.resetZenithBackendProbes()
+            theme.resetAsuraBackendProbes()
         }
     }
 
@@ -2383,13 +2383,13 @@ Item {
         command: ["pgrep", "-x", "hypridle"]
         running: false
         onExited: (exitCode) => {
-            if (!theme._idleZenithShellSystem) theme.stayAwake = exitCode !== 0
+            if (!theme._idleAsuraShellSystem) theme.stayAwake = exitCode !== 0
         }
     }
 
     // One-shot: is makoctl on PATH? Gates the DND probe above so a box without
-    // mako (every Zenith box) never tries to spawn it. Re-runs when the backend is
-    // reprobed via resetZenithBackendProbes(), so installing mako is picked up.
+    // mako (every Asura box) never tries to spawn it. Re-runs when the backend is
+    // reprobed via resetAsuraBackendProbes(), so installing mako is picked up.
     Process {
         id: makoDetectProc
         command: ["sh", "-c", "command -v makoctl"]
@@ -2405,11 +2405,11 @@ Item {
         command: ["makoctl", "mode"]
         running: false
         onExited: (exitCode) => {
-            if (exitCode !== 0 && !theme._notifZenithShellSystem) theme.notifSilenced = false
+            if (exitCode !== 0 && !theme._notifAsuraShellSystem) theme.notifSilenced = false
         }
         stdout: StdioCollector {
             onStreamFinished: {
-                if (!theme._notifZenithShellSystem) theme.notifSilenced = this.text.indexOf("do-not-disturb") >= 0
+                if (!theme._notifAsuraShellSystem) theme.notifSilenced = this.text.indexOf("do-not-disturb") >= 0
             }
         }
     }
@@ -2519,7 +2519,7 @@ Item {
     // battery presence (laptop) - drives the Battery indicator tile's visibility (shown only
     // where a battery exists, like Brightness uses hasBacklight). Direct UPower check, event-driven.
     readonly property bool hasBattery: UPower.displayDevice !== null && UPower.displayDevice.isLaptopBattery
-    // NetworkManager active (Zenith 4.0) → the panel's iwctl scan/connect won't work,
+    // NetworkManager active (Asura 4.0) → the panel's iwctl scan/connect won't work,
     // so it shows an "open nmtui" button instead of an empty list
     property bool useNM: false
     Process {
@@ -2529,12 +2529,12 @@ Item {
     }
 
     // ── wifi/bluetooth settings launchers ──
-    // Both open Zenith Hub's Connections page (Wi-Fi, Bluetooth and Hotspot all
+    // Both open Asura Hub's Connections page (Wi-Fi, Bluetooth and Hotspot all
     // live there); the daemon spawns or navigates the single Hub instance. This
     // replaces the old terminal launchers (impala / bluetui / bluetoothctl) that
     // predate the Hub owning connection settings.
-    readonly property string launchWifiCmd: "zenith-shell hub open connections"
-    readonly property string launchBtCmd:   "zenith-shell hub open connections"
+    readonly property string launchWifiCmd: "asura-shell hub open connections"
+    readonly property string launchBtCmd:   "asura-shell hub open connections"
     property bool modPower:      false   // default off (toggle in ControlPanel)
     property bool modBluetooth:  false   // default off (toggle in ControlPanel)
     property bool modBrightness: true
@@ -2627,8 +2627,8 @@ Item {
     // ── picker visual style (theme/wallpaper/screenshot/video pickers) ──
     property string pickerStyle: "tanzaku"   // "tanzaku", "hearthstone", "carousel"
     property string launcherLogoMode: "text"     // "text" or "icon"
-    property string launcherLogoText: "zenith"    // "zenith", "omarchy", "hyprland", "arch", or "omacom"
-    property string launcherLogoIcon: "zenith"    // see launcherLogoIconGlyph()
+    property string launcherLogoText: "asura"    // "asura", "omarchy", "hyprland", "arch", or "omacom"
+    property string launcherLogoIcon: "asura"    // see launcherLogoIconGlyph()
     // Legacy launcher-logo text values migrated to the current text mode.
     readonly property var legacyLogoTextValues: ["omarchy", "hyprland"]
     property bool   weatherImperial: false   // false = °C / km·h, true = °F / mph
@@ -2999,20 +2999,20 @@ Item {
         persistWidgetsToConfig()
     }
 
-    // Zenith's own marks, plus the neighbours whose wordmarks we actually ship.
+    // Asura's own marks, plus the neighbours whose wordmarks we actually ship.
     // "omarchy" is deliberately absent from both lists: its mark is a Private Use
     // Area glyph in a font we do not ship, and it was also the dead default these
     // ids carried while the launcher drew a hardcoded mark. Leaving it out makes
-    // every one of those stale records fail validation and land on "zenith", so an
+    // every one of those stale records fail validation and land on "asura", so an
     // existing desktop keeps its own brand instead of being silently rebranded.
-    readonly property var launcherLogoTextOptions: ["zenith", "hyprland", "ubuntu", "omacom", "linux", "nixos", "debian", "fedora", "gentoo", "void", "wayland", "sway", "gnome", "dwm"]
-    readonly property var launcherLogoIconOptions: ["zenith", "hyprland", "arch", "grid", "spark", "power", "dragon", "mark", "nix", "branch", "rebel", "ubuntu", "debian", "fedora", "gentoo", "void", "artix", "manjaro", "suse", "alpine", "endeavour", "garuda", "cachyos", "freebsd", "apple", "raspi", "elementary", "gnome", "alma", "centos", "devuan", "arco", "ferris", "codeberg", "gitea", "tux", "android", "mint", "kali", "popos", "zorin", "plasma", "wayland", "docker", "github", "git", "gitlab", "python", "rust", "go", "node", "react", "vue", "kube", "vim", "neovim", "firefox", "chrome", "java", "js", "ts", "cpp", "ruby", "php", "swift", "kotlin", "lua", "haskell", "blender", "figma", "redis", "postgres", "steam", "spotify", "discord", "telegram", "slack", "empire", "jedi", "sith", "mandalorian", "firstorder", "deathstar", "spaceinvaders", "ghost", "pokeball", "pokemon", "gamepad", "retropad", "d20", "playstation", "xbox", "switch", "minecraft", "wizard", "dungeon", "sword", "shield", "crown", "skull", "crossbones", "ninja", "robot", "alien", "knight", "paw", "masks", "theater", "film", "spade", "superpowers", "reddit", "twitch"]
+    readonly property var launcherLogoTextOptions: ["asura", "hyprland", "ubuntu", "omacom", "linux", "nixos", "debian", "fedora", "gentoo", "void", "wayland", "sway", "gnome", "dwm"]
+    readonly property var launcherLogoIconOptions: ["asura", "hyprland", "arch", "grid", "spark", "power", "dragon", "mark", "nix", "branch", "rebel", "ubuntu", "debian", "fedora", "gentoo", "void", "artix", "manjaro", "suse", "alpine", "endeavour", "garuda", "cachyos", "freebsd", "apple", "raspi", "elementary", "gnome", "alma", "centos", "devuan", "arco", "ferris", "codeberg", "gitea", "tux", "android", "mint", "kali", "popos", "zorin", "plasma", "wayland", "docker", "github", "git", "gitlab", "python", "rust", "go", "node", "react", "vue", "kube", "vim", "neovim", "firefox", "chrome", "java", "js", "ts", "cpp", "ruby", "php", "swift", "kotlin", "lua", "haskell", "blender", "figma", "redis", "postgres", "steam", "spotify", "discord", "telegram", "slack", "empire", "jedi", "sith", "mandalorian", "firstorder", "deathstar", "spaceinvaders", "ghost", "pokeball", "pokemon", "gamepad", "retropad", "d20", "playstation", "xbox", "switch", "minecraft", "wizard", "dungeon", "sword", "shield", "crown", "skull", "crossbones", "ninja", "robot", "alien", "knight", "paw", "masks", "theater", "film", "spade", "superpowers", "reddit", "twitch"]
     // id -> glyph codepoint for every option. The brand/OS/dev marks are real
     // SpaceMono Nerd Font glyphs (font-logos, devicons, font-awesome), so nothing
-    // is hand-drawn; zenith stays the CJK 天. The picker and the bar both resolve
+    // is hand-drawn; asura stays the CJK 天. The picker and the bar both resolve
     // through here, so a new entry shows up in both.
     readonly property var launcherLogoIconCodes: ({
-        "zenith": 0x5929, "hyprland": 0xF359, "arch": 0xE732, "grid": 0xEEED, "spark": 0xE6A4, "power": 0xF011, "dragon": 0x2EEF, "mark": 0xEE99, "nix": 0xF313, "branch": 0xE666, "rebel": 0xF1D0,
+        "asura": 0x5929, "hyprland": 0xF359, "arch": 0xE732, "grid": 0xEEED, "spark": 0xE6A4, "power": 0xF011, "dragon": 0x2EEF, "mark": 0xEE99, "nix": 0xF313, "branch": 0xE666, "rebel": 0xF1D0,
         "ubuntu": 0xF31B, "debian": 0xF306, "fedora": 0xF30A, "gentoo": 0xF30D, "void": 0xF32E, "artix": 0xF31F, "manjaro": 0xF312, "suse": 0xF314, "alpine": 0xF300, "endeavour": 0xF322, "garuda": 0xF337, "cachyos": 0xF385, "freebsd": 0xF30C, "apple": 0xF302, "raspi": 0xF315, "elementary": 0xF309, "gnome": 0xF361, "alma": 0xF31D, "centos": 0xF304, "devuan": 0xF307, "arco": 0xF346, "ferris": 0xF323, "codeberg": 0xF330, "gitea": 0xF339, "tux": 0xF31A, "android": 0xE70E, "mint": 0xF30E, "kali": 0xF327, "popos": 0xF32A, "zorin": 0xF32F, "plasma": 0xF332, "wayland": 0xF367, "docker": 0xF308,
         "github": 0xE709, "git": 0xE702, "gitlab": 0xE7EB, "python": 0xE73C, "rust": 0xE7A8, "go": 0xE724, "node": 0xE719, "react": 0xE7BA, "vue": 0xE8DC, "kube": 0xE81D, "vim": 0xE7C5, "neovim": 0xE83A, "firefox": 0xE745, "chrome": 0xE743, "java": 0xE738, "js": 0xE781, "ts": 0xE8CA, "cpp": 0xE7A3, "ruby": 0xE739, "php": 0xE73D, "swift": 0xE755, "kotlin": 0xE81B, "lua": 0xE826, "haskell": 0xE777, "blender": 0xE766, "figma": 0xE7DA, "redis": 0xE76D, "postgres": 0xE76E, "steam": 0xF1B6, "spotify": 0xF1BC, "discord": 0xF1FF, "telegram": 0xF2C6, "slack": 0xF198,
         "empire": 0xF1D1, "jedi": 0xEECC, "sith": 0xEDDC, "mandalorian": 0xEDD9, "firstorder": 0xF2B0, "deathstar": 0xF08D8, "spaceinvaders": 0xF0BC9, "ghost": 0xEEFE, "pokeball": 0xF041D, "pokemon": 0xF0A09, "gamepad": 0xF11B, "retropad": 0xF0B82, "d20": 0xEEF5, "playstation": 0xED18, "xbox": 0xED3E, "switch": 0xF07E1, "minecraft": 0xF0373, "wizard": 0xEF01, "dungeon": 0xEEFA, "sword": 0xF04E5, "shield": 0xED25, "crown": 0xEDEB, "skull": 0xEE15, "crossbones": 0xEF0E, "ninja": 0xF0774, "robot": 0xEE0D, "alien": 0xF089A, "knight": 0xED63, "paw": 0xF1B0, "masks": 0xF0D02, "theater": 0xEEB6, "film": 0xF008, "spade": 0xF08D1, "superpowers": 0xF2DD, "reddit": 0xF1A1, "twitch": 0xF1E8
@@ -3031,19 +3031,19 @@ Item {
     function launcherLogoTextLabel(id) {
         return String(id).toUpperCase()
     }
-    // omarchy's U+E900 needs a font Zenith doesn't ship, so it's absent here and
-    // any stale "omarchy" icon id falls back to zenith via the validators below.
+    // omarchy's U+E900 needs a font Asura doesn't ship, so it's absent here and
+    // any stale "omarchy" icon id falls back to asura via the validators below.
     function launcherLogoIconGlyph(id) {
         var c = launcherLogoIconCodes[id]
-        return String.fromCodePoint(c !== undefined ? c : launcherLogoIconCodes["zenith"])
+        return String.fromCodePoint(c !== undefined ? c : launcherLogoIconCodes["asura"])
     }
     function launcherLogoIconFont(id) {
-        return id === "zenith" ? "Noto Sans CJK JP" : mono
+        return id === "asura" ? "Noto Sans CJK JP" : mono
     }
     function launcherLogoIconSize(id) {
         if (id === "arch") return 17
         if (id === "dragon") return 16
-        if (id === "zenith") return 15
+        if (id === "asura") return 15
         return 16
     }
     function launcherLogoIconXOffset(id) {
@@ -3202,7 +3202,7 @@ Item {
     // control-center toggle only reached the local cache and was overridden by a
     // stale Bar Studio value on the next reload (the widgets reset). shell.json has
     // one writer, the daemon; reach it over the settings.patch seam Weather uses.
-    readonly property string _cfgSockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string _cfgSockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
     function persistWidgetsToConfig() {
         var cur = Config.qsbar || ({})
         var q = ({})
@@ -3272,7 +3272,7 @@ Item {
     }
 
     // ── Bar Studio bridge ──
-    // Zenith Hub (Bar Studio) writes a `qsbar` map into shell.json; the Config
+    // Asura Hub (Bar Studio) writes a `qsbar` map into shell.json; the Config
     // singleton watches it, so these settings apply live and win over the local
     // widget cache. Only keys the user set are present; the rest keep defaults.
     function applyStudioSettings() {
@@ -3398,7 +3398,7 @@ Item {
     // ── Power Profile state ──
     property bool powerProfileVisible: false
     onPowerProfileVisibleChanged: popupOpened("powerProfileVisible")
-    // The shell daemon owns power-profiles-daemon (zenith-shell powerprofiles.go)
+    // The shell daemon owns power-profiles-daemon (asura-shell powerprofiles.go)
     // and streams the live pick on the powerprofiles topic; these read that
     // stream. A second poller of powerprofilesctl here would drift from the
     // daemon's banked profile and make a switch look like it did nothing.
@@ -3409,7 +3409,7 @@ Item {
 
     function gotoWorkspace(id) { Wm.focusWorkspace(id) }
 
-    // Bumped by the zenith.system-update IPC after `zenith update` finishes so the
+    // Bumped by the asura.system-update IPC after `asura update` finishes so the
     // clock's UpdateWidget re-polls its status instead of waiting for its cycle.
     property int updateRefreshTick: 0
 
@@ -3567,10 +3567,10 @@ Item {
     Process {
         id: omarchyCurrentRootProbe
         command: ["bash", "-c",
-            "state=\"$HOME/.local/state/zenith/current\"; legacy=\"$HOME/.config/zenith/current\"; " +
-            "if command -v true >/dev/null 2>&1 && [ -d \"$state\" ] && [ -d /usr/share/zenith ]; then printf '%s\\t%s\\n' \"$state\" /usr/share/zenith; " +
-            "elif [ -d \"$legacy\" ]; then printf '%s\\t%s\\n' \"$legacy\" \"$HOME/.local/share/zenith\"; " +
-            "else printf '%s\\t%s\\n' \"$legacy\" \"$HOME/.local/share/zenith\"; fi"]
+            "state=\"$HOME/.local/state/asura/current\"; legacy=\"$HOME/.config/asura/current\"; " +
+            "if command -v true >/dev/null 2>&1 && [ -d \"$state\" ] && [ -d /usr/share/asura ]; then printf '%s\\t%s\\n' \"$state\" /usr/share/asura; " +
+            "elif [ -d \"$legacy\" ]; then printf '%s\\t%s\\n' \"$legacy\" \"$HOME/.local/share/asura\"; " +
+            "else printf '%s\\t%s\\n' \"$legacy\" \"$HOME/.local/share/asura\"; fi"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -3596,7 +3596,7 @@ Item {
         }
     }
 
-    // Zenith writes theme.name immediately after the complete theme directory
+    // Asura writes theme.name immediately after the complete theme directory
     // swap, before its slower application retint commands and final hooks.
     FileView {
         id: currentThemeNameWatcher

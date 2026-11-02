@@ -180,7 +180,7 @@ Row {
                 Connections {
                     target: DaemonClient
                     function onEventReceived(event, data) {
-                        if (event === "zenith-wallpaper.wall.recompute_colors.complete") {
+                        if (event === "asura-wallpaper.wall.recompute_colors.complete") {
                             _recomputeState._running = false
                             _recomputeReset.stop()
                             if (root.service && root.service.refreshFromDb) root.service.refreshFromDb()

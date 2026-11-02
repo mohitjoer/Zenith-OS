@@ -1,5 +1,5 @@
 #!/bin/sh
-# One check for zenith-touchpad against a fake hyprctl: what it asks Hyprland, and
+# One check for asura-touchpad against a fake hyprctl: what it asks Hyprland, and
 # what it remembers between calls.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -51,38 +51,38 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 keywords() { grep -c keyword "$CALLS" || true; }
 pad='-r keyword device[asup1205:00-093a:2003-touchpad]:enabled'
 
-[ "$("$here/zenith-touchpad" status)" = on ] || fail "a fresh session is not on"
+[ "$("$here/asura-touchpad" status)" = on ] || fail "a fresh session is not on"
 
-"$here/zenith-touchpad" off
+"$here/asura-touchpad" off
 grep -qxF -- "$pad false" "$CALLS" || fail "off did not disable the touchpad: $(cat "$CALLS")"
 [ "$(keywords)" = 1 ] || fail "off touched something besides the touchpad"
-[ "$("$here/zenith-touchpad" status)" = off ] || fail "status did not remember off"
+[ "$("$here/asura-touchpad" status)" = off ] || fail "status did not remember off"
 
-: >"$CALLS"; "$here/zenith-touchpad" restore
+: >"$CALLS"; "$here/asura-touchpad" restore
 grep -qxF -- "$pad false" "$CALLS" || fail "restore did not push the stored off back"
 
-"$here/zenith-touchpad" toggle
+"$here/asura-touchpad" toggle
 grep -qxF -- "$pad true" "$CALLS" || fail "toggle from off did not enable"
-[ "$("$here/zenith-touchpad" status)" = on ] || fail "toggle did not clear the flag"
+[ "$("$here/asura-touchpad" status)" = on ] || fail "toggle did not clear the flag"
 
-: >"$CALLS"; "$here/zenith-touchpad" restore
+: >"$CALLS"; "$here/asura-touchpad" restore
 [ "$(keywords)" = 0 ] || fail "restore with the pad on still called hyprctl keyword"
 
-"$here/zenith-touchpad" toggle
-[ "$("$here/zenith-touchpad" status)" = off ] || fail "toggle from on did not disable"
+"$here/asura-touchpad" toggle
+[ "$("$here/asura-touchpad" status)" = off ] || fail "toggle from on did not disable"
 
 # Hyprland refusing the keyword must not look like success.
-rm -f "$XDG_RUNTIME_DIR/zenith/touchpad-off"
-if FAKE_ANSWER='no such keyword' "$here/zenith-touchpad" off 2>/dev/null; then fail "a refused keyword exited 0"; fi
-[ "$("$here/zenith-touchpad" status)" = on ] || fail "a refused keyword was remembered as off"
+rm -f "$XDG_RUNTIME_DIR/asura/touchpad-off"
+if FAKE_ANSWER='no such keyword' "$here/asura-touchpad" off 2>/dev/null; then fail "a refused keyword exited 0"; fi
+[ "$("$here/asura-touchpad" status)" = on ] || fail "a refused keyword was remembered as off"
 
 # No compositor to ask.
-if FAKE_DOWN=1 "$here/zenith-touchpad" off 2>/dev/null; then fail "an unreachable Hyprland exited 0"; fi
+if FAKE_DOWN=1 "$here/asura-touchpad" off 2>/dev/null; then fail "an unreachable Hyprland exited 0"; fi
 
 # A machine without a touchpad.
 sed -i 's/touchpad/pointer/' "$tmp/devices.json"
-: >"$CALLS"; "$here/zenith-touchpad" off
+: >"$CALLS"; "$here/asura-touchpad" off
 [ "$(keywords)" = 0 ] || fail "flipped a device on a machine with no touchpad"
-[ "$("$here/zenith-touchpad" status)" = on ] || fail "claimed off with no touchpad"
+[ "$("$here/asura-touchpad" status)" = on ] || fail "claimed off with no touchpad"
 
-echo "zenith-touchpad: ok"
+echo "asura-touchpad: ok"

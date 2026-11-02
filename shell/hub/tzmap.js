@@ -64,7 +64,7 @@ function subsolar(date) {
     return { lat: decl, lon: lon };
 }
 
-// Is (lat,lon) sunlit given the subsolar point? (solar zenith cosine > 0)
+// Is (lat,lon) sunlit given the subsolar point? (solar asura cosine > 0)
 function isDay(lat, lon, sub) {
     var la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
     var sla = sub.lat * Math.PI / 180, slo = sub.lon * Math.PI / 180;

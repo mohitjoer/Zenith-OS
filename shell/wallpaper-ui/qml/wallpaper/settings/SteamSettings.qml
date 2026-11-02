@@ -91,7 +91,7 @@ Flow {
         RowTextInput {
             colors: root.colors
             title: I18n.tr("API key")
-            description: I18n.tr("Only used by the steamcmd backend, for browsing the Workshop catalogue inside zenith-wallpaper-wall. The Steam Client backend gets browse access for free from the running Steam session.")
+            description: I18n.tr("Only used by the steamcmd backend, for browsing the Workshop catalogue inside asura-wallpaper-wall. The Steam Client backend gets browse access for free from the running Steam session.")
             value: Config.steamApiKey
             placeholder: I18n.tr("Steam API key")
             enabled: Config.steamBackend === "steamcmd"

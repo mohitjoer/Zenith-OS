@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"zenith/desktop/internal/runner/runnertest"
+	"asura/desktop/internal/runner/runnertest"
 )
 
 // The two families are two tables of verbs over two notions of state, and
@@ -54,11 +54,11 @@ func TestRunitServiceName(t *testing.T) {
 		unit string
 		want string
 	}{
-		{"zenith-shell.service", "quickshell"},
-		{"zenithd.service", "zenithd"},
-		{"zenith-palette-bridge.service", "zenith-palette-bridge"},
-		{"zenith-session.target", "zenith-session"},
-		{"zenith-ai-usage.timer", "zenith-ai-usage"},
+		{"asura-shell.service", "quickshell"},
+		{"asurad.service", "asurad"},
+		{"asura-palette-bridge.service", "asura-palette-bridge"},
+		{"asura-session.target", "asura-session"},
+		{"asura-ai-usage.timer", "asura-ai-usage"},
 		{"voxtype.service", "voxtype"},
 	}
 	for _, c := range cases {
@@ -71,7 +71,7 @@ func TestRunitServiceName(t *testing.T) {
 func TestSystemdVerbs(t *testing.T) {
 	fake := runnertest.New()
 	m := New(Systemd, fake)
-	unit := "zenithd.service"
+	unit := "asurad.service"
 	user := "systemctl --user "
 
 	// ── the whole run's answer table, registered first ────────────────────
@@ -158,15 +158,15 @@ func TestSystemdPowerArgv(t *testing.T) {
 
 func TestRunitVerbs(t *testing.T) {
 	fake, m, svdir := fakeManager(t)
-	dir := filepath.Join(svdir, "zenithd")
+	dir := filepath.Join(svdir, "asurad")
 	if err := os.Mkdir(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	run := "sv status " + dir
 
 	// ── the answer table, unchanged order = the call order below ───────────
-	up := runnertest.Answer{Stdout: "run: zenithd: (pid 901) 33102s\n"}
-	down := runnertest.Answer{Stdout: "down: zenithd: normally up, got TERM\n"}
+	up := runnertest.Answer{Stdout: "run: asurad: (pid 901) 33102s\n"}
+	down := runnertest.Answer{Stdout: "down: asurad: normally up, got TERM\n"}
 	// status calls in order: Active, MainPID, Summary (up), Active, Summary
 	// (down), Summary (exhausted-repeats-down).
 	fake.On(run, up)
@@ -175,16 +175,16 @@ func TestRunitVerbs(t *testing.T) {
 	fake.On(run, down)
 
 	// ── the up run: no down marker, sv says run ────────────────────────────
-	if !m.Active("zenithd.service") {
+	if !m.Active("asurad.service") {
 		t.Error("a run: status line is running")
 	}
-	if !m.Enabled("zenithd.service") {
+	if !m.Enabled("asurad.service") {
 		t.Error("no down marker is enabled")
 	}
-	if got := m.MainPID("zenithd.service"); got != "901" {
+	if got := m.MainPID("asurad.service"); got != "901" {
 		t.Errorf("MainPID = %q, want 901", got)
 	}
-	if got := m.Summary("zenithd.service"); got != "active (running)" {
+	if got := m.Summary("asurad.service"); got != "active (running)" {
 		t.Errorf("Summary = %q, want active (running)", got)
 	}
 
@@ -192,19 +192,19 @@ func TestRunitVerbs(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "down"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if m.Active("zenithd.service") {
+	if m.Active("asurad.service") {
 		t.Error("a down: status line is not running")
 	}
-	if m.Enabled("zenithd.service") {
+	if m.Enabled("asurad.service") {
 		t.Error("a down marker is disabled")
 	}
-	if got := m.Summary("zenithd.service"); got != "inactive" {
+	if got := m.Summary("asurad.service"); got != "inactive" {
 		t.Errorf("Summary = %q, want inactive", got)
 	}
 
 	// EnableNow removes the marker and runs sv up.
 	fake.On("sv up "+dir, runnertest.Answer{})
-	if err := m.EnableNow("zenithd.service"); err != nil {
+	if err := m.EnableNow("asurad.service"); err != nil {
 		t.Errorf("EnableNow: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "down")); err == nil {
@@ -213,7 +213,7 @@ func TestRunitVerbs(t *testing.T) {
 
 	// DisableNow runs sv down and lays the marker back.
 	fake.On("sv down "+dir, runnertest.Answer{})
-	if err := m.DisableNow("zenithd.service"); err != nil {
+	if err := m.DisableNow("asurad.service"); err != nil {
 		t.Errorf("DisableNow: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "down")); err != nil {
@@ -230,9 +230,9 @@ func TestRunitVerbs(t *testing.T) {
 	fake.On("sv restart "+dir, runnertest.Answer{})
 	fake.On("sv restart "+dir, runnertest.Answer{})
 	for name, op := range map[string]func() error{
-		"Restart":            func() error { return m.Restart("zenithd.service") },
-		"Reload":             func() error { return m.Reload("zenithd.service") },
-		"TryReloadOrRestart": func() error { return m.TryReloadOrRestart("zenithd.service") },
+		"Restart":            func() error { return m.Restart("asurad.service") },
+		"Reload":             func() error { return m.Reload("asurad.service") },
+		"TryReloadOrRestart": func() error { return m.TryReloadOrRestart("asurad.service") },
 	} {
 		if err := op(); err != nil {
 			t.Errorf("%s: %v", name, err)
@@ -250,7 +250,7 @@ func TestRunitVerbs(t *testing.T) {
 	}
 
 	// A supervised dir that sv could not answer still reads from its run
-	// marker. The ghost dir takes the run marker instead, to keep the zenithd
+	// marker. The ghost dir takes the run marker instead, to keep the asurad
 	// status queue's repeat answer from being the case being tested.
 	ghostDir := filepath.Join(svdir, "ghost")
 	if err := os.Mkdir(ghostDir, 0o755); err != nil {

@@ -39,13 +39,13 @@ QtObject {
     property var _conn: Connections {
         target: DaemonClient
         function onEventReceived(event, data) {
-            if (event === "zenith-wallpaper.wall.convert.progress") {
+            if (event === "asura-wallpaper.wall.convert.progress") {
                 svc.running = data.running || false
                 svc.progress = data.progress || 0
                 svc.total = data.total || 0
                 svc.skipped = data.skipped || 0
                 svc.currentFile = data.currentFile || ""
-            } else if (event === "zenith-wallpaper.wall.convert.finished") {
+            } else if (event === "asura-wallpaper.wall.convert.finished") {
                 svc.running = false
                 svc.currentFile = ""
                 svc.finished(data.converted || 0, data.skipped || 0, data.failed || 0)

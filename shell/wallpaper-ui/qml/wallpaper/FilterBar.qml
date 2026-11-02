@@ -44,7 +44,7 @@ Item {
 
     // A unifying paper pill behind the whole bar so it reads over any wallpaper
     // (the buttons are transparent until active). Flat print + hairline + a soft
-    // shadow: Zenith presence without a heavy chrome slab.
+    // shadow: Asura presence without a heavy chrome slab.
     Rectangle {
         anchors.fill: filterFlick
         anchors.topMargin: -7; anchors.bottomMargin: -7

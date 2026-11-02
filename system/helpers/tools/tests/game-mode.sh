@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fixture test for zenith-cmd-game-mode (the one-click competitive toggle), ported
+# fixture test for asura-cmd-game-mode (the one-click competitive toggle), ported
 # from Ryoku's. stubs hyprctl, pkexec, powerprofilesctl and both privileged
 # helpers, points state + sysfs at a tmp dir, so the real compositor, the real
 # wifi radio and the real power profile are never touched. verifies:
@@ -7,14 +7,14 @@
 #   - the compositor strip goes through `hyprctl --batch` keywords, reverts via reload
 #   - the power profile flips to performance and the PRIOR one comes back
 #   - the privileged system tune is applied on start and restored on stop
-#   - wifi power-save delegated to the privileged zenith-wifi-powersave via pkexec
+#   - wifi power-save delegated to the privileged asura-wifi-powersave via pkexec
 #   - refuses on battery, before touching anything
 #   - clean no-op when there's no wifi device or a helper is missing
 #   - a hyprctl that rejects the batch is not reported as a stripped desktop
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
-gm="$here/../../../../shell/scripts/zenith-cmd-game-mode"
+gm="$here/../../../../shell/scripts/asura-cmd-game-mode"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
@@ -32,8 +32,8 @@ EOF
 }
 logger hyprctl
 logger pkexec
-logger zenith-wifi-powersave
-logger zenith-game-tune
+logger asura-wifi-powersave
+logger asura-game-tune
 
 # notify-send records the message so the "stripped" claim can be asserted.
 cat >"$bin/notify-send" <<EOF
@@ -64,14 +64,14 @@ net="$tmp/net"; mkdir -p "$net/wlan0/wireless" "$net/eth0"
 nonet="$tmp/nonet"; mkdir -p "$nonet/eth0"
 
 export PATH="$bin:$PATH"
-export ZENITH_STATE_PATH="$tmp/state"
-export ZENITH_GAMEMODE_STATE_FILE="$tmp/state/game-mode.enabled"
-export ZENITH_GAMEMODE_PROFILE_FILE="$tmp/state/game-mode.profile"
-export ZENITH_NET_SYSFS="$net"
-export ZENITH_POWER_SYSFS="$power"
-export ZENITH_WIFI_POWERSAVE_BIN="$bin/zenith-wifi-powersave"
-export ZENITH_GAME_TUNE_BIN="$bin/zenith-game-tune"
-state="$ZENITH_GAMEMODE_STATE_FILE"
+export ASURA_STATE_PATH="$tmp/state"
+export ASURA_GAMEMODE_STATE_FILE="$tmp/state/game-mode.enabled"
+export ASURA_GAMEMODE_PROFILE_FILE="$tmp/state/game-mode.profile"
+export ASURA_NET_SYSFS="$net"
+export ASURA_POWER_SYSFS="$power"
+export ASURA_WIFI_POWERSAVE_BIN="$bin/asura-wifi-powersave"
+export ASURA_GAME_TUNE_BIN="$bin/asura-game-tune"
+state="$ASURA_GAMEMODE_STATE_FILE"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 on() { [[ -f $state ]]; }
@@ -93,8 +93,8 @@ grep -qF 'windowrule immediate on, match:class .*' "$calls" || fail "strip did n
 grep -qF 'windowrule render_unfocused on, match:fullscreen 1' "$calls" ||
   fail "render_unfocused is not scoped to fullscreen windows"
 grep -qF 'powerprofilesctl set performance' "$calls" || fail "did not ask for the performance profile"
-grep -qF 'zenith-game-tune apply' "$calls" || fail "system tune not applied"
-grep -qE 'pkexec .*zenith-wifi-powersave off' "$calls" || fail "WiFi helper not asked to disable power-save"
+grep -qF 'asura-game-tune apply' "$calls" || fail "system tune not applied"
+grep -qE 'pkexec .*asura-wifi-powersave off' "$calls" || fail "WiFi helper not asked to disable power-save"
 grep -qF 'compositor stripped' "$calls" || fail "start did not say the compositor was stripped"
 [[ "$(cat "$profile")" == performance ]] || fail "profile did not actually reach performance"
 "$gm" status || fail "status reported off while on"
@@ -104,8 +104,8 @@ grep -qF 'compositor stripped' "$calls" || fail "start did not say the composito
 "$gm" stop
 on && fail "stop did not clear the request"
 grep -qF 'hyprctl reload' "$calls" || fail "stop did not reload to revert the compositor"
-grep -qF 'zenith-game-tune restore' "$calls" || fail "system tune not restored"
-grep -qE 'pkexec .*zenith-wifi-powersave on' "$calls" || fail "WiFi helper not asked to restore power-save"
+grep -qF 'asura-game-tune restore' "$calls" || fail "system tune not restored"
+grep -qE 'pkexec .*asura-wifi-powersave on' "$calls" || fail "WiFi helper not asked to restore power-save"
 [[ "$(cat "$profile")" == balanced ]] ||
   fail "restored the wrong profile (want the prior 'balanced', got '$(cat "$profile")')"
 "$gm" status && fail "status reported on after stop"
@@ -129,30 +129,30 @@ echo balanced >"$profile"
 "$gm" start && fail "start succeeded on battery"
 on && fail "a refused start still persisted the request"
 grep -qF 'hyprctl --batch' "$calls" && fail "stripped the compositor on battery"
-grep -qF 'zenith-game-tune' "$calls" && fail "applied the privileged tune on battery"
+grep -qF 'asura-game-tune' "$calls" && fail "applied the privileged tune on battery"
 [[ "$(cat "$profile")" == balanced ]] || fail "changed the power profile on battery"
 echo Charging >"$power/BAT0/status"
 
 # --- no battery at all (a desktop): treated as AC --------------------------
-ZENITH_POWER_SYSFS="$nopower" "$gm" start
+ASURA_POWER_SYSFS="$nopower" "$gm" start
 on || fail "refused to start on a machine with no battery"
-ZENITH_POWER_SYSFS="$nopower" "$gm" stop
+ASURA_POWER_SYSFS="$nopower" "$gm" stop
 
 # --- no wifi device: compositor still applies, wifi is a clean no-op -------
 : >"$calls"
-ZENITH_NET_SYSFS="$nonet" "$gm" start
+ASURA_NET_SYSFS="$nonet" "$gm" start
 on || fail "start failed on a no-WiFi host"
 grep -qF 'hyprctl --batch' "$calls" || fail "compositor did not apply on a no-WiFi host"
-grep -qF 'zenith-wifi-powersave' "$calls" && fail "touched WiFi on a host with no WiFi device"
-ZENITH_NET_SYSFS="$nonet" "$gm" stop
+grep -qF 'asura-wifi-powersave' "$calls" && fail "touched WiFi on a host with no WiFi device"
+ASURA_NET_SYSFS="$nonet" "$gm" stop
 
 # --- helpers absent: the rest still applies --------------------------------
 : >"$calls"
-ZENITH_WIFI_POWERSAVE_BIN="$tmp/nope" ZENITH_GAME_TUNE_BIN="$tmp/nope" "$gm" start
+ASURA_WIFI_POWERSAVE_BIN="$tmp/nope" ASURA_GAME_TUNE_BIN="$tmp/nope" "$gm" start
 grep -qF 'hyprctl --batch' "$calls" || fail "compositor did not apply when helpers absent"
-grep -qF 'zenith-wifi-powersave' "$calls" && fail "tried to call an absent WiFi helper"
-grep -qF 'zenith-game-tune' "$calls" && fail "tried to call an absent tune helper"
-ZENITH_WIFI_POWERSAVE_BIN="$tmp/nope" ZENITH_GAME_TUNE_BIN="$tmp/nope" "$gm" stop
+grep -qF 'asura-wifi-powersave' "$calls" && fail "tried to call an absent WiFi helper"
+grep -qF 'asura-game-tune' "$calls" && fail "tried to call an absent tune helper"
+ASURA_WIFI_POWERSAVE_BIN="$tmp/nope" ASURA_GAME_TUNE_BIN="$tmp/nope" "$gm" stop
 
 # --- a compositor that rejects the batch: power still boosts, and the
 #     notification does not claim a strip that never happened -----------------

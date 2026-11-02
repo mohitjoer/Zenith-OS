@@ -5,7 +5,7 @@ import qs.Ui.Singletons
 
 // One launcher for XDG desktop entries. Quickshell parses Terminal=true into
 // runInTerminal but spawns no terminal for it, so a TUI (btop, yazi, nvim) got no
-// tty and died at once; zenith-app owns which terminal the user picked.
+// tty and died at once; asura-app owns which terminal the user picked.
 //
 // Launching goes through Spawn rather than DesktopEntry.execute(): execute()
 // hands the child the desktop's whole environment, and a Quickshell app that
@@ -24,7 +24,7 @@ Singleton {
             Spawn.run(target.command, entry ? entry.workingDirectory : "");
             return;
         }
-        const command = ["zenith-app", "terminal", "--"];
+        const command = ["asura-app", "terminal", "--"];
         for (let i = 0; i < argv.length; i++)
             command.push(String(argv[i]));
         Spawn.run(command);

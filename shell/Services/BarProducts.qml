@@ -7,7 +7,7 @@ Singleton {
     id: root
 
     readonly property string stateRoot: (Quickshell.env("XDG_STATE_HOME")
-        || (Quickshell.env("HOME") + "/.local/state")) + "/zenith/store"
+        || (Quickshell.env("HOME") + "/.local/state")) + "/asura/store"
     property var rows: []
     property string revisionKey: ""
     property var failedStyles: ({})

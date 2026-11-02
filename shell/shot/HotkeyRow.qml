@@ -6,7 +6,7 @@ import "lib/keymap.js" as Keymap
 import "Singletons"
 import qs.Ui.Singletons
 
-// The launch-key rebind. zenith-hubd owns desktop.json, so the chosen chord is
+// The launch-key rebind. asura-hubd owns desktop.json, so the chosen chord is
 // written there as a keybind rebind and the provider emits it; this row only
 // reads the store to show the current chord.
 Item {
@@ -23,7 +23,7 @@ Item {
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
-    readonly property string desktopPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/desktop.json"
+    readonly property string desktopPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/desktop.json"
 
     FileView {
         id: store
@@ -52,7 +52,7 @@ Item {
     function applyBind(bind) {
         hk.hotkey = bind;
         hk.listening = false;
-        Quickshell.execDetached(["zenith-hubd", "desktop", "set-rebind", hk.defaultChord, bind]);
+        Quickshell.execDetached(["asura-hubd", "desktop", "set-rebind", hk.defaultChord, bind]);
         hk.rebound();
     }
 

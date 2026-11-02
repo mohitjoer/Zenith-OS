@@ -8,7 +8,7 @@ import qs.Ui
 import qs.Ui.Singletons
 
 // Installed add-on management. A plugin is a folder under the user's plugin
-// directory (`zenith plugin install` puts it there), so Settings keeps its
+// directory (`asura plugin install` puts it there), so Settings keeps its
 // enablement, placement, live options and removal. The page is full-bleed because
 // every action applies immediately instead of participating in the shared
 // Save/Revert flow.
@@ -66,7 +66,7 @@ Item {
     function place(id, field, a, b, c, d) {
         if (!id)
             return;
-        var args = ["zenith-plugins-place", id, field];
+        var args = ["asura-plugins-place", id, field];
         for (var v of [a, b, c, d])
             if (v !== undefined)
                 args.push("" + v);
@@ -78,17 +78,17 @@ Item {
             return;
         var obj = {};
         obj[key] = value;
-        settingsProc.command = ["zenith-plugins-place", id, "settings", JSON.stringify(obj)];
+        settingsProc.command = ["asura-plugins-place", id, "settings", JSON.stringify(obj)];
         settingsProc.running = true;
     }
-    // `zenith plugin remove` deletes the folder (a dev plugin is a symlink into
+    // `asura plugin remove` deletes the folder (a dev plugin is a symlink into
     // a checkout, which it unlinks rather than follows) and drops the plugin's
     // plugins.json entry.
     function removePlugin(id) {
         if (!id)
             return;
         pg.busyId = id;
-        rmProc.command = ["zenith", "plugin", "remove", id];
+        rmProc.command = ["asura", "plugin", "remove", id];
         rmProc.running = true;
     }
 
@@ -154,7 +154,7 @@ Item {
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: I18n.tr("Plugins installed on this desktop. Add one with zenith plugin install.")
+            text: I18n.tr("Plugins installed on this desktop. Add one with asura plugin install.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -355,7 +355,7 @@ Item {
             Text {
                 anchors.centerIn: flick
                 visible: pg.loaded && pg.plugins.length === 0
-                text: I18n.tr("No add-ons installed. Add one with zenith plugin install.")
+                text: I18n.tr("No add-ons installed. Add one with asura plugin install.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
             // no-results state, when a search filters everything out.
@@ -456,7 +456,7 @@ Item {
                     width: dflick.width - Tokens.s3
                     spacing: Tokens.s5
 
-                    // A plugin Zenith did not write says so first: the same
+                    // A plugin Asura did not write says so first: the same
                     // warning the Store and QS Bar Settings print.
                     Rectangle {
                         width: parent.width
@@ -483,7 +483,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - Tokens.fRow - parent.spacing
-                                text: I18n.tr("Community plugin. Zenith does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
+                                text: I18n.tr("Community plugin. Asura does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
                                 color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                 wrapMode: Text.WordWrap
                             }
@@ -555,7 +555,7 @@ Item {
                         // popout is centred (a modal surface); dropped near an
                         // edge it docks there, and the thirds along that edge
                         // pick start | center | end. Edits write live via
-                        // zenith-plugins-place. Desktop widgets do not come
+                        // asura-plugins-place. Desktop widgets do not come
                         // through here (they are placed on the wallpaper), so
                         // this renders for framePopout only.
                         Item {
@@ -570,7 +570,7 @@ Item {
                             readonly property string edge: placer.fp.edge ? placer.fp.edge : "right"
                             readonly property string align: placer.fp.align ? placer.fp.align : "start"
                             // live mirrors so a drop snaps instantly, before the
-                            // zenith-plugins-place round-trip refreshes the truth.
+                            // asura-plugins-place round-trip refreshes the truth.
                             property string edgeLocal: placer.edge
                             property string alignLocal: placer.align
                             onEdgeChanged: placer.edgeLocal = placer.edge
@@ -749,7 +749,7 @@ Item {
                                 anchors.right: parent.right
                                 visible: placer.centered
                                 wrapMode: Text.WordWrap
-                                text: I18n.tr("A centred popout has no hover edge: open it with its keybind, or with zenith-shell plugin <id>. It shares the middle of the screen with quick settings (Super+Escape) and the stash (Super+S), and the shell shows one surface at a time, so they take turns instead of overlapping.")
+                                text: I18n.tr("A centred popout has no hover edge: open it with its keybind, or with asura-shell plugin <id>. It shares the middle of the screen with quick settings (Super+Escape) and the stash (Super+S), and the shell shows one surface at a time, so they take turns instead of overlapping.")
                                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                             }
                         }

@@ -1,0 +1,12 @@
+#!/bin/sh
+exec 2>&1
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+export ASURA_POLKIT_AGENT=1
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/asura"
+mkdir -p "$LOG_DIR"
+exec >>"$LOG_DIR/asurad.log" 2>&1
+
+exec /usr/bin/asura-shell daemon

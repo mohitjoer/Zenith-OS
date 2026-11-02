@@ -10,7 +10,7 @@ import qs.Ui.Singletons
  *
  * The shell's Wm is capability-shaped around the daemon: caps, window geometry,
  * the workspace join and the focused output all arrive through the
- * $XDG_RUNTIME_DIR/zenith-shell.sock `wm` topic. On a machine where that daemon
+ * $XDG_RUNTIME_DIR/asura-shell.sock `wm` topic. On a machine where that daemon
  * is absent (a dev box, a rescue boot) the socket never binds, every cap reads
  * false, and the shell's own toggle turns into a silent no-op -- the overview
  * could never open anywhere. This singleton pulls the same facts straight from

@@ -10,7 +10,7 @@ import qs.Ui.Singletons
 // The command palette body: a search row over the rest dashboard (empty query),
 // the all-apps grid (Ctrl+A from rest), the action-mode tabs + list ("/" prefix),
 // or the ranked result list. Ctrl+K opens the selected row's action panel. Grows
-// and shrinks with its content on the Zenith morph curve. Providers register with
+// and shrinks with its content on the Asura morph curve. Providers register with
 // the dispatcher; this view only renders what the dispatcher returns.
 Item {
     id: root
@@ -85,7 +85,7 @@ Item {
     // action catalog), not once the user types "/play"; then the results take
     // the space and nothing clips.
     readonly property bool actionBrowse: actionMode && routed.query.length === 0
-    // "\" prefix: a one-shot quick ask to the Zenith Agent. No provider claims
+    // "\" prefix: a one-shot quick ask to the Asura Agent. No provider claims
     // it; the panel owns the whole body and the Enter key while active.
     readonly property bool askMode: query.length > 0 && query[0] === "\\"
     readonly property string askQuestion: askMode ? query.slice(1).replace(/^\s+/, "") : ""

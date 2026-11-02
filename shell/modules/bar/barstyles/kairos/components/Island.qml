@@ -357,7 +357,7 @@ Item {
             reveal: Math.max(0, Math.min(1, (island.clockProgress - 0.35) / 0.4))
         }
 
-        // A gear in the top-right corner opens Zenith Settings; it fades in as the
+        // A gear in the top-right corner opens Asura Settings; it fades in as the
         // island expands, so the resting pill stays a bare clock.
         Item {
             id: settingsButton

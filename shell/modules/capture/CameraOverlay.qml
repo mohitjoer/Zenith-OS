@@ -57,7 +57,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    WlrLayershell.namespace: "zenith-camera"
+    WlrLayershell.namespace: "asura-camera"
 
     anchors { top: true; bottom: true; left: true; right: true }
 

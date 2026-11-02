@@ -7,7 +7,7 @@ import qs.Ui.Singletons
  * A plain-QML preview of the desktop music sheet for the Desktop Widgets
  * section, so the chosen style and the lyric toggle read at a glance without
  * playing a track. It mirrors the live sheet in
- * zenith/shell/quickshell/shell/modules/desktop/music: the album's colour leads
+ * asura/shell/quickshell/shell/modules/desktop/music: the album's colour leads
  * (a fixed vibrant stand-in here, since there is no real track to sample), the
  * sung line lights in that accent, and the one filled tile is play. Static mock
  * copy, not an import of the live widget.

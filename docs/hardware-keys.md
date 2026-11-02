@@ -11,15 +11,15 @@ is built without logind support, so `brightnessctl set` is refused for a user wh
 is not in `video`. `docs/architecture.md` ("Writing a backlight") records that and
 declines a udev rule. systemd-logind makes the rule unnecessary:
 `Session.SetBrightness(subsystem, name, value)` writes the value, as root, for the
-owner of the session, for both `backlight` and `leds`. `zenith brightness` makes
+owner of the session, for both `backlight` and `leds`. `asura brightness` makes
 that call, then tries `brightnessctl`, then the sysfs file if it is writable
-(`internal/backlight`). `zenith brightness list` prints which route each device has.
+(`internal/backlight`). `asura brightness list` prints which route each device has.
 
 | Entry point | Does |
 |---|---|
-| `zenith-cmd-brightness +5`, `-5`, `40%` | what the keys, the daemon and the sliders call |
-| `zenith brightness up\|down\|set\|get [--device kbd]` | the same, with the keyboard backlight (whole levels) |
-| `zenith-hw-backlight` | prints the screen's backlight, for readers that need the name |
+| `asura-cmd-brightness +5`, `-5`, `40%` | what the keys, the daemon and the sliders call |
+| `asura brightness up\|down\|set\|get [--device kbd]` | the same, with the keyboard backlight (whole levels) |
+| `asura-hw-backlight` | prints the screen's backlight, for readers that need the name |
 
 Steps are five points of *perceived* brightness (a cube-root curve), about sixteen
 presses from full to the floor, and a screen never goes below 1%. A held key is
@@ -32,11 +32,11 @@ nothing in the shell sends the keys to it.
 
 ## Touchpad
 
-`zenith-touchpad on|off|toggle|status|restore` runs `hyprctl -r keyword
+`asura-touchpad on|off|toggle|status|restore` runs `hyprctl -r keyword
 device[NAME]:enabled` for every pointer device whose name ends in `touchpad`.
 Hyprland cannot say whether a device is enabled and enables every pad again when it
 rereads its config, so the intent is a flag file under `$XDG_RUNTIME_DIR` and the
-conf runs `zenith-touchpad restore` on each reload. Nothing outlives the session.
+conf runs `asura-touchpad restore` on each reload. Nothing outlives the session.
 
 ## This machine
 

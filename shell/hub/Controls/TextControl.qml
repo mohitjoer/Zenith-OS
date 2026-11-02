@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 // A string setting.
 //
-// Most of the string settings in Zenith are file paths, so a bare text field
+// Most of the string settings in Asura are file paths, so a bare text field
 // is not the whole story: a path field that does not tell you the file exists
 // is a field that produces a wallpaper which is a broken-image placeholder.
 // The field says so when the file it names is not there.

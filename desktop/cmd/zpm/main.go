@@ -1,4 +1,4 @@
-// zpm forwards to `zenith pkg`, which is where the verbs live.
+// zpm forwards to `asura pkg`, which is where the verbs live.
 //
 // The package layer's name was asked for before the control tool's verbs
 // were, and starting TWO tools with two argv grammars for one package layer
@@ -18,11 +18,11 @@ import (
 	"os/exec"
 )
 
-// forward runs `zenith pkg ...` against the found control tool and pipes it
+// forward runs `asura pkg ...` against the found control tool and pipes it
 // through: stdout and stderr for output, stdin for the password prompts, and
 // the managers' exit statuses for the callers (scripts alike) that read them.
-func forward(zenithPath string, argv []string) int {
-	command := exec.Command(zenithPath, append([]string{"pkg"}, argv...)...)
+func forward(asuraPath string, argv []string) int {
+	command := exec.Command(asuraPath, append([]string{"pkg"}, argv...)...)
 	command.Stdout, command.Stderr, command.Stdin = os.Stdout, os.Stderr, os.Stdin
 	if err := command.Run(); err != nil {
 		var exited *exec.ExitError
@@ -39,10 +39,10 @@ func forward(zenithPath string, argv []string) int {
 }
 
 func main() {
-	zenithPath, err := exec.LookPath("zenith")
+	asuraPath, err := exec.LookPath("asura")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "zpm: the zenith control tool is not installed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "zpm: the asura control tool is not installed: %v\n", err)
 		os.Exit(1)
 	}
-	os.Exit(forward(zenithPath, os.Args[1:]))
+	os.Exit(forward(asuraPath, os.Args[1:]))
 }

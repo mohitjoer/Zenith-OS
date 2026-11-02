@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="public/zenith-logo.svg" alt="Zenith OS" width="180">
+  <img src="public/asura-logo.svg" alt="ASURA OS" width="180">
 </p>
 
-# 天 Zenith OS
+# 天 ASURA OS
 
 <p align="center">
-  <img src="public/zenith-logo-on-dark.svg" alt="" width="96">
+  <img src="public/asura-logo-on-dark.svg" alt="" width="96">
 </p>
 
 **untouchable · dominating**
 
-天 — read *ten* — is heaven: the highest point of the sky. A zenith is that same point. The
+天 — read *ten* — is heaven: the highest point of the sky. A asura is that same point. The
 mark and the name say one thing, and they say it about the architecture as much as the
 project: this is the top of the stack, and it sits above everything it is built on.
 
@@ -18,41 +18,41 @@ Nothing reaches up to touch it. That is the standard the project holds itself to
 why the base layer is treated as substrate and never as identity — see
 [the base-layer boundary](docs/architecture.md#the-base-layer-boundary).
 
-Zenith is a Linux distribution. Its **primary base layer** is Void Linux x86_64 (glibc). Everything above
-that line is Zenith's own — its compositor configuration, its shell drawn in Quickshell, its
+ASURA is a Linux distribution. Its **primary base layer** is Void Linux x86_64 (glibc). Everything above
+that line is ASURA's own — its compositor configuration, its shell drawn in Quickshell, its
 control tools, its hardware matrix, its updater, and its supervised session daemons.
 
-Zenith is not a Void spin. Void supplies the minimalist, lightning-fast substrate and nothing else. Zenith is the
-distribution; Void Linux is what Zenith is built on top of (with dual-stack support for Debian/Ubuntu environments).
+ASURA is not a Void spin. Void supplies the minimalist, lightning-fast substrate and nothing else. ASURA is the
+distribution; Void Linux is what ASURA is built on top of (with dual-stack support for Debian/Ubuntu environments).
 
-> **Status: Beta.** Live bootable ISO images (`zenith-os-void-beta-001.iso`) build cleanly in CI and run a fully functional live environment with automated Wayland desktop login. The guided desktop installer (`zenith install` / `zenith-installer.desktop`) partitions disks, installs rootfs, and configures GRUB EFI.
+> **Status: Beta.** Live bootable ISO images (`asura-os-void-beta-001.iso`) build cleanly in CI and run a fully functional live environment with automated Wayland desktop login. The guided desktop installer (`asura install` / `asura-installer.desktop`) partitions disks, installs rootfs, and configures GRUB EFI.
 
 ---
 
-## What Zenith is
+## What ASURA is
 
-Most Linux desktops are a distribution's defaults plus whatever you can find. Zenith is a
+Most Linux desktops are a distribution's defaults plus whatever you can find. ASURA is a
 single coherent opinion: a curated package set, one design language applied everywhere, a
 hardware profile for your specific machine, and an updater that can roll back.
 
 | Layer | Choice |
 |---|---|
 | Base layer | Void Linux x86_64 (glibc) — the substrate only |
-| Init System | runit (system daemons) + user-level runit supervisor (`zenith-user-services`) |
+| Init System | runit (system daemons) + user-level runit supervisor (`asura-user-services`) |
 | Seat Management | seatd (`LIBSEAT_BACKEND=seatd`) / elogind |
 | Compositor | Hyprland (Wayland) |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by Zenith; the surfaces are vendored open-source components, re-themed to Zenith's monochrome design language |
-| Control tools | Go — `zenith`, `zenith-sysd` (root daemon at `/run/zenith.sock`), `zenith-userd` (session daemon), `zenith-shell`, `zenith-hubd`, `zenith-wallpaper`, and `zpm` |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by ASURA; the surfaces are vendored open-source components, re-themed to ASURA's monochrome design language |
+| Control tools | Go — `asura`, `asura-sysd` (root daemon at `/run/asura.sock`), `asura-userd` (session daemon), `asura-shell`, `asura-hubd`, `asura-wallpaper`, and `zpm` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
-| GPU & Power | `zenith gpu` (PCI inspection & `prime-run` offload), `zenith power` (profiles & NVIDIA RTX 3050 D3cold management) |
-| Terminal | Ghostty — strictly supported, configured by Zenith, never kitty |
+| GPU & Power | `asura gpu` (PCI inspection & `prime-run` offload), `asura power` (profiles & NVIDIA RTX 3050 D3cold management) |
+| Terminal | Ghostty — strictly supported, configured by ASURA, never kitty |
 | User shell | zsh + starship |
 | Editor | Neovim |
 | Boot chain | GRUB / Limine EFI |
-| Installer | `zenith install` / `zenith-installer.desktop` guided system installer |
+| Installer | `asura install` / `asura-installer.desktop` guided system installer |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
-| Package manager | XBPS, with first-party repository `zenith-xbps-repo`, plus `zpm` package manager frontend |
+| Package manager | XBPS, with first-party repository `asura-xbps-repo`, plus `zpm` package manager frontend |
 | Agent layer | resident OS agent with a local knowledge vault |
 
 The desktop shell is inspired by ryoku.
@@ -61,17 +61,17 @@ The desktop shell is inspired by ryoku.
 
 Void Linux provides a clean, bloat-free foundation:
 1. **glibc x86_64**: Complete binary compatibility with NVIDIA proprietary drivers, Steam, Electron, and modern developer toolchains.
-2. **runit init system**: Fast, predictable service supervision without systemd overhead, paired with Zenith's user-level session supervisor (`zenith-user-services`).
+2. **runit init system**: Fast, predictable service supervision without systemd overhead, paired with ASURA's user-level session supervisor (`asura-user-services`).
 3. **XBPS package manager**: Fast package installation and native binary package generation (`xbps-create`, `xbps-rindex`).
 4. **Hardware reach**: Direct support for hybrid graphics offloading (`prime-run`) and fine-grained power management.
 
 ### No GNOME
 
-Zenith contains no GNOME — not GNOME Shell, not the GNOME daemons, not the GNOME portal backend.
+ASURA contains no GNOME — not GNOME Shell, not the GNOME daemons, not the GNOME portal backend.
 It draws its own shell on Hyprland and owns the surfaces a stock desktop used to provide:
 notifications, global shortcuts, locking, idle handling, and quick settings.
 
-What this costs: Zenith writes those surfaces itself. What it simplifies: there is no
+What this costs: ASURA writes those surfaces itself. What it simplifies: there is no
 `xdg-desktop-portal-gnome` to convince, and no GNOME daemon stack to fight. See
 [`docs/architecture.md`](docs/architecture.md) for the portal arrangement, and
 [`agents/agents.md`](agents/agents.md) for the archived GNOME Shell notes.
@@ -80,7 +80,7 @@ What this costs: Zenith writes those surfaces itself. What it simplifies: there 
 
 ## Hardware support
 
-Zenith publishes support tiers rather than claiming universal support, because no Linux
+ASURA publishes support tiers rather than claiming universal support, because no Linux
 distribution supports every laptop. Every machine falls into one of these.
 
 | Tier | Meaning |
@@ -95,11 +95,11 @@ a machine gets, and where the two disagree that file is right.
 
 The matrix grows through [`system/hardware/`](system/hardware/) — a database of verified
 machine profiles in this repository. Nobody can test every laptop, but every user can test
-one. A machine that boots successfully emits a candidate profile via `zenith hardware report`;
+one. A machine that boots successfully emits a candidate profile via `asura hardware report`;
 contributors attach it to a pull request; merged profiles ship in the next ISO and are
 selected automatically at install time.
 
-This is the single most important mechanism in Zenith. It turns an unbounded hardware problem
+This is the single most important mechanism in ASURA. It turns an unbounded hardware problem
 into a union of working setups that grows without anyone owning a hardware lab.
 
 ---
@@ -107,7 +107,7 @@ into a union of working setups that grows without anyone owning a hardware lab.
 ## Repository layout
 
 ```
-desktop/             the control tools: cmd/zenith, and the shell, hub, agent layer
+desktop/             the control tools: cmd/asura, and the shell, hub, agent layer
 system/hardware/     detection, matching, redaction, reports, profiles and tiers
 system/kernel/       pinned kernel fleet
 installation/        installer backend and ISO build
@@ -120,7 +120,7 @@ tools/               maintenance scripts; port.py re-ports code from its upstrea
 ```
 
 The desktop source lives under `desktop/`, never in a directory named after one of the
-control tools — a `zenith/` directory collides with the built binary of the same name and
+control tools — a `asura/` directory collides with the built binary of the same name and
 silently defeats the repository's own ignore rules.
 
 The four design documents, and what each one decides:
@@ -128,9 +128,9 @@ The four design documents, and what each one decides:
 | Document | Decides |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | The stack and the reasoning behind it — settled decisions, rejected options, the base-layer boundary, the portal seam |
-| [`docs/hardware-detection.md`](docs/hardware-detection.md) | The subsystem that decides whether Zenith works on someone else's laptop — probes, matching, PII stripping, tier assignment |
+| [`docs/hardware-detection.md`](docs/hardware-detection.md) | The subsystem that decides whether ASURA works on someone else's laptop — probes, matching, PII stripping, tier assignment |
 | [`docs/session.md`](docs/session.md) | The boot and login chain — Limine through systemd to Hyprland, the session entry point, what starts in what order, and who owns logout, suspend and shutdown |
-| [`docs/adopting-zenith.md`](docs/adopting-zenith.md) | `zenith adopt` — switching an existing GNOME desktop over in place, built around a reversibility contract |
+| [`docs/adopting-asura.md`](docs/adopting-asura.md) | `asura adopt` — switching an existing GNOME desktop over in place, built around a reversibility contract |
 
 [`docs/roadmap.md`](docs/roadmap.md) orders the work.
 
@@ -156,23 +156,23 @@ on nothing outside the standard library; `desktop/` is a second module that depe
 The commands that reach it:
 
 ```console
-$ zenith adopt --check                # can this machine switch? changes nothing
-$ zenith hardware report              # this machine, redacted, safe to paste
-$ zenith hardware report --profile    # a candidate profile to review and submit
-$ zenith hardware match               # which profile claims this machine, and at what tier
-$ zenith hardware lint-profiles       # check the database
-$ zenith hardware capture --out DIR   # write this machine as a test fixture
+$ asura adopt --check                # can this machine switch? changes nothing
+$ asura hardware report              # this machine, redacted, safe to paste
+$ asura hardware report --profile    # a candidate profile to review and submit
+$ asura hardware match               # which profile claims this machine, and at what tier
+$ asura hardware lint-profiles       # check the database
+$ asura hardware capture --out DIR   # write this machine as a test fixture
 ```
 
 And the overlay model, which is what makes an update safe to automate:
 
 ```console
-$ zenith status          # revision, paths, how much drift
-$ zenith doctor          # drift, plus whether the portal config is really being read
-$ zenith materialize     # re-lay the base, clobbering shipped content
-$ zenith reset PATH      # drop one of your edits back to the base
-$ zenith update          # snapshot, fetch, re-materialize; your edits survive
-$ zenith rollback        # re-materialize the previous revision
+$ asura status          # revision, paths, how much drift
+$ asura doctor          # drift, plus whether the portal config is really being read
+$ asura materialize     # re-lay the base, clobbering shipped content
+$ asura reset PATH      # drop one of your edits back to the base
+$ asura update          # snapshot, fetch, re-materialize; your edits survive
+$ asura rollback        # re-materialize the previous revision
 ```
 
 Every command takes `--root DIR`, so the whole surface runs against a temporary tree or a
@@ -182,7 +182,7 @@ matched — an answer, not a failure.
 The one rule the overlay model exists to keep: **a user's override wins at its mirrored path,
 and no update can clobber it.**
 
-`zenith adopt --check` is a preflight for moving an existing GNOME desktop over in place. It
+`asura adopt --check` is a preflight for moving an existing GNOME desktop over in place. It
 needs no root, changes nothing, and exits `0` ready, `1` blocked, `2` ready with warnings — so a
 script can tell the three cases apart. `--json` emits the same report machine-readably.
 
@@ -191,7 +191,7 @@ script can tell the three cases apart. `--json` emits the same report machine-re
 | Branch | Holds |
 |---|---|
 | `main` | Documentation. Design, decisions, hardware framework, project rules. Always reviewable. |
-| `dev-unstable` | Code. The working implementation, merged back into `main` when a milestone completes. |
+| `dev-unstable` | Code. The working implementation, merged forward when a milestone completes. |
 
 Documentation changes land on `main` directly. Implementation lands on `dev-unstable`. A
 milestone is done when its code has merged forward, not when it is written.
@@ -203,7 +203,7 @@ what lands in what order.
 
 ## Design system
 
-Zenith's visual language is monochrome by construction: black, grey and white, with accent
+ASURA's visual language is monochrome by construction: black, grey and white, with accent
 colour never carrying meaning. The rules live in [`agents/agents.md`](agents/agents.md) and
 are binding, not advisory:
 
@@ -221,7 +221,7 @@ Aesthetic character comes from material, shape and rhythm — never from hue.
 
 ## Contributing
 
-Zenith is open source and contributions are the point. **Hardware profiles are the most valuable
+ASURA is open source and contributions are the point. **Hardware profiles are the most valuable
 contribution and the easiest for a new person to make** — you need one machine and no code.
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to contribute, including hardware profiles
@@ -235,17 +235,17 @@ Contributions are made under the Developer Certificate of Origin.
 
 ## Licence
 
-Zenith is free software, but not under one licence, and not entirely free of proprietary code on
+ASURA is free software, but not under one licence, and not entirely free of proprietary code on
 disk. Both facts matter, so both are documented:
 
-- Zenith's own code and Zenith's own repository are **GPL-3.0** and entirely free.
+- ASURA's own code and ASURA's own repository are **GPL-3.0** and entirely free.
 - The shell's **engine** is Quickshell, **LGPL-3.0-only**, shipped unmodified. The shell's
   **surfaces** are a vendored open-source Quickshell configuration —
   [`end-4/dots-hyprland`](https://github.com/end-4/dots-hyprland)'s "ii" config under
   GPL-3.0 and [`end-4/rounded-polygon-qmljs`](https://github.com/end-4/rounded-polygon-qmljs)
-  under Apache-2.0 — kept byte-identical to their pinned commits and re-themed to Zenith's
+  under Apache-2.0 — kept byte-identical to their pinned commits and re-themed to ASURA's
   design language. The composed shell is GPL-3.0.
-- Some laptop hardware needs proprietary firmware. Zenith references the base layer's
+- Some laptop hardware needs proprietary firmware. ASURA references the base layer's
   `linux-firmware-*` packages rather than redistributing firmware itself, and declares per
   machine what is needed.
 

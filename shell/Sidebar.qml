@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 // The sidebar.
 //
 // A slide-in panel for audio, network, bluetooth, display and media. It is a
-// renderer and nothing else: it runs `zenith state` and draws the JSON it gets
+// renderer and nothing else: it runs `asura state` and draws the JSON it gets
 // back. Every decision about what a tool's output means is in Go, where there
 // are tests for it — wpctl reporting a volume of 1.53, nmcli escaping the
 // colons in a MAC address, bluetoothctl exiting 0 while printing an error. Those
@@ -109,7 +109,7 @@ PanelWindow {
 
     Process {
         id: probe
-        command: ["zenith", "state"]
+        command: ["asura", "state"]
         running: sidebar.refreshToken !== ""
 
         stdout: StdioCollector {

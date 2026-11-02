@@ -8,7 +8,7 @@ import "../Singletons"
 
 // Window Manager (COMPOSITOR). Every window-manager setting on one page: the
 // neutral window rows the Hub ships (shape, gaps, borders, motion) and the
-// exclusives the active provider ships (ProviderSchema). Zenith runs one
+// exclusives the active provider ships (ProviderSchema). Asura runs one
 // compositor, Hyprland, so there is nothing to switch: the head names it, and its
 // own tab states which version is running beside the honest list of what it
 // cannot do (the settings the store carries that it has no equivalent for, so a

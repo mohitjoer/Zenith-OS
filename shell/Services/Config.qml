@@ -5,9 +5,9 @@ import Quickshell.Io
 import qs.FrameBars
 import qs.Ui.Singletons
 
-// live shell appearance config. one source of truth for the look knobs Zenith
+// live shell appearance config. one source of truth for the look knobs Asura
 // Settings' Shell section edits, plus the shipped defaults the shell falls back
-// to. JSON at ~/.config/zenith/shell.json, watched, so a save in Settings
+// to. JSON at ~/.config/asura/shell.json, watched, so a save in Settings
 // retunes the running shell on the next file event. no reload. defaults here
 // are canonical; Settings mirrors them for reset-to-default and seeds nothing
 // of its own.
@@ -50,7 +50,7 @@ Singleton {
 
     // dock: the first-class app dock surface (modules/dock). A top-level store,
     // not a bar-style key, because the dock is now style-agnostic -- neither qsbar
-    // nor Sumi owns it. On by default (Ryoku ships it off; Zenith's brief wants
+    // nor Sumi owns it. On by default (Ryoku ships it off; Asura's brief wants
     // it visible on a fresh desktop); Hub -> Bar Studio -> Dock turns it off.
     // Read and written through the services Dock singleton so every consumer goes
     // through one place.
@@ -154,12 +154,12 @@ Singleton {
         themePalette = pal;
     }
 
-    // brand: the desktop's mark + name, user-overridable from Zenith Settings ->
+    // brand: the desktop's mark + name, user-overridable from Asura Settings ->
     // Shell -> Global. a small cross-cutting identity master (like theme.json).
     // markText is the glyph/short-text seal (default 天); markImage an optional
     // image path that wins over the text; markTint recolours a single-colour
-    // image to the accent; name is the wordmark ("Zenith") shown in chrome copy.
-    // Zenith's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
+    // image to the accent; name is the wordmark ("Asura") shown in chrome copy.
+    // Asura's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
     property alias markText:  brandAdapter.markText
     property alias markImage: brandAdapter.markImage
     property alias markTint:  brandAdapter.markTint
@@ -167,7 +167,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -224,7 +224,7 @@ Singleton {
     // window borders and shell chrome all read it). true = follow the wallpaper.
     FileView {
         id: themeFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -236,7 +236,7 @@ Singleton {
     // Hub's Shell -> Global editor. seeded once on first run below.
     FileView {
         id: brandFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/brand.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/brand.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -247,7 +247,7 @@ Singleton {
             property string markText: "天"
             property string markImage: ""
             property bool markTint: true
-            property string name: "Zenith"
+            property string name: "Asura"
         }
     }
 
@@ -255,7 +255,7 @@ Singleton {
     // it and serialises every writer), so a persisted write goes through it.
     Socket {
         id: shaderCtl
-        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
         property string queued: ""
         function flushQueued() {
             if (queued.length === 0)

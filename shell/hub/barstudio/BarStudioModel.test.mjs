@@ -83,7 +83,7 @@ eq(Model.railWidgets(packed, "left"), ["dock", "clock", "battery"], "railWidgets
 // ── subtree preservation ─────────────────────────────────────────────────────
 // every mutation clones the whole config, so an edit can never drop the
 // menus/surfaces/dock subtrees. This is the source-side half of the invariant
-// the daemon also enforces (zenith/shell/ipc/settings.go).
+// the daemon also enforces (asura/shell/ipc/settings.go).
 const shipped = FrameBars.defaultConfig(MenuCatalog);
 const subtrees = ["version", "style", "rails", "menus", "surfaces", "dock"];
 function preservesAll(config, label) {

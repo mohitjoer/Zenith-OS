@@ -85,7 +85,7 @@ function normalize(raw, barCatalog, menuCatalog) {
     const base = defaultConfig(menuCatalog);
     const source = isObject(raw) ? raw : {};
     const output = defaultConfig(menuCatalog);
-    output.style = source.style === "slate-frame" || source.style === "zenith-frame" ? source.style : base.style;
+    output.style = source.style === "slate-frame" || source.style === "asura-frame" ? source.style : base.style;
     for (const edge of ["top", "left", "bottom", "right"]) {
         const rail = isObject(source.rails) && isObject(source.rails[edge]) ? source.rails[edge] : {};
         output.rails[edge].enabled = typeof rail.enabled === "boolean" ? rail.enabled : base.rails[edge].enabled;

@@ -7,7 +7,7 @@ import qs.Ui.Singletons
 
 // Session (DESIGN.md section 11, ADVANCED). The two thin login-time lists folded
 // into one page: what the session runs at login (desktop.autostart, layered over
-// Zenith's own autostart) and the variables it exports (desktop.env, over the base
+// Asura's own autostart) and the variables it exports (desktop.env, over the base
 // session). Each "key" is an array of entries, so each cluster is a bespoke list
 // editor -- a SettingCard holding a column of Field rows and its add/clear footer
 // -- not a settings sheet. The shell owns the rail, the side panel and the

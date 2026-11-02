@@ -1,11 +1,11 @@
 # The Hub
 
-Zenith Settings: Ryoku's Hub, ported (a navigation rail in groups, a global search, one page per
-area of the desktop), plus one extra group, **Zenith**, for the settings the GSettings schemas
-declare. `session/zenith-hub [PAGE]` runs `quickshell -p /usr/share/zenith/shell/hub.qml`; the
-window is titled exactly `Zenith Settings` (its Wayland class is `org.quickshell`), which is what
-the compositor's window rule matches. `PAGE` is a navigation key (`displays`, `keybinds`, `zenith`)
-and reaches the window as `ZENITH_HUB_PAGE`. A running Hub is steered with
+Asura Settings: Ryoku's Hub, ported (a navigation rail in groups, a global search, one page per
+area of the desktop), plus one extra group, **Asura**, for the settings the GSettings schemas
+declare. `session/asura-hub [PAGE]` runs `quickshell -p /usr/share/asura/shell/hub.qml`; the
+window is titled exactly `Asura Settings` (its Wayland class is `org.quickshell`), which is what
+the compositor's window rule matches. `PAGE` is a navigation key (`displays`, `keybinds`, `asura`)
+and reaches the window as `ASURA_HUB_PAGE`. A running Hub is steered with
 `quickshell ipc -p .../hub.qml call nav open KEY` and closed with `call hub close`.
 
 A Quickshell configuration's root is the directory of the file it is started on, so the entry file,
@@ -16,17 +16,17 @@ A Quickshell configuration's root is the directory of the file it is started on,
 | The window: rail, search, page host, action bar | `Hub.qml` (from Ryoku) |
 | The pages | `pages/` (Ryoku's, one file per rail entry), their rows in `schema/` |
 | Page chrome shared by them | `SchemaPage.qml`, `SettingsSheet.qml`, `Combos.js`, `fuzzy.js` |
-| The daemon, as the Hub sees it | `Singletons/` (`Settings.qml` is the `zenith-shell` socket) |
-| The Zenith group | `ZenithPage.qml`, drawn with `PageView.qml`, `Editor.qml`, `Controls/`, `Zenith.qml`, `GVariant.qml` |
+| The daemon, as the Hub sees it | `Singletons/` (`Settings.qml` is the `asura-shell` socket) |
+| The Asura group | `AsuraPage.qml`, drawn with `PageView.qml`, `Editor.qml`, `Controls/`, `Asura.qml`, `GVariant.qml` |
 
-Ryoku pages edit `shell.json` through the daemon and the compositor files through `zenith-hubd`.
-The Zenith group is the other store: GSettings, written only through `zenith config set`. It shows a
+Ryoku pages edit `shell.json` through the daemon and the compositor files through `asura-hubd`.
+The Asura group is the other store: GSettings, written only through `asura config set`. It shows a
 control only for a setting something reads (today the idle timeouts); the rest are on the `Unread`
 list in `desktop/internal/hub`, with the reason, and come off it when something starts reading them.
 
-## Where the Zenith pages come from
+## Where the Asura pages come from
 
-Nowhere in this directory. `ZenithPage.qml` runs `zenith config export`, which writes the page registry
+Nowhere in this directory. `AsuraPage.qml` runs `asura config export`, which writes the page registry
 as JSON, and draws what it is given: the pages, the keys on each page, the type of each key, the
 permitted values of an enum, the range of a number, and the current value of everything.
 
@@ -99,7 +99,7 @@ the same way.
 
 | Type | The export writes | The tool takes |
 |---|---|---|
-| `s` | `'file:///usr/share/zenith/backgrounds/galaxy.png'` | the same |
+| `s` | `'file:///usr/share/asura/backgrounds/galaxy.png'` | the same |
 | `i` | `32` | the same |
 | `b` | `true` | the same |
 | `as` | `['workspaces', 'clock']` | the same |
@@ -117,7 +117,7 @@ where one item ends and the next begins, and the mangled list is what gets writt
 
 ## The write path
 
-One writer: `Zenith.set(key, value)`, which runs `zenith config set` and nothing else. The editors
+One writer: `Asura.set(key, value)`, which runs `asura config set` and nothing else. The editors
 never touch dconf.
 
 The writes are queued and run one at a time. A process that is given a second command while it is
@@ -170,14 +170,14 @@ sh shell/shell_test.sh
 ```
 
 loads both configurations, each named by its entry file: the desktop's `shell.qml` and the Hub's
-`hub.qml`. `zenith doctor` reads the same tree for the things reading can see — that nothing names a
+`hub.qml`. `asura doctor` reads the same tree for the things reading can see — that nothing names a
 colour of its own, that every import is on the closed list, and that every command the tree runs is a
 command the tool has.
 
 To load the Hub itself, from a checkout:
 
 ```sh
-zenith config export >/dev/null          # the schemas have to be installed
+asura config export >/dev/null          # the schemas have to be installed
 quickshell -p shell/hub.qml --no-color
 ```
 

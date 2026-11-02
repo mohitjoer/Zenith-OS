@@ -7,7 +7,7 @@ import qs.Ui.Singletons
 
 // Credits, the kansha poster. Gratitude as a plate: an ancient tree, its roots
 // gripping the black, dissolves off the right; the left column carries the
-// bilingual title, a Fraunces deck, the projects Zenith grows from as editorial
+// bilingual title, a Fraunces deck, the projects Asura grows from as editorial
 // type lines (never cards), the one bone placard in the whole app for the
 // crash-test crew, and a self-documenting colophon. Pure space-bone-grotesk --
 // bone on black, no colour, no marble; the tree is fal-generated and graded to
@@ -18,7 +18,7 @@ Item {
     property var hub
     readonly property bool fullBleed: true
 
-    // people + projects Zenith is built on, reused verbatim from the old page.
+    // people + projects Asura is built on, reused verbatim from the old page.
     // an empty url is a quiet, unlinked credit: no home was given, none invented.
     readonly property var projects: [
         { "name": "Ryoku",        "by": "ryoku-dev",      "role": I18n.tr("the desktop this shell is ported from (GPL-3.0)"), "url": "https://github.com/ryoku-dev/ryoku" },
@@ -26,7 +26,7 @@ Item {
         { "name": "rounded-polygon-qmljs", "by": "end-4", "role": I18n.tr("shape kit (Apache-2.0)"), "url": "https://github.com/end-4/rounded-polygon-qmljs" },
         { "name": "Quickshell",   "by": "outfoxxed",      "role": I18n.tr("the shell engine (LGPL-3.0)"), "url": "https://quickshell.org" },
         { "name": "Hyprland",     "by": "hyprwm",         "role": I18n.tr("the compositor"),       "url": "https://github.com/hyprwm/Hyprland" },
-        { "name": "Zenith OS",    "by": "the Zenith contributors", "role": I18n.tr("session, settings, packaging (GPL-3.0)"), "url": "https://github.com/mohitjoer/Zenith-OS" },
+        { "name": "Asura OS",    "by": "the Asura contributors", "role": I18n.tr("session, settings, packaging (GPL-3.0)"), "url": "https://github.com/mohitjoer/Asura-OS" },
         { "name": "qylock",       "by": "Darkkal44",      "role": I18n.tr("lockscreen"),          "url": "https://github.com/Darkkal44/qylock" },
         { "name": "caelestia",    "by": "caelestia-dots", "role": I18n.tr("Quickshell craft, motion + browser theming"), "url": "https://github.com/caelestia-dots/shell" },
         { "name": "dusky",        "by": "dusklinux",      "role": I18n.tr("recolor templates + animation presets"), "url": "https://github.com/dusklinux/dusky" },
@@ -46,7 +46,7 @@ Item {
         { "name": "nixos-configuration", "by": "ilyamiro", "role": I18n.tr("legacy island bar"),   "url": "https://github.com/ilyamiro/nixos-configuration" },
         { "name": "dotfiles",     "by": "Jules3182",     "role": I18n.tr("dyad dual-edge bar"),   "url": "https://github.com/Jules3182/dotfiles" },
         { "name": "NibrasShell",  "by": "Ahmed Saadi",    "role": I18n.tr("depth effect engine"),  "url": "https://github.com/AhmedSaadi0/NibrasShell" },
-        { "name": "skwd-wall",    "by": "liixini",        "role": I18n.tr("wallpaper engine (Ryogami, now zenith-wallpaper)"), "url": "https://github.com/liixini/skwd-wall" }
+        { "name": "skwd-wall",    "by": "liixini",        "role": I18n.tr("wallpaper engine (Ryogami, now asura-wallpaper)"), "url": "https://github.com/liixini/skwd-wall" }
     ]
 
     // the alpha/beta crew, constantly stress-testing and filing bugs. each name
@@ -102,7 +102,7 @@ Item {
         Text {
             anchors.centerIn: parent
             rotation: -90
-            text: "ZENITH  \u00b7  \u611f\u8b1d KANSHA  \u00b7  SHOT ON BLACK"
+            text: "ASURA  \u00b7  \u611f\u8b1d KANSHA  \u00b7  SHOT ON BLACK"
             color: Tokens.inkFaint
             font.family: Tokens.mono
             font.pixelSize: Tokens.fTiny

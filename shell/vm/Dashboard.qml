@@ -7,7 +7,7 @@ import qs.Ui
 import qs.Ui.Singletons
 import "Singletons"
 
-// The harbour: zenith-vm's first plate. A command dossier for the whole fleet --
+// The harbour: asura-vm's first plate. A command dossier for the whole fleet --
 // the machines berthed here and the remotes reached from here -- read at a glance
 // and acted on in one tap. The Profile plate's register (a dithered decor hero,
 // monumental Fraunces, an instrument readout, the watermark and marginalia) put
@@ -315,7 +315,7 @@ Item {
                             width: remBody.width
                             text: Remotes.engineOk
                                 ? I18n.tr("No remotes yet. Add a VPS, or drop hosts in ~/.ssh/config.")
-                                : I18n.tr("The remote engine (zenith-vm-ssh) is not installed.")
+                                : I18n.tr("The remote engine (asura-vm-ssh) is not installed.")
                             color: Tokens.inkFaint
                             font.family: Tokens.ui; font.pixelSize: 12
                         }
@@ -403,7 +403,7 @@ Item {
                 Barcode {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.tr("ZENITH-VM-") + Qt.formatDateTime(dash.now, "yyyyMMdd")
+                    text: I18n.tr("ASURA-VM-") + Qt.formatDateTime(dash.now, "yyyyMMdd")
                     unit: 1.0
                     barHeight: 16
                 }

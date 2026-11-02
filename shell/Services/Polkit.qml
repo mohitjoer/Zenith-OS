@@ -25,7 +25,7 @@ Singleton {
     property bool busy: false       // an answer is with PAM, awaiting the verdict
     property string fingerprint: "" // "" none, "scanning", "fail" (pam_fprintd)
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // Fired whenever a fresh frame arrives, so the surface clears the field and
     // takes focus again on a retry without the island closing in between.

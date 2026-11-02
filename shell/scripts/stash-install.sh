@@ -1,21 +1,21 @@
 #!/bin/bash
-# stash app installer: makes whatever the user dropped in the Zenith stash
+# stash app installer: makes whatever the user dropped in the Asura stash
 # launchable. an AppImage or self-contained tarball gets a synthesized XDG
 # desktop entry under ~/.local; a .deb is handed to `apt-get install` via pkexec
 # so it installs the normal way (dependencies resolved, maintainer scripts run)
 # and the launcher reads the entry the package itself ships.
 # on success we drop the source from the stash so it doesn't sit there as a
-# duplicate (ZENITH_STASH_KEEP=1 keeps it).
+# duplicate (ASURA_STASH_KEEP=1 keeps it).
 # usage: stash-install.sh [file]   (no arg = install every supported file in $STASH)
 set -u
 
 STASH="${STASH_DIR:-${XDG_DOWNLOAD_DIR:-$HOME/Downloads}/Stash}"
-APPSTORE="$HOME/.local/share/zenith-apps"        # installed payloads
+APPSTORE="$HOME/.local/share/asura-apps"        # installed payloads
 APPDIR="$HOME/.local/share/applications"         # launcher reads .desktop from here
 ICONDIR="$HOME/.local/share/icons"
 # successful install copies/extracts/installs the app out of the stash. the
-# dropped source is then a pure duplicate; nuke it unless ZENITH_STASH_KEEP=1.
-KEEP_SOURCE="${ZENITH_STASH_KEEP:-0}"
+# dropped source is then a pure duplicate; nuke it unless ASURA_STASH_KEEP=1.
+KEEP_SOURCE="${ASURA_STASH_KEEP:-0}"
 mkdir -p "$APPSTORE" "$APPDIR" "$ICONDIR"
 
 LAST_NAME=""
@@ -137,7 +137,7 @@ write_desktop() {
     printf 'Icon=%s\n' "${ic:-$nm}"
     printf 'Terminal=false\n'
     printf 'Categories=%s\n' "$cat"
-    printf 'X-Zenith-Stash=true\n'
+    printf 'X-Asura-Stash=true\n'
   } > "$out"
 }
 

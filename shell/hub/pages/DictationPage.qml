@@ -11,7 +11,7 @@ import qs.Ui.Singletons
 // System > Dictation (DESIGN.md section 11, SYSTEM). Voxtype speech-to-text:
 // switch voice typing on, pick a speech-to-text engine and model, download
 // models in place, and add an API key for the cloud engine. This is not a
-// settings sheet -- its backend is the `zenith-hubd voxtype` subcommand and the
+// settings sheet -- its backend is the `asura-hubd voxtype` subcommand and the
 // systemd user service, not the shared config store -- so it is full-bleed and
 // draws its whole content region itself. The shell owns Super+` and the pill's
 // mic-wave; this page just shapes ~/.config/voxtype/config.toml and the user
@@ -27,7 +27,7 @@ Item {
     // instantly (the API key is the one thing behind an explicit Save).
     readonly property bool previewDirty: false
 
-    // ── live snapshot from `zenith-hubd voxtype get` ────────────────────────
+    // ── live snapshot from `asura-hubd voxtype get` ────────────────────────
     property var presets: []
     property string selected: "whisper-fast"
     property bool voiceOn: false
@@ -66,7 +66,7 @@ Item {
             for (var k in extra)
                 req[k] = extra[k];
         pg.busyError = "";
-        setProc.command = ["zenith-hubd", "voxtype", "set", JSON.stringify(req)];
+        setProc.command = ["asura-hubd", "voxtype", "set", JSON.stringify(req)];
         setProc.running = true;
     }
     // clicking a card selects it; a local model that isn't downloaded is fetched
@@ -99,16 +99,16 @@ Item {
         pg.notice = "";
         pg.dlPercent = -1;
         pg.downloading = key;
-        dlProc.command = ["zenith-hubd", "voxtype", "download", key];
+        dlProc.command = ["asura-hubd", "voxtype", "download", key];
         dlProc.running = true;
     }
     function removeModel(key) {
         pg.busyError = "";
-        rmProc.command = ["zenith-hubd", "voxtype", "rmmodel", key];
+        rmProc.command = ["asura-hubd", "voxtype", "rmmodel", key];
         rmProc.running = true;
     }
 
-    // Voxtype is not in the Ubuntu archive, so there is nothing for Zenith to
+    // Voxtype is not in the Ubuntu archive, so there is nothing for Asura to
     // install; its own site publishes a .deb. Opening that page is the user's call.
     function installVoxtype() { Qt.openUrlExternally("https://voxtype.io"); }
 
@@ -124,7 +124,7 @@ Item {
     Process {
         id: getProc
         command: ["sh", "-c",
-            'command -v zenith-hubd >/dev/null 2>&1 || { echo "zenith-hubd is not installed" >&2; exit 127; }; exec zenith-hubd voxtype get']
+            'command -v asura-hubd >/dev/null 2>&1 || { echo "asura-hubd is not installed" >&2; exit 127; }; exec asura-hubd voxtype get']
         stderr: StdioCollector { id: getErr }
         onExited: code => {
             if (code === 0)
@@ -652,7 +652,7 @@ Item {
 
                 // error banner, pinned at the bottom: an error is inverted text and
                 // the word (DESIGN.md section 1), so the tag flips to bone; the raw
-                // zenith-hubd message reads in ink. cleared by the next action.
+                // asura-hubd message reads in ink. cleared by the next action.
                 Rectangle {
                     visible: pg.busyError !== ""
                     width: parent.width

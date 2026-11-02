@@ -97,7 +97,7 @@ gzip -9n -c "$dir/Packages" > "$dir/Packages.gz"
 #
 # The secret keyring is not inside $REPO on purpose. $REPO is the tree that gets
 # published, and a private key in a published tree is a published private key.
-# It sits beside it, and ZENITH_SECRET_KEYRING points it somewhere else in CI.
+# It sits beside it, and ASURA_SECRET_KEYRING points it somewhere else in CI.
 #
 # A key that already exists is reused: regenerating it would invalidate every
 # machine that already trusts it, which is the exact failure the shipped keyring
@@ -105,8 +105,8 @@ gzip -9n -c "$dir/Packages" > "$dir/Packages.gz"
 # first run — an earlier version kept the secret key in a temporary GNUPGHOME,
 # deleted it at the end, and then claimed to reuse a key it had just destroyed.
 # The second build failed at "no secret key" every time.
-KEYRING="$REPO/zenith-archive-keyring.gpg"
-SECRET_KEYRING=${ZENITH_SECRET_KEYRING:-"$REPO/../.zenith-archive-secret.gpg"}
+KEYRING="$REPO/asura-archive-keyring.gpg"
+SECRET_KEYRING=${ASURA_SECRET_KEYRING:-"$REPO/../.asura-archive-secret.gpg"}
 
 if [ -z "${GNUPGHOME:-}" ]; then
     GNUPGHOME=$(mktemp -d)
@@ -118,7 +118,7 @@ fi
 if [ ! -s "$SECRET_KEYRING" ]; then
     echo "generating a repository signing key"
     gpg --batch --quiet --passphrase '' \
-        --quick-generate-key "Zenith OS archive signing key <zenith@localhost>" \
+        --quick-generate-key "Asura OS archive signing key <asura@localhost>" \
         rsa3072 sign never >/dev/null 2>&1
     KEYID=$(gpg --batch --with-colons --list-keys | awk -F: '/^fpr:/ {print $10; exit}')
     gpg --batch --quiet --export-secret-keys "$KEYID" > "$SECRET_KEYRING"
@@ -151,7 +151,7 @@ apt-ftparchive 2>/dev/null >/dev/null || true
 # a tree that no longer exists.
 STALE="$REPO/dists/$SUITE/Release"
 rm -f "$STALE" "$REPO/dists/$SUITE/Release.gpg" "$REPO/dists/$SUITE/InRelease"
-RELEASE=$(mktemp "${TMPDIR:-/tmp}/zenith-release.XXXXXX")
+RELEASE=$(mktemp "${TMPDIR:-/tmp}/asura-release.XXXXXX")
 trap 'rm -f "$RELEASE"' EXIT
 
 # Which writer produces the Release file. "auto" takes apt-ftparchive when it
@@ -162,7 +162,7 @@ trap 'rm -f "$RELEASE"' EXIT
 # machine without apt-utils gets, and it has to be exercised on purpose, on a
 # machine that has apt-ftparchive, or it is only ever tested by the machines
 # that cannot run the test at all.
-FORMAT=${ZENITH_RELEASE_FORMAT:-auto}
+FORMAT=${ASURA_RELEASE_FORMAT:-auto}
 if [ "$FORMAT" = "auto" ]; then
     if command -v apt-ftparchive >/dev/null 2>&1; then
         FORMAT=tool
@@ -173,8 +173,8 @@ fi
 
 if [ "$FORMAT" = "tool" ]; then
     apt-ftparchive \
-        -o APT::FTPArchive::Release::Origin="Zenith OS" \
-        -o APT::FTPArchive::Release::Label="Zenith OS" \
+        -o APT::FTPArchive::Release::Origin="Asura OS" \
+        -o APT::FTPArchive::Release::Label="Asura OS" \
         -o APT::FTPArchive::Release::Suite="$SUITE" \
         -o APT::FTPArchive::Release::Codename="$SUITE" \
         -o APT::FTPArchive::Release::Components="$COMPONENT" \
@@ -203,11 +203,11 @@ else
     # expects to find it.
     echo "apt-ftparchive is absent; writing the Release file by hand"
     ( cd "$REPO/dists/$SUITE" && \
-      { echo "Origin: Zenith OS"; echo "Label: Zenith OS"; echo "Suite: $SUITE"; \
+      { echo "Origin: Asura OS"; echo "Label: Asura OS"; echo "Suite: $SUITE"; \
         echo "Codename: $SUITE"; \
         echo "Date: $(date -R -u)"; \
         echo "Components: $COMPONENT"; echo "Architectures: $ARCH"; \
-        echo "Description: Zenith OS signed archive"; echo "MD5Sum:"; \
+        echo "Description: Asura OS signed archive"; echo "MD5Sum:"; \
         find . -type f -printf '%P\n' | sort | while read -r f; do
             printf ' %s %16d %s\n' "$(md5sum <"$f" | cut -d' ' -f1)" "$(stat -c%s "$f")" "$f"
         done; echo "SHA256:"; \
@@ -237,8 +237,8 @@ chmod 0644 "$REPO/dists/$SUITE/Release.gpg.tmp" "$REPO/dists/$SUITE/InRelease.tm
 mv "$REPO/dists/$SUITE/Release.gpg.tmp" "$REPO/dists/$SUITE/Release.gpg"
 mv "$REPO/dists/$SUITE/InRelease.tmp" "$REPO/dists/$SUITE/InRelease"
 
-cat > "$REPO/zenith.sources" <<SOURCES
-# Zenith OS signed repository.
+cat > "$REPO/asura.sources" <<SOURCES
+# Asura OS signed repository.
 #
 # signed-by names the keyring file, so this line adds exactly one trusted key and
 # nothing else. It does not widen the machine's trust to a whole keyserver.
@@ -257,4 +257,4 @@ fi
 echo
 echo "repository at $REPO (suite $SUITE, component $COMPONENT)"
 echo "key $KEYID"
-echo "source line: cp $REPO/zenith.sources /etc/apt/sources.list.d/"
+echo "source line: cp $REPO/asura.sources /etc/apt/sources.list.d/"

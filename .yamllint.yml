@@ -1,4 +1,4 @@
-# yamllint configuration for Zenith OS.
+# yamllint configuration for Asura OS.
 #
 # Matched to the YAML that is actually in this repository rather than to a
 # generic profile, and every rule relaxed below carries its reason. The rule

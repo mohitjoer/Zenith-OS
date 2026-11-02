@@ -4,9 +4,9 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 
-// The remote fleet: SSH hosts and VPS drawn from ~/.ssh/config (plus zenith-vm's
+// The remote fleet: SSH hosts and VPS drawn from ~/.ssh/config (plus asura-vm's
 // own include file), their live reachability, and on-demand health probes. All
-// driven through the `zenith-vm-ssh` engine, which speaks JSON. The list is the facts;
+// driven through the `asura-vm-ssh` engine, which speaks JSON. The list is the facts;
 // reach and health are kept in maps beside it so a poll never rebuilds the list.
 Singleton {
     id: root
@@ -15,7 +15,7 @@ Singleton {
     property var hosts: []
     property bool loading
     property bool probing
-    property bool engineOk: true         // zenith-vm-ssh present and answering
+    property bool engineOk: true         // asura-vm-ssh present and answering
     property string selectedAlias: ""
 
     // alias -> { up, rttMs, sshUp } and alias -> full probe object.
@@ -120,11 +120,11 @@ Singleton {
     }
     function loadTunnels() { tunnelListProc.running = true; }
     function openTunnel(alias, spec) {
-        tunnelOpenProc.command = ["zenith-vm-ssh", "tunnel", "open", alias, spec];
+        tunnelOpenProc.command = ["asura-vm-ssh", "tunnel", "open", alias, spec];
         tunnelOpenProc.running = true;
     }
     function closeTunnel(id) {
-        tunnelCloseProc.command = ["zenith-vm-ssh", "tunnel", "close", id];
+        tunnelCloseProc.command = ["asura-vm-ssh", "tunnel", "close", id];
         tunnelCloseProc.running = true;
     }
     function select(a) {
@@ -135,18 +135,18 @@ Singleton {
     function probeAll() { if (hosts.length > 0) { probing = true; probeProc.running = true; } }
     function probe(a) {
         if (!a || a.length === 0) return;
-        oneProbe.command = ["zenith-vm-ssh", "probe", a];
+        oneProbe.command = ["asura-vm-ssh", "probe", a];
         oneProbe.running = true;
     }
     function appCheckAll() { if (hosts.length > 0) appCheckProc.running = true; }
-    function appCheck(a) { if (a && a.length > 0) { appCheckOne.command = ["zenith-vm-ssh", "appcheck", a]; appCheckOne.running = true; } }
+    function appCheck(a) { if (a && a.length > 0) { appCheckOne.command = ["asura-vm-ssh", "appcheck", a]; appCheckOne.running = true; } }
     function loadGuests(a) {
         if (!a || a.length === 0) return;
         var h = null;
         for (var i = 0; i < hosts.length; i++) if (hosts[i].alias === a) { h = hosts[i]; break; }
         if (!root.isProxmox(h)) return;
         guestsProc.forAlias = a;
-        guestsProc.command = ["zenith-vm-ssh", "pveguests", a];
+        guestsProc.command = ["asura-vm-ssh", "pveguests", a];
         guestsProc.running = true;
     }
     function pveAct(a, node, type, vmid, action) {
@@ -155,12 +155,12 @@ Singleton {
             var b = guestBusy; b[a + "|" + vmid] = { want: want, since: Date.now() }; guestBusy = b; guestBusyRev++;
         }
         pveActProc.forAlias = a;
-        pveActProc.command = ["zenith-vm-ssh", "pveaction", a, node, type, String(vmid), action];
+        pveActProc.command = ["asura-vm-ssh", "pveaction", a, node, type, String(vmid), action];
         pveActProc.running = true;
         logEvent(action, a, action + " " + type + "/" + vmid);
     }
     function connect(a) {
-        connectProc.command = ["zenith-vm-ssh", "connect", a];
+        connectProc.command = ["asura-vm-ssh", "connect", a];
         connectProc.running = true;
         logEvent("connect", a, I18n.tr("opened a session to %1").arg(a));
     }
@@ -169,14 +169,14 @@ Singleton {
     // real terminal; hold on the result so the key-added line or an auth error
     // stays readable instead of vanishing when the window closes.
     function copyId(a) {
-        Quickshell.execDetached(["zenith-app", "terminal", "--", "sh", "-c",
-            "zenith-vm-ssh copyid \"$1\"; printf \"\\n── press enter to close ──\\n\"; read _", "_", a]);
+        Quickshell.execDetached(["asura-app", "terminal", "--", "sh", "-c",
+            "asura-vm-ssh copyid \"$1\"; printf \"\\n── press enter to close ──\\n\"; read _", "_", a]);
     }
     // run one command on the host in a TTY, then hold on its output with a local
     // read so a fast command like df stays readable instead of being buried under
     // a fresh shell; the remote command stays unwrapped so non-POSIX shells can't mangle it.
     function runOn(alias, cmd) {
-        Quickshell.execDetached(["zenith-app", "terminal", "--", "sh", "-c",
+        Quickshell.execDetached(["asura-app", "terminal", "--", "sh", "-c",
             "ssh -t \"$1\" \"$2\"; printf \"\\n── press enter to close ──\\n\"; read _", "_", alias, cmd]);
         logEvent("run", alias, I18n.tr("%1 on %2").arg(cmd.split(" ")[0]).arg(alias));
     }
@@ -196,21 +196,21 @@ Singleton {
         addProc.alias = obj.alias;
         addProc.pw = pw || "";
         addProc.clearPw = !!clearPw;
-        addProc.command = ["zenith-vm-ssh", "add", JSON.stringify(obj)];
+        addProc.command = ["asura-vm-ssh", "add", JSON.stringify(obj)];
         addProc.running = true;
         logEvent("add", obj.alias, I18n.tr("saved %1").arg(obj.alias));
     }
     function setPass(alias, pw) {
         setPassProc.pw = pw;
-        setPassProc.command = ["zenith-vm-ssh", "setpass", alias];
+        setPassProc.command = ["asura-vm-ssh", "setpass", alias];
         setPassProc.running = true;
     }
     function clearPass(alias) {
-        clearPassProc.command = ["zenith-vm-ssh", "clearpass", alias];
+        clearPassProc.command = ["asura-vm-ssh", "clearpass", alias];
         clearPassProc.running = true;
     }
     function removeHost(a) {
-        rmProc.command = ["zenith-vm-ssh", "remove", a];
+        rmProc.command = ["asura-vm-ssh", "remove", a];
         rmProc.running = true;
         logEvent("remove", a, I18n.tr("forgot %1").arg(a));
     }
@@ -246,7 +246,7 @@ Singleton {
 
     Process {
         id: listProc
-        command: ["zenith-vm-ssh", "list"]
+        command: ["asura-vm-ssh", "list"]
         property string last: ""
         onStarted: root.loading = true
         stdout: StdioCollector {
@@ -271,7 +271,7 @@ Singleton {
 
     Process {
         id: pingProc
-        command: ["zenith-vm-ssh", "pingall"]
+        command: ["asura-vm-ssh", "pingall"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root._mergeReach(JSON.parse(this.text) || []); } catch (e) {}
@@ -281,7 +281,7 @@ Singleton {
 
     Process {
         id: probeProc
-        command: ["zenith-vm-ssh", "probeall"]
+        command: ["asura-vm-ssh", "probeall"]
         stdout: StdioCollector {
             onStreamFinished: {
                 root.probing = false;
@@ -301,7 +301,7 @@ Singleton {
     }
     Process {
         id: appCheckProc
-        command: ["zenith-vm-ssh", "appcheckall"]
+        command: ["asura-vm-ssh", "appcheckall"]
         stdout: StdioCollector {
             onStreamFinished: { try { root._mergeApps(JSON.parse(this.text) || []); } catch (e) {} }
         }
@@ -360,7 +360,7 @@ Singleton {
 
     Process {
         id: keysProc
-        command: ["zenith-vm-ssh", "keys"]
+        command: ["asura-vm-ssh", "keys"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root.keysData = JSON.parse(this.text); } catch (e) {}
@@ -370,7 +370,7 @@ Singleton {
 
     Process {
         id: tunnelListProc
-        command: ["zenith-vm-ssh", "tunnel", "list"]
+        command: ["asura-vm-ssh", "tunnel", "list"]
         stdout: StdioCollector {
             onStreamFinished: { try { root.tunnels = JSON.parse(this.text) || []; } catch (e) { root.tunnels = []; } }
         }

@@ -176,7 +176,7 @@ func keyword(ctx context.Context, key, value string) error {
 //     draws its own.
 //   - globalShortcuts, focusGrab: the Quickshell bridge modules that speak those
 //     protocols are not part of this shell, so a binding would reach nothing.
-//   - plugins: Zenith ships no plugin manager for the compositor.
+//   - plugins: Asura ships no plugin manager for the compositor.
 //   - outputMirror, outputHdr: the display editor's write path is the Hub
 //     backend's, and these describe what it can express.
 var hyprlandCapabilities = []Capability{
@@ -211,7 +211,7 @@ var helperCapabilities = []struct {
 	tool       string
 }{
 	{CapNightLight, hyprlandNightLightProcess},
-	{CapTouchpadToggle, "zenith-touchpad"},
+	{CapTouchpadToggle, "asura-touchpad"},
 }
 
 // hyprlandWindowRuleActions are the neutral window-rule action ids the Hub's
@@ -256,8 +256,8 @@ func (hyprland) caps(ctx context.Context) (Caps, error) {
 		// Relative to ~/.config. The hand-edit file comes first: it is the one the
 		// Hub offers as "your own compositor config", and it wins over everything
 		// the Hub writes.
-		ConfigFiles:       []string{"zenith/hyprland/user.conf"},
-		GeneratedFiles:    []string{"zenith/hyprland/settings.conf", "zenith/hyprland/rebinds.conf"},
+		ConfigFiles:       []string{"asura/hyprland/user.conf"},
+		GeneratedFiles:    []string{"asura/hyprland/settings.conf", "asura/hyprland/rebinds.conf"},
 		PortalBackend:     "hyprland",
 		NightLightProcess: hyprlandNightLightProcess,
 		WindowRuleActions: append([]string(nil), hyprlandWindowRuleActions...),

@@ -140,7 +140,7 @@ Item {
                         tip: I18n.tr("Lock")
                         tipBelow: true
                         onClicked: {
-                            Quickshell.execDetached(["zenith-shell", "lock"]);
+                            Quickshell.execDetached(["asura-shell", "lock"]);
                             if (root.closePanel)
                                 root.closePanel();
                         }

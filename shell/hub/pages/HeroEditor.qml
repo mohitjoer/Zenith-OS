@@ -11,14 +11,14 @@ import qs.Ui.Singletons
 // own image, frame it (draggable focal point + zoom), and, for a custom image,
 // tune the live bone dither (strength + invert). Everything writes to
 // ProfileStore at once, so the plate behind the editor updates live. A custom
-// pick is copied into ~/.config/zenith/profile/ so it persists and can travel in
+// pick is copied into ~/.config/asura/profile/ so it persists and can travel in
 // a .ryoprofile. The baked marble default and the gallery art are already 1-bit
 // bone, so they show raw; only a custom (raw-colour) image runs the dither shader.
 Item {
     id: ed
     signal done()
 
-    readonly property string profileDir: (Quickshell.env("HOME") || "") + "/.config/zenith/profile"
+    readonly property string profileDir: (Quickshell.env("HOME") || "") + "/.config/asura/profile"
 
     property string heroKind: ProfileStore.get("hero.kind", "default")
     property string heroSource: ProfileStore.get("hero.source", "")
@@ -231,7 +231,7 @@ Item {
                             color: Tokens.inkFaint
                             font.family: Tokens.mono
                             font.pixelSize: Tokens.fTiny
-                            text: I18n.tr("A custom image is dithered live. Hand-tune any field in ~/.config/zenith/profile.json.")
+                            text: I18n.tr("A custom image is dithered live. Hand-tune any field in ~/.config/asura/profile.json.")
                         }
                     }
 

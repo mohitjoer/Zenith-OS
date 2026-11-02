@@ -1,16 +1,16 @@
 [config]
 
 # The GTK stylesheets. Rendered only while "Theme apps" is on (theme.json
-# themeApps, and themeZenithApps in matugen.json); the daemon filters this file
-# before handing it to `zenith theme render`.
+# themeApps, and themeAsuraApps in matugen.json); the daemon filters this file
+# before handing it to `asura theme render`.
 
 [templates.gtk3]
-input_path = "~/.config/zenith/shell/matugen/templates/gtk3-colors.css"
+input_path = "~/.config/asura/shell/matugen/templates/gtk3-colors.css"
 output_path = "~/.config/gtk-3.0/gtk.css"
 
 # GTK 4 and GTK 3 read separate inputs: libadwaita 1.6+ recolours its widgets
 # from CSS custom properties (:root) that GTK 3 cannot parse, so the GTK 4
 # template leads with those and GTK 3 keeps the @define-color form it can read.
 [templates.gtk4]
-input_path = "~/.config/zenith/shell/matugen/templates/gtk4-colors.css"
+input_path = "~/.config/asura/shell/matugen/templates/gtk4-colors.css"
 output_path = "~/.config/gtk-4.0/gtk.css"

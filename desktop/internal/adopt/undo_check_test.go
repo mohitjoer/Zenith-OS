@@ -11,20 +11,20 @@ import (
 // TestUndoScriptIsValidShell runs the generated script through sh -n.
 //
 // A generated undo script is only useful if it parses. The moment it is needed
-// there may be no desktop to run `zenith --undo` from, so a syntax error in this
+// there may be no desktop to run `asura --undo` from, so a syntax error in this
 // file is the difference between a machine that comes back and one that does
 // not — and nobody finds out until they need it.
 func TestUndoScriptIsValidShell(t *testing.T) {
 	plan := Plan{
-		BackupDir: "/etc/zenith/adopt/backup/T",
+		BackupDir: "/etc/asura/adopt/backup/T",
 	}
 	state := &State{
 		User:          User{Name: "mohit", Home: "/home/mohit", UID: 1000},
 		Packages:      Packages{Removed: []string{"gnome-core", "yelp"}},
-		Registrations: []Registration{{Path: "/usr/share/wayland-sessions/zenith.desktop"}},
+		Registrations: []Registration{{Path: "/usr/share/wayland-sessions/asura.desktop"}},
 		UserWrites: []UserWrite{{
 			Path:       "/home/mohit/.config/xdg-desktop-portal/portals.conf",
-			ArchivedTo: "/etc/zenith/adopt/backup/T/portals.conf.gnome",
+			ArchivedTo: "/etc/asura/adopt/backup/T/portals.conf.gnome",
 		}},
 		Prune: Prune{Performed: true},
 	}
@@ -79,12 +79,12 @@ func TestUndoScriptIsExecutable(t *testing.T) {
 // TestUndoQuotesPathsWithSpaces covers the path that a developer never has and a
 // user does.
 func TestUndoQuotesPathsWithSpaces(t *testing.T) {
-	plan := Plan{BackupDir: "/etc/zenith/adopt/backup/T"}
+	plan := Plan{BackupDir: "/etc/asura/adopt/backup/T"}
 	state := &State{
 		User: User{Name: "mohit", Home: "/home/mohit"},
 		UserWrites: []UserWrite{{
 			Path:       "/home/mohit/My Portal Config/portals.conf",
-			ArchivedTo: "/etc/zenith/adopt/backup/T/portals.conf.gnome",
+			ArchivedTo: "/etc/asura/adopt/backup/T/portals.conf.gnome",
 		}},
 	}
 
@@ -132,9 +132,9 @@ func TestUndoRefusesWithoutRoot(t *testing.T) {
 // not undoing at all because it looks done.
 func TestUndoRemovesEveryRecordedRegistration(t *testing.T) {
 	registrations := []Registration{
-		{Path: "/usr/share/wayland-sessions/zenith.desktop"},
-		{Path: "/usr/lib/systemd/user/zenith-shell.service"},
-		{Path: "/usr/lib/systemd/user/zenith-portal.service"},
+		{Path: "/usr/share/wayland-sessions/asura.desktop"},
+		{Path: "/usr/lib/systemd/user/asura-shell.service"},
+		{Path: "/usr/lib/systemd/user/asura-portal.service"},
 	}
 	script := UndoScript(Plan{BackupDir: "/tmp/x"},
 		&State{User: User{Name: "u", Home: "/tmp"}, Registrations: registrations})
@@ -159,8 +159,8 @@ func TestUndoStaysSilentWhenItRecordedNothing(t *testing.T) {
 		t.Error("no package was recorded as removed, and the script does not say so")
 	}
 	for _, path := range []string{
-		"/usr/share/wayland-sessions/zenith.desktop",
-		"/usr/lib/systemd/user/zenith-shell.service",
+		"/usr/share/wayland-sessions/asura.desktop",
+		"/usr/lib/systemd/user/asura-shell.service",
 	} {
 		if strings.Contains(script, "rm -f '"+path+"'") {
 			t.Errorf("the script removes %s although nothing was recorded", path)

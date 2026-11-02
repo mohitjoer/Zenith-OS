@@ -7,7 +7,7 @@ import qs.Ui.Singletons
 
 // Comfort: screen backlight + warm-light (night light), folded from the Hub's
 // Appearance > Comfort tab. Brightness rides brightnessctl; the warm screen
-// rides the zenith-shell daemon's reactive `nightlight` topic over its control
+// rides the asura-shell daemon's reactive `nightlight` topic over its control
 // socket, the same stream the bar and the Hub use: `subscribe nightlight`
 // pushes {on, temperature} on every change, `call nightlight.set` sends the
 // intent back. No process polling, so the toggle can never show a stale
@@ -21,7 +21,7 @@ Column {
     property int _brightness: 100
     property bool _warm: false
     property int _temp: 4000
-    readonly property string _sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string _sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function applyNightFrame(line) {
         try {

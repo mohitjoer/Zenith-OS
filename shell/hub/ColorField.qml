@@ -5,7 +5,7 @@ import qs.Ui.Singletons
 // A colour control that shows the colour, not just a hex string. A live swatch
 // previews the value; clicking it opens a visual picker (no need to know a code);
 // the mono field still takes an exact hex for power users. `value` in, `chosen`
-// out -- the host owns persistence. The picker is Zenith's own paper-and-ink
+// out -- the host owns persistence. The picker is Asura's own paper-and-ink
 // surface, not the platform ColorDialog (which reads as a grey web widget).
 Rectangle {
     id: root

@@ -14,7 +14,7 @@ PanelWindow {
     signal painted()
 
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "zenith-pin"
+    WlrLayershell.namespace: "asura-pin"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
@@ -82,13 +82,13 @@ PanelWindow {
     }
 
     function editShot() {
-        Spawn.run(["sh", "-c", "RYOSHOT_OPEN=$1 exec zenith-shot", "sh", entry.path]);
+        Spawn.run(["sh", "-c", "RYOSHOT_OPEN=$1 exec asura-shot", "sh", entry.path]);
         pin.closeSelf();
     }
-    function copyShot() { Quickshell.execDetached(["zenith-shell", "clip-copy", "image/png", entry.path]); }
+    function copyShot() { Quickshell.execDetached(["asura-shell", "clip-copy", "image/png", entry.path]); }
     function copyLink() {
-        Quickshell.execDetached(["sh", "-c", "printf %s \"$1\" > \"$2\"; zenith-shell clip-copy text/plain \"$2\"",
-            "sh", entry.path, "/tmp/zenith-pin-path.txt"]);
+        Quickshell.execDetached(["sh", "-c", "printf %s \"$1\" > \"$2\"; asura-shell clip-copy text/plain \"$2\"",
+            "sh", entry.path, "/tmp/asura-pin-path.txt"]);
     }
     function closeSelf() { pin.closed(entry.path); }
 
@@ -136,7 +136,7 @@ PanelWindow {
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     mipmap: true
-                    onStatusChanged: if (status === Image.Error) console.error("zenith-pin: cannot load " + pin.entry.path)
+                    onStatusChanged: if (status === Image.Error) console.error("asura-pin: cannot load " + pin.entry.path)
                 }
             }
 

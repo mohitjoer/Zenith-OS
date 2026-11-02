@@ -5,10 +5,10 @@ import Quickshell.Io
 import qs
 import qs.FrameBars
 
-// live shell appearance config, read-only here: the look knobs Zenith
+// live shell appearance config, read-only here: the look knobs Asura
 // Settings' Shell section edits, plus the defaults the shell falls back to.
-// JSON at ~/.config/zenith/shell.json, watched, so a save in Settings retunes
-// the running shell on the next file event (no reload). The zenith-shell daemon
+// JSON at ~/.config/asura/shell.json, watched, so a save in Settings retunes
+// the running shell on the next file event (no reload). The asura-shell daemon
 // is the only writer of that file, so the kit never seeds or writes it.
 //
 // geometry = unscaled base px at 1080p. island values get multiplied by the
@@ -52,7 +52,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

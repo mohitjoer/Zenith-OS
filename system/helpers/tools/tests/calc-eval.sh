@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture test for zenith-cmd-calc's Python fallback: qalc is preferred when
+# Fixture test for asura-cmd-calc's Python fallback: qalc is preferred when
 # present, but the launcher must still evaluate math on a fresh install before
 # qalc lands. Runs the script with PATH stripped of qalc so the fallback is
 # always exercised, and asserts the acceptance cases (basic ops, ^ as power,
@@ -8,7 +8,7 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
-calc="$here/../../../../shell/scripts/zenith-cmd-calc"
+calc="$here/../../../../shell/scripts/asura-cmd-calc"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "SKIP: python3 required" >&2

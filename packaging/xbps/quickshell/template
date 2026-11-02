@@ -9,7 +9,7 @@ makedepends="qt6-base-devel qt6-declarative-devel qt6-svg-devel qt6-wayland-deve
  qt6-multimedia-devel wayland-devel pam-devel"
 depends="qt6-declarative qt6-svg qt6-wayland qt6-multimedia"
 short_desc="Flexible Qt6/QML desktop shell framework for Wayland"
-maintainer="Zenith OS Project <dev@zenithos.dev>"
+maintainer="Asura OS Project <dev@asuraos.dev>"
 license="LGPL-3.0-or-later"
 homepage="https://quickshell.outfoxxed.me"
 distfiles="https://git.outfoxxed.me/outfoxxed/quickshell/archive/v${version}.tar.gz"

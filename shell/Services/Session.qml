@@ -22,7 +22,7 @@ Singleton {
 
     // ── who ──────────────────────────────────────────────────────────────
     readonly property string user: Quickshell.env("USER") || Quickshell.env("LOGNAME") || "user"
-    property string host: "zenith"
+    property string host: "asura"
 
     // ── uptime ───────────────────────────────────────────────────────────
     property real uptimeSecs: 0
@@ -44,7 +44,7 @@ Singleton {
     // still it extracts for the palette sits beside it, and is our instant poster
     // while a clip's video decoder spins up.
     property string wallpaper: ""
-    readonly property string livePoster: s.stateDir + "/zenith-live-frame.png"
+    readonly property string livePoster: s.stateDir + "/asura-live-frame.png"
     readonly property bool wallIsVideo: {
         var p = s.wallpaper.toLowerCase();
         return p.endsWith(".mp4") || p.endsWith(".webm") || p.endsWith(".mkv") || p.endsWith(".mov");
@@ -74,7 +74,7 @@ Singleton {
     }
     FileView {
         id: wallFile
-        path: s.stateDir + "/zenith-wallpaper"
+        path: s.stateDir + "/asura-wallpaper"
         blockLoading: true
         watchChanges: true
         printErrors: false

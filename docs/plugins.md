@@ -1,7 +1,7 @@
-# Writing a Zenith shell plugin
+# Writing an ASURA shell plugin
 
-A plugin is a small widget you write that the **user** drops into the Zenith
-desktop. You write the *content and the logic*. **Zenith owns everything about how
+A plugin is a small widget you write that the **user** drops into the ASURA
+desktop. You write the *content and the logic*. **ASURA owns everything about how
 it looks, moves, sizes, and where it lives.** That split is the whole point: a
 plugin always looks and behaves like a native part of the shell, because the
 shell - not you - draws the surface around it.
@@ -18,14 +18,14 @@ key sounds) is a different thing, managed on Settings > Plugins; see
 ## The rules
 
 Eleven rules make a plugin safe to install and native to the shell.
-`zenith plugin new` writes them into the plugin's `AGENTS.md`, and
-`zenith plugin audit` enforces the ones a machine can check.
+`asura plugin new` writes them into the plugin's `AGENTS.md`, and
+`asura plugin audit` enforces the ones a machine can check.
 
 - **R1 Place.** A plugin is one folder named after its id, authored under
-  `$(xdg-user-dir DOCUMENTS)/zenith-plugins/<id>/` (fallback
-  `~/zenith-plugins/<id>/`); `zenith plugin new <id>` creates it there. Never write
-  into `~/.local/share/zenith/plugins/` (the install root, which `zenith plugin
-  install` fills) or `/usr/share/zenith/` (the shipped shell). *Why:* those trees
+  `$(xdg-user-dir DOCUMENTS)/asura-plugins/<id>/` (fallback
+  `~/asura-plugins/<id>/`); `asura plugin new <id>` creates it there. Never write
+  into `~/.local/share/asura/plugins/` (the install root, which `asura plugin
+  install` fills) or `/usr/share/asura/` (the shipped shell). *Why:* those trees
   belong to the installer and the package, so a stray file there is either
   loaded unaudited or replaced on the next update.
 - **R2 Shape.** `manifest.json` at the root; `service/Main.qml` (logic, no UI);
@@ -59,7 +59,7 @@ Eleven rules make a plugin safe to install and native to the shell.
   *Why:* the manifest declares the whole network reach up front, and
   fetch-and-run hides code from review.
 - **R8 Files.** Write only under `pluginApi.stateDir`
-  (`$XDG_STATE_HOME/zenith/plugins/<id>`), `$XDG_CACHE_HOME/zenith/plugins/<id>`,
+  (`$XDG_STATE_HOME/asura/plugins/<id>`), `$XDG_CACHE_HOME/asura/plugins/<id>`,
   or a temp dir. Never touch `~/.ssh`, `/etc`, shell rc files, or another
   plugin's folder. *Why:* a widget has no business outside its own state, and
   those paths are where damage and data theft happen.
@@ -81,17 +81,17 @@ Eleven rules make a plugin safe to install and native to the shell.
 Start to finish, a plugin is one command to scaffold, an edit loop, one command
 to check, and one to install:
 
-1. **Scaffold.** `zenith plugin new <id> [--bar|--desktop|--popout]` writes R1's
+1. **Scaffold.** `asura plugin new <id> [--bar|--desktop|--popout]` writes R1's
    folder from a working template (default `--bar`, which also adds
    `entryPoints.panel` and `content/Panel.qml`): the manifest, `service/Main.qml`,
    `content/Widget.qml`, `README.md`, `LICENSE`, an `AGENTS.md` carrying these
    rules, and a first git commit as the author.
 2. **Edit.** Fill in the service, the view, the panel, the manifest and the
    README, and capture `assets/preview-widget.png`.
-3. **Audit.** `zenith plugin audit <dir>` runs the manifest checks and the
+3. **Audit.** `asura plugin audit <dir>` runs the manifest checks and the
    static audit. Clear every blocking finding (see [Security](#security)); the
    template audits clean, so keep it that way.
-4. **Install.** `zenith plugin install <dir> --bar --yes` audits again, copies
+4. **Install.** `asura plugin install <dir> --bar --yes` audits again, copies
    the folder into the install root, and enables it on the bar; the shell picks
    it up on the `plugins.json` change, no restart.
 5. **Verify.** Confirm it on the bar and on the bar's Community page.
@@ -100,7 +100,7 @@ to check, and one to install:
 
 ## Who does what
 
-| You (the contributor) write... | Zenith (the shell) handles for you... |
+| You (the contributor) write... | ASURA (the shell) handles for you... |
 |---|---|
 | The **logic**: fetch data, hold state, run commands (`service/Main.qml`). | **Where the widget lives** (frame popout, desktop widget) and letting the user choose and move it. |
 | **One view** of your widget (`content/Widget.qml`) - the labels, buttons, grid, etc. | The **card / popout surface** behind your view: background, rounded corners, shadow, hairline. |
@@ -110,7 +110,7 @@ to check, and one to install:
 
 **The golden rule:** never set your own position, never draw your own window
 chrome, never assume your size. You declare *how big your content naturally
-wants to be*; Zenith does the rest. Break this rule and your plugin will look
+wants to be*; ASURA does the rest. Break this rule and your plugin will look
 bolted-on instead of native.
 
 ---
@@ -126,8 +126,8 @@ bolted-on instead of native.
   README.md            what it is + a preview.gif                      (recommended)
 ```
 
-- **Installed** to `~/.local/share/zenith/plugins/<id>/`.
-- **For local dev**, point `ZENITH_PLUGINS_DIR` at a folder of plugins (colon-
+- **Installed** to `~/.local/share/asura/plugins/<id>/`.
+- **For local dev**, point `ASURA_PLUGINS_DIR` at a folder of plugins (colon-
   separated for several): they shadow installed ones of the same id, and the
   shell discovers them live.
 
@@ -135,14 +135,14 @@ bolted-on instead of native.
 
 ## The three hosts a user can choose
 
-When a user enables your plugin they pick **one** of these in Zenith Settings →
-Plugins. Your *same* `content/Widget.qml` is used for all three - Zenith just
+When a user enables your plugin they pick **one** of these in ASURA Settings →
+Plugins. Your *same* `content/Widget.qml` is used for all three - ASURA just
 renders it differently.
 
 ### 1. Desktop widget - a tile on the wallpaper
 
 It sits on the wallpaper next to the clock and weather, and behaves **exactly
-like them**, because Zenith gives it the identical machinery:
+like them**, because ASURA gives it the identical machinery:
 
 - **Left-drag** to move it anywhere (snaps to a grid).
 - **Right-click** it for its menu (Lock to freeze it, Hide to turn it off).
@@ -150,7 +150,7 @@ like them**, because Zenith gives it the identical machinery:
 - It's drawn on a **card** (rounded, translucent, soft shadow) matching the
   clock/weather.
 
-**You do nothing to get any of that.** You just write the content; Zenith wraps it
+**You do nothing to get any of that.** You just write the content; ASURA wraps it
 in the draggable, resizable, right-clickable card. The only thing you owe it: a
 content root that reports its natural size (see "Sizing" below), so the card can
 size itself around you.
@@ -160,17 +160,17 @@ size itself around you.
 It melts out of the frame border on hover (like the volume mixer and power
 menu), fused into the same blob. The user picks the **edge** (top / right /
 bottom / left) and where along it the popout sits (`start`, `center`, `end`), by
-dragging the popout chip around a mock of their screen in Zenith Settings.
+dragging the popout chip around a mock of their screen in ASURA Settings.
 
 Dropped in the **middle** of that screen instead, the popout becomes a centred
 surface: it floats in the middle of the display, all four corners rounded, with
 no hover edge. A centred popout opens only when it is asked for, by
-`zenith-shell plugin <id>` or a click, which makes it the placement
+`asura-shell plugin <id>` or a click, which makes it the placement
 for a modal view. It shares the middle of the screen with quick settings
 (`Super+Escape`) and the stash (`Super+S`), but the shell only ever shows one
 surface at a time, so they take turns rather than overlap.
 
-- Zenith handles the **hover trigger, the open/close animation, and the fuse into
+- ASURA handles the **hover trigger, the open/close animation, and the fuse into
   the frame**.
 - **Dimensions & Sizing**:
   - By default, edge popouts use a compact `360px` width budget and grow vertically
@@ -179,8 +179,8 @@ surface at a time, so they take turns rather than overlap.
     a custom width and height:
     - **In manifest defaults**: declare `"width"` and/or `"height"` under `defaults.framePopout`.
     - **In plugin settings**: declare `"width"` and/or `"height"` controls in `metadata.settings`.
-      Zenith Settings will expose them directly to users, and the popout will resize live.
-    - **Implicit fallback**: if no fixed setting is set, Zenith respects your root
+      ASURA Settings will expose them directly to users, and the popout will resize live.
+    - **Implicit fallback**: if no fixed setting is set, ASURA respects your root
       `implicitWidth` (falling back to standard 680px for centered popouts).
 - **Dismissal & Lifecycle**:
   - **Edge hover popouts** auto-retract after the pointer leaves (`autoDismiss: true`).
@@ -189,21 +189,21 @@ surface at a time, so they take turns rather than overlap.
   - To override this behavior on any popout, set `"autoDismiss": true` or `false`
     in `defaults.framePopout`.
 
-`zenith-shell plugin <id>` toggles your frame popout open (bind it to a key).
+`asura-shell plugin <id>` toggles your frame popout open (bind it to a key).
 
 ### 3. Bar glyph - rides the bar
 
 It rides the top bar as its own module, in a section you choose (left, centre or
 right) and at the position in that lane you drag it to. Your content is rendered
 at `glyph` density on the bar's axis, so it must stay small: report a mark-sized
-`implicitWidth`/`implicitHeight` (roughly the bar's inner height) and Zenith
+`implicitWidth`/`implicitHeight` (roughly the bar's inner height) and ASURA
 centres it and reserves exactly that much room; in islands form it gets its own
 island.
 
-- Zenith handles the **island pill, spacing, and the bar's width arithmetic**.
+- ASURA handles the **island pill, spacing, and the bar's width arithmetic**.
 - A bar glyph **is a layout entry**, the same kind of entry as a built-in widget:
   it lives in `shell.json` `qsbar.layout`, so a user drags it between lanes in QS
-  Bar Settings' Layout route or moves it from a terminal with `zenith-shell bar
+  Bar Settings' Layout route or moves it from a terminal with `asura-shell bar
   move <id> --section left|center|right`. It shows once it is enabled with
   `host: topbarGlyph` in `plugins.json`.
 
@@ -231,12 +231,12 @@ by the bar's settings, which draw these `metadata.settings` types: `toggle`,
 menu types and do not render there, so a bar widget picks from the first set.
 
 Install a bar plugin straight from git, or from a folder on this desktop, with
-`zenith plugin install <git-url|dir> --bar`: it validates the manifest, audits
-the tree, copies it to `~/.local/share/zenith/plugins/<id>`, enables it on the
+`asura plugin install <git-url|dir> --bar`: it validates the manifest, audits
+the tree, copies it to `~/.local/share/asura/plugins/<id>`, enables it on the
 bar, and the shell picks it up on the `plugins.json` change, no restart. It
 lists on the bar's Community page (any plugin whose manifest is not
 `"official": true`) with the community warning, its author, its switch and
-settings. `zenith plugin list|enable|disable|remove|audit` manage it from a
+settings. `asura plugin list|enable|disable|remove|audit` manage it from a
 terminal.
 
 > Island and window hosts are planned but not built yet. Declare only
@@ -256,7 +256,7 @@ the bar stays your `content/Widget.qml`; the panel is what opens beneath it.
 `Panel.qml` receives the same host-set properties as `content/Widget.qml`, at
 `full` density:
 
-| Property Zenith sets | Value on `Panel.qml` |
+| Property ASURA sets | Value on `Panel.qml` |
 | --- | --- |
 | `pluginApi` | your handle (the reference below) |
 | `density` | `"full"` |
@@ -284,8 +284,8 @@ Read it; never reassign it.
 | `mainInstance` | `var` | your live `service/Main.qml` instance |
 | `pluginSettings` | `var` | the resolved settings; read each key behind its default |
 | `pluginDir` | `string` | the installed plugin folder (build `bin/` paths from it) |
-| `stateDir` | `string` | `$XDG_STATE_HOME/zenith/plugins/<id>`, created by the host on load; the only place you write (R8) |
-| `saveSetting(key, value)` | function | persists one setting through `zenith-plugins-place`; `pluginSettings` re-derives on the `plugins.json` change (R5) |
+| `stateDir` | `string` | `$XDG_STATE_HOME/asura/plugins/<id>`, created by the host on load; the only place you write (R8) |
+| `saveSetting(key, value)` | function | persists one setting through `asura-plugins-place`; `pluginSettings` re-derives on the `plugins.json` change (R5) |
 | `panelOpen` | `bool` (readonly) | whether the bar panel is open (bar host; present but inert elsewhere) |
 | `openPanel()` / `closePanel()` / `togglePanel()` | function | open, close, or toggle the bar panel |
 
@@ -295,7 +295,7 @@ down, so the service stays alive and the panel stays open. The host destroys and
 recreates the service and the api only when the bar row itself is rebuilt, when a
 widget in that lane is moved, added, or removed.
 
-`zenith plugin new <id> --bar` writes a worked bar example: a glyph that shows
+`asura plugin new <id> --bar` writes a worked bar example: a glyph that shows
 a live value, a 320-wide panel with a button, and no click on the bar that
 changes anything.
 
@@ -303,10 +303,10 @@ changes anything.
 
 ## Writing `content/Widget.qml`
 
-This is your view. Zenith sets a few properties on its root **for you to read** -
+This is your view. ASURA sets a few properties on its root **for you to read** -
 **never assign them**:
 
-| Property Zenith sets | What it means | What you do with it |
+| Property ASURA sets | What it means | What you do with it |
 |---|---|---|
 | `pluginApi` | handle to your service + settings + folder | read `pluginApi.mainInstance` for your live `service/Main.qml` |
 | `density` | `"glyph"`, `"compact"`, or `"full"` | lay out smaller/larger for the space you're given |
@@ -316,7 +316,7 @@ This is your view. Zenith sets a few properties on its root **for you to read** 
 
 ### Sizing - the one thing you MUST get right
 
-**Declare your content's natural size; never hardcode geometry.** Zenith reads
+**Declare your content's natural size; never hardcode geometry.** ASURA reads
 your root's `implicitWidth` / `implicitHeight` to size the card or grow the
 popout. If you don't report a size, your widget collapses to nothing.
 
@@ -327,7 +327,7 @@ import qs.PluginKit.Singletons   // the kit's tokens: Theme, Motion
 Item {
     id: root
 
-    // Zenith sets these; you only read them.
+    // ASURA sets these; you only read them.
     property var pluginApi
     property string density: "full"
     property real widthBudget: 0
@@ -356,7 +356,7 @@ Rules that keep it native:
   nested layouts (that leaves width-derived heights at zero and your widget
   collapses).
 - **Reflow with `Column` / `Row` / `Grid` / `Flow`** so you adapt to the width
-  Zenith gives you. Don't position with absolute `x`/`y`.
+  ASURA gives you. Don't position with absolute `x`/`y`.
 - **Three densities**: `glyph` = an icon (+ optional badge); `compact` = a small
   summary; `full` = the rich panel. Lay out for whichever `density` you're handed.
 
@@ -379,18 +379,18 @@ shell is monochrome: the accent is the ink itself, so show emphasis with weight
 and position, and reserve colour for an error or warning state.
 
 Your **settings are not QML** - you declare them as a `metadata.settings` schema
-in the manifest (below) and Zenith renders native controls for them, both in
-Zenith Settings and in the desktop widget's right-click menu.
+in the manifest (below) and ASURA renders native controls for them, both in
+ASURA Settings and in the desktop widget's right-click menu.
 
 ---
 
 ## `service/Main.qml` - your logic
 
 A non-visual `QtObject`/`Item` that holds state and does the work (HTTP, running
-your `bin/` scripts, parsing results). Zenith keeps one instance alive and hands
+your `bin/` scripts, parsing results). ASURA keeps one instance alive and hands
 it to your content as `pluginApi.mainInstance`.
 Declare user options as a `metadata.settings` schema in your manifest (below).
-Zenith renders the controls, seeds your defaults when the plugin is enabled, and
+ASURA renders the controls, seeds your defaults when the plugin is enabled, and
 persists changes to `plugins.json`; read the live values from
 `pluginApi.pluginSettings`. Read every key behind its default anyway: a plugin
 enabled before a setting existed, or a settings block a user trimmed, has no
@@ -453,13 +453,13 @@ value for it, and `undefined` must not become your poll interval.
   Layout route moves it from there, and that choice is kept). `icon` is a
   Material Symbols Rounded ligature name (`vpn_lock`, `extension`, ...), the
   mark menus and pickers show for the plugin.
-- `official` - leave `false`. Only first-party Zenith plugins set `true`; every
+- `official` - leave `false`. Only first-party ASURA plugins set `true`; every
   other plugin lists on the bar's Community page under the community warning.
-- **A plugin never gets a keybind of its own.** Zenith has no plugins-menu leader
+- **A plugin never gets a keybind of its own.** ASURA has no plugins-menu leader
   and reads no `key` field from your manifest; do not ship one, and do not tell
   users a chord opens your plugin. A frame popout opens on hover at its edge, or
-  through `zenith-shell plugin <id>`, which the user can bind to whatever chord
-  they like in Settings → Keybinds. The shipped bind table stays Zenith's.
+  through `asura-shell plugin <id>`, which the user can bind to whatever chord
+  they like in Settings → Keybinds. The shipped bind table stays ASURA's.
 - `files` - any extra files the plugin ships beyond its entry points and
   `commands` (helper QML a view imports, images, data). Install fetches the entry
   points, `commands`, `README.md`, and everything listed here; a file you forget
@@ -477,9 +477,9 @@ value for it, and `undefined` must not become your poll interval.
 
 ## Security
 
-`zenith plugin audit <dir>` (alias `validate`) runs the manifest checks and a
+`asura plugin audit <dir>` (alias `validate`) runs the manifest checks and a
 static audit, and prints each finding as `rule-id  path:line  message`.
-**Blocking** rules make `audit` exit non-zero and make `zenith plugin install`
+**Blocking** rules make `audit` exit non-zero and make `asura plugin install`
 refuse to install (unless
 you pass `--allow-findings`); `--allow <rule>` downgrades one named blocking rule
 to a warning for the run. **Warning** rules are printed but do not block.
@@ -497,7 +497,7 @@ to a warning for the run. **Warning** rules are printed but do not block.
 | `undeclared-host` | no | an `https?://host` literal not in `capabilities.network` (R7) |
 | `dynamic-shell` | no | `sh` / `bash -c` whose argument is not a single string literal (R9) |
 | `outside-write` | no | a write outside `stateDir`, cache, or a temp dir (R8) |
-| `removed-name` | no | a Ryoku name Zenith changed: `ryoku-*` commands, `~/.config/ryoku`, `RYOKU_*` (see below) |
+| `removed-name` | no | a Ryoku name ASURA changed: `ryoku-*` commands, `~/.config/ryoku`, `RYOKU_*` (see below) |
 | `large-tree` | no | a tree larger than 20 MB |
 
 The audit is a safety net, not a sandbox: a plugin runs unsandboxed inside the
@@ -511,12 +511,12 @@ URL it finds.
 
 ## Install, enable, place
 
-- **Install**: `zenith plugin install <git-url|dir> [--bar]` (audited, then copied
-  to `~/.local/share/zenith/plugins/<id>`; `add` is an alias). A folder you drop
+- **Install**: `asura plugin install <git-url|dir> [--bar]` (audited, then copied
+  to `~/.local/share/asura/plugins/<id>`; `add` is an alias). A folder you drop
   there by hand loads too, but nothing audited it.
-- **Enable & place**: `zenith plugin enable <id> [--bar|--desktop|--popout]` and
+- **Enable & place**: `asura plugin enable <id> [--bar|--desktop|--popout]` and
   `disable <id>`, or the bar's Community page. Placement saves to
-  `~/.config/zenith/plugins.json`, written only by `zenith-plugins-place`; the
+  `~/.config/asura/plugins.json`, written only by `asura-plugins-place`; the
   shell watches that file and retunes live - no restart.
 - **Desktop widgets** are then moved/resized/hidden directly on the wallpaper
   (drag, corner-resize, right-click) - not from Settings.
@@ -525,23 +525,23 @@ URL it finds.
 
 ## Porting a Ryoku plugin
 
-A plugin written for Ryoku needs these renames, and `zenith plugin audit` reports
+A plugin written for Ryoku needs these renames, and `asura plugin audit` reports
 each one with the fix:
 
-| Ryoku | Zenith |
+| Ryoku | ASURA |
 |---|---|
 | `import Ryoku.PluginKit` | `import qs.PluginKit` |
 | `import Ryoku.PluginKit.Singletons` | `import qs.PluginKit.Singletons` |
-| `ryoku-shell`, `ryoku-plugins-place`, `ryoku` | `zenith-shell`, `zenith-plugins-place`, `zenith` |
-| `~/.config/ryoku`, `~/.local/share/ryoku`, `$XDG_STATE_HOME/ryoku/plugins/<id>` | the same paths with `zenith` |
-| `RYOKU_*`, `RYOSTORE_PLUGINS_DIR` | `ZENITH_*`, `ZENITH_PLUGINS_DIR` |
+| `ryoku-shell`, `ryoku-plugins-place`, `ryoku` | `asura-shell`, `asura-plugins-place`, `asura` |
+| `~/.config/ryoku`, `~/.local/share/ryoku`, `$XDG_STATE_HOME/ryoku/plugins/<id>` | the same paths with `asura` |
+| `RYOKU_*`, `RYOSTORE_PLUGINS_DIR` | `ASURA_*`, `ASURA_PLUGINS_DIR` |
 
 The kit keeps every token name it had (`Theme.verm`, `Theme.flameInk` ...) so the
 plugin still loads, but the values are greys: the design system has no accent
 hue, and a plugin that leaned on one will look plainer, not break.
 
-Publishing a plugin to a catalogue (`export`, `share`) is not part of Zenith's
-`zenith plugin`.
+Publishing a plugin to a catalogue (`export`, `share`) is not part of ASURA's
+`asura plugin`.
 
 ---
 

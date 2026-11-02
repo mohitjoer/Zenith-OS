@@ -8,13 +8,13 @@ import qs.Ui
 import qs.Ui.Singletons
 
 // The Machine page. Real hardware, not the shared config store, so it is
-// full-bleed and draws its own head. Backed by `zenith-hubd gpu` (render mode,
-// per-session GPU tuning, passthrough) and `zenith-hubd cpu` (persistent CPU
+// full-bleed and draws its own head. Backed by `asura-hubd gpu` (render mode,
+// per-session GPU tuning, passthrough) and `asura-hubd cpu` (persistent CPU
 // power-profile definitions + battery), each capability-gated so a knob appears
 // only where the machine exposes it.
 //
 // GPU tuning is per session: runtime sysfs / nvidia-smi state, gone on reboot.
-// CPU profiles persist to power.json and zenith-power re-applies them after
+// CPU profiles persist to power.json and asura-power re-applies them after
 // power-profiles-daemon switches; boost and PPT/TDP are omitted because the
 // firmware governs them on this hardware.
 Item {
@@ -46,8 +46,8 @@ Item {
     property bool namingPreset: false
     property string tuneError: ""
 
-    // cpu power-profile programmer + battery, fronted by `zenith-hubd cpu` (which
-    // wraps zenith-power). Empty when the backend or machine offers nothing, so
+    // cpu power-profile programmer + battery, fronted by `asura-hubd cpu` (which
+    // wraps asura-power). Empty when the backend or machine offers nothing, so
     // the sections hide rather than render an empty frame.
     property var cpu: []
     property var cpuProfiles: []
@@ -118,7 +118,7 @@ Item {
     readonly property var advTune: (pg.tune || []).filter(t => t.risk === "advanced")
     readonly property var cpuTune: (pg.cpu || []).filter(t => t.gpu === "cpu")
     readonly property var batteryTune: (pg.cpu || []).filter(t => t.gpu === "battery")
-    // idle policy, also fronted by `zenith-hubd cpu`: two toggles plus per-stage
+    // idle policy, also fronted by `asura-hubd cpu`: two toggles plus per-stage
     // minute steppers split into battery and AC. Neutral across compositors.
     readonly property var idleTune: (pg.cpu || []).filter(t => t.gpu === "idle")
     readonly property var idleGeneral: pg.idleTune.filter(t => t.id === "enabled" || t.id === "onDesktops")
@@ -185,7 +185,7 @@ Item {
         presetProc.running = true;
     }
     function reloadCpu() {
-        cpuCapsProc.command = ["zenith-hubd", "cpu", "caps", pg.cpuProfile];
+        cpuCapsProc.command = ["asura-hubd", "cpu", "caps", pg.cpuProfile];
         cpuCapsProc.running = true;
     }
     function editProfile(name) {
@@ -194,7 +194,7 @@ Item {
     }
     function cpuSet(scope, id, value) {
         pg.cpuError = "";
-        cpuSetProc.command = ["zenith-hubd", "cpu", "set", scope, id, "" + value];
+        cpuSetProc.command = ["asura-hubd", "cpu", "set", scope, id, "" + value];
         cpuSetProc.running = true;
     }
     function act(cmd) {
@@ -204,52 +204,52 @@ Item {
     }
     function setMode(m) {
         pg.modeWarn = "";
-        modeSetProc.command = ["zenith-hubd", "gpu", "mode", "set", m];
+        modeSetProc.command = ["asura-hubd", "gpu", "mode", "set", m];
         modeSetProc.running = true;
     }
     function setMux(m) {
         pg.muxError = "";
-        muxSetProc.command = ["zenith-hubd", "gpu", "mux", "set", m];
+        muxSetProc.command = ["asura-hubd", "gpu", "mux", "set", m];
         muxSetProc.running = true;
     }
     function cpuSwitch(name) {
         pg.cpuError = "";
-        cpuSwitchProc.command = ["zenith-hubd", "cpu", "switch", name];
+        cpuSwitchProc.command = ["asura-hubd", "cpu", "switch", name];
         cpuSwitchProc.running = true;
     }
     function tuneSet(gpu, id, value) {
         pg.tuneError = "";
-        tuneSetProc.command = ["zenith-hubd", "gpu", "tune", "set", gpu, id, "" + value];
+        tuneSetProc.command = ["asura-hubd", "gpu", "tune", "set", gpu, id, "" + value];
         tuneSetProc.running = true;
     }
     function tuneReset() {
         pg.tuneError = "";
-        tuneSetProc.command = ["zenith-hubd", "gpu", "tune", "reset"];
+        tuneSetProc.command = ["asura-hubd", "gpu", "tune", "reset"];
         tuneSetProc.running = true;
     }
     function applyPreset(name) {
         pg.tuneError = "";
-        tuneSetProc.command = ["zenith-hubd", "gpu", "tune", "preset", "apply", name];
+        tuneSetProc.command = ["asura-hubd", "gpu", "tune", "preset", "apply", name];
         tuneSetProc.running = true;
     }
     function savePreset(name) {
         if (name.trim() === "")
             return;
         pg.namingPreset = false;
-        presetSaveProc.command = ["zenith-hubd", "gpu", "tune", "preset", "save", name.trim()];
+        presetSaveProc.command = ["asura-hubd", "gpu", "tune", "preset", "save", name.trim()];
         presetSaveProc.running = true;
     }
     function deletePreset(name) {
-        presetSaveProc.command = ["zenith-hubd", "gpu", "tune", "preset", "delete", name];
+        presetSaveProc.command = ["asura-hubd", "gpu", "tune", "preset", "delete", name];
         presetSaveProc.running = true;
     }
     function reviewEnable() {
-        planProc.command = ["zenith-hubd", "gpu", "apply", "enable", "--dry-run"];
+        planProc.command = ["asura-hubd", "gpu", "apply", "enable", "--dry-run"];
         planProc.running = true;
     }
     function enableInTerminal() {
-        Spawn.run(["zenith-app", "terminal", "--", "sh", "-c",
-            "zenith-hubd gpu apply enable; echo; printf 'Done. Press enter to close '; read -r _"]);
+        Spawn.run(["asura-app", "terminal", "--", "sh", "-c",
+            "asura-hubd gpu apply enable; echo; printf 'Done. Press enter to close '; read -r _"]);
         pg.planning = false;
         pg.planText = "";
         pg.enabling = true;
@@ -265,7 +265,7 @@ Item {
     // ── backends ─────────────────────────────────────────────────────────────
     Process {
         id: capsProc
-        command: ["zenith-hubd", "gpu", "caps"]
+        command: ["asura-hubd", "gpu", "caps"]
         stdout: StdioCollector { id: capsOut }
         stderr: StdioCollector { id: capsErr }
         onExited: (code) => {
@@ -280,12 +280,12 @@ Item {
                 }
                 return;
             }
-            pg.capsError = capsErr.text.trim() || ("zenith-hubd gpu caps exited " + code);
+            pg.capsError = capsErr.text.trim() || ("asura-hubd gpu caps exited " + code);
         }
     }
     Process {
         id: modeProc
-        command: ["zenith-hubd", "gpu", "mode", "get"]
+        command: ["asura-hubd", "gpu", "mode", "get"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var o = pg.answer("mode", this.text);
@@ -295,7 +295,7 @@ Item {
     }
     Process {
         id: tuneProc
-        command: ["zenith-hubd", "gpu", "tune", "caps"]
+        command: ["asura-hubd", "gpu", "tune", "caps"]
         stderr: StdioCollector { id: tuneErr }
         onExited: (code) => {
             var why = tuneErr.text.trim().split("\n")[0];
@@ -311,7 +311,7 @@ Item {
     }
     Process {
         id: presetProc
-        command: ["zenith-hubd", "gpu", "tune", "preset", "list"]
+        command: ["asura-hubd", "gpu", "tune", "preset", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var o = pg.answer("presets", this.text);
@@ -331,7 +331,7 @@ Item {
     }
     Process {
         id: muxProc
-        command: ["zenith-hubd", "gpu", "mux", "get"]
+        command: ["asura-hubd", "gpu", "mux", "get"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var o = pg.answer("mux", this.text);
@@ -375,7 +375,7 @@ Item {
     }
     Process {
         id: cpuActiveProc
-        command: ["zenith-hubd", "cpu", "active"]
+        command: ["asura-hubd", "cpu", "active"]
         stderr: StdioCollector { id: cpuActiveErr }
         onExited: (code) => {
             var why = cpuActiveErr.text.trim().split("\n")[0];
@@ -495,7 +495,7 @@ done
     component TuneCell: SettingRow {
         id: tc
         property var tunable: ({})
-        property string scope: ""      // non-empty routes writes through `zenith-hubd cpu set <scope>`
+        property string scope: ""      // non-empty routes writes through `asura-hubd cpu set <scope>`
         readonly property string knd: tc.tunable.kind || ""
         readonly property int optCount: (tc.tunable.options || []).length
 
@@ -685,10 +685,10 @@ done
                     }
                 }
 
-                // ── ZENITH RENDERS ON ──
+                // ── ASURA RENDERS ON ──
                 SettingCard {
                     width: gfxCol.colWidth
-                    title: I18n.tr("ZENITH RENDERS ON")
+                    title: I18n.tr("ASURA RENDERS ON")
                     // Hybrid/Performance/Passthrough only mean something with a
                     // second GPU to switch between; a single-GPU box always renders
                     // on its one GPU, so hide the switcher rather than lock it.
@@ -1134,7 +1134,7 @@ done
                         leftPadding: Tokens.s4; rightPadding: Tokens.s4
                         topPadding: Tokens.s3; bottomPadding: Tokens.s1
                         wrapMode: Text.WordWrap
-                        text: I18n.tr("Free %1 from the desktop and bind it to vfio so a virtual machine can own it for near-native performance. This sets up the host only; you run the VM yourself (libvirt + Looking Glass). Everyday VMs in zenith-vm need none of this.").arg(pg.dgpuName)
+                        text: I18n.tr("Free %1 from the desktop and bind it to vfio so a virtual machine can own it for near-native performance. This sets up the host only; you run the VM yourself (libvirt + Looking Glass). Everyday VMs in asura-vm need none of this.").arg(pg.dgpuName)
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
 
@@ -1167,7 +1167,7 @@ done
                         Btn {
                             visible: pg.caps.enabled === true
                             text: I18n.tr("Disable passthrough")
-                            onAct: pg.act(["zenith-hubd", "gpu", "apply", "disable"])
+                            onAct: pg.act(["asura-hubd", "gpu", "apply", "disable"])
                         }
                         Btn {
                             visible: pg.caps.enabled !== true && pg.caps.verdict !== "incapable" && !pg.planning && !pg.enabling

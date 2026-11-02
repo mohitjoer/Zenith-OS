@@ -145,7 +145,7 @@ Item {
 
     FileView {
         id: cfg
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/launcher.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/launcher.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -683,7 +683,7 @@ Item {
                 Btn { text: I18n.tr("HOME"); onAct: pg.gotoDir("") }
                 Btn { text: I18n.tr("PICTURES"); onAct: pg.gotoDir("Pictures") }
                 Btn { text: I18n.tr("DOWNLOADS"); onAct: pg.gotoDir("Downloads") }
-                Btn { text: I18n.tr("STORE"); onAct: pg.gotoDir("Pictures/zenith-launchers") }
+                Btn { text: I18n.tr("STORE"); onAct: pg.gotoDir("Pictures/asura-launchers") }
             }
 
             GridView {

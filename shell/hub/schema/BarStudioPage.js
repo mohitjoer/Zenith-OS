@@ -176,7 +176,7 @@ var rows = [
         "label": "Wordmark",
         "desc": "Text wordmark in the launcher pill when style is Wordmark.",
         "ctl": "chips",
-        "opts": ["zenith", "hyprland", "ubuntu", "linux", "nixos", "debian", "fedora", "gentoo", "void", "wayland", "sway", "gnome", "dwm"],
+        "opts": ["asura", "hyprland", "ubuntu", "linux", "nixos", "debian", "fedora", "gentoo", "void", "wayland", "sway", "gnome", "dwm"],
         "src": "shell"
     },
     {
@@ -186,7 +186,7 @@ var rows = [
         "label": "Glyph",
         "desc": "Icon glyph in the launcher pill when style is Glyph.",
         "ctl": "chips",
-        "opts": ["zenith", "hyprland", "arch", "grid", "spark", "power", "dragon", "mark", "nix", "branch", "rebel", "ubuntu", "debian", "fedora", "gentoo", "void", "tux", "github", "python", "rust", "go", "node", "vim", "neovim", "steam", "discord"],
+        "opts": ["asura", "hyprland", "arch", "grid", "spark", "power", "dragon", "mark", "nix", "branch", "rebel", "ubuntu", "debian", "fedora", "gentoo", "void", "tux", "github", "python", "rust", "go", "node", "vim", "neovim", "steam", "discord"],
         "src": "shell"
     },
     {

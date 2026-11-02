@@ -42,7 +42,7 @@ function countsAsMusic(title) {
 }
 
 // The station rows the "@" query surfaces. `stations` come from the engine
-// (`zenith-cmd-radio stations`), `status` from its `status` verb. Empty query
+// (`asura-cmd-radio stations`), `status` from its `status` verb. Empty query
 // lists everything (playing station first); text narrows by id/label
 // substring. Each row carries the right primary verb for its state:
 // stop (it is on air), resume (it was set aside), start (silent).

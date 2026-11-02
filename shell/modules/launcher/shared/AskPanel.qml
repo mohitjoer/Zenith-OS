@@ -5,8 +5,8 @@ import Quickshell.Io
 import "Singletons"
 import qs.Ui.Singletons
 
-// Quick-ask body panel for the "\" prefix: a terse question to the Zenith
-// Agent, answered inline. `zenith-agent ask` streams marker lines;
+// Quick-ask body panel for the "\" prefix: a terse question to the Asura
+// Agent, answered inline. `asura-agent ask` streams marker lines;
 // while the agent works a pulsing dot names the step (tool title / thinking /
 // writing) and two live options sit under it: CONTINUE IN DASHBOARD (watch the
 // same turn there while it keeps running) and CANCEL. The finished answer is
@@ -106,7 +106,7 @@ Item {
         askedQuestion = q;
         working = I18n.tr("waking the needle");
         phase = "working";
-        askProc.command = ["zenith-agent", "ask", q];
+        askProc.command = ["asura-agent", "ask", q];
         askProc.didStart = false;
         askProc.running = true;
     }
@@ -115,7 +115,7 @@ Item {
         resumeMode = true;
         phase = "idle";
         selectedRecent = 0;
-        recentProc.command = ["zenith-agent", "ask", "--recent"];
+        recentProc.command = ["asura-agent", "ask", "--recent"];
         recentProc.running = true;
     }
 
@@ -157,7 +157,7 @@ Item {
 
     function cancel() {
         askProc.running = false;
-        Quickshell.execDetached(["zenith-agent", "ask", "--cancel"]);
+        Quickshell.execDetached(["asura-agent", "ask", "--cancel"]);
     }
 
     function fire(chip) {
@@ -174,7 +174,7 @@ Item {
             root.finished();
             return;
         case "file":
-            Spawn.run(["zenith-app", "terminal", "--", "nvim", String(chip.value)]);
+            Spawn.run(["asura-app", "terminal", "--", "nvim", String(chip.value)]);
             break;
         case "dir":
         case "url":
@@ -227,7 +227,7 @@ Item {
         // the helper is not installed: say so instead of waking the needle forever
         onRunningChanged: {
             if (!askProc.running && !askProc.didStart && root.phase === "working") {
-                root.errorText = I18n.tr("not available: install zenith-agent");
+                root.errorText = I18n.tr("not available: install asura-agent");
                 root.phase = "failed";
             }
         }

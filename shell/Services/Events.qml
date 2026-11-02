@@ -5,7 +5,7 @@ import Quickshell.Io
 import "lib/events.js" as Model
 
 // Local calendar events, persisted as a plain JSON array at
-// ~/.local/state/zenith/events.json. The in-memory `events` is the source of
+// ~/.local/state/asura/events.json. The in-memory `events` is the source of
 // truth: add/remove mutate it and write the file. The file is WATCHED so an
 // edit made on the desktop calendar widget (a separate process sharing this
 // one file, no IPC between them) shows here without a restart. atomicWrites
@@ -17,7 +17,7 @@ import "lib/events.js" as Model
 Singleton {
     id: root
 
-    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith"
+    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura"
 
     property var events: []
     property int nextId: 1

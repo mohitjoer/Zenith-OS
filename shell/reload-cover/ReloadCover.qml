@@ -27,7 +27,7 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: 0
-    WlrLayershell.namespace: "zenith-reload-cover"
+    WlrLayershell.namespace: "asura-reload-cover"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     anchors { top: true; bottom: true; left: true; right: true }

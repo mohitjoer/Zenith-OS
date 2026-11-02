@@ -1,11 +1,11 @@
 # Compiled binaries
 #
 # `go build ./...` in a module with a main package writes the binary into the
-# current directory, so the real output lands at desktop/zenith rather than
-# anywhere near the old cli/zenith guess. Both are listed, and /bin/ below
+# current directory, so the real output lands at desktop/asura rather than
+# anywhere near the old cli/asura guess. Both are listed, and /bin/ below
 # covers the conventional build directory.
-cli/zenith
-desktop/zenith
+cli/asura
+desktop/asura
 quickshell/quickshell
 
 # Build artifacts
@@ -78,11 +78,11 @@ agents
 .ampproject/
 
 # Binaries written by `go build` inside a cmd directory
-desktop/cmd/*/zenith-agent
-desktop/cmd/*/zenith-hubd
-desktop/cmd/*/zenith-shell
-desktop/cmd/*/zenith-wallpaper
-desktop/cmd/*/zenith-store
-desktop/cmd/*/zenith-vm
-desktop/cmd/zenith/zenith
+desktop/cmd/*/asura-agent
+desktop/cmd/*/asura-hubd
+desktop/cmd/*/asura-shell
+desktop/cmd/*/asura-wallpaper
+desktop/cmd/*/asura-store
+desktop/cmd/*/asura-vm
+desktop/cmd/asura/asura
 /→/

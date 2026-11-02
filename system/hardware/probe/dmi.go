@@ -307,7 +307,7 @@ func fieldValue(fields *Fields, attr string) string {
 // correlated across machines, because the same UUID on two machines is not the
 // same input.
 func hashIdentifier(field, value string) string {
-	sum := sha256.Sum256([]byte("zenith/hardware-reader/v1\x00" + field + "\x00" + value))
+	sum := sha256.Sum256([]byte("asura/hardware-reader/v1\x00" + field + "\x00" + value))
 	return hex.EncodeToString(sum[:8])
 }
 

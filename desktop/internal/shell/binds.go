@@ -10,7 +10,7 @@ package shell
 // The catalogue and the compositor's configuration are the same list written
 // down twice — once for a person and once for the compositor — and a list
 // written down twice is a list that drifts. So the two are compared here, in
-// both directions, and the comparison is what `zenith doctor` reports.
+// both directions, and the comparison is what `asura doctor` reports.
 //
 // It is the same argument as the one the settings catalogue makes: a claim
 // about two lists is only true if somebody compares them, and the comparison

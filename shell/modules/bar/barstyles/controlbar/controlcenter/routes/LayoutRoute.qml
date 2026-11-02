@@ -536,7 +536,7 @@ Item {
                             }
                             UiText {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: I18n.tr("GET MORE IN ZENITH STORE")
+                                text: I18n.tr("GET MORE IN ASURA STORE")
                                 color: storeMa.containsMouse ? Tokens.ink : Tokens.inkDim
                                 font.family: Tokens.mono
                                 font.pixelSize: Tokens.fTiny
@@ -558,7 +558,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                Quickshell.execDetached(["zenith-store", "open", "plugins"])
+                                Quickshell.execDetached(["asura-store", "open", "plugins"])
                                 page.pickerOpen = false
                             }
                         }

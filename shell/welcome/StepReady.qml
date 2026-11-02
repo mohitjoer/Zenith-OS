@@ -3,7 +3,7 @@ import QtQuick
 import qs.Ui.Singletons
 import "Singletons"
 
-// Step 5 body: the send-off. A short recap, a jump into Zenith Settings, and a
+// Step 5 body: the send-off. A short recap, a jump into Asura Settings, and a
 // reminder that the shortcut legend is always a keystroke away. `openSettings()` is
 // handled by Welcome.qml (it launches the Hub and closes the tour).
 Column {
@@ -56,7 +56,7 @@ Column {
 
     WelcomeButton {
         kind: "outline"
-        label: I18n.tr("Open Zento Settings")
+        label: I18n.tr("Open Asura Settings")
         onClicked: step.openSettings()
     }
 

@@ -3,9 +3,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// live shell appearance config. one source of truth for the look knobs Zenith
+// live shell appearance config. one source of truth for the look knobs Asura
 // Settings' Shell section edits, plus the shipped defaults the shell falls back
-// to. JSON at ~/.config/zenith/shell.json, watched, so a save in Settings
+// to. JSON at ~/.config/asura/shell.json, watched, so a save in Settings
 // retunes the running shell on the next file event. no reload. defaults here
 // are canonical; Settings mirrors them for reset-to-default and seeds nothing
 // of its own.
@@ -68,7 +68,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/shell.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -104,7 +104,7 @@ Singleton {
     // window borders and shell chrome all read it). true = follow the wallpaper.
     FileView {
         id: themeFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/theme.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

@@ -31,7 +31,7 @@ import "schema/UpdatesPage.js" as UpdatesSchema
 import "ReloadCoverModel.js" as ReloadCoverModel
 import qs.FrameBars
 
-// Zenith Settings, assembled. The rail owns navigation and global search; the
+// Asura Settings, assembled. The rail owns navigation and global search; the
 // head, cells and tabs are drawn once by SchemaPage from a page's schema; the
 // pinned side is the feedback loop (live preview, the dirty-state plate, the
 // pending-write diff); the action bar is the one surface whose absence eats an
@@ -53,7 +53,7 @@ Rectangle {
     property string section: "windowmanager"
     // remember the last section so a reopen lands where you left, not the default.
     // Read once at startup by `sectionGet` below; written here on every change.
-    onSectionChanged: Quickshell.execDetached(["zenith-hubd", "config", "set", "section", hub.section])
+    onSectionChanged: Quickshell.execDetached(["asura-hubd", "config", "set", "section", hub.section])
     // A Hub that remembered the retired `windows` section, or a deep link that
     // still names it, lands on the compositor page that now holds those rows
     // rather than a blank pane.
@@ -84,7 +84,7 @@ Rectangle {
     // deep knobs across every schema page. persisted like `section`, restored at
     // startup by `advancedGet` below.
     property bool advanced: false
-    onAdvancedChanged: Quickshell.execDetached(["zenith-hubd", "config", "set", "advanced", hub.advanced ? "1" : "0"])
+    onAdvancedChanged: Quickshell.execDetached(["asura-hubd", "config", "set", "advanced", hub.advanced ? "1" : "0"])
 
     // The full catalogue. `wired` marks the pages whose content and
     // persistence are ported; the rest render an honest porting plate rather
@@ -119,7 +119,7 @@ Rectangle {
             { key: "performance", name: "Performance" }, { key: "session", name: "Session" },
             { key: "recording", name: "Recording" }, { key: "dictation", name: "Dictation" }, { key: "fastfetch", name: "Fastfetch", adv: true },
             { key: "import", name: "Import config", adv: true, wired: true } ] },
-        { name: "ZENITH", items: [ { key: "zenith", name: "Zenith" } ] },
+        { name: "ASURA", items: [ { key: "asura", name: "Asura" } ] },
         { name: "EXTEND", items: [
             { key: "addons", name: "Add-ons" }, { key: "agent", name: "Agent" } ] },
         { name: "", items: [ { key: "credits", name: "Credits" } ] }
@@ -137,7 +137,7 @@ Rectangle {
         "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
         "session": "起動", "performance": "性能", "agent": "羅針",
         "updates": "更新", "credits": "謝辞", "global": "全般", "import": "取込", "windowmanager": "合成",
-        "zenith": "天"
+        "asura": "天"
     })
 
     // Extra search vocabulary per section: the words a user actually types that
@@ -169,11 +169,11 @@ Rectangle {
         "layerrules": "layer rule namespace blur dim bar notification surface",
         "session": "session login startup autostart launch run command boot environment variable env var export",
         "performance": "performance battery power saving save lowpower potato lag cpu gpu ram memory idle freeze reduce motion fps",
-        "agent": "zenith agent ai assistant vault memory skills chat code llm needle engine acp",
+        "agent": "asura agent ai assistant vault memory skills chat code llm needle engine acp",
         "updates": "update upgrade version channel commit behind check origin",
         "import": "import bring migrate dotfiles config existing kitty fish fastfetch drop folder git backup undo restore adopt",
         "credits": "credits thanks acknowledgement gratitude contributor",
-        "zenith": "idle dim blank lock timeout screen screensaver sleep suspend session"
+        "asura": "idle dim blank lock timeout screen screensaver sleep suspend session"
     })
 
     // ── global search ────────────────────────────────────────────────────
@@ -492,7 +492,7 @@ Rectangle {
     }
     function pageFile(s) {
         // not under pages/: it draws the settings registry, not a page of its own
-        if (s === "zenith") return Qt.resolvedUrl("ZenithPage.qml");
+        if (s === "asura") return Qt.resolvedUrl("AsuraPage.qml");
         var map = { "plugins": "PluginsPage", "profile": "ProfilePage", "bar-studio": "BarStudioPage", "desktop": "DesktopPage", "session": "SessionPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "agent": "AgentPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         map.global = "GlobalPage";
         map["import"] = "ImportPage";
@@ -530,14 +530,14 @@ Rectangle {
         "mirror": false, "segments": 10, "fps": 30,
         "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false,
         "spin": 0, "x": 0, "y": 0.58, "w": 1, "h": 0.42, "grow": "up", "angle": 0, "tiltX": 0, "tiltY": 0,
-        "markText": "天", "markImage": "", "markTint": true, "name": "Zenith",
+        "markText": "天", "markImage": "", "markTint": true, "name": "Asura",
         "reloadCover": ReloadCoverModel.empty(),
         "language": "auto", "barStyle": "qsbar", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
         "qsbar.barPosition": "top", "qsbar.barShellStyle": "fit", "qsbar.barScale": 1.0,
         "qsbar.barAutoHide": false, "qsbar.barBorderEnabled": true, "qsbar.barCornerRadius": 6,
         "qsbar.panelTooltipBorderEnabled": true, "qsbar.barShadowEnabled": false, "qsbar.barFrostEnabled": false,
         "qsbar.barGapTop": 3, "qsbar.barGapBottom": 0, "qsbar.barGapLeft": 0, "qsbar.barGapRight": 0,
-        "qsbar.launcherLogoMode": "text", "qsbar.launcherLogoText": "zenith", "qsbar.launcherLogoIcon": "zenith",
+        "qsbar.launcherLogoMode": "text", "qsbar.launcherLogoText": "asura", "qsbar.launcherLogoIcon": "asura",
         "qsbar.workspaceStyle": "default", "qsbar.workspaceMode": "active",
         "qsbar.widgets.battery": true, "qsbar.widgets.bluetooth": true, "qsbar.widgets.brightness": true,
         "qsbar.widgets.cpu": true, "qsbar.widgets.cpuTemperature": true, "qsbar.widgets.gpu": true,
@@ -575,7 +575,7 @@ Rectangle {
     function settingsFiles() {
         var s = hub.section;
         if (hub.pageFile(s) === "") return [];
-        if (s === "import" || s === "zenith") return [];
+        if (s === "import" || s === "asura") return [];
         var ce = hub.cfgDir;
         var home = Quickshell.env("HOME") || "";
         var out = [];
@@ -603,7 +603,7 @@ Rectangle {
         return (home && p.indexOf(home) === 0) ? "~" + p.substring(home.length) : p;
     }
     // Ensure a user file exists (seeding a header when given), then open it via
-    // xdg-open (mimeapps route text/json/lua to zenith-nvim); a base dir opens in
+    // xdg-open (mimeapps route text/json/lua to asura-nvim); a base dir opens in
     // the file manager.
     function openSettingsFile(e) {
         if (!e || e.noOpen || !e.path)
@@ -742,11 +742,11 @@ Rectangle {
         }
         hub.committed = JSON.parse(JSON.stringify(hub.draft));
         // language rides the normal Save: the file it just wrote (shell.json) is
-        // watched by every Zenith surface's shared I18n, so the whole desktop
+        // watched by every Asura surface's shared I18n, so the whole desktop
         // retranslates. Set it here too so this window switches deterministically.
         if (files.shell) I18n.configLang = hub.committed.language || "auto";
         if (hub.hyprChanges().length) {
-            hyprSave.command = ["zenith-hubd", "desktop", "save", JSON.stringify(hub.hyprDraft)];
+            hyprSave.command = ["asura-hubd", "desktop", "save", JSON.stringify(hub.hyprDraft)];
             hyprSave.running = true;
             hub.hyprCommitted = JSON.parse(JSON.stringify(hub.hyprDraft));
         }
@@ -758,7 +758,7 @@ Rectangle {
         hub.draft = JSON.parse(JSON.stringify(hub.committed));
         hub.restoreLiveUnsaved();
         hub.hyprDraft = JSON.parse(JSON.stringify(hub.hyprCommitted));
-        if (hub.wmLoaded) { hyprRestore.command = ["zenith-hubd", "desktop", "restore"]; hyprRestore.running = true; }
+        if (hub.wmLoaded) { hyprRestore.command = ["asura-hubd", "desktop", "restore"]; hyprRestore.running = true; }
         hub.revertPage();
         hub.requestReloadCoverPrune(hub.committed.reloadCover);
     }
@@ -782,7 +782,7 @@ Rectangle {
         onTriggered: {
             if (reloadCoverPrune.running)
                 return;
-            var command = ["zenith-hubd", "reload-cover", "prune"];
+            var command = ["asura-hubd", "reload-cover", "prune"];
             if (hub.reloadCoverPruneWanted !== "")
                 command.push(hub.reloadCoverPruneWanted);
             reloadCoverPrune.keep = hub.reloadCoverPruneWanted;
@@ -826,7 +826,7 @@ Rectangle {
     Component.onCompleted: rebase()
     Process {
         id: sectionGet
-        command: ["zenith-hubd", "config", "get", "section"]
+        command: ["asura-hubd", "config", "get", "section"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -839,16 +839,16 @@ Rectangle {
     }
     Process {
         id: advancedGet
-        command: ["zenith-hubd", "config", "get", "advanced"]
+        command: ["asura-hubd", "config", "get", "advanced"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: { if (this.text.trim() === "1") hub.advanced = true; }
         }
     }
 
-    property string cfgDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith"
+    property string cfgDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura"
 
-    // shell.json is owned by the zenith-shell settings daemon; the Hub reads it
+    // shell.json is owned by the asura-shell settings daemon; the Hub reads it
     // through the `settings` topic and writes it only through settings.patch
     // (Singletons/Settings.qml), never opening the file itself. A fresh daemon
     // frame rebases committed onto the pushed values, the way the FileView
@@ -913,13 +913,13 @@ Rectangle {
             property string markText: "天"
             property string markImage: ""
             property bool markTint: true
-            property string name: "Zenith"
+            property string name: "Asura"
             property var reloadCover: ReloadCoverModel.empty()
         }
     }
 
     // ── hypr backend (the Lua pages) ─────────────────────────────────────
-    // Every Lua page persists through one nested object via zenith-hubd, not a
+    // Every Lua page persists through one nested object via asura-hubd, not a
     // JsonAdapter. Pages read and write dotted paths (appearance.gapsIn); the
     // change shows up in the same dirty/diff/save the JSON pages use, grouped
     // under settings.conf. Nothing is written until Save calls `hypr save`.
@@ -939,7 +939,7 @@ Rectangle {
 
     Process {
         id: hyprGet
-        command: ["zenith-hubd", "desktop", "get"]
+        command: ["asura-hubd", "desktop", "get"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -954,7 +954,7 @@ Rectangle {
     }
     Process {
         id: hyprDefaultsGet
-        command: ["zenith-hubd", "desktop", "defaults"]
+        command: ["asura-hubd", "desktop", "defaults"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: { try { hub.hyprDefaults = JSON.parse(this.text); } catch (e) {} }
@@ -971,7 +971,7 @@ Rectangle {
         id: hyprPreviewThrottle
         interval: 140
         onTriggered: {
-            hyprPreview.command = ["zenith-hubd", "desktop", "preview", JSON.stringify(hub.hyprDraft)];
+            hyprPreview.command = ["asura-hubd", "desktop", "preview", JSON.stringify(hub.hyprDraft)];
             hyprPreview.running = true;
         }
     }
@@ -980,7 +980,7 @@ Rectangle {
     function requestQuit() {
         if (hub.quitting) return;
         if (brandFV.loaded) {
-            var cleanup = ["zenith-hubd", "reload-cover", "prune"];
+            var cleanup = ["asura-hubd", "reload-cover", "prune"];
             var keep = ReloadCoverModel.path(hub.committed.reloadCover);
             if (keep !== "")
                 cleanup.push(keep);
@@ -992,7 +992,7 @@ Rectangle {
         var restored = hub.restoreLiveUnsaved();
         if (hub.wmLoaded && hub.hyprChanges().length) {
             hub.quitting = true;
-            hyprRestore.command = ["zenith-hubd", "desktop", "restore"];
+            hyprRestore.command = ["asura-hubd", "desktop", "restore"];
             hyprRestore.running = true;
         } else if (restored) {
             // hold the door one beat so the control socket flushes the patches
@@ -1107,7 +1107,7 @@ Rectangle {
                         spacing: 1
                         anchors.verticalCenter: parent.verticalCenter
                         Text {
-                            text: "ZENITH"; color: Tokens.ink; font.family: Tokens.ui
+                            text: "ASURA"; color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: 14; font.weight: Font.Medium; font.letterSpacing: 2.4
                         }
                         Text {
@@ -1809,7 +1809,7 @@ Rectangle {
                     spacing: Tokens.s2
                     Text {
                         width: fcol.width
-                        text: I18n.tr("Each page's settings live in one full file below: the complete config you edit in place (the GUI writes the very same file). The shipped base underneath refreshes on update; your file wins. Run `zenith reset <path>` to drop an override.")
+                        text: I18n.tr("Each page's settings live in one full file below: the complete config you edit in place (the GUI writes the very same file). The shipped base underneath refreshes on update; your file wins. Run `asura reset <path>` to drop an override.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 11; wrapMode: Text.WordWrap
                     }
                     Repeater {

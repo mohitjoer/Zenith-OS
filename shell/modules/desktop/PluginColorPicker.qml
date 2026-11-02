@@ -5,7 +5,7 @@ import "Singletons"
 // A compact HSV colour picker for a plugin tile's right-click menu, mirroring
 // the built-in MenuColorPicker (an SV square, a hue rail, preset swatches) but
 // emitting the chosen colour rather than writing Config: the host persists it
-// through zenith-plugins-place. The wallpaper layer has no keyboard (the plugin
+// through asura-plugins-place. The wallpaper layer has no keyboard (the plugin
 // menu keeps text fields in the hub), so this is mouse-only -- no hex field --
 // and plugins have no per-frame setLive fast path, so it commits once, on
 // release or a preset tap, instead of scrubbing live. The first swatch is the

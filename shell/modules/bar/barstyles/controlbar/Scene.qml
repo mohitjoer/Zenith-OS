@@ -1,6 +1,6 @@
-// QS Bar (Quickshell Rise) entry, adapted to Zenith's barstyle contract.
+// QS Bar (Quickshell Rise) entry, adapted to Asura's barstyle contract.
 //
-// Zenith loads a barstyle Scene once per monitor via Frame's Loader, so this
+// Asura loads a barstyle Scene once per monitor via Frame's Loader, so this
 // Scene hosts the single bar system a single time on the primary output. The
 // VariantRoot inside fans one bar across every screen itself, so multi-monitor
 // behaviour is unchanged.

@@ -139,7 +139,7 @@ Item {
                     Text {
                         width: parent.width
                         elide: Text.ElideMiddle
-                        text: Vm.paths.vms || "~/.local/share/zenith/vms"
+                        text: Vm.paths.vms || "~/.local/share/asura/vms"
                         color: Tokens.inkMuted
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -168,7 +168,7 @@ Item {
                 }
                 ProvRow { k: I18n.tr("Source"); v: (Vm.paths.provider || "quickemu + quickget") + " · " + (Vm.paths.source || "github.com/quickemu-project") }
                 ProvRow { k: I18n.tr("Logos"); v: Vm.paths.icons_provider || "simple-icons + quickemu-icons" }
-                ProvRow { k: I18n.tr("Cached"); v: Vm.paths.icons || "~/.cache/zenith/zenith-vm-icons" }
+                ProvRow { k: I18n.tr("Cached"); v: Vm.paths.icons || "~/.cache/asura/asura-vm-icons" }
             }
         }
     }
@@ -183,7 +183,7 @@ Item {
     }
 
     function installEngine() {
-        Quickshell.execDetached(["zenith-app", "terminal", "--", "bash", "-c",
-            "zenith-vm setup; echo; read -n1 -rsp 'Press any key to close…'; echo"]);
+        Quickshell.execDetached(["asura-app", "terminal", "--", "bash", "-c",
+            "asura-vm setup; echo; read -n1 -rsp 'Press any key to close…'; echo"]);
     }
 }

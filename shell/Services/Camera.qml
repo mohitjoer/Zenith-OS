@@ -7,7 +7,7 @@ import Quickshell.Io
 // Webcam-overlay state shared by the Super+S capture card, record island, and
 // CameraOverlay. The overlay is a shaped, draggable self-view bubble on a layer
 // surface, so it stays across workspace switches and gsr captures it into
-// recordings. Shape, size, flip and position persist to ~/.config/zenith/camera.json;
+// recordings. Shape, size, flip and position persist to ~/.config/asura/camera.json;
 // `active` stays in-memory so the camera starts off each session and is toggled
 // on demand.
 Singleton {
@@ -34,7 +34,7 @@ Singleton {
     }
 
     // ── persistence (shape/size/flip/position; never `active`) ────────────────
-    readonly property string cfgPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/camera.json"
+    readonly property string cfgPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/camera.json"
     property bool loaded: false
 
     function scheduleSave() {

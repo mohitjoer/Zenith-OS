@@ -3,7 +3,7 @@ import qs.Ui.Singletons
 
 // An eki-stamp hanko for a machine: a vermillion ink seal, OS name set around
 // the ring, the mark's initial at the center, station-stamp style. The one
-// legitimately round object on the board, and (amendment 3) zenith-vm's one rationed
+// legitimately round object on the board, and (amendment 3) asura-vm's one rationed
 // splash of colour: at most one per screen, on the stage, only when it certifies
 // (a sealed machine, the thud of a new one). It is print, not chrome. `thud()`
 // plays the stamp landing.

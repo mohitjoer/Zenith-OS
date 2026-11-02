@@ -5,7 +5,7 @@ import Quickshell.Io
 import "../utils/menupoll.js" as MenuPoll
 
 // QML view of the daemon `powerprofiles` topic. power-profiles-daemon lives in
-// zenith-shell (powerprofiles.go), so QML never shells out to powerprofilesctl:
+// asura-shell (powerprofiles.go), so QML never shells out to powerprofilesctl:
 // `subscribe powerprofiles` streams {active_profile, profiles} on every change,
 // and `call powerprofiles.setProfile` sends the intent back. The list is
 // service order with no client sort (contract 06 sec 2.9 / contract 11 sec 3.1).
@@ -34,7 +34,7 @@ Singleton {
         root.call("powerprofiles.setProfile", { profile: name });
     }
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function apply(line) {
         try {

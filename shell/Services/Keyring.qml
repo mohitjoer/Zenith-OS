@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 /**
- * Live state for the keyring island, driven by the zenith-shell daemon's GNOME
+ * Live state for the keyring island, driven by the asura-shell daemon's GNOME
  * keyring system prompter. When gnome-keyring needs a password (unlocking the
  * login keyring, or choosing one for a fresh "Default" keyring the first time an
  * app stores a secret) the daemon pushes the prompt here via `keyringPrompt` and
@@ -34,7 +34,7 @@ Singleton {
     property string continueLabel: ""
     property string cancelLabel: ""
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // Fired when a fresh prompt arrives so the surface resets its fields and
     // takes focus, even when the island is already open (a wrong-password retry).

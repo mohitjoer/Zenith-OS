@@ -1,5 +1,5 @@
 // Parse the rofi-script(5) / fuzzel dmenu protocol so existing launcher scripts
-// work in Zenith unchanged. Each output line is one row; a row may carry inline
+// work in Asura unchanged. Each output line is one row; a row may carry inline
 // directives after a NUL, as key<US>value pairs separated by US (0x1f):
 //   Firefox\0icon\x1ffirefox\x1finfo\x1ftab-3
 // A leading-NUL line with no display text is a global directive (prompt, message,

@@ -4,10 +4,10 @@
 #
 # A command belongs here only when the caller really degrades visibly without it.
 # A command that is simply needed belongs in release/deps.d/<lane>.deps instead.
-zenith-clamshell       # gated by command -v in session/hyprland/lid.conf
-zenith-power           # unbuilt helper, gated by PATH check in cputune.go and CONTRACT.md
-zenith-docker          # gated by Stash.dockerState and stash-cobalt-server.sh
-zenith-cursor-track    # gated by command -v in zenith-cmd-studiorecord
+asura-clamshell       # gated by command -v in session/hyprland/lid.conf
+asura-power           # unbuilt helper, gated by PATH check in cputune.go and CONTRACT.md
+asura-docker          # gated by Stash.dockerState and stash-cobalt-server.sh
+asura-cursor-track    # gated by command -v in asura-cmd-studiorecord
 snapper                # Btrfs/snapper rollback in import_apply.go
 steamcmd               # Steam workshop downloads in wallpaper-ui
 checkupdates           # Arch checkupdates fallback in Updates.qml
@@ -18,8 +18,8 @@ warp-cli               # Cloudflare WARP quick toggle in CloudflareWarpToggle.qm
 ydotool                # virtual keyboard daemon in Ydotool.qml
 easyeffects            # audio effects quick toggle in EasyEffectsToggle.qml
 inxi                   # hardware info tool in qsbar Theme.qml
-uv                     # Python package runner in zenith-stage
-usbreset               # USB audio reset helper in zenith-restart-audio
+uv                     # Python package runner in asura-stage
+usbreset               # USB audio reset helper in asura-restart-audio
 docker                 # Docker engine in stash-cobalt-server.sh
 makoctl                # Mako notification daemon fallback in qsbar
 matugen                # Material theme generator fallback in schemes.go
@@ -28,12 +28,12 @@ nvibrant               # NVIDIA digital vibrance tool in Devices.qml
 nvidia-smi             # NVIDIA System Management Interface in StatsFeed/LiveStats/GpuPage
 openssl                # SSL/TLS toolkit in localsend.sh
 pavucontrol            # PulseAudio/PipeWire volume control GUI fallback in VolumePanel.qml
-plymouth               # boot splash daemon, gated by command -v in session/zenith-session
-runsvdir               # runit user process supervisor, gated by command -v in zenith-user-services
-sv                     # runit service control tool, gated by command -v in zenith-user-services
-swayidle               # idle management daemon in session/runit/services/zenith-idle
+plymouth               # boot splash daemon, gated by command -v in session/asura-session
+runsvdir               # runit user process supervisor, gated by command -v in asura-user-services
+sv                     # runit service control tool, gated by command -v in asura-user-services
+swayidle               # idle management daemon in session/runit/services/asura-idle
 swaybg                 # Wayland wallpaper client, gated by command -v in session/hyprland/autostart.conf
-tlp                    # TLP power management utility, gated by LookPath in zenith-sysd
-xbps-install           # Void Linux package installer, gated by LookPath in zenith-sysd
+tlp                    # TLP power management utility, gated by LookPath in asura-sysd
+xbps-install           # Void Linux package installer, gated by LookPath in asura-sysd
 xbps-query             # Void Linux package query tool, gated in pkg.go
-zed                    # code editor, gated in zenith-app
+zed                    # code editor, gated in asura-app

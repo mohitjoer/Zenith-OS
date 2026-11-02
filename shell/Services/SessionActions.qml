@@ -12,7 +12,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // action is one of "logout" | "reboot" | "shutdown"; the daemon validates it.
     function run(action) {

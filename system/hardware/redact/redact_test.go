@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zenith/hardware/probe"
+	"asura/hardware/probe"
 )
 
 // testSalt is a fixed key. Tests need determinism, not entropy.
@@ -214,7 +214,7 @@ func TestSweepRefusesIPv6LinkLocal(t *testing.T) {
 // username.
 func TestSweepRefusesHomeDirectory(t *testing.T) {
 	for _, path := range []string{
-		"/home/alice/.config/zenith",
+		"/home/alice/.config/asura",
 		"/root/.cache",
 		"/Users/alice/Library",
 	} {
@@ -301,7 +301,7 @@ func TestSweepStillRefusesARealMACAmongIdentifiers(t *testing.T) {
 // policy says must pass.
 func TestSweepAllowsACleanReport(t *testing.T) {
 	rendered := []byte(strings.Join([]string{
-		"# Zenith hardware report",
+		"# Asura hardware report",
 		"dmi:",
 		"  sys_vendor: ASUSTeK COMPUTER INC.",
 		"  product_name: ASUS TUF Gaming F15 FX507ZC4_FX507ZC4",
@@ -364,7 +364,7 @@ func TestRefusalNeverEchoesTheSecret(t *testing.T) {
 
 // TestSaltRoundTrip checks the salt file, including its permissions.
 func TestSaltRoundTrip(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "state", "zenith", "hardware", "report-salt")
+	path := filepath.Join(t.TempDir(), "state", "asura", "hardware", "report-salt")
 
 	created, err := LoadOrCreateSalt(path)
 	if err != nil {

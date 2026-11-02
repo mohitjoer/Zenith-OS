@@ -27,39 +27,39 @@ ok(validate([{ id: "y", name: "Y", category: "Nope", exec: ["a"] }]).some(p => p
 
 const execFor = id => CATALOG.find(action => action.id === id)?.exec;
 ok(
-    JSON.stringify(execFor("open-clipboard")) === JSON.stringify(["zenith-shell", "menu", "quick-settings#clipboard"]),
+    JSON.stringify(execFor("open-clipboard")) === JSON.stringify(["asura-shell", "menu", "quick-settings#clipboard"]),
     "Clipboard History uses the supported quick-settings clipboard route"
 );
 ok(
-    JSON.stringify(execFor("open-sysinfo")) === JSON.stringify(["zenith-shell", "menu", "quick-settings"]),
+    JSON.stringify(execFor("open-sysinfo")) === JSON.stringify(["asura-shell", "menu", "quick-settings"]),
     "System Info uses the supported quick-settings route"
 );
 ok(
-    JSON.stringify(execFor("open-toolkit")) === JSON.stringify(["zenith-shell", "menu", "quick-settings"]),
+    JSON.stringify(execFor("open-toolkit")) === JSON.stringify(["asura-shell", "menu", "quick-settings"]),
     "Control Deck uses the supported quick-settings route"
 );
 ok(
-    CATALOG.filter(action => String(action.exec?.[0] || "").startsWith("zenith-cmd-"))
+    CATALOG.filter(action => String(action.exec?.[0] || "").startsWith("asura-cmd-"))
         .every(action => !String(action.exec[0]).includes("/")),
-    "Zenith command helpers resolve through the packaged PATH"
+    "Asura command helpers resolve through the packaged PATH"
 );
 
-// The catalog fires zenith-cmd-* helpers by bare name, so each one must be a
+// The catalog fires asura-cmd-* helpers by bare name, so each one must be a
 // script the shell ships (W13 installs them into /usr/bin). Nothing here may
-// still call a Ryoku tool or a `qs -c` config, which do not exist in Zenith.
+// still call a Ryoku tool or a `qs -c` config, which do not exist in Asura.
 const repoRoot = new URL("../../../../../../", import.meta.url);
-const missingHelpers = commands().filter(name => name.startsWith("zenith-cmd-")
+const missingHelpers = commands().filter(name => name.startsWith("asura-cmd-")
     && !existsSync(new URL("shell/scripts/" + name, repoRoot)));
 ok(
     missingHelpers.length === 0,
-    "every zenith-cmd-* the catalog fires is a script in shell/scripts: "
+    "every asura-cmd-* the catalog fires is a script in shell/scripts: "
         + (missingHelpers.join(", ") || "all present")
 );
 ok(
     !JSON.stringify(CATALOG).match(/ryo|qs -c|"qs"/),
     "no action calls a Ryoku tool or qs -c"
 );
-ok(commands().length === new Set(commands()).size && commands().includes("zenith"), "commands() lists each command once");
+ok(commands().length === new Set(commands()).size && commands().includes("asura"), "commands() lists each command once");
 
 const providerSource = readFileSync(new URL("./Actions.qml", import.meta.url), "utf8");
 ok(

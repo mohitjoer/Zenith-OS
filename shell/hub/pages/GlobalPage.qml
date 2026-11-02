@@ -80,7 +80,7 @@ Item {
     }
     Process {
         id: shellRestart
-        command: ["systemctl", "--user", "restart", "zenith-shell.service"]
+        command: ["systemctl", "--user", "restart", "asura-shell.service"]
     }
     // set-timezone talks to systemd-timedated over D-Bus; the shipped polkit
     // rule authorises it for the active user, so no password prompt.

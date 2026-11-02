@@ -6,7 +6,7 @@ import qs.Ui
 import qs.Ui.Singletons
 import "Singletons"
 
-// The compositor Zenith is running, and which version of it. Zenith has one
+// The compositor Asura is running, and which version of it. Asura has one
 // compositor, Hyprland, so this is a statement and not a picker: there is no
 // switch to offer and no second store for settings to be carried across to. The
 // version is read from the compositor that is running rather than from a package
@@ -100,7 +100,7 @@ Column {
             Text {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: I18n.tr("Zenith runs on Hyprland. Window rules, animations and keybinds are written for it into your Zenith config, and your edits survive updates.")
+                text: I18n.tr("Asura runs on Hyprland. Window rules, animations and keybinds are written for it into your Asura config, and your edits survive updates.")
                 color: Tokens.inkFaint
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall

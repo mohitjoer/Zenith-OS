@@ -21,4 +21,4 @@ assert.match(qml, /sourceComponent:\s*Component\s*\{\s*ScreencopyView/, "capture
 assert.match(qml, /shotLoader\.item/, "normal capture uses the dynamically loaded object");
 assert.equal((qml.match(/ScreencopyView\s*\{/g) || []).length, 1,
     "no second eager screencopy instance remains");
-console.log("PASS zenith-shot capture backend policy and lazy Wayland source guard");
+console.log("PASS asura-shot capture backend policy and lazy Wayland source guard");

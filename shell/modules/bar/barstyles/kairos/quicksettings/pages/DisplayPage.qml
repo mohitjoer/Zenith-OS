@@ -15,7 +15,7 @@ Column {
 
     spacing: 12
 
-    // This page drives the displays through zenith-monitor, the Hyprland
+    // This page drives the displays through asura-monitor, the Hyprland
     // provider's engine; outputMirror is the capability only that provider
     // reports, so the surface hides itself where it would be dead rather than
     // offering controls that cannot apply.
@@ -37,9 +37,9 @@ Column {
     readonly property var scaleTargets: [1, 1.25, 1.5, 1.75, 2]
 
     function monitorCmd(args) {
-        var script = 'if command -v zenith-monitor >/dev/null 2>&1; then exec zenith-monitor "$@"; '
-            + 'else exec "$HOME/.local/bin/zenith-monitor" "$@"; fi';
-        return ["sh", "-c", script, "zenith-monitor"].concat(args);
+        var script = 'if command -v asura-monitor >/dev/null 2>&1; then exec asura-monitor "$@"; '
+            + 'else exec "$HOME/.local/bin/asura-monitor" "$@"; fi';
+        return ["sh", "-c", script, "asura-monitor"].concat(args);
     }
     function isInternal(name) { return /eDP|LVDS/i.test(String(name || "")); }
     function ladderOf(m) {

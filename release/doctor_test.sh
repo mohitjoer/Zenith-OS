@@ -9,20 +9,20 @@
 #
 #   - schemas searched for in the shell's directory, which is not where GLib
 #     puts them, so a clean install reported every setting as unreachable;
-#   - zenith-hub and zenith-greeter installed non-executable, because the list
+#   - asura-hub and asura-greeter installed non-executable, because the list
 #     that sets modes was written by hand and two programs were missing from it;
-#   - an installed zenith unable to find the profile database it shipped with,
+#   - an installed asura unable to find the profile database it shipped with,
 #     reporting an empty database instead of a broken install;
 #   - the portal configuration the package installs never being a file doctor
 #     would look at, so an installed machine reported none at all;
 #   - the Hub's entry file left out of the package, which nothing else notices:
-#     the doctor checks the one tree it walks, and zenith-hub would still be
+#     the doctor checks the one tree it walks, and asura-hub would still be
 #     installed and executable, and would open a window that is not there.
 #
 # What this asserts is that everything the package owns is right. What it does
-# not assert is that a CI runner is a working Zenith machine: Quickshell is
+# not assert is that a CI runner is a working Asura machine: Quickshell is
 # built from source and is not in the archive, there is no SDDM configured
-# here, and dpkg-deb -x unpacks zenith alone — none of the portal backends that
+# here, and dpkg-deb -x unpacks asura alone — none of the portal backends that
 # the shipped configuration names are in the stage.
 #
 # The allowlist is the interesting half. Each entry is named rather than
@@ -36,7 +36,7 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 INPUT=${1:-"$REPO_ROOT/build/debs"}
 
 if [ -d "$INPUT" ]; then
-	DEB=$(ls "$INPUT"/zenith_*.deb 2>/dev/null | head -1 || true)
+	DEB=$(ls "$INPUT"/asura_*.deb 2>/dev/null | head -1 || true)
 	if [ -z "$DEB" ]; then
 		echo "doctor_test: no .deb in $INPUT; run release/build-debs.sh first" >&2
 		exit 2
@@ -56,9 +56,9 @@ dpkg-deb -x "$DEB" "$STAGE"
 # first place the installed tree is exercised end to end. The three daemons are
 # the ones the session starts: a unit whose binary is not executable fails once
 # per login with a code nobody reads.
-for program in usr/bin/zenith usr/bin/zenith-hub usr/bin/zenith-shell \
-		usr/bin/zenith-hubd usr/bin/zenith-wallpaper \
-		usr/share/zenith/session/zenith-greeter; do
+for program in usr/bin/asura usr/bin/asura-hub usr/bin/asura-shell \
+		usr/bin/asura-hubd usr/bin/asura-wallpaper \
+		usr/share/asura/session/asura-greeter; do
 	if [ ! -x "$STAGE/$program" ]; then
 		echo "doctor_test: $program is not executable in the installed tree" >&2
 		exit 1
@@ -72,7 +72,7 @@ done
 # pass. The cost of not noticing is a window that fails at login with nothing
 # but a shell error in the journal, and the session file that starts it is
 # installed and executable, so every other check here would be green.
-for entry in usr/share/zenith/shell/shell.qml usr/share/zenith/shell/hub.qml; do
+for entry in usr/share/asura/shell/shell.qml usr/share/asura/shell/hub.qml; do
 	if [ ! -f "$STAGE/$entry" ]; then
 		echo "doctor_test: $entry is not in the installed tree" >&2
 		exit 1
@@ -82,8 +82,8 @@ done
 # The same for every other window. Each has a launcher that names its entry file,
 # and the launchers are what is read here rather than a list of windows, so a
 # window added next month is covered by being added.
-for entry in $(grep -ho '/usr/share/zenith/shell/[A-Za-z0-9_.-]*\.qml' \
-		"$STAGE"/usr/bin/zenith-* "$STAGE"/usr/share/zenith/session/zenith-* 2>/dev/null | sort -u); do
+for entry in $(grep -ho '/usr/share/asura/shell/[A-Za-z0-9_.-]*\.qml' \
+		"$STAGE"/usr/bin/asura-* "$STAGE"/usr/share/asura/session/asura-* 2>/dev/null | sort -u); do
 	if [ ! -f "$STAGE$entry" ]; then
 		echo "doctor_test: a launcher starts $entry, which is not in the installed tree" >&2
 		exit 1
@@ -92,12 +92,12 @@ done
 
 # The config tree is the half of doctor that needs the base to have been
 # materialized once, exactly as a machine would after install.
-"$STAGE/usr/bin/zenith" materialize --root "$STAGE" >/dev/null
+"$STAGE/usr/bin/asura" materialize --root "$STAGE" >/dev/null
 
-# The session identity is the environment's, and a runner's is not Zenith's.
+# The session identity is the environment's, and a runner's is not Asura's.
 # Everything else the portal check reads comes from the stage.
 OUTPUT=$WORK/doctor.out
-XDG_CURRENT_DESKTOP=Zenith "$STAGE/usr/bin/zenith" doctor --root "$STAGE" >"$OUTPUT" 2>&1 || true
+XDG_CURRENT_DESKTOP=Asura "$STAGE/usr/bin/asura" doctor --root "$STAGE" >"$OUTPUT" 2>&1 || true
 cat "$OUTPUT"
 
 fail=0
@@ -149,10 +149,10 @@ must_not_contain "no surface can reach it"
 must_match 'all [0-9]+ setting\(s\) have a page'
 must_not_contain "no control is mapped to this setting type"
 
-# Every zenith command the compositor's configuration runs is in the package. A
+# Every asura command the compositor's configuration runs is in the package. A
 # bind that calls a script nobody installed runs, fails and says nothing, and
 # this is the section of the doctor that reads the installed tree for it.
-must_match 'all [0-9]+ zenith command\(s\) the compositor runs are installed'
+must_match 'all [0-9]+ asura command\(s\) the compositor runs are installed'
 
 # The overlay materializes into the extracted tree rather than reporting a tree
 # full of files that are missing from it.
@@ -169,8 +169,8 @@ must_not_contain "no portal configuration was found"
 #
 # Lines under these headings that are not in the list are a regression.
 allowed='login manager preferences not installed; the package that should write it did not
-zenith-shell.service   ExecStart points at /usr/bin/quickshell, which does not exist
-zenith-portal.service  ExecStart points at /usr/libexec/xdg-desktop-portal, which does not exist
+asura-shell.service   ExecStart points at /usr/bin/quickshell, which does not exist
+asura-portal.service  ExecStart points at /usr/libexec/xdg-desktop-portal, which does not exist
 problem           named backend "hyprland" is not installed; nothing implements org.freedesktop.impl.portal.ScreenCast
 problem           named backend "hyprland" is not installed; nothing implements org.freedesktop.impl.portal.Screenshot
 problem           named backend "gtk" is not installed; nothing implements org.freedesktop.impl.portal.FileChooser

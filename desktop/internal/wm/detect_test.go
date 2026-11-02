@@ -6,7 +6,7 @@ import (
 )
 
 func TestDetectDefaultsToHyprland(t *testing.T) {
-	t.Setenv("ZENITH_WM", "")
+	t.Setenv("ASURA_WM", "")
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
 	d := Detect()
@@ -16,16 +16,16 @@ func TestDetectDefaultsToHyprland(t *testing.T) {
 }
 
 func TestDetectForcedProviderIsNotLive(t *testing.T) {
-	t.Setenv("ZENITH_WM", "testwm")
+	t.Setenv("ASURA_WM", "testwm")
 	d := Detect()
-	if d.Name != "testwm" || d.Live || d.Source != "ZENITH_WM" {
+	if d.Name != "testwm" || d.Live || d.Source != "ASURA_WM" {
 		t.Fatalf("forced: %+v", d)
 	}
 }
 
 // A handle that names a dead instance is not proof of life: only a dial is.
 func TestDetectIgnoresStaleHandle(t *testing.T) {
-	t.Setenv("ZENITH_WM", "")
+	t.Setenv("ASURA_WM", "")
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "long-gone")
 	if d := Detect(); d.Live {
@@ -34,7 +34,7 @@ func TestDetectIgnoresStaleHandle(t *testing.T) {
 }
 
 func TestDetectFindsLiveInstanceInRuntimeDir(t *testing.T) {
-	t.Setenv("ZENITH_WM", "")
+	t.Setenv("ASURA_WM", "")
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
 	rt := t.TempDir()
 	t.Setenv("XDG_RUNTIME_DIR", rt)

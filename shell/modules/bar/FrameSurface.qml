@@ -5,7 +5,7 @@ import "popouts"
 import "panel"
 import qs.Services
 
-// One Zenith-owned surface riding the shared Popout. Credential prompts, voice,
+// One Asura-owned surface riding the shared Popout. Credential prompts, voice,
 // stash, capture, and small rail cards mount on demand.
 Popout {
     id: root

@@ -2,7 +2,7 @@ import QtQuick
 import ".."
 import qs.Ui.Singletons
 
-// Zenith slider: orthogonal, a neutral ink-tint track with an accent fill and an
+// Asura slider: orthogonal, a neutral ink-tint track with an accent fill and an
 // ink thumb; the label sits left, the signed value right. onChange fires while
 // dragging (live preview), onCommit on release. Replaces skwd's skewed track
 // that tinted the whole bar with surfaceVariant.

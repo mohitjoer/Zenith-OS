@@ -60,7 +60,7 @@ type ACPIState struct {
 // The deep path — acpidump, acpixtract, iasl — is deliberately not here. It
 // writes hundreds of kilobytes to disk, it is CPU-bound, and it is needed by
 // roughly one profile in fifty: the machine with a sleep problem. It belongs
-// behind `zenith hardware report --deep`.
+// behind `asura hardware report --deep`.
 func ACPI(fs *FS) (ACPIState, error) {
 	state := ACPIState{}
 

@@ -75,10 +75,10 @@ Item {
 
     // deep-link start mode, and an optional OS to preselect once it lands.
     Component.onCompleted: {
-        var m = Quickshell.env("ZENITH_VM_START_MODE");
+        var m = Quickshell.env("ASURA_VM_START_MODE");
         if (m === "catalog" || m === "instant") { mach.mode = "new"; mach.channel = m; }
     }
-    readonly property string startOs: Quickshell.env("ZENITH_VM_START_OS") || ""
+    readonly property string startOs: Quickshell.env("ASURA_VM_START_OS") || ""
     Connections {
         target: Vm
         function onCreated(name) { mach.mode = "library"; }
@@ -193,7 +193,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: Vm.caps.kvmDevice === true
-                    ? I18n.tr("This account cannot open /dev/kvm, which belongs to the kvm group on Ubuntu. Joining the group gives the account direct use of the virtualization hardware, so Zenith does not do it for you. If you want that, run  sudo adduser $USER kvm  in a terminal, then log out and back in.")
+                    ? I18n.tr("This account cannot open /dev/kvm, which belongs to the kvm group on Ubuntu. Joining the group gives the account direct use of the virtualization hardware, so Asura does not do it for you. If you want that, run  sudo adduser $USER kvm  in a terminal, then log out and back in.")
                     : I18n.tr("A virtual machine needs hardware virtualization. Turn on SVM / AMD-V (AMD) or VT-x (Intel) in your BIOS/firmware, then reboot.")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui

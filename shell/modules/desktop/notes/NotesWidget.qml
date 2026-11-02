@@ -8,7 +8,7 @@ import qs.Ui.Singletons
 // A scratch pad that rides the wallpaper: a wrapping TextEdit over a faint
 // plate, ink resolved against the tone under the widget the way the clock faces
 // pick theirs. The note body is content, not configuration, so it is not a
-// widgets.json key -- it persists to ~/.local/state/zenith/desktop-notes.txt
+// widgets.json key -- it persists to ~/.local/state/asura/desktop-notes.txt
 // through an atomic FileView, debounced so a burst of typing writes the file a
 // few times, never once per keystroke.
 //
@@ -142,7 +142,7 @@ Item {
 
     FileView {
         id: notesFile
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith/desktop-notes.txt"
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura/desktop-notes.txt"
         blockLoading: true
         watchChanges: true
         printErrors: false

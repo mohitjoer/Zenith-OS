@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 // The background.
 //
 // This exists because adoption imports a wallpaper into
-// org.zenith.shell/wallpaper-path and org.gnome.shell does not exist on this
+// org.asura.shell/wallpaper-path and org.gnome.shell does not exist on this
 // desktop to draw it. A setting that an import writes and nothing draws is an
 // import that succeeds and does nothing, which is worse than not importing: the
 // adoption report says the wallpaper was carried over, and the machine is bare.

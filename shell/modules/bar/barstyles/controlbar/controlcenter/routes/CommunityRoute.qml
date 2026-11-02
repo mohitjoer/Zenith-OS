@@ -6,16 +6,16 @@ import "../../modules"
 import qs.Ui
 import qs.Ui.Singletons
 
-// Community route (有志): every bar plugin installed from outside Zenith, kept
+// Community route (有志): every bar plugin installed from outside Asura, kept
 // apart from the shipped set so a widget someone else wrote is never mixed in
-// with the built-ins, under a plain warning that Zenith does not review it. The
+// with the built-ins, under a plain warning that Asura does not review it. The
 // same CcWidgetList sheet as Widgets, so a community widget is shown, tuned and
 // coloured exactly like a built-in; each row also names its author and can
-// EXPORT it (a Zenith Store-shaped folder), SHARE it (the catalogue pull request)
+// EXPORT it (a Asura Store-shaped folder), SHARE it (the catalogue pull request)
 // or REMOVE it. Those run the plugin CLI here, with the result printed in a
 // console strip, so a bad URL or a missing preview is never silent. Below the
-// sheet, the two ways in: a git URL or a local folder handed to `zenith plugin
-// add --bar`, and Zenith Store's plugin shelf.
+// sheet, the two ways in: a git URL or a local folder handed to `asura plugin
+// add --bar`, and Asura Store's plugin shelf.
 Item {
     id: page
     property var root: null
@@ -39,7 +39,7 @@ Item {
 
     // ── the plugin CLI, run here so its result is visible ──
     // One job at a time; the console strip shows what is running, then the
-    // command's last lines. `zenith plugin add` clones/copies, validates and
+    // command's last lines. `asura plugin add` clones/copies, validates and
     // installs without running anything from the plugin; --bar places it on the
     // bar, which re-derives on the plugins.json change.
     property string jobLabel: ""
@@ -82,13 +82,13 @@ Item {
         if (u === "") return
         // a folder typed the shell way: no shell runs here, so expand it
         if (u.indexOf("~/") === 0) u = Quickshell.env("HOME") + u.substring(1)
-        page.run(I18n.tr("Adding %1").arg(u), ["zenith", "plugin", "add", u, "--bar", "--yes"])
+        page.run(I18n.tr("Adding %1").arg(u), ["asura", "plugin", "add", u, "--bar", "--yes"])
         gitField.text = ""
     }
-    function exportPlugin(id) { page.run(I18n.tr("Exporting %1").arg(id), ["zenith", "plugin", "export", id]) }
-    function sharePlugin(id)  { page.run(I18n.tr("Sharing %1").arg(id), ["zenith", "plugin", "share", id]) }
+    function exportPlugin(id) { page.run(I18n.tr("Exporting %1").arg(id), ["asura", "plugin", "export", id]) }
+    function sharePlugin(id)  { page.run(I18n.tr("Sharing %1").arg(id), ["asura", "plugin", "share", id]) }
     function removePlugin(id) {
-        page.run(I18n.tr("Removing %1").arg(id), ["zenith", "plugin", "remove", id])
+        page.run(I18n.tr("Removing %1").arg(id), ["asura", "plugin", "remove", id])
         if (page.selId === id) page.selId = ""
     }
 
@@ -137,7 +137,7 @@ Item {
                             id: warnText
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - Tokens.fRow - parent.spacing
-                            text: I18n.tr("Community plugin. Zenith does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
+                            text: I18n.tr("Community plugin. Asura does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
                             color: Tokens.inkDim
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -196,7 +196,7 @@ Item {
                         }
                         UiText {
                             width: parent.width
-                            text: I18n.tr("A bar plugin from a git repo or Zenith Store lands here.")
+                            text: I18n.tr("A bar plugin from a git repo or Asura Store lands here.")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -298,7 +298,7 @@ Item {
                                 id: gitField
                                 width: parent.width - addBtn.width - parent.spacing
                                 tabular: true
-                                placeholder: I18n.tr("https://github.com/someone/zenith-widget  or  ~/my-widget")
+                                placeholder: I18n.tr("https://github.com/someone/asura-widget  or  ~/my-widget")
                                 onCommitted: (v) => page.addFrom(v)
                             }
                             Btn {
@@ -315,14 +315,14 @@ Item {
                         anchors.right: parent.right
                         divider: true
                         controlWidth: 150
-                        label: I18n.tr("From Zenith Store")
+                        label: I18n.tr("From Asura Store")
                         desc: I18n.tr("The curated shelf")
                         Btn {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             text: I18n.tr("OPEN RYOSTORE")
                             onAct: {
-                                Quickshell.execDetached(["zenith-store", "open", "plugins"])
+                                Quickshell.execDetached(["asura-store", "open", "plugins"])
                                 if (page.cc) page.cc.close()
                             }
                         }

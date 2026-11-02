@@ -113,7 +113,7 @@ FocusScope {
 
     GridView {
         id: view
-        objectName: "zenith-store-grid-view"
+        objectName: "asura-store-grid-view"
         anchors.fill: parent
         clip: true
         model: grid.items

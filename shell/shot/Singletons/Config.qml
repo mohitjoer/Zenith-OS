@@ -24,8 +24,8 @@ Singleton {
     signal loaded()
 
     readonly property string dir: (Quickshell.env("XDG_CONFIG_HOME")
-        || (Quickshell.env("HOME") + "/.config")) + "/zenith"
-    readonly property string path: dir + "/zenith-shot.json"
+        || (Quickshell.env("HOME") + "/.config")) + "/asura"
+    readonly property string path: dir + "/asura-shot.json"
 
     property bool dirReady: false
     property bool savePending: false
@@ -72,13 +72,13 @@ Singleton {
                 if (typeof c.saveDir === "string") config.saveDir = c.saveDir;
                 if (c.toolStyle && typeof c.toolStyle === "object") config.toolStyle = c.toolStyle;
             } catch (e) {
-                console.log("zenith-shot: config parse failed, using defaults: " + e);
+                console.log("asura-shot: config parse failed, using defaults: " + e);
             }
             config.loaded();
         }
 
         /**
-         * First run has no zenith-shot.json yet, so seed it with the current defaults
+         * First run has no asura-shot.json yet, so seed it with the current defaults
          * instead of letting the read surface as an error. Any other failure keeps
          * the in-memory defaults and still announces loaded() so the shell starts.
          */
@@ -86,7 +86,7 @@ Singleton {
             if (error === FileViewError.FileNotFound) config.save();
             config.loaded();
         }
-        onSaveFailed: (err) => console.log("zenith-shot: config write failed: " + err)
+        onSaveFailed: (err) => console.log("asura-shot: config write failed: " + err)
     }
 
     Process {

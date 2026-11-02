@@ -4,15 +4,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Where Zenith keeps things, resolved once for every surface that needs to know.
+// Where Asura keeps things, resolved once for every surface that needs to know.
 //
 // The recordings directory used to be worked out in three places that disagreed:
-// zenith-cmd-screenrecord resolved it properly, the pill's deck hardcoded
+// asura-cmd-screenrecord resolved it properly, the pill's deck hardcoded
 // $HOME/Videos/Recordings, and the Hub's Recording page said so in prose. Set a
 // custom XDG_VIDEOS_DIR and the writer and the list parted company.
 //
-// Resolution order, matching zenith-cmd-screenrecord's recordings_dir():
-// the ZENITH_SHELL_RECORDINGS_DIR env override, then the Hub's own setting in
+// Resolution order, matching asura-cmd-screenrecord's recordings_dir():
+// the ASURA_SHELL_RECORDINGS_DIR env override, then the Hub's own setting in
 // recording.json, then ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings.
 Singleton {
     id: paths
@@ -26,7 +26,7 @@ Singleton {
 
     // The one directory every recording lands in and every list reads.
     readonly property string recordingsDir: {
-        const env = Quickshell.env("ZENITH_SHELL_RECORDINGS_DIR");
+        const env = Quickshell.env("ASURA_SHELL_RECORDINGS_DIR");
         if (env && env.length > 0)
             return env;
         if (paths.configuredDir.length > 0)
@@ -51,7 +51,7 @@ Singleton {
 
     FileView {
         id: cfgFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (paths.home + "/.config")) + "/zenith/recording.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (paths.home + "/.config")) + "/asura/recording.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

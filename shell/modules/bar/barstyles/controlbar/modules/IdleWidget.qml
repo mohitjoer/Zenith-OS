@@ -8,7 +8,7 @@ Item {
     required property var root
     readonly property color contentColor: root.widgetContentColor("G8", root.seal)
 
-    // "Stay awake" mode active; Theme maps this to the active Zenith idle backend.
+    // "Stay awake" mode active; Theme maps this to the active Asura idle backend.
     readonly property bool awake: root.stayAwake
 
     visible: awake
@@ -28,7 +28,7 @@ Item {
 
     Process {
         id: toggleProc
-        command: ["zenith-cmd-caffeine"]
+        command: ["asura-cmd-caffeine"]
         onExited: root.refreshStatusIndicators()
     }
 

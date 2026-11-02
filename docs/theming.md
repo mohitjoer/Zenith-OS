@@ -1,35 +1,35 @@
 # Theming
 
 How a wallpaper becomes colours, which file carries them, and who writes it. The generator is
-Zenith's own, in `desktop/internal/theme`: there is no matugen on Ubuntu, so `zenith theme` makes
+ASURA's own, in `desktop/internal/theme`: there is no matugen on Ubuntu, so `asura theme` makes
 the scheme matugen would and fills the templates itself.
 
 ## The pipeline
 
 ```
 wallpaper
-  -> zenith theme generate --json      the roles, in the JSON shape matugen prints
+  -> asura theme generate --json      the roles, in the JSON shape matugen prints
   -> the daemon writes colors.json     what the shell draws with
                        tones.json      what Ink.qml picks tones from
-  -> the daemon writes a carrier and runs  zenith theme render --config CONFIG --palette CARRIER
+  -> the daemon writes a carrier and runs  asura theme render --config CONFIG --palette CARRIER
                                        what the apps get
 ```
 
-The daemon (`zenith-shell`) runs this on every wallpaper change, in matugen's order, and swaps the
-`matugen` executable for the two `zenith theme` calls. `zenith theme generate IMAGE` with no
+The daemon (`asura-shell`) runs this on every wallpaper change, in matugen's order, and swaps the
+`matugen` executable for the two `asura theme` calls. `asura theme generate IMAGE` with no
 `--json` does the middle step by hand: it writes `colors.json` and `tones.json` and nothing else.
 
 ## The on-disk contract
 
 | File | Keys | Written by | Read by |
 |---|---|---|---|
-| `~/.cache/zenith/colors.json` | one flat map of `#rrggbb` strings: `background`, `foreground`, `cursor`, `color0` to `color15`, and 32 camelCase Material roles (`surface`, `onSurface`, `primaryContainer`, `outlineVariant`, `shadow`, `scrim`, ...) | the daemon; `zenith theme generate IMAGE` by hand | `Services/Scheme.qml`, `Ui/Singletons/Tokens.qml`, `hub/Singletons/Scheme.qml` |
-| `~/.cache/zenith/tones.json` | `{ramp: {tone: hex}}` for `primary`, `secondary`, `tertiary`, `neutral`, `neutralVariant`, `error`; tones 0 to 100 in 18 steps | the same | `Ui/Singletons/Ink.qml` |
-| `~/.config/zenith/theme.json` | `followWallpaper` (default true), `themeApps` | the Hub | the singletons above; the daemon |
-| `~/.config/zenith/shell.json` | `themePalette`, the fixed named scheme that outranks the wallpaper | the daemon | the singletons above |
+| `~/.cache/asura/colors.json` | one flat map of `#rrggbb` strings: `background`, `foreground`, `cursor`, `color0` to `color15`, and 32 camelCase Material roles (`surface`, `onSurface`, `primaryContainer`, `outlineVariant`, `shadow`, `scrim`, ...) | the daemon; `asura theme generate IMAGE` by hand | `Services/Scheme.qml`, `Ui/Singletons/Tokens.qml`, `hub/Singletons/Scheme.qml` |
+| `~/.cache/asura/tones.json` | `{ramp: {tone: hex}}` for `primary`, `secondary`, `tertiary`, `neutral`, `neutralVariant`, `error`; tones 0 to 100 in 18 steps | the same | `Ui/Singletons/Ink.qml` |
+| `~/.config/asura/theme.json` | `followWallpaper` (default true), `themeApps` | the Hub | the singletons above; the daemon |
+| `~/.config/asura/shell.json` | `themePalette`, the fixed named scheme that outranks the wallpaper | the daemon | the singletons above |
 
 `colors.json` is a flat string map on purpose: the shell parses it from raw text and the daemon's
-tests unmarshal it into `map[string]string`. Nothing else goes in it. The old Zenith shape
+tests unmarshal it into `map[string]string`. Nothing else goes in it. The old ASURA shape
 (`background`, `surface`, `text`, `accent`, ...) is gone; nothing reads it.
 
 ## Where hue is allowed
@@ -51,7 +51,7 @@ shipped `schemeType` is `scheme-monochrome`; the upstream default is `scheme-ton
 ## Generating
 
 ```
-zenith theme generate [--image PATH | IMAGE] [--mode dark|light|smart] [--scheme NAME]
+asura theme generate [--image PATH | IMAGE] [--mode dark|light|smart] [--scheme NAME]
     [--contrast N] [--lightness-dark N] [--lightness-light N] [--source-color-index N] [--json]
 ```
 
@@ -76,23 +76,23 @@ when it is installed and fail with a message saying so when it is not.
 
 ## Rendering
 
-`zenith theme render --config CONFIG --palette CARRIER` (matugen's `-c CONFIG [json] CARRIER` works
+`asura theme render --config CONFIG --palette CARRIER` (matugen's `-c CONFIG [json] CARRIER` works
 too). CONFIG holds `[templates.NAME]` blocks with `input_path` and `output_path`; `~/` is the home directory. A
 template fills `{{ colors.NAME.BUCKET.FIELD }}` from the carrier, the JSON the daemon builds
 (`{"colors": {NAME: {"default": {"hex": ...}, "dark": ..., "light": ...}}}`), and understands one
 filter, `| replace: "#", ""`. A colour that does not resolve fails that template and the others
 still render; the exit code is 1 if any failed.
 
-Templates are read from `~/.config/zenith/shell/matugen/` (the materialised copy, where a user edit
-wins) and from `/usr/share/zenith/shell/matugen/` before `zenith materialize` has run.
+Templates are read from `~/.config/asura/shell/matugen/` (the materialised copy, where a user edit
+wins) and from `/usr/share/asura/shell/matugen/` before `asura materialize` has run.
 
 A render writes only into an app's own per-user directory, and never over something that is not
 its own:
 
-- Under `~/.config/zenith`, a file with a mirror under `user_edits/` is left alone.
-- Under `~/.cache/zenith`, the file is replaced.
+- Under `~/.config/asura`, a file with a mirror under `user_edits/` is left alone.
+- Under `~/.cache/asura`, the file is replaced.
 - Anywhere else, an existing file is replaced only if its first 512 bytes still carry
-  `Rendered by zenith theme`; a symlink is never written through. Every shipped template has the
+  `Rendered by asura theme`; a symlink is never written through. Every shipped template has the
   line, so keep it in one you edit.
 
 Each block prints `wrote`, `unchanged`, `left alone: <why>` or `error: <why>`.
@@ -101,16 +101,16 @@ Each block prints `wrote`, `unchanged`, `left alone: <why>` or `error: <why>`.
 
 | Block | File | Reads it |
 |---|---|---|
-| `ghostty` | `~/.config/zenith/apps/ghostty/colors` | `apps/ghostty/config`, with `config-file = colors` |
-| `btop` | `~/.config/btop/themes/zenith.theme` | btop, with `color_theme = "zenith"` |
-| `qt6ct` | `~/.config/qt6ct/colors/zenith.conf` | qt6ct, with `color_scheme_path` set to this file |
+| `ghostty` | `~/.config/asura/apps/ghostty/colors` | `apps/ghostty/config`, with `config-file = colors` |
+| `btop` | `~/.config/btop/themes/asura.theme` | btop, with `color_theme = "asura"` |
+| `qt6ct` | `~/.config/qt6ct/colors/asura.conf` | qt6ct, with `color_scheme_path` set to this file |
 | `gtk3`, `gtk4` | `~/.config/gtk-3.0/gtk.css`, `~/.config/gtk-4.0/gtk.css` | GTK apps, while "Theme apps" is on |
 
 `config.toml` holds the first three and always renders; `apps.toml` holds the GTK pair and the
 daemon filters it by the roster. The shipped `apps/ghostty/colors` is a static default; a render
-replaces it, and `zenith materialize` puts the static one back until the next render.
+replaces it, and `asura materialize` puts the static one back until the next render.
 
-Dropped, because Zenith does not ship the app: kitty, fish, yazi, KDE, cava, zathura, tmux, micro,
+Dropped, because ASURA does not ship the app: kitty, fish, yazi, KDE, cava, zathura, tmux, micro,
 alacritty, OBS, Zed, Discord (vesktop, equibop), Steam, Telegram, Heroic, Obsidian, Sidra and
 Ryotunes. Papirus folders are gone too (the package is excluded, `papirus-folders` is not in the
 archive). Two more blocks of the upstream set have no reader here: the Hyprland border file (the daemon recolours the

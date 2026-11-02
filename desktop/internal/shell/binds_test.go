@@ -116,7 +116,7 @@ const oneCatalogue = `{
   ]
 }`
 
-const oneConfig = `bind = SUPER, Space, exec, quickshell ipc --path /usr/share/zenith/shell call zenith togglePopover launcher
+const oneConfig = `bind = SUPER, Space, exec, quickshell ipc --path /usr/share/asura/shell call asura togglePopover launcher
 `
 
 // TestACatalogueThatAgreesWithTheConfigurationIsQuiet is the baseline.
@@ -177,7 +177,7 @@ func TestABindWithNoCatalogueEntryIsFound(t *testing.T) {
 // it does.
 func TestABindThatDoesSomethingElseIsFound(t *testing.T) {
 	env := bindsTree(t, oneCatalogue,
-		"bind = SUPER, Space, exec, quickshell ipc --path /usr/share/zenith/shell call zenith togglePopover quick\n")
+		"bind = SUPER, Space, exec, quickshell ipc --path /usr/share/asura/shell call asura togglePopover quick\n")
 
 	findings := checkBinds(env)
 	found := false
@@ -430,8 +430,8 @@ func TestAReleaseBindingIsChecked(t *testing.T) {
   ]
 }`
 
-	press := "bind = ALT, Tab, exec, zenith ipc call zenith advanceSwitcher\n"
-	release := "bindr = ALT, Tab, exec, zenith ipc call zenith closeSwitcher\n"
+	press := "bind = ALT, Tab, exec, asura ipc call asura advanceSwitcher\n"
+	release := "bindr = ALT, Tab, exec, asura ipc call asura closeSwitcher\n"
 
 	// Every spelling of a release Hyprland allows counts.
 	for _, directive := range []string{"bindr", "bindrl", "bindlr", "bindre"} {
@@ -494,7 +494,7 @@ func TestAlternatesSubmapsAndTheLidAreRead(t *testing.T) {
 	writeTreeFile(t, env, "session/hyprland/binds.conf",
 		"bind = SUPER, Left, movefocus, l\n"+
 			"bind = SUPER, Right, movefocus, r\n"+
-			"bindl = , switch:on:Lid Switch, exec, zenith-clamshell lid close\n"+
+			"bindl = , switch:on:Lid Switch, exec, asura-clamshell lid close\n"+
 			"submap = resize\n"+
 			"binde = , Left, resizeactive, -40 0\n"+
 			"submap = reset\n")

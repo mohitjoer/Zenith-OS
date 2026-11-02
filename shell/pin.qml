@@ -6,9 +6,9 @@ import Quickshell.Io
 import qs.Ui.Singletons
 import "pin"
 
-// The pin host: floating always-on-top cards for shots pinned from zenith-shot.
+// The pin host: floating always-on-top cards for shots pinned from asura-shot.
 // Entry file at the shell root so the qs.* imports resolve (see hub.qml); the
-// window code is in pin/. Started by session/zenith-pin, which keeps one instance.
+// window code is in pin/. Started by session/asura-pin, which keeps one instance.
 ShellRoot {
     id: root
 
@@ -16,7 +16,7 @@ ShellRoot {
     property bool framePainted: false
 
     readonly property var firstScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-    readonly property string pinsDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith/pins"
+    readonly property string pinsDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura/pins"
 
     function parseLines(text) {
         var out = [];
@@ -98,8 +98,8 @@ ShellRoot {
         running: true
         onTriggered: {
             if (root.framePainted) return;
-            console.error("zenith-pin: no frame rendered 15s after launch, graphics init failed, giving up");
-            Quickshell.execDetached(["notify-send", "-a", "zenith", I18n.tr("zenith-pin could not draw a pin"),
+            console.error("asura-pin: no frame rendered 15s after launch, graphics init failed, giving up");
+            Quickshell.execDetached(["notify-send", "-a", "asura", I18n.tr("asura-pin could not draw a pin"),
                 I18n.tr("graphics init failed, likely GPU memory pressure")]);
             quitFallback.start();
             Qt.quit();

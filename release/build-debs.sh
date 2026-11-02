@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the Zenith package: the control tool, the desktop's daemons, the session
+# Build the Asura package: the control tool, the desktop's daemons, the session
 # and the shell they run.
 #
 # Two properties this script is responsible for, and neither is optional:
@@ -23,7 +23,7 @@ set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 OUTDIR=${1:-"$REPO_ROOT/build/debs"}
-PKG=zenith
+PKG=asura
 
 # Pinned for reproducibility. Override with a commit timestamp when cutting a
 # release; leaving it at a constant is what makes "build it twice, compare" a
@@ -32,7 +32,7 @@ SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-1700000000}
 export SOURCE_DATE_EPOCH
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
-VERSION=${ZENITH_VERSION:-0.1-pre-alpha}
+VERSION=${ASURA_VERSION:-0.1-pre-alpha}
 
 echo "building $PKG $VERSION ($ARCH)"
 
@@ -57,24 +57,24 @@ build_program() {
 }
 
 # ----------------------------------------------------------------- session
-# Content lives under /usr/share/zenith/session/; the registrations that point at
+# Content lives under /usr/share/asura/session/; the registrations that point at
 # it are a separate concern and belong to the packages that own the session.
 # The greeter wrapper. It ships without the login surface and without the SDDM
 # drop-in, because a greeter that cannot authenticate is worse than no greeter:
 # it is a machine that takes a password and does nothing with it. What ships is
 # the part that is testable on its own — bringing up a kiosk Weston with a sane
 # mode — and session/greeter_test.sh runs it.
-mkdir -p "$STAGE/usr/share/zenith/session"
-cp "$REPO_ROOT/session/zenith-greeter" "$STAGE/usr/share/zenith/session/"
-chmod 0755 "$STAGE/usr/share/zenith/session/zenith-greeter"
+mkdir -p "$STAGE/usr/share/asura/session"
+cp "$REPO_ROOT/session/asura-greeter" "$STAGE/usr/share/asura/session/"
+chmod 0755 "$STAGE/usr/share/asura/session/asura-greeter"
 
-mkdir -p "$STAGE/usr/share/zenith/session"
-cp "$REPO_ROOT/session/zenith-session" "$STAGE/usr/share/zenith/session/"
-cp "$REPO_ROOT/session/zenith.desktop" "$STAGE/usr/share/zenith/session/"
-cp "$REPO_ROOT/session/zenith-portals.conf" "$STAGE/usr/share/zenith/session/"
-cp "$REPO_ROOT/session/zenith-activate" "$STAGE/usr/share/zenith/session/"
-chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session" \
-   "$STAGE/usr/share/zenith/session/zenith-activate"
+mkdir -p "$STAGE/usr/share/asura/session"
+cp "$REPO_ROOT/session/asura-session" "$STAGE/usr/share/asura/session/"
+cp "$REPO_ROOT/session/asura.desktop" "$STAGE/usr/share/asura/session/"
+cp "$REPO_ROOT/session/asura-portals.conf" "$STAGE/usr/share/asura/session/"
+cp "$REPO_ROOT/session/asura-activate" "$STAGE/usr/share/asura/session/"
+chmod 0755 "$STAGE/usr/share/asura/session/asura-session" \
+   "$STAGE/usr/share/asura/session/asura-activate"
 
 # The keybinding catalogue.
 #
@@ -83,42 +83,42 @@ chmod 0755 "$STAGE/usr/share/zenith/session/zenith-session" \
 # not the compositor's: the compositor's configuration is one of the two
 # things that have to agree with it, and the shell draws the other.
 #
-# `zenith binds` prints it for the shell's cheat sheet, and `zenith doctor`
+# `asura binds` prints it for the shell's cheat sheet, and `asura doctor`
 # checks the compositor's configuration against it, so it has to be where
 # both of them look.
-cp "$REPO_ROOT/session/binds.json" "$STAGE/usr/share/zenith/session/"
+cp "$REPO_ROOT/session/binds.json" "$STAGE/usr/share/asura/session/"
 
 # The compositor's configuration. It is loaded by the session with
 # `Hyprland -c`, and it is the only place the keyboard is described — the
 # binds call the shell's IPC target, so the shell decides what a key means and
 # the compositor only says when.
-mkdir -p "$STAGE/usr/share/zenith/hyprland"
-cp "$REPO_ROOT/session/hyprland/"*.conf "$STAGE/usr/share/zenith/hyprland/"
+mkdir -p "$STAGE/usr/share/asura/hyprland"
+cp "$REPO_ROOT/session/hyprland/"*.conf "$STAGE/usr/share/asura/hyprland/"
 
-# The units ship as content under /usr/share/zenith/units/. The registrations
+# The units ship as content under /usr/share/asura/units/. The registrations
 # that point at them are written below and are the only paths this package
 # owns outside its own two directories. Every service, target and timer in
 # session/units/ ships: a new unit needs no line here and no line in a build
 # list, which is what keeps one from being written and not installed.
-mkdir -p "$STAGE/usr/share/zenith/units"
+mkdir -p "$STAGE/usr/share/asura/units"
 find "$REPO_ROOT/session/units" -type f \
     \( -name '*.service' -o -name '*.target' -o -name '*.timer' \) \
-    -exec cp -t "$STAGE/usr/share/zenith/units" {} +
+    -exec cp -t "$STAGE/usr/share/asura/units" {} +
 
 # --------------------------------------------------------------- registrations
 # Every path here is on the sanctioned list in docs/architecture.md, because
 # each one is in a fixed directory that a third-party binary scans and nowhere
 # else. The boundary check below is what stops an unlisted one appearing.
 mkdir -p "$STAGE/usr/share/wayland-sessions"
-cp "$STAGE/usr/share/zenith/session/zenith.desktop" \
-   "$STAGE/usr/share/wayland-sessions/zenith.desktop"
+cp "$STAGE/usr/share/asura/session/asura.desktop" \
+   "$STAGE/usr/share/wayland-sessions/asura.desktop"
 
 mkdir -p "$STAGE/usr/share/xdg-desktop-portal"
-cp "$STAGE/usr/share/zenith/session/zenith-portals.conf" \
-   "$STAGE/usr/share/xdg-desktop-portal/zenith-portals.conf"
+cp "$STAGE/usr/share/asura/session/asura-portals.conf" \
+   "$STAGE/usr/share/xdg-desktop-portal/asura-portals.conf"
 
 mkdir -p "$STAGE/usr/lib/systemd/user"
-cp "$STAGE/usr/share/zenith/units/"* "$STAGE/usr/lib/systemd/user/"
+cp "$STAGE/usr/share/asura/units/"* "$STAGE/usr/lib/systemd/user/"
 
 # ------------------------------------------------------------------- the shell
 # The Quickshell configuration. This is the directory `quickshell -p` is pointed
@@ -134,8 +134,8 @@ cp "$STAGE/usr/share/zenith/units/"* "$STAGE/usr/lib/systemd/user/"
 # point laid onto a tree still missing the directories it imports logs two
 # module errors into the journal and renders nothing. The tree is one tree to
 # Quickshell, so the package copies it as one tree.
-mkdir -p "$STAGE/usr/share/zenith/shell"
-cp -R "$REPO_ROOT/shell/." "$STAGE/usr/share/zenith/shell/"
+mkdir -p "$STAGE/usr/share/asura/shell"
+cp -R "$REPO_ROOT/shell/." "$STAGE/usr/share/asura/shell/"
 
 # What is checkout-only, and stays there. `vendor.sh` is the tool that syncs
 # the vendored tree from upstream — the reasoning below, and it has not
@@ -143,14 +143,14 @@ cp -R "$REPO_ROOT/shell/." "$STAGE/usr/share/zenith/shell/"
 # none of which an installed machine has. `shell_test.sh` names checkout
 # paths, and so do the Hub's two model tests. `i18n/` holds the translation
 # catalogs and their sync tool; the catalogs are the one part the shell reads
-# from disk, and they are installed at /usr/share/zenith/i18n by
+# from disk, and they are installed at /usr/share/asura/i18n by
 # release/build.d/W16.build, so a second copy inside the shell's tree would be
 # 12 MB nothing opens.
-rm -f  "$STAGE/usr/share/zenith/shell/vendor/vendor.sh" \
-       "$STAGE/usr/share/zenith/shell/vendor/README.md" \
-       "$STAGE/usr/share/zenith/shell/shell_test.sh" \
-       "$STAGE/usr/share/zenith/shell/hub/"*.test.mjs
-rm -rf "$STAGE/usr/share/zenith/shell/i18n"
+rm -f  "$STAGE/usr/share/asura/shell/vendor/vendor.sh" \
+       "$STAGE/usr/share/asura/shell/vendor/README.md" \
+       "$STAGE/usr/share/asura/shell/shell_test.sh" \
+       "$STAGE/usr/share/asura/shell/hub/"*.test.mjs
+rm -rf "$STAGE/usr/share/asura/shell/i18n"
 
 # The vendored upstream tree.
 #
@@ -162,10 +162,10 @@ rm -rf "$STAGE/usr/share/zenith/shell/i18n"
 # resolve — a shell that starts and then renders nothing, with nothing in the
 # journal saying why.
 #
-# Zenith's own files are in the tree too, at the paths upstream uses for them.
-# `modules/common/Appearance.qml` and `modules/common/Config.qml` are Zenith's
-# palette and Zenith's settings, and they are the whole of the re-theme: the
-# vendored components read Zenith's colours and Zenith's settings because they
+# Asura's own files are in the tree too, at the paths upstream uses for them.
+# `modules/common/Appearance.qml` and `modules/common/Config.qml` are Asura's
+# palette and Asura's settings, and they are the whole of the re-theme: the
+# vendored components read Asura's colours and Asura's settings because they
 # are told to, and not one vendored file is changed to do it. They are copied
 # with everything else, which is the only way they can be — upstream names them
 # by path, so they have to be at it.
@@ -177,7 +177,7 @@ rm -rf "$STAGE/usr/share/zenith/shell/i18n"
 # The manifest, and the licences.
 #
 # The manifest is the list of what the vendored tree consists of: every file,
-# and the hash of its bytes. `zenith doctor` checks the installed tree against
+# and the hash of its bytes. `asura doctor` checks the installed tree against
 # it, so it ships with the tree — a check that reads a file the package does
 # not install is a check that reads nothing, and the doctor would report a
 # missing manifest on a machine where the manifest is sitting in the checkout
@@ -197,7 +197,7 @@ rm -rf "$STAGE/usr/share/zenith/shell/i18n"
 cp "$REPO_ROOT/shell/vendor/manifest.yaml" \
    "$REPO_ROOT/shell/vendor/COPYING" \
    "$REPO_ROOT/shell/vendor/LICENSE.apache-2.0" \
-   "$STAGE/usr/share/zenith/shell/vendor/"
+   "$STAGE/usr/share/asura/shell/vendor/"
 
 # The attribution. It is installed at the path the manifest names — `notices:`
 # says `shell/vendor/notices.md` — and in the package's documentation
@@ -214,7 +214,7 @@ cp "$REPO_ROOT/shell/vendor/manifest.yaml" \
 # from the manifest would ship the GPL and Apache texts and none of the
 # per-file credits.
 cp "$REPO_ROOT/shell/vendor/notices.md" \
-   "$STAGE/usr/share/zenith/shell/vendor/notices.md"
+   "$STAGE/usr/share/asura/shell/vendor/notices.md"
 
 # The Hub's window.
 #
@@ -229,43 +229,43 @@ cp "$REPO_ROOT/shell/vendor/notices.md" \
 # The mark. SVG, because it is the only form that stays sharp from a 16-pixel
 # status icon to a 4K greeter, and because a raster of it would be a second
 # source of truth for a shape that has exactly one.
-mkdir -p "$STAGE/usr/share/zenith/branding"
-cp "$REPO_ROOT/public/zenith-logo.svg" "$STAGE/usr/share/zenith/branding/"
-cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" "$STAGE/usr/share/zenith/branding/"
+mkdir -p "$STAGE/usr/share/asura/branding"
+cp "$REPO_ROOT/public/asura-logo.svg" "$STAGE/usr/share/asura/branding/"
+cp "$REPO_ROOT/public/asura-logo-on-dark.svg" "$STAGE/usr/share/asura/branding/"
 
 # The wallpapers. All seven ship, because a desktop that offers one wallpaper is
 # a desktop that has made the user's taste the project's taste. They are content
-# under /usr/share/zenith/, so no registration is involved.
+# under /usr/share/asura/, so no registration is involved.
 #
 # 14 MB, and that is the honest cost of shipping someone's artwork: the package
 # grows and there is no image tool on the base layer to re-encode them without
 # making the images somebody else's. They are copied byte for byte.
-mkdir -p "$STAGE/usr/share/zenith/backgrounds"
-cp "$REPO_ROOT/public/wallpapers/"* "$STAGE/usr/share/zenith/backgrounds/"
+mkdir -p "$STAGE/usr/share/asura/backgrounds"
+cp "$REPO_ROOT/public/wallpapers/"* "$STAGE/usr/share/asura/backgrounds/"
 
 # The schema is a registration: GLib compiles from this fixed directory and
 # nowhere else. The postinst runs glib-compile-schemas over it, because the XML
 # on its own is not readable by GSettings.
 mkdir -p "$STAGE/usr/share/glib-2.0/schemas"
-cp "$REPO_ROOT/shell/"org.zenith.*.gschema.xml "$STAGE/usr/share/glib-2.0/schemas/"
+cp "$REPO_ROOT/shell/"org.asura.*.gschema.xml "$STAGE/usr/share/glib-2.0/schemas/"
 
 # The SDDM drop-in is deliberately NOT registered.
 #
 # Its entire content is DisplayServer=wayland with
-# CompositorCommand=zenith-greeter, and SDDM has no way to start a Wayland
+# CompositorCommand=asura-greeter, and SDDM has no way to start a Wayland
 # greeter that does not exist: a drop-in laid onto a machine that has not got
 # sddm, weston and the theme's Qt modules does not degrade the login screen, it
 # removes it. The theme and the drop-in ship as content under
-# /usr/share/zenith/session/sddm/ (release/build.d/W11.build); the one copy
-# into /etc/sddm.conf.d/ is the user's, made after `zenith greeter enable` has
+# /usr/share/asura/session/sddm/ (release/build.d/W11.build); the one copy
+# into /etc/sddm.conf.d/ is the user's, made after `asura greeter enable` has
 # checked that everything the screen needs is installed. The registration stays
 # on the sanctioned list so the gap is visible.
 
 # --------------------------------------------------------------- hardware data
-mkdir -p "$STAGE/usr/share/zenith/hardware/profiles"
-cp "$REPO_ROOT/system/hardware/tiers.yaml" "$STAGE/usr/share/zenith/hardware/"
+mkdir -p "$STAGE/usr/share/asura/hardware/profiles"
+cp "$REPO_ROOT/system/hardware/tiers.yaml" "$STAGE/usr/share/asura/hardware/"
 cp "$REPO_ROOT/system/hardware/profiles/"*.yaml \
-   "$STAGE/usr/share/zenith/hardware/profiles/"
+   "$STAGE/usr/share/asura/hardware/profiles/"
 
 # ------------------------------------------------------------- the build lists
 # Everything a lane adds that is not one of the trees above. A line of
@@ -339,14 +339,14 @@ done < "$META/entries"
 # machine the package lands on. Machine-wide audio tuning is the hardware
 # profile's to decide, and a registration for it is not on the sanctioned list.
 # The file stays in the repository for whoever writes that profile.
-rm -rf "$STAGE/usr/share/zenith/apps/wireplumber"
+rm -rf "$STAGE/usr/share/asura/apps/wireplumber"
 
 # ------------------------------------------------------------------ the licences
 # The package's own documentation directory, and what has to be in it.
 #
 # `copyright` is the machine-readable one: the Debian copyright format, with a
 # paragraph per licence group. It used to be the repository's root LICENSE file
-# copied in verbatim, which records Zenith's own licence and says nothing about
+# copied in verbatim, which records Asura's own licence and says nothing about
 # the two vendored components the package also ships — and a copyright file
 # that names one licence for a package under three is a file that tells a
 # reader the package is under a licence it is not entirely under.
@@ -367,7 +367,7 @@ mkdir -p "$STAGE/usr/share/doc/$PKG"
 cp "$REPO_ROOT/shell/vendor/COPYING" "$STAGE/usr/share/doc/$PKG/GPL-3"
 cp "$REPO_ROOT/shell/vendor/LICENSE.apache-2.0" \
    "$STAGE/usr/share/doc/$PKG/Apache-2.0"
-cp "$STAGE/usr/share/zenith/shell/vendor/notices.md" \
+cp "$STAGE/usr/share/asura/shell/vendor/notices.md" \
    "$STAGE/usr/share/doc/$PKG/vendor-manifest.md"
 
 # --------------------------------------------------------------- control files
@@ -385,12 +385,12 @@ sed -e "s|@VERSION@|$VERSION|" \
     "$REPO_ROOT/release/mkdeb/control.in" > "$STAGE/DEBIAN/control"
 
 install -D -m 0755 "$REPO_ROOT/release/mkdeb/postinst" "$STAGE/DEBIAN/postinst"
-printf '/usr/bin/zenith\n' > "$STAGE/DEBIAN/zenith.list"
+printf '/usr/bin/asura\n' > "$STAGE/DEBIAN/asura.list"
 
 # ------------------------------------------------------------------- metadata
 # Normalize modes before normalizing times. A staging tree inherits the build
 # machine's umask, so without this the .deb ships directories as 0700 and data
-# files as 0664 — which installs a world-unreadable /usr/share/zenith and a
+# files as 0664 — which installs a world-unreadable /usr/share/asura and a
 # group-writable profile database that any user on the machine can edit.
 find "$STAGE" -type d -exec chmod 0755 {} +
 find "$STAGE" -type f -exec chmod 0644 {} +
@@ -401,7 +401,7 @@ find "$STAGE" -type f -exec chmod 0644 {} +
 # This list is derived, not written by hand. A file chmod'd here and forgotten
 # below the reset is a shipped 0644 that works in the checkout and fails on the
 # installed machine — and the checkout is where it gets tested, so nothing
-# notices. zenith-hub and zenith-greeter shipped that way: the settings
+# notices. asura-hub and asura-greeter shipped that way: the settings
 # application and SDDM's CompositorCommand, both non-executable, both
 # Permission denied on the real system.
 #
@@ -411,9 +411,9 @@ find "$STAGE" -type f -exec chmod 0644 {} +
 while IFS= read -r program; do
   chmod 0755 "$STAGE/${program#./}"
 done <<'EXECUTABLES'
-./usr/share/zenith/session/zenith-session
-./usr/share/zenith/session/zenith-greeter
-./usr/share/zenith/session/zenith-activate
+./usr/share/asura/session/asura-session
+./usr/share/asura/session/asura-greeter
+./usr/share/asura/session/asura-activate
 EXECUTABLES
 # And every program the build lists installed: the Go binaries, and the scripts
 # and wrappers that are executable in the checkout.
@@ -422,7 +422,7 @@ while IFS= read -r program; do
 done < "$META/executables"
 chmod 0755 "$STAGE/DEBIAN/postinst"
 chmod 0640 "$STAGE/DEBIAN/control"
-chmod 0644 "$STAGE/DEBIAN/zenith.list"
+chmod 0644 "$STAGE/DEBIAN/asura.list"
 
 # The shell's tree is installed under the names it has in the repository, so
 # its executables are asked for rather than written down.
@@ -440,7 +440,7 @@ chmod 0644 "$STAGE/DEBIAN/zenith.list"
 # of reason. Asking the checkout about a file the package does not ship would
 # be asking the package about a file it does not have.
 while IFS= read -r program; do
-  chmod 0755 "$STAGE/usr/share/zenith/shell/$program"
+  chmod 0755 "$STAGE/usr/share/asura/shell/$program"
 done <<EOF
 $(cd "$REPO_ROOT/shell" && find . -type f -perm -u+x \
     ! -path './vendor/*' ! -path './i18n/*' ! -name shell_test.sh | sort)

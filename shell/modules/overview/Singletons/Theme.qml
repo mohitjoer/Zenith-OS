@@ -4,7 +4,7 @@ import Quickshell
 
 // Overview palette + geometry, a focused twin of the shell Theme (docs/ui-ux.md
 // tokens). Accent follows the wallpaper when Match wallpaper is on; the fixed
-// fallback is the Zenith brand vermillion. Brutalist geometry: radius 0, hairline
+// fallback is the Asura brand vermillion. Brutalist geometry: radius 0, hairline
 // borders, hard offset shadows.
 Singleton {
     readonly property color brand:    Config.matchWallpaper ? Scheme.accent : "#e2342a"
@@ -38,13 +38,13 @@ Singleton {
     readonly property string font:    Config.fontFamily.length > 0 ? Config.fontFamily : "Space Grotesk"
     readonly property string fontJp:  "Noto Sans CJK JP"
     readonly property string mono:    "JetBrainsMono Nerd Font"
-    // brand mark + name, user-overridable via ~/.config/zenith/brand.json (Shell ->
-    // Global). defaults to the 天 seal / "Zenith". BrandMark renders `mark`, or
-    // `markSource` (an image) when set. Zenith's own apps never read these.
+    // brand mark + name, user-overridable via ~/.config/asura/brand.json (Shell ->
+    // Global). defaults to the 天 seal / "Asura". BrandMark renders `mark`, or
+    // `markSource` (an image) when set. Asura's own apps never read these.
     readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u5929"
     readonly property string markSource: Config.markImage
     readonly property bool markTint: Config.markTint
-    readonly property string brandName: Config.brandName.length > 0 ? Config.brandName : "Zenith"
+    readonly property string brandName: Config.brandName.length > 0 ? Config.brandName : "Asura"
     readonly property int    radius:  0
     readonly property int    shadowStep: 6
 }

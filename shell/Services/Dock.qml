@@ -32,7 +32,7 @@ Singleton {
         target: DesktopEntries
         function onApplicationsChanged() { root.iconRev++; }
     }
-    // The icon index lands a moment after startup (a `zenith-shell icons` run);
+    // The icon index lands a moment after startup (a `asura-shell icons` run);
     // bump iconRev the instant it does so pins re-resolve off the fallback
     // without waiting on the warm-up poll below.
     Connections {
@@ -60,7 +60,7 @@ Singleton {
     // and offers no way to set one per config. The title is the only thing
     // that tells them apart, so it maps to the desktop entry id the dock
     // groups, launches and draws them by; anything else keeps its class.
-    readonly property var quickshellApps: ({ "Zenith Settings": "zenith-hub", "Zenith Store": "zenith-store", "zenith-vm": "zenith-vm" })
+    readonly property var quickshellApps: ({ "Asura Settings": "asura-hub", "Asura Store": "asura-store", "asura-vm": "asura-vm" })
     function classOf(w) {
         if (!w) return "";
         const cls = w.appId;
@@ -107,7 +107,7 @@ Singleton {
         return n;
     }
 
-    // Fallback pins so an empty dock is not mistaken for a missing one: Zenith's
+    // Fallback pins so an empty dock is not mistaken for a missing one: Asura's
     // default terminal and file manager, and the first browser that is installed.
     // The desktop DB is scanned a moment after the first paint and heuristicLookup
     // is not reactive, so read iconRev (bumped when the DB lands) or a dock built
@@ -164,7 +164,7 @@ Singleton {
     // The daemon's control socket, connected only when there is something to say.
     Socket {
         id: cfgCtl
-        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
         property string queued: ""
         function flushQueued() {
             if (cfgCtl.queued.length === 0)

@@ -6,7 +6,7 @@ import Quickshell.Wayland
 import qs.Ui.Singletons
 import qs.Services
 
-// The Zenith dock: a first-class shell surface (namespace zenith-dock), one per
+// The Asura dock: a first-class shell surface (namespace asura-dock), one per
 // monitor and style-agnostic -- it no longer belongs to any bar. A frosted
 // island row (DockBand) on the screen edge OPPOSITE the bar, revealed by a peek
 // strip when autohide is on.
@@ -56,7 +56,7 @@ PanelWindow {
     color: "transparent"
     visible: Dock.cfg("enabled", false)
     // `screen` is PanelWindow's own property, set per monitor from shell.qml.
-    WlrLayershell.namespace: "zenith-dock"
+    WlrLayershell.namespace: "asura-dock"
     exclusionMode: ExclusionMode.Normal
     // A pinned (non-autohide) dock reserves its depth; an autohiding one floats
     // over the desktop and reserves nothing.

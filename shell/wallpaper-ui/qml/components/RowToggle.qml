@@ -1,7 +1,7 @@
 import QtQuick
 import ".."
 
-// Zenith's boolean switch: a flat hairline rounded-rect with a monochrome ink
+// Asura's boolean switch: a flat hairline rounded-rect with a monochrome ink
 // knob (filled when on, hairline-outlined when off). The sun accent is reserved
 // for selection, never a toggle track. Replaces skwd's coloured skewed pill.
 SettingsRow {

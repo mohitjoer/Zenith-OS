@@ -21,7 +21,7 @@ var rows = [
         "label": "Enabled",
         "desc": "Off turns the display dark; takes effect only when you Apply",
         "ctl": "sw",
-        "src": "<name>.json (ZENITH_MONITORS_DIR) on Save"
+        "src": "<name>.json (ASURA_MONITORS_DIR) on Save"
     },
     {
         "tab": "",
@@ -148,11 +148,11 @@ var rows = [
     {
         "tab": "",
         "group": "PROFILES",
-        "key": "filename - becomes ~/.config/zenith/monitors/<name>.json",
+        "key": "filename - becomes ~/.config/asura/monitors/<name>.json",
         "label": "Profile name",
         "desc": "Name for the new profile; Enter saves it",
         "ctl": "text",
-        "src": "<name>.json (ZENITH_MONITORS_DIR)"
+        "src": "<name>.json (ASURA_MONITORS_DIR)"
     },
     {
         "tab": "",

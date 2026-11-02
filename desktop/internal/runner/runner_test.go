@@ -34,7 +34,7 @@ func TestExecReportsWhatTheProgramDid(t *testing.T) {
 	})
 
 	t.Run("a program that is not installed is recognised", func(t *testing.T) {
-		_, err := run("zenith-no-such-program-w17")
+		_, err := run("asura-no-such-program-w17")
 		if !NotFound(err) {
 			t.Fatalf("NotFound(%v) = false, want true", err)
 		}

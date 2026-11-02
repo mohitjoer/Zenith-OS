@@ -12,10 +12,10 @@ pragma ComponentBehavior: Bound
 // 4.5:1 for body ink, 3:1 for shapes and indicators.
 //
 // The wallpaper palette — paletteBackground, paletteSurface and the rest — is
-// what `zenith theme generate` extracts from one image and writes to
-// $XDG_CACHE_HOME/zenith/colors.json. It is a colour palette, and a colour
+// what `asura theme generate` extracts from one image and writes to
+// $XDG_CACHE_HOME/asura/colors.json. It is a colour palette, and a colour
 // palette is not what this desktop draws with. It is kept because the theme
-// generator produces it and `zenith theme check` reports on it, and because
+// generator produces it and `asura theme check` reports on it, and because
 // the generator is being rewritten to emit the token set instead.
 //
 // So: the shell draws in the tokens. The palette is a record of what the
@@ -168,7 +168,7 @@ Singleton {
     readonly property int space5: 20
     readonly property int space6: 24
 
-    // Zenith's interface font: Space Grotesk geometric modernist grotesque
+    // Asura's interface font: Space Grotesk geometric modernist grotesque
     readonly property string fontFamily: "Space Grotesk"
     readonly property string fontMonoFamily: "JetBrains Mono"
 
@@ -203,7 +203,7 @@ Singleton {
 
     // ================================================== the wallpaper palette
     //
-    // What `zenith theme generate` extracted from one image. The desktop
+    // What `asura theme generate` extracted from one image. The desktop
     // does not draw with these; they are the record of what the wallpaper
     // would have said, and they are what the generator still writes.
     //
@@ -218,11 +218,11 @@ Singleton {
     property color paletteBorder: "#3c4043"
 
     // Whether a palette has been generated. The shell shows this nowhere on
-    // purpose: it is a diagnostic, and `zenith theme check` is where a user
+    // purpose: it is a diagnostic, and `asura theme check` is where a user
     // asks about it.
     property bool generated: false
 
-    readonly property string path: palette.cacheDir + "/zenith/colors.json"
+    readonly property string path: palette.cacheDir + "/asura/colors.json"
 
     readonly property string cacheDir: {
         var dir = Quickshell.env("XDG_CACHE_HOME")

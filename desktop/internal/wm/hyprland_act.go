@@ -301,9 +301,9 @@ func (h hyprland) act(ctx context.Context, action Action, rest []string) (string
 		return touchpad(ctx, rest)
 
 	case ActionOutputCycle:
-		// Super+P's job: zenith-monitor owns the mirror/extend arrangement and
+		// Super+P's job: asura-monitor owns the mirror/extend arrangement and
 		// pushes it live, so the seam steps it rather than re-deriving the layout.
-		return "", runTool(ctx, "zenith-monitor", "toggle")
+		return "", runTool(ctx, "asura-monitor", "toggle")
 
 	case ActionOutputEnable:
 		conn, err := arg(rest, 0, "connector")
@@ -349,7 +349,7 @@ func workspaceSelector(ws string) string {
 }
 
 // summon raises an already-open window to the current workspace and focuses it,
-// matched by exact title. Ported from zenith-summon: a single-instance app
+// matched by exact title. Ported from asura-summon: a single-instance app
 // strands its window on whatever workspace it first opened on, and every
 // Quickshell window shares one app id, so the title is the only handle. The live
 // title is matched first and the initial title second, so a window that retitles
@@ -451,7 +451,7 @@ func outputEnable(ctx context.Context, conn, state string) error {
 }
 
 // touchpad drives the FN touchpad key. The tool that flips the device is
-// zenith-touchpad, the one place that knows how this compositor addresses a
+// asura-touchpad, the one place that knows how this compositor addresses a
 // libinput device; keeping a second copy here would let the key, the Hub and
 // the shell disagree about whether the pad is on.
 func touchpad(ctx context.Context, args []string) (string, error) {
@@ -464,15 +464,15 @@ func touchpad(ctx context.Context, args []string) (string, error) {
 	default:
 		return "", fmt.Errorf("act input.touchpad: mode must be on|off|toggle|status|restore, got %q", mode)
 	}
-	if _, err := exec.LookPath("zenith-touchpad"); err != nil {
-		return "", fmt.Errorf("act input.touchpad: not available: zenith-touchpad is not installed")
+	if _, err := exec.LookPath("asura-touchpad"); err != nil {
+		return "", fmt.Errorf("act input.touchpad: not available: asura-touchpad is not installed")
 	}
-	out, err := exec.CommandContext(ctx, "zenith-touchpad", mode).Output()
+	out, err := exec.CommandContext(ctx, "asura-touchpad", mode).Output()
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return "", ctxErr
 		}
-		return "", fmt.Errorf("act input.touchpad: zenith-touchpad %s: %w", mode, err)
+		return "", fmt.Errorf("act input.touchpad: asura-touchpad %s: %w", mode, err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -522,8 +522,8 @@ func setCursor(ctx context.Context, theme, size string) error {
 }
 
 // sessionCursor is the pointer theme and size the session asked for. GTK's
-// settings are the one place Zenith keeps them (there is no cursor key in
-// org.zenith.desktop), with the environment the session script exports as the
+// settings are the one place Asura keeps them (there is no cursor key in
+// org.asura.desktop), with the environment the session script exports as the
 // fallback. Empty theme means neither answered.
 func sessionCursor(ctx context.Context) (string, int) {
 	theme, size := "", 0
@@ -555,9 +555,9 @@ func shaderPath(name string) (string, bool) {
 	}
 	var dirs []string
 	if home, err := os.UserHomeDir(); err == nil {
-		dirs = append(dirs, filepath.Join(home, ".config", "zenith", "hyprland", "shaders"))
+		dirs = append(dirs, filepath.Join(home, ".config", "asura", "hyprland", "shaders"))
 	}
-	dirs = append(dirs, "/usr/share/zenith/hyprland/shaders")
+	dirs = append(dirs, "/usr/share/asura/hyprland/shaders")
 	for _, dir := range dirs {
 		p := filepath.Join(dir, name+".glsl")
 		if st, err := os.Stat(p); err == nil && !st.IsDir() {
@@ -590,7 +590,7 @@ func arg(args []string, i int, name string) (string, error) {
 	return args[i], nil
 }
 
-// runTool runs one of Zenith's own helper commands and folds its stderr into
+// runTool runs one of Asura's own helper commands and folds its stderr into
 // the error, so a missing helper reads as such.
 func runTool(ctx context.Context, name string, args ...string) error {
 	if _, err := exec.LookPath(name); err != nil {

@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // The active window-manager provider's exclusive settings rows and its cannot-do
-// list, read once from `zenith-hubd desktop schema` and `desktop unhonored`. The
+// list, read once from `asura-hubd desktop schema` and `desktop unhonored`. The
 // provider owns these rows -- they are its data, migrated out of the Hub -- so
 // the window-manager page and the rail gates read them here rather than from a
 // compositor named in QML. rowsFor(page) is the routing seam: each row's `page`
@@ -49,7 +49,7 @@ Singleton {
     // so a page may reload() after a save to refresh the cannot-do list.
     Process {
         id: schemaProc
-        command: ["zenith-hubd", "desktop", "schema"]
+        command: ["asura-hubd", "desktop", "schema"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
@@ -66,7 +66,7 @@ Singleton {
 
     Process {
         id: unhonoredProc
-        command: ["zenith-hubd", "desktop", "unhonored"]
+        command: ["asura-hubd", "desktop", "unhonored"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 
-// Zenith tooltip: a bone plate (the inverse surface) with its on-colour text, so
+// Asura tooltip: a bone plate (the inverse surface) with its on-colour text, so
 // it inverts with the theme and always reads -- dark plate + light ink on a
 // light theme, light plate + dark ink on a dark theme. Never the old dark box
 // with dim ink that vanished on light palettes.

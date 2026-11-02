@@ -12,7 +12,7 @@ import qs.Services
 // occupied pills are compact and dimmed; empty workspaces are a small dot.
 // Click switches workspace, vertical wheel cycles. Monitor dividers are dropped
 // in favour of letting the pill sizes carry the visual weight.
-// Caelestia-inspired approach, Zenith design vocabulary.
+// Caelestia-inspired approach, Asura design vocabulary.
 // Contract 03 sec 2.3/2.4/4.3/4.4.
 Item {
     id: root

@@ -1,0 +1,57 @@
+#!/bin/sh
+# The settings application.
+#
+# A wrapper rather than a binary because there is nothing to wrap that is not
+# Quickshell: `quickshell -p` on the Hub's entry file is the whole program, and a
+# Go binary that did one exec and exited would be a second name to keep in step
+# with a file path.
+#
+# The entry file is the one at the shell's root and not a file of its own under
+# it, because a Quickshell configuration's root is the directory of the file it
+# is started on. The Hub is drawn with the same component kit as the desktop,
+# and that kit reaches itself through `qs.modules.*`; a Hub started on
+# `shell/hub/shell.qml` would have `shell/hub/` as its root, where those imports
+# name nothing.
+#
+# It is not a systemd unit. The Hub is a window the user opens; making it a unit
+# would mean it starts at login whether or not anyone is going to look at it.
+set -eu
+
+PREFIX=/usr/share/asura
+QUICKSHELL_BIN=${ASURA_QUICKSHELL:-/usr/bin/quickshell}
+HUB_ENTRY="$PREFIX/shell/hub.qml"
+
+if [ -n "${ASURA_SHELL_DIR:-}" ] && [ -f "$ASURA_SHELL_DIR/hub.qml" ]; then
+    HUB_ENTRY="$ASURA_SHELL_DIR/hub.qml"
+elif [ -f "$(dirname "$0")/../shell/hub.qml" ]; then
+    HUB_ENTRY="$(cd "$(dirname "$0")/.." && pwd)/shell/hub.qml"
+fi
+
+# The same wrapper pattern as the greeter: a missing quickshell is the package
+# build's problem and is stated, rather than being a shell error about an
+# undefined variable.
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "asura-hub: $QUICKSHELL_BIN is not installed." >&2
+    echo "asura-hub: the Hub is drawn by Quickshell, which Asura builds; see" >&2
+    echo "asura-hub: the shell group in system/packages.yaml." >&2
+    exit 1
+fi
+
+# The registry the window reads. It is exported here rather than by the window so
+# that a Hub started before an upgrade, or with a stale schema directory, gets
+# today's data — and so that the schemas named are the ones the window will draw.
+# GLib's directory, not a directory under $PREFIX: that is where the package
+# installs org.asura.*.gschema.xml and where `asura config` reads them from,
+# and the two are the same setting. The default here pointed at
+# $PREFIX/schemas, a directory nothing creates, so the override the wrapper
+# exists to set was an override onto a path that does not resolve.
+# Keep this equal to settingsDir in desktop/cmd/asura/config.go.
+export ASURA_SCHEMA_DIR="${ASURA_SCHEMA_DIR:-/usr/share/glib-2.0/schemas}"
+
+# `asura-hub PAGE` opens on that page. The window reads it from the environment
+# (hub.qml), because Quickshell takes no arguments of its own for a configuration.
+if [ -n "${1:-}" ]; then
+    export ASURA_HUB_PAGE="$1"
+fi
+
+exec "$QUICKSHELL_BIN" -p "$HUB_ENTRY"

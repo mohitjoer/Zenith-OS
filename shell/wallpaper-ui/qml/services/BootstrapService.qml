@@ -11,11 +11,11 @@ QtObject {
 
     readonly property string _configDir: Config.configDir
     readonly property string _configFile: _configDir + "/config.json"
-    // The daemon hands the install dir through ZENITH_WALLPAPER_WALL_INSTALL, so this is
-    // /usr/share/zenith-wallpaper/data/config.json.example on a packaged box.
+    // The daemon hands the install dir through ASURA_WALLPAPER_WALL_INSTALL, so this is
+    // /usr/share/asura-wallpaper/data/config.json.example on a packaged box.
     readonly property string _exampleFile: Config.installDir + "/data/config.json.example"
 
-    // First run seeds ~/.config/zenith-wallpaper-wall from the shipped example. Nothing
+    // First run seeds ~/.config/asura-wallpaper-wall from the shipped example. Nothing
     // else on the system creates it, and until config.json exists Config never
     // loads: the picker never builds (Super+W does nothing) and the daemon has
     // no config. Gating on config.json (not a marker) also makes "delete

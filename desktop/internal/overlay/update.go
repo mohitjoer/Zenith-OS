@@ -102,7 +102,7 @@ func recordRevision(paths Paths) (Revision, error) {
 	// The record is written twice on purpose: once at the state root as the
 	// "which revision is current" pointer, and once inside the revision's own
 	// directory so the history is walkable. Without the second copy, `rollback`
-	// and `zenith status --revisions` both find nothing, because the preserved
+	// and `asura status --revisions` both find nothing, because the preserved
 	// base and its metadata would be an archive with no index.
 	recordPath := filepath.Join(preserved, revisionFile)
 	if err := writeRevisionFile(recordPath, revision); err != nil {

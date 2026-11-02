@@ -33,7 +33,7 @@ Scope {
     readonly property string openMon: String(lifecycleState.monitor || "")
 
     onOpenChanged: {
-        // Phase 10: the launcher-open daemon report (execDetached zenith-shell state
+        // Phase 10: the launcher-open daemon report (execDetached asura-shell state
         // launcher) is dropped; ShellState.launcherOpen owns open state now.
         if (open) {
             freezePointerFocus();

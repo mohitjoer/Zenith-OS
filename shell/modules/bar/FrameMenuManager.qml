@@ -123,7 +123,7 @@ Item {
         for (const a in mon) if (mon[a]) return true;
         return false;
     }
-    // Zenith-owned credential, stash, and plugin surfaces keep outside-click
+    // Asura-owned credential, stash, and plugin surfaces keep outside-click
     // dismissal and keyboard focus. Pointer-only cards and voice stay passive.
     readonly property bool surfaceModal: {
         const mon = menuState[monitorName];
@@ -134,7 +134,7 @@ Item {
     }
     // Keyboard focus the frame raises while something is open (contract 05 sec
     // 4): OnDemand for the network menu, None for every pointer-only menu.
-    // Zenith's own modal surfaces take Exclusive; the voice toast takes none.
+    // Asura's own modal surfaces take Exclusive; the voice toast takes none.
     readonly property string keyboardMode: {
         const mon = menuState[monitorName];
         if (!mon) return "none";
@@ -148,7 +148,7 @@ Item {
     }
 
     // The single reference menu (kind "menu") open on this monitor, or null.
-    // Zenith-owned credential, stash, voice, and plugin surfaces remain popouts.
+    // Asura-owned credential, stash, voice, and plugin surfaces remain popouts.
     readonly property var activeMenu: {
         const mon = menuState[monitorName];
         if (!mon) return null;

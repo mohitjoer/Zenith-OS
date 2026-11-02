@@ -6,9 +6,9 @@ other files.
 ## Type of change
 
 - [ ] Hardware profile (`system/hardware/profiles/`)
-- [ ] `zenith` control tool
-- [ ] Shell — `zenith-shell`
-- [ ] Settings application — `zenith-hub`
+- [ ] `asura` control tool
+- [ ] Shell — `asura-shell`
+- [ ] Settings application — `asura-hub`
 - [ ] Packaging or release (`release/`)
 - [ ] Installer or ISO build (`installation/`)
 - [ ] Kernel fleet or firmware (`system/`)
@@ -45,7 +45,7 @@ And, for anything that is not documentation:
 
 - [ ] No shipped file was edited in place — the change is in an override, the store the owning
       tool reads, or the tool itself
-- [ ] Zenith's packages still write only to `/usr/share/zenith/` and `/etc/zenith/`
+- [ ] Asura's packages still write only to `/usr/share/asura/` and `/etc/asura/`
 - [ ] Every new setting has exactly one owning tool
 - [ ] `gofmt -l desktop/` and `go vet ./...` are clean
 - [ ] `glib-compile-schemas --strict --dry-run desktop/**/schemas/` is clean
@@ -54,7 +54,7 @@ And, for anything that is not documentation:
 
 For a hardware profile specifically:
 
-- [ ] Submitted from real `zenith hardware report` output on the machine it describes
+- [ ] Submitted from real `asura hardware report` output on the machine it describes
 - [ ] Kernel pinned to a flavour (`generic`, `hwe`, `oem`), never to a patch version
 - [ ] No identifying data — no serials, MAC addresses, usernames, hostnames, home paths
 - [ ] Firmware referenced as packages, never as files

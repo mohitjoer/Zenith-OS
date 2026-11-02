@@ -6,7 +6,7 @@ import "lib/weather.js" as Model
 
 // QML view of the daemon `weather` topic. The Open-Meteo fetch, geocoding, the
 // IP lookup (only for the location "auto"), retry ladder, WMO-code and icon
-// mapping and unit conversion all live in zenith-shell (weather.go), so QML
+// mapping and unit conversion all live in asura-shell (weather.go), so QML
 // makes no HTTP call: `subscribe weather`
 // streams a full frame on every change, and location/unit intent rides back over
 // a second connection. The daemon ships every display string ready to bind; this
@@ -15,7 +15,7 @@ import "lib/weather.js" as Model
 Singleton {
     id: root
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // The whole frame, plus the parts callers bind directly.
     property var frame: ({ status: "loading", hourly: [], daily: [] })

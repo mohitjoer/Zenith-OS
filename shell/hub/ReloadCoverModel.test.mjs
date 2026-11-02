@@ -51,6 +51,6 @@ test("renderer source uses the materialized path unless shell dir is nonempty", 
     assert.equal(Model.rendererSource(null, "/config", "/home/nero"), materialized);
     assert.equal(Model.rendererSource(undefined, "/config", "/home/nero"), materialized);
     assert.equal(Model.rendererSource("", "/config", "/home/nero"), materialized);
-    assert.equal(Model.rendererSource("/work/zenith/shell", "/config", "/home/nero"),
-        "file:///work/zenith/shell/quickshell/reload-cover/ReloadMedia.qml");
+    assert.equal(Model.rendererSource("/work/asura/shell", "/config", "/home/nero"),
+        "file:///work/asura/shell/quickshell/reload-cover/ReloadMedia.qml");
 });

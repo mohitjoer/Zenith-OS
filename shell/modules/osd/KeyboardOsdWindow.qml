@@ -40,7 +40,7 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    WlrLayershell.namespace: "zenith-keyboard-osd"
+    WlrLayershell.namespace: "asura-keyboard-osd"
 
     anchors.top: true
     anchors.left: true

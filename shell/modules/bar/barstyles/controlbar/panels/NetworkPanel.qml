@@ -17,7 +17,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-network"
+    WlrLayershell.namespace: "asura-network"
 
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6
@@ -789,7 +789,7 @@ PanelWindow {
             }
 
             // Available / saved profiles. Both views use the native
-            // NetworkManager objects on Zenith 4 and the iwctl snapshot on
+            // NetworkManager objects on Asura 4 and the iwctl snapshot on
             // legacy installations.
             Row {
                 width: parent.width
@@ -1338,7 +1338,7 @@ PanelWindow {
                 }
             }
 
-            // NetworkManager (Zenith 4.0): the iwctl scan/connect don't apply here →
+            // NetworkManager (Asura 4.0): the iwctl scan/connect don't apply here →
             // show an nmtui shortcut if the Quickshell.Networking adapter is unavailable.
             Rectangle {
                 width: parent.width

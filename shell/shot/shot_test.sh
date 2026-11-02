@@ -17,13 +17,13 @@ cat >"$T/fake-qs" <<EOF
 sleep 1
 EOF
 chmod +x "$T/fake-qs"
-ZENITH_QUICKSHELL="$T/fake-qs" "$ROOT/session/zenith-shot" &
+ASURA_QUICKSHELL="$T/fake-qs" "$ROOT/session/asura-shot" &
 n=0; while [ ! -e "$T/up" ] && [ "$n" -lt 50 ]; do sleep 0.1; n=$((n + 1)); done
-rc=0; ZENITH_QUICKSHELL="$T/fake-qs" "$ROOT/session/zenith-shot" || rc=$?
+rc=0; ASURA_QUICKSHELL="$T/fake-qs" "$ROOT/session/asura-shot" || rc=$?
 wait
-[ "$rc" -ne 0 ] && check "a second zenith-shot while one is open does not start" ok \
-                || check "a second zenith-shot while one is open does not start" no
-rc=0; ZENITH_QUICKSHELL="$T/none" "$ROOT/session/zenith-shot" 2>/dev/null || rc=$?
+[ "$rc" -ne 0 ] && check "a second asura-shot while one is open does not start" ok \
+                || check "a second asura-shot while one is open does not start" no
+rc=0; ASURA_QUICKSHELL="$T/none" "$ROOT/session/asura-shot" 2>/dev/null || rc=$?
 [ "$rc" -ne 0 ] && check "a missing quickshell is an error, not a silent exit" ok \
                 || check "a missing quickshell is an error, not a silent exit" no
 
@@ -44,12 +44,12 @@ stub() { printf '#!/bin/sh\n%s\n' "$2" >"$T/bin/$1"; chmod +x "$T/bin/$1"; }
 SH=$(command -v sh)
 run() {
     mode=$1; clip=$2; shift 2
-    rm -f "$T/out.png" "$T/bin/grim" "$T/bin/zenith-shell" "$T/bin/wl-copy"; : >"$T/notes"
+    rm -f "$T/out.png" "$T/bin/grim" "$T/bin/asura-shell" "$T/bin/wl-copy"; : >"$T/notes"
     for t in "$@"; do
         case $t in
         grim)      stub grim 'for a; do o=$a; done; : >"$o"' ;;
-        daemon)    stub zenith-shell 'exit 0' ;;
-        nodaemon)  stub zenith-shell 'exit 1' ;;
+        daemon)    stub asura-shell 'exit 0' ;;
+        nodaemon)  stub asura-shell 'exit 1' ;;
         wl-copy)   stub wl-copy 'exit 0' ;;
         esac
     done

@@ -9,7 +9,7 @@ import QtQuick
 // to put a whole application framework on a desktop whose manifest
 // deliberately excludes it.
 //
-// So this is Zenith's, at upstream's path, with the same two properties the
+// So this is Asura's, at upstream's path, with the same two properties the
 // one consumer uses — a source and a size — and nothing else.
 //
 // `IconImage` takes the same source a `Kirigami.Icon` does: a URL, not a

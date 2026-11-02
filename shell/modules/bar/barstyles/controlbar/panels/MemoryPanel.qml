@@ -15,7 +15,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-memory"
+    WlrLayershell.namespace: "asura-memory"
 
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6
@@ -209,6 +209,6 @@ PanelWindow {
 
     Process {
         id: btopRunner
-        command: ["zenith-app", "terminal", "--", "btop"]
+        command: ["asura-app", "terminal", "--", "btop"]
     }
 }

@@ -4,7 +4,7 @@
 // own search now, so this is not a mirror of every bind: one generic row per
 // legend section plus the two editors, enough that typing "numpad", "screen" or
 // "custom shortcut" in the global search lands on this page. The live legend is
-// the source of truth (read from `zenith-hubd keybinds`); these rows never claim a
+// the source of truth (read from `asura-hubd keybinds`); these rows never claim a
 // specific chord, so they cannot drift from what a compositor actually binds.
 // No `key`: nothing here names a store leaf, so a row is never dropped as a
 // dead key and never confused with a settable value.
@@ -67,7 +67,7 @@ var rows = [
     {
         "tab": "Custom", "group": "CUSTOM",
         "label": "Custom shortcuts",
-        "desc": "Add your own key combos layered over the ones Zenith ships",
+        "desc": "Add your own key combos layered over the ones Asura ships",
         "opts": ["custom", "add", "record", "command", "run", "bind"]
     }
 ];

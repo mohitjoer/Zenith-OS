@@ -1,7 +1,7 @@
 import QtQuick
 import ".."
 
-// Colour filter, Zenith "colour-as-data": compact flat swatches, orthogonal and
+// Colour filter, Asura "colour-as-data": compact flat swatches, orthogonal and
 // hairline-tight, slightly muted. Selecting one rings it in ink and dims the
 // rest to focus the choice. Replaces skwd's skewed, overlapping full-rainbow.
 Row {

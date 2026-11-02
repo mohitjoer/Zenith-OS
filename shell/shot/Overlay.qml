@@ -50,11 +50,11 @@ Item {
     // grim renders the same output the compositor would hand screencopy, so the
     // fallback frame lines up pixel for pixel with the layer surface above it.
     readonly property bool forceFallback: CaptureBackend.shouldUseGrim(
-        Quickshell.env("ZENITH_SHOT_FORCE_FALLBACK"),
+        Quickshell.env("ASURA_SHOT_FORCE_FALLBACK"),
         Quickshell.env("XDG_CURRENT_DESKTOP"),
         Quickshell.env("NIRI_SOCKET"))
     property bool fallbackActive: false
-    readonly property string fallbackPath: "/tmp/zenith-shot-fallback-" + scrName + ".png"
+    readonly property string fallbackPath: "/tmp/asura-shot-fallback-" + scrName + ".png"
 
     function selectionBox() {
         if (selectedIndex === null || !model
@@ -119,7 +119,7 @@ Item {
                         overlay.ready = true;
                         overlay.frozen();
                     } else if (status === Image.Error) {
-                        console.error("zenith-shot: grim fallback failed to load for " + overlay.scrName);
+                        console.error("asura-shot: grim fallback failed to load for " + overlay.scrName);
                         overlay.giveUp();
                     }
                 }
@@ -155,7 +155,7 @@ Item {
     function giveUp() {
         if (overlay.noFrame) return;
         overlay.noFrame = true;
-        Quickshell.execDetached(["notify-send", "-a", "zenith", I18n.tr("Screenshots need grim"),
+        Quickshell.execDetached(["notify-send", "-a", "asura", I18n.tr("Screenshots need grim"),
             I18n.tr("Install it with: sudo apt install grim")]);
         giveUpTimer.start();
     }
@@ -168,7 +168,7 @@ Item {
         onExited: (code) => {
             ran = true;
             if (code !== 0) {
-                console.error("zenith-shot: grim fallback exited " + code + " for " + overlay.scrName);
+                console.error("asura-shot: grim fallback exited " + code + " for " + overlay.scrName);
                 overlay.giveUp();
                 return;
             }
@@ -183,8 +183,8 @@ Item {
     function startFallback() {
         if (overlay.fallbackActive || grimProc.running) return;
         console.log(overlay.forceFallback
-            ? "zenith-shot: using grim capture for " + overlay.scrName
-            : "zenith-shot: no screencopy frame for " + overlay.scrName + ", falling back to grim");
+            ? "asura-shot: using grim capture for " + overlay.scrName
+            : "asura-shot: no screencopy frame for " + overlay.scrName + ", falling back to grim");
         grimProc.running = true;
     }
 
@@ -400,19 +400,19 @@ Item {
         id: pickProc
         stdout: StdioCollector { id: pickOut }
         function read() {
-            command = ["magick", "/tmp/zenith-shot-pick.png", "-alpha", "off", "-format", "#%[hex:p{0,0}]", "info:"];
+            command = ["magick", "/tmp/asura-shot-pick.png", "-alpha", "off", "-format", "#%[hex:p{0,0}]", "info:"];
             running = true;
         }
         onExited: (code) => {
             var hex = pickOut.text.trim();
             if (code === 0 && /^#[0-9A-Fa-f]{6}$/.test(hex)) overlay.sampled(hex);
-            else console.log("zenith-shot: colour sample failed, exit " + code + " value " + JSON.stringify(hex));
+            else console.log("asura-shot: colour sample failed, exit " + code + " value " + JSON.stringify(hex));
         }
     }
 
     function sampleAt(lx, ly) {
         plateClip.rect = { x: Math.max(0, lx - 0.5), y: Math.max(0, ly - 0.5), w: 1, h: 1 };
-        plateClip.grab("/tmp/zenith-shot-pick.png", function (ok) {
+        plateClip.grab("/tmp/asura-shot-pick.png", function (ok) {
             if (ok) pickProc.read();
         }, Qt.size(1, 1));
     }

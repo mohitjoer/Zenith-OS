@@ -1678,7 +1678,7 @@ PanelWindow {
                                 ? pluginHostRoot.entry.placement.settings : ({})
                             readonly property string pluginDir: pluginHostRoot.entry ? pluginHostRoot.entry.dir : ""
                             readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
-                                + "/zenith/plugins/" + slot.pluginId
+                                + "/asura/plugins/" + slot.pluginId
                             readonly property bool panelOpen: barSlot.root.pluginPanelId === slot.pluginId
                             readonly property bool hasPanel: !!(pluginHostRoot.entry && pluginHostRoot.entry.manifest
                                 && pluginHostRoot.entry.manifest.entryPoints

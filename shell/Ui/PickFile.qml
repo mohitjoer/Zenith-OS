@@ -52,7 +52,7 @@ Item {
         showDirsFirst: true
         showDotAndDotDot: false
         showHidden: false
-        nameFilters: fp.foldersOnly ? ["zenith-no-match"]
+        nameFilters: fp.foldersOnly ? ["asura-no-match"]
             : (fp.fileFilters.length ? fp.fileFilters : ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.gif", "*.svg"])
         sortField: FolderListModel.Name
     }

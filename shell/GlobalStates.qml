@@ -9,13 +9,13 @@ pragma ComponentBehavior: Bound
 // locked before it hides.
 //
 // Upstream's own file is not vendored, for two reasons. It is upstream's
-// shell root, and the shell root is Zenith's — Zenith's shell is a
+// shell root, and the shell root is Asura's — Asura's shell is a
 // different shell that happens to draw some of the same surfaces. And it
 // imports the whole service graph, which closes a cycle through the modules
 // directory: the services reach back into the modules, and the modules
 // reach back into the root.
 //
-// So this is Zenith's, at upstream's path, carrying the same flags.
+// So this is Asura's, at upstream's path, carrying the same flags.
 //
 // A flag is a decision, not a reading: something opens a surface and
 // something closes it, and a flag that merely reported a state would have

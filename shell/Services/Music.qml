@@ -6,7 +6,7 @@ import "../utils/menupoll.js" as MenuPoll
 
 // The enriched now-playing track: the full-size cover the daemon resolved and
 // this song's synced lyrics, plus the playback clock every lyric surface follows.
-// Media picks the player; this pushes that pick to zenith-shell (music.go), which
+// Media picks the player; this pushes that pick to asura-shell (music.go), which
 // owns the LRCLIB and cover-art fetches, and subscribes to the frame it streams
 // back, so no surface here makes an HTTP request.
 //
@@ -18,7 +18,7 @@ import "../utils/menupoll.js" as MenuPoll
 Singleton {
     id: root
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     property var frame: ({})
     readonly property string source: root.frame.source || ""

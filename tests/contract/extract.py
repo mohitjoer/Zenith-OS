@@ -359,7 +359,7 @@ def _constants(text: str) -> dict[str, str | None]:
 
 _CHAIN = re.compile(r"\s*(?:[A-Za-z_]\w*\.)*([A-Za-z_]\w*)\s*(?:[,\]\)]|$)")
 _SHELLPATH_RE = re.compile(r"""^\s*Quickshell\s*\.\s*shellPath\(\s*(["'])(.*?)\1\s*\)\s*$""")
-INSTALLED_SHELL = "/usr/share/zenith/shell/"
+INSTALLED_SHELL = "/usr/share/asura/shell/"
 
 
 def scan_qml(rel: str, text: str, out: ScanResult) -> None:

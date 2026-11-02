@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Daemon verbs and IPC functions the tree calls must exist: `zenith|zenith-shell|zenith-hubd|
-zenith-wallpaper VERB` needs VERB as a quoted word ("clip-copy " is a prefix match) in desktop/cmd/NAME/*.go;
+"""Daemon verbs and IPC functions the tree calls must exist: `asura|asura-shell|asura-hubd|
+asura-wallpaper VERB` needs VERB as a quoted word ("clip-copy " is a prefix match) in desktop/cmd/NAME/*.go;
 `ipc call TARGET FN` needs an IpcHandler in shell/ declaring both. First word only. --report: exit 0."""
 import glob, os, re, sys
 sys.dont_write_bytecode = True
@@ -10,7 +10,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 read = lambda f: open(f, errors="replace").read()
 verbs = {n: set(re.findall(r'"([a-z][a-z0-9_-]*) ?"', "".join(read(f) for f in glob.glob(f"{ROOT}/desktop/cmd/{n}/*.go")
                                                           if not f.endswith("_test.go"))))
-         for n in ("zenith", "zenith-shell", "zenith-hubd", "zenith-wallpaper")}
+         for n in ("asura", "asura-shell", "asura-hubd", "asura-wallpaper")}
 ipc = {}  # IpcHandler target -> its functions
 for f in glob.glob(f"{ROOT}/shell/**/*.qml", recursive=True):
     if extract.excluded(os.path.relpath(f, ROOT), extract.DEFAULT_EXCLUDES):

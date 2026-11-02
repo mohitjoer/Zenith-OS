@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 
-// One source for the shipped Zenith edition strings every surface shows. The CLI
+// One source for the shipped Asura edition strings every surface shows. The CLI
 // already knows how to resolve the version from a checkout and from an installed
 // package, so QML asks it once and parses the prerelease tag.
 Singleton {
@@ -50,7 +50,7 @@ Singleton {
 
     Process {
         id: versionProc
-        command: ["sh", "-c", "zenith version 2>/dev/null"]
+        command: ["sh", "-c", "asura version 2>/dev/null"]
         stdout: StdioCollector { onStreamFinished: root.rawVersion = this.text.trim() }
     }
 

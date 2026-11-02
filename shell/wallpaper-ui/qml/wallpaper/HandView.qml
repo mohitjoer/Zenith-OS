@@ -16,7 +16,7 @@ Item {
 
     // ── shared picker contract ───────────────────────────────────────────
     property var model                       // catalogue: count + get(i) -> role object
-    property var colors                      // Zenith palette (see Colors.qml)
+    property var colors                      // Asura palette (see Colors.qml)
     property bool active: false              // owns keyboard focus and animations
     property int selectedIndex: 0            // index of the centred card
 

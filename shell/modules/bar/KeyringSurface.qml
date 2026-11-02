@@ -7,7 +7,7 @@ import "../../components"
 import qs.Ui.Singletons
 
 // keyring password island, grown from the pill centre. renders the GNOME
-// keyring prompt the zenith-shell daemon receives as the system prompter:
+// keyring prompt the asura-shell daemon receives as the system prompter:
 // "unlock the keyring" pw ask, "choose a pw for a new keyring" (with confirm
 // field), or a plain confirm. typed secret goes to the daemon (Keyring
 // singleton) over the control socket, never as an arg.

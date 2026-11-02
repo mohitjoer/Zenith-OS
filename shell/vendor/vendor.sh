@@ -4,11 +4,11 @@
 # The vendored files are byte-identical to a pinned upstream commit. That is
 # the whole point: a vendored file is a shipped file, and the project's rule
 # is that a shipped file is never edited in place. A change to a vendored
-# component is a configuration value, an overlay file Zenith owns, or a patch
+# component is a configuration value, an overlay file Asura owns, or a patch
 # in shell/vendor/patches/ — never a hand edit of a vendored file.
 #
 # This script is the only thing that writes into the vendored paths, and it
-# writes exactly what upstream has. `zenith doctor` verifies the result
+# writes exactly what upstream has. `asura doctor` verifies the result
 # against the hashes in the manifest, so a hand edit cannot survive.
 #
 # Usage:
@@ -24,7 +24,7 @@ set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 VENDOR_DIR="$REPO_ROOT/shell/vendor"
-CACHE="${ZENITH_VENDOR_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/zenith/vendor}"
+CACHE="${ASURA_VENDOR_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/asura/vendor}"
 
 # ---------------------------------------------------------------- the pins
 #
@@ -64,10 +64,10 @@ SHAPES_LICENCE="LICENSE.apache-2.0"
 #
 # `modules/common/Appearance.qml` and `modules/common/Config.qml` are NOT in
 # this list on purpose. They are the two files upstream's components read for
-# their colours and their settings, and Zenith supplies its own at those same
+# their colours and their settings, and Asura supplies its own at those same
 # paths — a monochrome token bridge and a GSettings-backed configuration.
 # That is the whole of the re-theme and the re-bind: no vendored file is
-# modified, and upstream's components read Zenith's palette and Zenith's
+# modified, and upstream's components read Asura's palette and Asura's
 # settings because they were told to.
 II_PATHS="
 modules/common
@@ -86,34 +86,34 @@ services
 GlobalStates.qml
 "
 
-# Files inside a vendored path that Zenith supplies instead.
+# Files inside a vendored path that Asura supplies instead.
 #
 # These four are the whole of the re-theme and the re-bind, and they are the
 # reason no vendored file needs a patch:
 #
-#   Appearance.qml  upstream's theme singleton. Zenith's version exposes the
-#                   same property names, sourced from Zenith's monochrome
-#                   tokens, so upstream's components draw in Zenith's palette
+#   Appearance.qml  upstream's theme singleton. Asura's version exposes the
+#                   same property names, sourced from Asura's monochrome
+#                   tokens, so upstream's components draw in Asura's palette
 #                   without being edited.
 #   Config.qml      upstream's settings singleton, which reads a JSON file of
-#                   its own. Zenith's version exposes the same `options.*`
+#                   its own. Asura's version exposes the same `options.*`
 #                   shape, sourced from GSettings, so upstream's components
-#                   read Zenith's settings store — and there is still exactly
+#                   read Asura's settings store — and there is still exactly
 #                   one settings store in the desktop.
 #   GlobalStates.qml upstream's shell-root state singleton. It sits at the
-#                   shell root, which is Zenith's, and it imports the whole
+#                   shell root, which is Asura's, and it imports the whole
 #                   service graph, which closes a cycle through the modules
 #                   directory: the services reach back into the modules, and
-#                   the modules reach back into the root. Zenith's version
+#                   the modules reach back into the root. Asura's version
 #                   carries the same surface-open flags and nothing else.
 #   AppIcon.qml     upstream's application-icon widget, which is a KDE
 #                   Frameworks `Kirigami.Icon`. The base layer carries no
 #                   KDE Frameworks, and one widget is not a reason to put an
-#                   application framework on the desktop. Zenith's version
+#                   application framework on the desktop. Asura's version
 #                   has the same two properties — a source and a size — and
 #                   nothing else.
 #
-# They are Zenith's files, in Zenith's tree, at upstream's paths. That is the
+# They are Asura's files, in Asura's tree, at upstream's paths. That is the
 # overlay: the vendored components are upstream's, the context they run in is
 # ours.
 EXCLUDE_FILES="
@@ -189,7 +189,7 @@ cmd_sync() {
     staging=$(mktemp -d)
     trap 'rm -rf "$staging"' EXIT
 
-    # Zenith supplies the files that carry the design, the settings and the
+    # Asura supplies the files that carry the design, the settings and the
     # shell's own state. They live at upstream's paths, so they are set aside
     # BEFORE the copy and put back after it — otherwise the copy overwrites
     # the very files that make the copy work.
@@ -233,7 +233,7 @@ cmd_sync() {
           "$REPO_ROOT/shell/$SHAPES_DEST/example.qml" \
           "$REPO_ROOT/shell/$SHAPES_DEST/example-squircle.qml"
 
-    # Put Zenith's own files back.
+    # Put Asura's own files back.
     for e in $EXCLUDE_FILES; do
         if [ -f "$overlay/$e" ]; then
             mkdir -p "$(dirname "$REPO_ROOT/shell/$e")"
@@ -253,7 +253,7 @@ cmd_sync() {
     log "vendored $(ii_file_list | wc -l) + $(shapes_file_list | wc -l) files"
 }
 
-# The manifest. Machine-readable, and the input to `zenith doctor`'s
+# The manifest. Machine-readable, and the input to `asura doctor`'s
 # byte-identity check: if a vendored file is edited by hand, its hash stops
 # matching and the doctor reports it.
 write_manifest() {
@@ -262,7 +262,7 @@ write_manifest() {
         echo "# The vendored upstream component tree."
         echo "#"
         echo "# Generated by shell/vendor/vendor.sh. Do not edit by hand: the"
-        echo "# hashes below are what \`zenith doctor\` checks the tree against."
+        echo "# hashes below are what \`asura doctor\` checks the tree against."
         echo "schema: 1"
         echo "components:"
         echo "  - name: $II_NAME"

@@ -1,7 +1,7 @@
 # NOTICE
 
 The desktop shell in `shell/` is a port of Ryoku (https://github.com/ryoku-dev/ryoku),
-which is GPL-3.0. Zenith is GPL-3.0 as well, so the licence is compatible, and this
+which is GPL-3.0. ASURA is GPL-3.0 as well, so the licence is compatible, and this
 notice is the honest ledge for where the code came from.
 
 - Source: Ryoku, under GPL-3.0.
@@ -9,11 +9,11 @@ notice is the honest ledge for where the code came from.
   the launcher, the desktop, the wallpaper engine, the services, the ui kit).
 - What did not come across: Ryoku's name, its redistributable installers, its
   usage dashboards, and its welcome/pin/screenshot client configs.
-- Branding in the running desktop says "Zenith". The library names inside the
+- Branding in the running desktop says "ASURA". The library names inside the
   tree are the ones the imports resolve through.
 - First-party audio and image assets were not copied. The fonts and wallpapers
   in `shell/assets/` and the splash images are Ryoku's generic component assets
-  rescinded for the transitional state; please replace them with Zenith's own
+  rescinded for the transitional state; please replace them with ASURA's own
   fonts and wallpapers at the earliest packaging opportunity.
 
 ## The second port: Ryoku 0.75.5-beta.20
@@ -28,14 +28,14 @@ across, so the "did not come across" line above no longer holds for them.
   0.75.5-beta.20, codename "Onogoro". Ryoku is GPL-3.0, and so is everything below
   that came from it, except the portions named under "Third-party code".
 - How: `tools/port.py SRC DST` copies text files from a Ryoku checkout, applies the
-  rename rules (Ryoku's names and QML module names to Zenith's), never overwrites a
+  rename rules (Ryoku's names and QML module names to ASURA's), never overwrites a
   file, skips binary assets, leaves any line that carries a copyright, SPDX or credit
   marker untouched, and prints every mention of the old name it left. Go imports and
   everything Arch-specific were then fixed by hand. A re-port is that one command
   against a newer checkout, followed by the same hand repair.
 - Attribution: files keep the copyright, SPDX and "ported from" lines they came
   with or were given. Where a port differs from Ryoku on purpose, the file says so,
-  and `desktop/cmd/zenith-shell/CONTRACT.md` and `desktop/cmd/zenith-hubd/CONTRACT.md`
+  and `desktop/cmd/asura-shell/CONTRACT.md` and `desktop/cmd/asura-hubd/CONTRACT.md`
   list every difference in the wire and the verbs.
 
 ### What came across
@@ -44,32 +44,32 @@ across, so the "did not come across" line above no longer holds for them.
 |---|---|---|
 | `shell/shell.qml`, `Services/`, `Ui/`, `components/`, `utils/`, `Barkit/`, `FrameBars/`, `modules/` (bar, capture, clipboard, confirm, desktop, dock, launcher, notifications, osd, overview, stage, visualizer, wallpaper) | `ryoku/shell/quickshell/shell/`, `ryoku/ui/`, `ryoku/shell/framebars/` | The first port, adapted since |
 | `shell/Blobs-src/` | `ryoku/shell/plugin/` | The frame-blob renderer: C++ sources and shaders |
-| `shell/PluginKit/`, `shell/plugins/`, `shell/scripts/zenith-plugins-place` | `ryoku/shell/quickshell/plugins/` | The plugin kit, runtime and placement script |
-| `shell/hub.qml`, `shell/hub/` | `ryoku/hub/quickshell/` | Zenith Settings. `Zenith.qml`, `ZenithPage.qml`, `PageView.qml`, `Editor.qml`, `GVariant.qml` and `Controls/` are Zenith's own |
+| `shell/PluginKit/`, `shell/plugins/`, `shell/scripts/asura-plugins-place` | `ryoku/shell/quickshell/plugins/` | The plugin kit, runtime and placement script |
+| `shell/hub.qml`, `shell/hub/` | `ryoku/hub/quickshell/` | ASURA Settings. `Asura.qml`, `AsuraPage.qml`, `PageView.qml`, `Editor.qml`, `GVariant.qml` and `Controls/` are ASURA's own |
 | `shell/shot.qml`, `shell/shot/` | `ryoku/shell/quickshell/ryoshot/` | The screenshot tool, without the beautify editor |
 | `shell/pin.qml`, `shell/welcome.qml`, `shell/reload-cover.qml` and the directories of the same names | `ryoku/shell/quickshell/ryopin/`, `welcome/`, `reload-cover/` | Pinned shots, the first-run tour, the restart curtain |
 | `shell/store.qml`, `shell/store/` | `ryoku/apps/ryostore/quickshell/` | The store window |
 | `shell/vm.qml`, `shell/vm/` | `ryoku/apps/ryovm/quickshell/` | The VM manager window |
 | `shell/wallpaper-ui.qml`, `shell/wallpaper-ui/` | `ryoku/shell/ryogami/wall-ui/` | The wallpaper picker (skwd-wall's, below) |
 | `shell/agent/skills/` | `ryoku/rashin/skills/ryoku/` | Skills shipped to the agent's engine |
-| `shell/matugen/` | `ryoku/shell/matugen/` | Templates only; those for apps Zenith does not ship are gone |
+| `shell/matugen/` | `ryoku/shell/matugen/` | Templates only; those for apps ASURA does not ship are gone |
 | `shell/scripts/`, `shell/bin/` | `ryoku/shell/scripts/`, `ryoku/shell/bin/` | Helper scripts and the three usage collectors |
 | `shell/i18n/data/`, `shell/i18n/overrides/` | `ryoku/i18n/catalog/`, `catalog/overrides/`, `langs.json` | Ryoku's machine translations (34 languages besides English), rebranded. Its extractor, translator and runtimes did not come across |
-| `desktop/cmd/zenith-shell/`, `desktop/internal/wm/` | `ryoku/shell/ipc/`, `ryoku/wm/` | The shell daemon and its CLI (`ryoku-shell`), and the compositor seam, Hyprland only |
-| `desktop/cmd/zenith-hubd/` | `ryoku/hub/backend/`, and the Hyprland provider and `settings.lua` generator of `ryoku/wm/` | The Hub's data plane (`ryoku-hub`); compositor settings are written as hyprlang |
-| `desktop/cmd/zenith-wallpaper/` | `ryoku/shell/ryogami/daemon/` | The wallpaper daemon (`ryogami`) |
-| `desktop/cmd/zenith-agent/` | `ryoku/rashin/backend/` | Zenith Agent (Rashin). Its resident engine is not part of it; the engine is the user's own (`docs/agent.md`) |
-| `desktop/cmd/zenith-store/` | `ryoku/apps/ryostore/backend/` | apt only; no remote catalogue |
-| `desktop/cmd/zenith-vm/` | `ryoku/apps/ryovm/` (`bin/ryovm`, `mon/`, `remote/`) | `zenith-vmd`, `zenith-vm-mon`, `zenith-vm-ssh` |
-| `desktop/cmd/zenith/plugin*.go`, `plugin_template/`, `wm.go` | `ryoku/cli/` | `zenith plugin` and `zenith wm`. `icons.go`, `status_live.go` and `reconcile.go` follow Ryoku's lookup order, field names and doctor pattern |
-| `desktop/internal/theme/scheme.go` | `ryoku/shell/ipc/matugen.go` | `shellRoleKeys` and `baseSixteen`. The generator itself is Zenith's: it replaces the matugen binary and is not matugen's arithmetic |
+| `desktop/cmd/asura-shell/`, `desktop/internal/wm/` | `ryoku/shell/ipc/`, `ryoku/wm/` | The shell daemon and its CLI (`ryoku-shell`), and the compositor seam, Hyprland only |
+| `desktop/cmd/asura-hubd/` | `ryoku/hub/backend/`, and the Hyprland provider and `settings.lua` generator of `ryoku/wm/` | The Hub's data plane (`ryoku-hub`); compositor settings are written as hyprlang |
+| `desktop/cmd/asura-wallpaper/` | `ryoku/shell/ryogami/daemon/` | The wallpaper daemon (`ryogami`) |
+| `desktop/cmd/asura-agent/` | `ryoku/rashin/backend/` | ASURA Agent (Rashin). Its resident engine is not part of it; the engine is the user's own (`docs/agent.md`) |
+| `desktop/cmd/asura-store/` | `ryoku/apps/ryostore/backend/` | apt only; no remote catalogue |
+| `desktop/cmd/asura-vm/` | `ryoku/apps/ryovm/` (`bin/ryovm`, `mon/`, `remote/`) | `asura-vmd`, `asura-vm-mon`, `asura-vm-ssh` |
+| `desktop/cmd/asura/plugin*.go`, `plugin_template/`, `wm.go` | `ryoku/cli/` | `asura plugin` and `asura wm`. `icons.go`, `status_live.go` and `reconcile.go` follow Ryoku's lookup order, field names and doctor pattern |
+| `desktop/internal/theme/scheme.go` | `ryoku/shell/ipc/matugen.go` | `shellRoleKeys` and `baseSixteen`. The generator itself is ASURA's: it replaces the matugen binary and is not matugen's arithmetic |
 | `desktop/internal/backlight/` tests | `system/hardware/display/ryoku-hw-backlight` | The panel-selection cases |
 | `session/hyprland/*.conf` | `ryoku/hyprland/` (`hyprland.lua`, `modules/`, `keyboard.lua`, `monitors.lua`, `shaders/`) | Translated from Lua to hyprlang for Hyprland 0.53; the shaders are copied |
-| `session/scripts/zenith-workspace`, `zenith-monitor` | `ryoku/hyprland/scripts/ryoku-workspace`, `ryoku-monitor` | |
-| `session/units/zenithd.service`, `zenith-wallpaper.service`, `zenith-idle.service`, `zenith-agent.service`, `zenith-ai-usage.*` | `ryoku/shell/systemd/user/`, `ryoku/rashin/systemd/` | From `ryoku-shell`, `ryogami`, `ryoku-idle`, `ryoku-rashin` and `ryoku-ai-usage` |
+| `session/scripts/asura-workspace`, `asura-monitor` | `ryoku/hyprland/scripts/ryoku-workspace`, `ryoku-monitor` | |
+| `session/units/asurad.service`, `asura-wallpaper.service`, `asura-idle.service`, `asura-agent.service`, `asura-ai-usage.*` | `ryoku/shell/systemd/user/`, `ryoku/rashin/systemd/` | From `ryoku-shell`, `ryogami`, `ryoku-idle`, `ryoku-rashin` and `ryoku-ai-usage` |
 | `apps/` | `ryoku/apps/` (`ghostty`, `zsh`, `starship`, `wireplumber`, `mimeapps.list`) | Adapted to ghostty, zsh and starship as the defaults |
-| `system/helpers/` | `system/hardware/audio/`, `system/hardware/display/`, `system/extras/ryoku-pkg-add` | `zenith-volume`, `zenith-restart-audio`, `zenith-hw-backlight`, and `zenith-pkg-add`/`-remove` rewritten for apt and polkit. `zenith-restart-audio` says it is itself ported from `omarchy-restart-audio` |
-| `system/helpers/tools/tests/`, `shell/reload-cover/reload_cover_test.sh`, `session/scripts/monitor_test.sh` | `tests/` (`calc-eval.sh`, `radio-engine.sh`, `game-mode.sh`, `stash-install.sh`, `reload-cover.sh`, `monitor-persist.sh`) | Hermetic script tests, rewritten where they assumed Arch. The other tests in those directories are Zenith's own |
+| `system/helpers/` | `system/hardware/audio/`, `system/hardware/display/`, `system/extras/ryoku-pkg-add` | `asura-volume`, `asura-restart-audio`, `asura-hw-backlight`, and `asura-pkg-add`/`-remove` rewritten for apt and polkit. `asura-restart-audio` says it is itself ported from `omarchy-restart-audio` |
+| `system/helpers/tools/tests/`, `shell/reload-cover/reload_cover_test.sh`, `session/scripts/monitor_test.sh` | `tests/` (`calc-eval.sh`, `radio-engine.sh`, `game-mode.sh`, `stash-install.sh`, `reload-cover.sh`, `monitor-persist.sh`) | Hermetic script tests, rewritten where they assumed Arch. The other tests in those directories are ASURA's own |
 | `docs/plugins.md` | `docs/plugins.md` | The plugin author's guide |
 
 The vendored `shell/modules/common/`, `shell/modules/ii/` and `shell/services/` and the
@@ -89,13 +89,13 @@ shapes kit are end-4's, not Ryoku's. They are recorded in `shell/vendor/manifest
 - `system/hardware/` tuning: the udev rules, NetworkManager, Bluetooth, GPU, power and
   input drivers and rules. This is deliberate. The hardware profile system owns
   machine-specific tuning, and the base-layer boundary forbids those paths.
-- Features with no backend in the Ubuntu archive, or that Zenith decided against:
+- Features with no backend in the Ubuntu archive, or that ASURA decided against:
   wallpaper upscaling (`waifu2x-ncnn-vulkan`), the C live-wallpaper player, rice
   publishing, voxtype dictation, GPU mux and passthrough, QMK lighting, the store's
   remote catalogue, the VM parallel downloader, the screenshot beautify editor and
   Rashin's resident engine.
 - Image and font files from the first port that came from Ryoku's tree and are not
-  Zenith's, and whose licences this file does not establish: the fonts in
+  ASURA's, and whose licences this file does not establish: the fonts in
   `shell/assets/fonts/`, the SVGs in `shell/Ui/art/`,
   `shell/modules/launcher/shared/art/hands-adam.png` and the symbolic icons in
   `shell/components/icons/`. Check each before redistributing.
@@ -117,7 +117,7 @@ Ryoku's own NOTICE credits these, and the files named still carry their credit.
 - skwd-wall, https://github.com/liixini/skwd-wall, MIT, Copyright (c) 2026 liixini:
   the wallpaper picker (`shell/wallpaper-ui/`, which carries its own `LICENSE`), the 39
   shader transitions in `shell/modules/wallpaper/skwd/`, and the Go port of its
-  daemon's modules in `desktop/cmd/zenith-wallpaper/`.
+  daemon's modules in `desktop/cmd/asura-wallpaper/`.
 - qsbar, by HANCORE-linux, MIT, Copyright (c) 2026 HANCORE-linux:
   `shell/modules/bar/barstyles/qsbar/`, which carries its own `LICENSE`. Parts of it
   are adapted from other projects and say so in comments (Shibumi-Shell's

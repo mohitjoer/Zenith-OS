@@ -54,7 +54,7 @@ Singleton {
         error = "";
         _catalogOutput = "";
         _catalogError = "";
-        catalogProc.command = force ? ["zenith-store", "catalog", "--refresh"] : ["zenith-store", "catalog"];
+        catalogProc.command = force ? ["asura-store", "catalog", "--refresh"] : ["asura-store", "catalog"];
         catalogProc.running = true;
     }
 
@@ -92,7 +92,7 @@ Singleton {
         installError = "";
         installErrorKey = "";
         _installError = "";
-        installProc.command = ["zenith-store", "install", String(item.category), String(item.id)];
+        installProc.command = ["asura-store", "install", String(item.category), String(item.id)];
         installProc.running = true;
     }
 
@@ -108,7 +108,7 @@ Singleton {
         installProc.running = false;
     }
 
-    // One {"stage","percent"} line per step from `zenith-store install|remove`.
+    // One {"stage","percent"} line per step from `asura-store install|remove`.
     function _progress(line) {
         try {
             const step = JSON.parse(line);
@@ -132,7 +132,7 @@ Singleton {
         installError = "";
         installErrorKey = "";
         _installError = "";
-        installProc.command = ["zenith-store", "remove", String(item.category), String(item.id)];
+        installProc.command = ["asura-store", "remove", String(item.category), String(item.id)];
         installProc.running = true;
     }
 
@@ -172,7 +172,7 @@ Singleton {
     function openSettings(item) {
         if (!item)
             return;
-        Quickshell.execDetached(["zenith-store", "settings", String(item.category), String(item.id)]);
+        Quickshell.execDetached(["asura-store", "settings", String(item.category), String(item.id)]);
     }
 
     Component.onCompleted: refresh(false)
@@ -258,7 +258,7 @@ Singleton {
         interval: 350
         onTriggered: {
             root._searchOutput = "";
-            searchProc.command = ["zenith-store", "search", root._searchQuery];
+            searchProc.command = ["asura-store", "search", root._searchQuery];
             searchProc.running = true;
         }
     }

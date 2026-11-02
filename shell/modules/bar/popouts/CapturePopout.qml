@@ -61,9 +61,9 @@ Item {
     // The latest screenshots and recordings, each in its own labelled group so the
     // two never blur together. A recording shows a poster frame with a play badge
     // and its duration; a click on any tile opens that group's folder.
-    readonly property string recordingsDir: Quickshell.env("ZENITH_SCREENRECORD_DIR")
+    readonly property string recordingsDir: Quickshell.env("ASURA_SCREENRECORD_DIR")
         || ((Quickshell.env("XDG_VIDEOS_DIR") || (Quickshell.env("HOME") + "/Videos")) + "/Recordings")
-    readonly property string thumbDir: Quickshell.env("HOME") + "/.cache/zenith-capture-thumbs"
+    readonly property string thumbDir: Quickshell.env("HOME") + "/.cache/asura-capture-thumbs"
     property var clipDur: ({})                // recording path -> "M:SS"
     property var clipPoster: ({})             // recording path -> poster jpg path
     // FolderListModel's own Time sort proved unreliable here (it fell back to

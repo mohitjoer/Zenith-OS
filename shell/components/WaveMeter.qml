@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Services
 
-// Zenith wave used as a meter: dim line full-width, bright (brand) crest fills
+// Asura wave used as a meter: dim line full-width, bright (brand) crest fills
 // left to `frac` -- lit length = value. held static; its idle Canvas ripple
 // repainted ~25fps forever and leaked memory. RAM + disk on the system card.
 Item {

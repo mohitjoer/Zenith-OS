@@ -1,8 +1,8 @@
 #!/bin/sh
 # Verify a staged package tree writes only where the base-layer boundary allows.
 #
-# The rule is that Zenith's packages write only to /usr/share/zenith/ and
-# /etc/zenith/, and that every path outside them is on the closed sanctioned list
+# The rule is that Asura's packages write only to /usr/share/asura/ and
+# /etc/asura/, and that every path outside them is on the closed sanctioned list
 # in docs/architecture.md. A package that quietly gains a file another package
 # owns is a fork of that package, and the cost of that arrives at the next rebase
 # as a conflict nobody remembers the origin of.
@@ -14,28 +14,28 @@
 set -eu
 
 STAGE=${1:?usage: check-boundary.sh <staged-root> [package-name]}
-PKG=${2:-zenith}
+PKG=${2:-asura}
 
 # The closed list, as shell patterns over paths relative to the staging root.
-# Everything outside /usr/share/zenith/ and /etc/zenith/ must be on the closed
+# Everything outside /usr/share/asura/ and /etc/asura/ must be on the closed
 # sanctioned list in docs/architecture.md. Each entry is a registration or a
 # name PATH resolves: a file in a fixed directory that a third-party binary
 # scans and nowhere else.
 #
-# /etc/sddm.conf.d/10-zenith.conf is sanctioned but never installed by the
-# package: `zenith greeter enable` prints the command that copies it, because a
+# /etc/sddm.conf.d/10-asura.conf is sanctioned but never installed by the
+# package: `asura greeter enable` prints the command that copies it, because a
 # login screen that fails to come up leaves nobody able to log in.
 #
 # The last three are the shell's helpers that its QML starts by bare name
 # (Stash.qml runs `bash stash-install.sh`) and that therefore have to be in
 # /usr/bin, under the names the code asks for.
-ALLOWED="usr/share/zenith/*
-etc/zenith/*
+ALLOWED="usr/share/asura/*
+etc/asura/*
 usr/share/doc/$PKG/*
-usr/share/wayland-sessions/zenith.desktop
-usr/share/xdg-desktop-portal/zenith-portals.conf
-usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml
-usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml
+usr/share/wayland-sessions/asura.desktop
+usr/share/xdg-desktop-portal/asura-portals.conf
+usr/share/glib-2.0/schemas/org.asura.shell.gschema.xml
+usr/share/glib-2.0/schemas/org.asura.desktop.gschema.xml
 usr/lib/systemd/user/$PKG-*.service
 usr/lib/systemd/user/$PKG-*.timer
 usr/lib/systemd/user/$PKG-session.target
@@ -73,7 +73,7 @@ ALLOWED
     if [ "$permitted" -eq 0 ]; then
         {
             echo "BOUNDARY VIOLATION: $PKG installs '$path', which is outside"
-            echo "  /usr/share/zenith/ and /etc/zenith/ and not on the closed list"
+            echo "  /usr/share/asura/ and /etc/asura/ and not on the closed list"
             echo "  in this script. Either move it, or add the path to the sanctioned"
             echo "  list in docs/architecture.md with a reason, and to ALLOWED here."
         } >&2

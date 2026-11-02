@@ -1,15 +1,15 @@
 pragma Singleton
 import QtQuick
 
-// The wall-ui's shape/type/motion source, retuned to Zenith's design language
-// (see zenith/ui/Singletons/Tokens.qml). Property names are unchanged so every
-// component keeps reading one source; only the values move onto Zenith's:
-// Fraunces display, Space Grotesk body, SpaceMono mono, Zenith's radius/spacing
+// The wall-ui's shape/type/motion source, retuned to Asura's design language
+// (see asura/ui/Singletons/Tokens.qml). Property names are unchanged so every
+// component keeps reading one source; only the values move onto Asura's:
+// Fraunces display, Space Grotesk body, SpaceMono mono, Asura's radius/spacing
 // scale and the sun accent. Colour lives in Colors.qml.
 QtObject {
     id: style
 
-    // ── type: Zenith's families ───────────────────────────────────────────
+    // ── type: Asura's families ───────────────────────────────────────────
     readonly property string fontFamily: "Space Grotesk"          // body / ui
     readonly property string fontFamilyHeading: "Fraunces"         // display
     readonly property string fontFamilyMono: "SpaceMono Nerd Font"
@@ -31,7 +31,7 @@ QtObject {
     readonly property int fontClock: 200
     readonly property int fontClockDate: 120
 
-    // ── shape: Zenith is tight (base radius 6), softened one step up the scale ─
+    // ── shape: Asura is tight (base radius 6), softened one step up the scale ─
     readonly property int radiusTiny: 2
     readonly property int radiusSmall: 4
     readonly property int radiusMedium: 6
@@ -40,7 +40,7 @@ QtObject {
     readonly property int radiusRound: 18
     readonly property int radiusCircle: 40
 
-    // ── space: Zenith's 4/8/12/16/24 scale ────────────────────────────────
+    // ── space: Asura's 4/8/12/16/24 scale ────────────────────────────────
     readonly property int spacingTiny: 2
     readonly property int spacingSmall: 4
     readonly property int spacingMedium: 8
@@ -48,7 +48,7 @@ QtObject {
     readonly property int spacingXLarge: 16
     readonly property int spacingXXLarge: 24
 
-    // ── motion: Zenith timings ────────────────────────────────────────────
+    // ── motion: Asura timings ────────────────────────────────────────────
     readonly property int animVeryFast: 90
     readonly property int animFast: 150
     readonly property int animNormal: 200

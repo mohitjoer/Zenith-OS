@@ -9,7 +9,7 @@ import qs.Ui.Singletons
 //
 // The switch used to dead-end on a sentence naming two chores ("start
 // docker.service or add yourself to the docker group") and doing neither. This
-// does the work: zenith-docker starts the service and reaches docker as root
+// does the work: asura-docker starts the service and reaches docker as root
 // through polkit, then the cobalt image is pulled and the container started.
 // Each step reports for itself so a failure names the step that failed rather
 // than the whole feature.

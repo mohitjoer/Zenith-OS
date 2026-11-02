@@ -94,18 +94,18 @@ Singleton {
     Binding { target: root; property: "onError";              value: root.role("onError", "#101315") }
     Binding { target: root; property: "onErrorContainer";     value: root.role("onErrorContainer", "#de6145") }
 
-    // shadow and scrim are Material roles Zenith paints with; always near-black.
+    // shadow and scrim are Material roles Asura paints with; always near-black.
     readonly property color shadow: role("shadow", "#000000")
     readonly property color scrim:  role("scrim", "#000000")
 
-    // --- derived accent variants (Zenith hover/active/gradient tints) ----------
+    // --- derived accent variants (Asura hover/active/gradient tints) ----------
     // No Material role covers a lightened/muted accent, so these track primary.
     readonly property color vermLit:     Qt.lighter(primary, 1.22)
     readonly property color vermDim:      Qt.darker(primary, 1.4)
     readonly property color vermDimDeep:  Qt.darker(primary, 2.2)
     readonly property color threadBg:     Qt.rgba(primary.r, primary.g, primary.b, 0.13)
 
-    // --- overlay tints (Zenith selection/hover fills over the surface) ---------
+    // --- overlay tints (Asura selection/hover fills over the surface) ---------
     readonly property color frameBg:     Qt.rgba(primary.r, primary.g, primary.b, 0.10)
     readonly property color frameBorder: Qt.rgba(onSurface.r, onSurface.g, onSurface.b, 0.18)
     // A dim tone for out-of-scope elements, e.g. out-of-month calendar days.
@@ -177,7 +177,7 @@ Singleton {
         return inkOn(bg, onSurface, minRatio === undefined ? 4.5 : minRatio);
     }
 
-    // --- ember identity (the Zenith mark; a fixed accent) ---------------
+    // --- ember identity (the Asura mark; a fixed accent) ---------------
     readonly property color flameGlow: "#ff9e64"
     readonly property color flameCore: "#ffd2bf"
 
@@ -209,12 +209,12 @@ Singleton {
     readonly property int fontXl: 26
     readonly property int fontXxl: 32
     readonly property int fontXxxl: 48
-    // Zenith-specific faces: a serif display, a monospace, and a CJK face.
+    // Asura-specific faces: a serif display, a monospace, and a CJK face.
     readonly property string display: "Fraunces"
     readonly property string mono:    "JetBrainsMono Nerd Font"
     readonly property string fontJp:  "Noto Sans CJK JP"
 
-    // brand mark, user-overridable via ~/.config/zenith/brand.json (Shell ->
+    // brand mark, user-overridable via ~/.config/asura/brand.json (Shell ->
     // Global). BrandMark renders `mark`, or `markSource` (an image) when set.
     readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u5929"
     readonly property string markSource: Config.markImage

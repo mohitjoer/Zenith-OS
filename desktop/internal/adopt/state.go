@@ -11,11 +11,11 @@ import (
 
 // StatePath is where adoption records what it did.
 //
-// One path, one owner, one format version. `--undo`, `zenith doctor` and every
+// One path, one owner, one format version. `--undo`, `asura doctor` and every
 // failure path read it, so it is written atomically and validated on read: a
 // state file that was half-written is a state file that says adoption removed a
 // package it never touched.
-const StatePath = "/etc/zenith/adopt/state.json"
+const StatePath = "/etc/asura/adopt/state.json"
 
 // StateVersion is the schema version. It exists because `--undo` reads a file
 // this tool wrote possibly weeks earlier, possibly with a different meaning for
@@ -24,7 +24,7 @@ const StateVersion = 1
 
 // State is the record of one adoption.
 //
-// The shape is the one in docs/adopting-zenith.md. It is not negotiable: the
+// The shape is the one in docs/adopting-asura.md. It is not negotiable: the
 // document is the contract, and a state file that does not match it means the
 // documented undo procedure cannot be followed by hand.
 type State struct {
@@ -73,7 +73,7 @@ type GPU struct {
 	Discrete bool   `json:"discrete"`
 }
 
-// Registration is a pointer adoption materialized outside /usr/share/zenith/.
+// Registration is a pointer adoption materialized outside /usr/share/asura/.
 //
 // `ByteIdenticalToBase` is recorded rather than assumed: a registration that
 // has drifted from its source is not a registration any more, it is a second
@@ -94,7 +94,7 @@ type UserWrite struct {
 	Alternatives string `json:"alternatives,omitempty"`
 }
 
-// Import is a value carried across from a GNOME key to a Zenith one.
+// Import is a value carried across from a GNOME key to a Asura one.
 type Import struct {
 	From  string `json:"from"`
 	To    string `json:"to"`

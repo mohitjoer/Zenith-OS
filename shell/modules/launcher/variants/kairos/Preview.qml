@@ -1,4 +1,4 @@
-// The Kairos launcher's Zenith Settings preview. Visual only: the variant takes
+// The Kairos launcher's Asura Settings preview. Visual only: the variant takes
 // no settings yet, so nothing here is editable.
 
 pragma ComponentBehavior: Bound

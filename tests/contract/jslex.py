@@ -6,7 +6,7 @@ read an array literal such as `["sh", "-c", `echo ${x}`]` into elements, keeping
 the literal parts and marking the dynamic ones. This module is only that.
 
 A dynamic part is represented by DYN (a NUL) inside the element text, so a
-consumer can tell `zenith-${name}` from `zenith-shell` without a second type.
+consumer can tell `asura-${name}` from `asura-shell` without a second type.
 """
 
 from __future__ import annotations

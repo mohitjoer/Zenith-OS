@@ -12,7 +12,7 @@ var rows = [
         "label": "Enabled",
         "desc": "Runs the add-on; off keeps it installed but idle",
         "ctl": "sw",
-        "src": "plugins.json (via `zenith-plugins-place <id> enabled <true|false>`)"
+        "src": "plugins.json (via `asura-plugins-place <id> enabled <true|false>`)"
     },
     {
         "tab": "detail",
@@ -21,7 +21,7 @@ var rows = [
         "label": "Show as",
         "desc": "Where it appears: popout, wallpaper tile or bar glyph",
         "ctl": "seg",
-        "src": "plugins.json (via `zenith-plugins-place <id> host <hostName>`)",
+        "src": "plugins.json (via `asura-plugins-place <id> host <hostName>`)",
         "opts": [
             "framePopout",
             "desktopWidget",
@@ -36,7 +36,7 @@ var rows = [
         "label": "(plugin-declared, field.label, falling back to field.key)",
         "desc": "Each add-on defines its own; applied live",
         "ctl": "custom",
-        "src": "plugins.json (via `zenith-plugins-place <id> settings <json>`, one single-key object per change, jq-merged into the existing settings object)",
+        "src": "plugins.json (via `asura-plugins-place <id> settings <json>`, one single-key object per change, jq-merged into the existing settings object)",
         "unit": "none"
     },
     {
@@ -46,7 +46,7 @@ var rows = [
         "label": "Update / Remove",
         "desc": "Refreshes or removes it; placement stays as set",
         "ctl": "action",
-        "src": "zenith-store internal install-guest|remove-guest plugins <id>"
+        "src": "asura-store internal install-guest|remove-guest plugins <id>"
     },
     {
         "tab": "Bundles",
@@ -55,7 +55,7 @@ var rows = [
         "label": "Remove component / bundle",
         "desc": "Shows every component state, with a terminal",
         "ctl": "action",
-        "src": "zenith-store-install remove item|bundle"
+        "src": "asura-store-install remove item|bundle"
     },
     {
         "tab": "",
@@ -64,6 +64,6 @@ var rows = [
         "label": "Browse RyoStore",
         "desc": "Opens the matching plugin or bundle catalogue",
         "ctl": "action",
-        "src": "zenith-store open plugins|bundles"
+        "src": "asura-store open plugins|bundles"
     }
 ];

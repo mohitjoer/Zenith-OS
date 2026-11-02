@@ -7,7 +7,7 @@ import "lib/screens.js" as Screens
 
 // Shared per-monitor open/close state for every shell surface: the single source
 // of truth the CustomShortcut handlers flip and each resident surface binds its
-// visibility to, replacing the old per-surface process plus `zenith-shell state`
+// visibility to, replacing the old per-surface process plus `asura-shell state`
 // round-trip. One PersistentProperties object per screen (built by Variants over
 // Quickshell.screens, the caelestia ScreenState pattern) so a flag set on one
 // monitor never leaks to another; a hotplugged monitor gains its own state on the
@@ -43,7 +43,7 @@ Singleton {
 
     // --- Session-action confirmation (contract 13 sec 2c, 8) ---------------
     // A frame-bar logout/reboot/shutdown click asks for confirmation on its own
-    // monitor; the per-screen ZenithConfirmationDialog runs the action through
+    // monitor; the per-screen AsuraConfirmationDialog runs the action through
     // SessionActions only on the positive press. Ported from the reference pill
     // root (shell.qml 60-78); singleton-level so any monitor can raise it.
     property string sessionAction: ""            // "" | "logout" | "reboot" | "shutdown"
@@ -80,7 +80,7 @@ Singleton {
 
     // Open a surface on the focused monitor: the menu global-shortcut handlers
     // call this so a keybind lands on the active screen, matching the old
-    // `zenith-shell menu <id>` which routed to the daemon's activeMonitor.
+    // `asura-shell menu <id>` which routed to the daemon's activeMonitor.
     function requestSurfaceActive(id, context) {
         root.surfaceRequested(id, Wm.focusedOutput, context);
     }

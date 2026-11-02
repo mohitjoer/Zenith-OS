@@ -1,7 +1,7 @@
 # Third-party notices
 
 The vendored tree in `shell/modules/` and `shell/services/` is upstream's code, except at the
-few paths Zenith supplies itself. Some of it upstream took from other projects, and that code
+few paths Asura supplies itself. Some of it upstream took from other projects, and that code
 carries its own attribution and its own licence. This file records what that is.
 
 It exists to answer one question in one lookup: **which licence applies to this file?**
@@ -55,10 +55,10 @@ Everything else in the vendored tree — every other file under `shell/modules/`
 **carries no attribution of its own** and inherits its component's licence: GPL-3.0-only for
 the `ii` component, Apache-2.0 for the `shapes` component.
 
-The files at upstream's paths that Zenith supplies itself are not vendored files and are not
+The files at upstream's paths that Asura supplies itself are not vendored files and are not
 in this table: `shell/GlobalStates.qml`, `shell/modules/common/Appearance.qml`,
 `shell/modules/common/Config.qml` and `shell/modules/common/widgets/AppIcon.qml`. They are
-Zenith's own code under Zenith's own licence, and they carry no upstream credit.
+Asura's own code under Asura's own licence, and they carry no upstream credit.
 
 ## The credits, as the files state them
 
@@ -145,10 +145,10 @@ its pinned commit. This file records them a second time, in one place, for a rea
 the list rather than the archaeology.
 
 **State the changes.** There are none to the vendored files themselves: that is what the
-byte-identical rule means. The difference between what upstream ships and what Zenith ships is
+byte-identical rule means. The difference between what upstream ships and what Asura ships is
 the overlay files at upstream's paths — `shell/GlobalStates.qml`,
 `shell/modules/common/Appearance.qml`, `shell/modules/common/Config.qml` and
-`shell/modules/common/widgets/AppIcon.qml` — which are Zenith's own files, and the fact that
+`shell/modules/common/widgets/AppIcon.qml` — which are Asura's own files, and the fact that
 upstream's versions of those are not shipped. Every other byte in the tree is upstream's,
 unchanged.
 
@@ -165,7 +165,7 @@ none, and the source is this repository.
 ## Fonts and artwork
 
 The vendored tree contains no font, no image and no artwork. It names fonts it expects to be
-present on the system — a Material Symbols family and a Nerd Font — and Zenith's base layer
+present on the system — a Material Symbols family and a Nerd Font — and Asura's base layer
 carries neither. The base layer supplies the icon fonts the shell actually renders, and those
 are distribution packages with their own copyright files, outside this repository.
 

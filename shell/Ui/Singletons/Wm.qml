@@ -14,7 +14,7 @@ import Quickshell.Wayland
 Singleton {
     id: root
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     // The daemon publishes a full snapshot on every provider frame, tagged with
     // a per-section version. Each section is copied into a backing property only

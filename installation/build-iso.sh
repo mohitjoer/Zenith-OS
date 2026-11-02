@@ -1,6 +1,6 @@
 #!/bin/sh
-# Build a bootable Zenith live ISO from the Ubuntu Server base and the reviewed
-# Zenith package manifest.
+# Build a bootable Asura live ISO from the Ubuntu Server base and the reviewed
+# Asura package manifest.
 #
 # Usage: installation/build-iso.sh [build-directory]
 #
@@ -11,14 +11,14 @@ set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR=${1:-"$REPO_ROOT/build/iso"}
-ARCH=${ZENITH_ARCH:-amd64}
-SUITE=${ZENITH_SUITE:-resolute}
-MIRROR=${ZENITH_MIRROR:-http://archive.ubuntu.com/ubuntu}
+ARCH=${ASURA_ARCH:-amd64}
+SUITE=${ASURA_SUITE:-resolute}
+MIRROR=${ASURA_MIRROR:-http://archive.ubuntu.com/ubuntu}
 BASE_FLAVOR=ubuntu-server
-ISO_NAME=zenith-os-beta-001
-ISO_LABEL=ZENITH_OS_BETA_001
-ISO_APPLICATION="Zenith OS"
-ISO_PUBLISHER="Zenith OS Project"
+ISO_NAME=asura-os-beta-001
+ISO_LABEL=ASURA_OS_BETA_001
+ISO_APPLICATION="Asura OS"
+ISO_PUBLISHER="Asura OS Project"
 
 for tool in lb python3; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -38,22 +38,22 @@ DEB_DIR="$BUILD_DIR/debs"
 mkdir -p "$DEB_DIR"
 
 "$REPO_ROOT/release/build-debs.sh" "$DEB_DIR" >/dev/null
-DEB=$(find "$DEB_DIR" -maxdepth 1 -type f -name 'zenith_*.deb' -print -quit)
+DEB=$(find "$DEB_DIR" -maxdepth 1 -type f -name 'asura_*.deb' -print -quit)
 if [ -z "$DEB" ]; then
-	echo "build-iso: release/build-debs.sh produced no Zenith package" >&2
+	echo "build-iso: release/build-debs.sh produced no Asura package" >&2
 	exit 1
 fi
 
 mkdir -p "$BUILD_DIR/config/package-lists" "$BUILD_DIR/config/hooks/normal" \
 	"$BUILD_DIR/config/includes.chroot/etc" \
 	"$BUILD_DIR/config/includes.chroot/tmp" \
-	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding" \
+	"$BUILD_DIR/config/includes.chroot/usr/share/asura/branding" \
 	"$BUILD_DIR/config/includes.chroot/usr/bin"
-cp "$DEB" "$BUILD_DIR/config/includes.chroot/tmp/zenith.deb"
-cp "$REPO_ROOT/public/zenith-logo.svg" \
-	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding/"
-cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" \
-	"$BUILD_DIR/config/includes.chroot/usr/share/zenith/branding/"
+cp "$DEB" "$BUILD_DIR/config/includes.chroot/tmp/asura.deb"
+cp "$REPO_ROOT/public/asura-logo.svg" \
+	"$BUILD_DIR/config/includes.chroot/usr/share/asura/branding/"
+cp "$REPO_ROOT/public/asura-logo-on-dark.svg" \
+	"$BUILD_DIR/config/includes.chroot/usr/share/asura/branding/"
 
 # librsvg2-bin on resolute ships /usr/bin/rsvg-convert, but live-build's
 # lb_binary_syslinux calls "rsvg --format png ... in.svg out.png" inside chroot.
@@ -79,21 +79,21 @@ chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/bin/rsvg"
 # in the repository manifest and package documentation; it must not leak into
 # the installed OS name shown to users.
 cat >"$BUILD_DIR/config/includes.chroot/etc/os-release" <<'EOF'
-NAME="Zenith OS"
-PRETTY_NAME="Zenith OS Beta 001"
-ID=zenith
+NAME="Asura OS"
+PRETTY_NAME="Asura OS Beta 001"
+ID=asura
 ID_LIKE=linux
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
-HOME_URL="https://zenithos.dev/"
-SUPPORT_URL="https://zenithos.dev/support"
-BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
+HOME_URL="https://asuraos.dev/"
+SUPPORT_URL="https://asuraos.dev/support"
+BUG_REPORT_URL="https://github.com/mohitjoer/Asura-OS/issues"
 EOF
-printf 'zenith-os\n' >"$BUILD_DIR/config/includes.chroot/etc/hostname"
+printf 'asura-os\n' >"$BUILD_DIR/config/includes.chroot/etc/hostname"
 cat >"$BUILD_DIR/config/includes.chroot/etc/motd" <<'EOF'
-Zenith OS Beta 001
+Asura OS Beta 001
 
-Welcome to Zenith OS.
+Welcome to Asura OS.
 EOF
 
 # Modern Ubuntu archive does not publish gfxboot-theme-ubuntu or
@@ -183,7 +183,7 @@ fi
 # fix is --syslinux-theme live-build passed to lb config below.
 
 python3 - "$REPO_ROOT/system/packages.yaml" \
-	"$BUILD_DIR/config/package-lists/zenith.list.chroot" <<'PY'
+	"$BUILD_DIR/config/package-lists/asura.list.chroot" <<'PY'
 import sys
 from pathlib import Path
 import yaml
@@ -206,7 +206,7 @@ for group, body in manifest.items():
 # live-build verifies the chroot's APT metadata with gpg during package
 # installation; installing it only on the host does not provide it here.
 packages.append("gnupg")
-# Syslinux/isolinux modules, bootloaders, and zenith runtime dependencies.
+# Syslinux/isolinux modules, bootloaders, and asura runtime dependencies.
 packages.extend([
     "librsvg2-bin",
     "isolinux", "syslinux-common",
@@ -218,17 +218,17 @@ out = sorted(dict.fromkeys(str(package) for package in packages))
 Path(sys.argv[2]).write_text("\n".join(out) + "\n")
 PY
 
-cat >"$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot" <<'EOF'
+cat >"$BUILD_DIR/config/hooks/normal/9999-install-asura.chroot" <<'EOF'
 #!/bin/sh
 set -eu
 if [ ! -s /etc/resolv.conf ] || grep -q '127.0.0.53' /etc/resolv.conf; then
 	printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' >/etc/resolv.conf
 fi
 DEBIAN_FRONTEND=noninteractive apt-get update || true
-DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic /tmp/zenith.deb
-rm -f /tmp/zenith.deb
+DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic /tmp/asura.deb
+rm -f /tmp/asura.deb
 EOF
-chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-zenith.chroot"
+chmod 0755 "$BUILD_DIR/config/hooks/normal/9999-install-asura.chroot"
 
 # librsvg2-bin on resolute ships /usr/bin/rsvg-convert, but live-build's
 # lb_binary_syslinux calls "rsvg --format png ... in.svg out.png" (run

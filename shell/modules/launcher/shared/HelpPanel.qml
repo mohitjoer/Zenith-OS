@@ -24,7 +24,7 @@ Item {
         { k: "=",      p: "calc", d: I18n.tr("calculator") },
         { k: "?",      d: I18n.tr("web search (supports !bangs)") },
         { k: "@",      p: "radio", d: I18n.tr("live radio: @lofi tunes in, @stop tunes out") },
-        { k: "\\",     d: I18n.tr("ask the Zenith Agent (one terse answer)") }
+        { k: "\\",     d: I18n.tr("ask the Asura Agent (one terse answer)") }
     ]
     readonly property var searchRows: {
         void Dispatcher.revision;

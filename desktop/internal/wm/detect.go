@@ -10,13 +10,13 @@ import (
 // The only place allowed to care which compositor is running. It resolves an
 // identity into a provider name once; every later decision reads Caps.
 
-// Provider names name an executable (zenith-wm-<name>) for the providers that
+// Provider names name an executable (asura-wm-<name>) for the providers that
 // are not built in, so they are part of the on-disk contract.
 const ProviderHyprland = "hyprland"
 
 // forceEnv selects a provider by name regardless of the session, so a developer
 // or a test can drive one without that compositor running.
-const forceEnv = "ZENITH_WM"
+const forceEnv = "ASURA_WM"
 
 type Detection struct {
 	Name string
@@ -29,8 +29,8 @@ type Detection struct {
 	Source string
 }
 
-// Detect resolves the active provider. Zenith is a Hyprland desktop, so the
-// answer is Hyprland unless ZENITH_WM names another provider; what varies is
+// Detect resolves the active provider. Asura is a Hyprland desktop, so the
+// answer is Hyprland unless ASURA_WM names another provider; what varies is
 // only whether the compositor is live, and that is probed rather than assumed.
 //
 // Presence of an instance handle is not proof of life. A terminal, a tmux

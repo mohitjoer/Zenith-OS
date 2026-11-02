@@ -2,7 +2,7 @@ package shell
 
 // The vendored upstream tree.
 //
-// Zenith's shell draws some of upstream's surfaces: the bar, the dock, the
+// Asura's shell draws some of upstream's surfaces: the bar, the dock, the
 // side panel, and the component kit they are made of. Those files are
 // vendored — copied out of a pinned upstream commit, byte for byte — and
 // they live inside the shell's own tree, at the paths upstream keeps them
@@ -11,11 +11,11 @@ package shell
 //
 // Two things follow from that, and they pull in opposite directions.
 //
-// The first is that a vendored file is not Zenith's to edit. The project's
+// The first is that a vendored file is not Asura's to edit. The project's
 // rule is that a shipped file is never edited in place, and a change to a
-// vendored component is a configuration value, an overlay file Zenith
+// vendored component is a configuration value, an overlay file Asura
 // supplies, or a patch — never a hand edit. So the rules in shell.go, every
-// one of which is a rule about Zenith's own code, do not run over the
+// one of which is a rule about Asura's own code, do not run over the
 // vendored tree. A rule that would demand an edit of a vendored file is the
 // wrong rule for it: upstream's palette literals are upstream's palette, and
 // this project does not get to have an opinion about them.
@@ -54,10 +54,10 @@ const vendorManifestPath = "vendor/manifest.yaml"
 
 // vendoredRoots are the directories the vendored upstream tree occupies.
 //
-// The vendored tree is upstream's namespace inside Zenith's shell: the
+// The vendored tree is upstream's namespace inside Asura's shell: the
 // component kit, the bar, the dock, the side panel and the services all
 // live under these two directories, at the paths upstream keeps them at.
-// Everything else in the shell is Zenith's own code, and only Zenith's own
+// Everything else in the shell is Asura's own code, and only Asura's own
 // code is subject to the shell's rules.
 //
 // The two are namespaces and not merely directories: upstream's components
@@ -84,16 +84,16 @@ var vendoredRoots = map[string]bool{
 	"wallpaper-ui": true,
 }
 
-// overlayFiles are the files Zenith supplies at upstream's paths.
+// overlayFiles are the files Asura supplies at upstream's paths.
 //
-// They are Zenith's: upstream's copies are not vendored, and these are the
+// They are Asura's: upstream's copies are not vendored, and these are the
 // files upstream's components read instead. They are declared here so that
-// the drift check knows the difference between a file that is Zenith's and a
+// the drift check knows the difference between a file that is Asura's and a
 // file that is upstream's — a file in the vendored tree that is not in the
 // manifest and is not one of these is drift in the other direction, an
 // extra file nobody declared.
 //
-// Their shape is upstream's contract rather than Zenith's own: the
+// Their shape is upstream's contract rather than Asura's own: the
 // components read them by upstream's names, and a rule that demanded a
 // change would demand breaking that contract. So they are not held to the
 // shell's house rules, and the reasons are recorded per file rather than
@@ -101,7 +101,7 @@ var vendoredRoots = map[string]bool{
 //
 // The list is the validator's copy of the vendor script's EXCLUDE_FILES: the
 // script is what writes the tree, and the two have to say the same thing
-// about which paths are Zenith's. TestTheOverlayListMatchesTheVendorScript
+// about which paths are Asura's. TestTheOverlayListMatchesTheVendorScript
 // keeps them together.
 var overlayFiles = map[string]string{
 	"GlobalStates.qml":                   "the vendored components read these flags by name",
@@ -338,7 +338,7 @@ type VendorReport struct {
 	// Declared is how many of the declared overrides are in the tree.
 	//
 	// They are counted apart from Files because they are not compared:
-	// an override is Zenith's file, and there is no upstream blob for it
+	// an override is Asura's file, and there is no upstream blob for it
 	// to match.
 	Declared int
 	// Components are the components the manifest declares.
@@ -430,7 +430,7 @@ func CheckVendored(env Env) VendorReport {
 		for _, file := range component.Files {
 			declared[file.Path] = true
 
-			// A declared override is Zenith's file, not upstream's, so
+			// A declared override is Asura's file, not upstream's, so
 			// there is no upstream blob for it to match. The manifest
 			// still lists it when it was generated before the override
 			// was declared, and the next run of the vendor script drops
@@ -470,7 +470,7 @@ func CheckVendored(env Env) VendorReport {
 	}
 
 	// The other direction: a file that is there and is not in the manifest
-	// is drift too. It is upstream's file that nobody pinned, or Zenith's
+	// is drift too. It is upstream's file that nobody pinned, or Asura's
 	// file in upstream's namespace that was never declared, and either way
 	// nothing says what it should be.
 	for _, path := range tree {
@@ -488,7 +488,7 @@ func CheckVendored(env Env) VendorReport {
 		})
 	}
 
-	// The overlay files: Zenith's own, at upstream's paths. They are not in
+	// The overlay files: Asura's own, at upstream's paths. They are not in
 	// the manifest because they are not upstream's, and they are not drift
 	// because they are not upstream's. They are still required: a vendored
 	// component that imports one cannot resolve it without it.
@@ -496,7 +496,7 @@ func CheckVendored(env Env) VendorReport {
 		if _, err := os.Stat(env.path(path)); err != nil {
 			report.Findings = append(report.Findings, Finding{
 				Rule: "vendored overlay", Path: env.path(path),
-				Detail: "is missing; it is Zenith's file at an upstream path, " +
+				Detail: "is missing; it is Asura's file at an upstream path, " +
 					"and " + reason + ", so the vendored components " +
 					"cannot resolve it without it",
 			})
@@ -642,7 +642,7 @@ func checkVendoredLicences(env Env, manifest VendorManifest) []Finding {
 // ("shell/vendor/COPYING"), and the vendor script writes it next to the
 // manifest itself. Resolving it against the manifest's own directory puts
 // it in the same place in a checkout and in an installed tree, where the
-// shell is at /usr/share/zenith/shell rather than at shell/.
+// shell is at /usr/share/asura/shell rather than at shell/.
 func licencePath(env Env, component VendorComponent) (string, bool) {
 	directory := filepath.Dir(component.LicenceFile)
 	if filepath.Base(directory) != filepath.Base(filepath.Dir(vendorManifestPath)) {
@@ -716,7 +716,7 @@ func imageModules() map[string]bool {
 // manifest already declares.
 //
 // This is the import rule run over the vendored tree, and it is reported
-// rather than failed. The rule is closed for Zenith's own code, and it
+// rather than failed. The rule is closed for Asura's own code, and it
 // stays closed: a vendored file importing a module the image does not carry
 // is a fact about the vendored tree and about the image's package list, and
 // the fix is a package in the image rather than an edit of a file that is

@@ -1,5 +1,5 @@
 name: Hardware support request
-description: "My laptop is not supported, or something on it is broken. The highest-value report in Zenith — every working machine here can become a hardware profile."
+description: "My laptop is not supported, or something on it is broken. The highest-value report in Asura — every working machine here can become a hardware profile."
 title: "[hardware]: "
 labels:
   - hardware
@@ -9,14 +9,14 @@ body:
     attributes:
       value: |
         This is the most valuable issue you can file. A working machine becomes a profile via
-        `zenith hardware report`, and merged profiles ship in the next ISO and are matched
+        `asura hardware report`, and merged profiles ship in the next ISO and are matched
         automatically at install time. Nobody can test every laptop, but everybody can test
         one.
 
-        **Paste your `zenith hardware report` output below.** That output is what turns this
+        **Paste your `asura hardware report` output below.** That output is what turns this
         report into a profile, and a report without it stays a conversation.
 
-        Do not paste serials, MAC addresses, hostnames, usernames or home paths. `zenith hardware
+        Do not paste serials, MAC addresses, hostnames, usernames or home paths. `asura hardware
         report` strips them; if yours does not, strip them yourself.
 
   - type: input
@@ -47,10 +47,10 @@ body:
       required: false
 
   - type: input
-    id: zenith-version
+    id: asura-version
     attributes:
-      label: Zenith version
-      placeholder: zenith 0.1-pre-alpha
+      label: Asura version
+      placeholder: asura 0.1-pre-alpha
     validations:
       required: true
 
@@ -58,7 +58,7 @@ body:
     id: kernel
     attributes:
       label: Kernel in use
-      description: Output of `uname -r`, or the flavour from `/etc/zenith/kernel`.
+      description: Output of `uname -r`, or the flavour from `/etc/asura/kernel`.
       placeholder: 6.17.0-31-generic
     validations:
       required: false
@@ -158,10 +158,10 @@ body:
   - type: textarea
     id: report
     attributes:
-      label: "`zenith hardware report` output"
+      label: "`asura hardware report` output"
       description: |
         Paste the whole thing. If the command does not exist yet on this build, say so and paste
-        `zenith hardware match` and `zenith doctor` instead.
+        `asura hardware match` and `asura doctor` instead.
       placeholder: "paste the report here"
       render: shell
     validations:
@@ -172,7 +172,7 @@ body:
     attributes:
       label: Profile consent
       options:
-        - label: This report and the attached `zenith hardware report` output may be turned into a hardware profile in `system/hardware/profiles/`, and appear in the support matrix.
+        - label: This report and the attached `asura hardware report` output may be turned into a hardware profile in `system/hardware/profiles/`, and appear in the support matrix.
         - label: I have checked the output above for serials, MAC addresses, hostnames, usernames and home paths.
         - label: I have read the output above and everything in it describes the machine I am reporting, not one I have only read about.
     validations:

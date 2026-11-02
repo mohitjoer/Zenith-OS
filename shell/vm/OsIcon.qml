@@ -30,7 +30,7 @@ Item {
 
     function resolve() {
         if (Vm.beginIcon(root.slug)) {
-            iconProc.command = ["zenith-vm", "icon", root.slug];
+            iconProc.command = ["asura-vm", "icon", root.slug];
             iconProc.running = true;
         }
     }

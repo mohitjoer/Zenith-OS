@@ -5,7 +5,7 @@
 // The replace directive points at that module in-tree rather than resolving it
 // from a registry. There is no published module to resolve, and a build that
 // needed one could not be reproduced from a checkout.
-module zenith/desktop
+module asura/desktop
 
 go 1.26
 
@@ -14,7 +14,7 @@ require (
 	github.com/coder/websocket v1.8.12
 	github.com/godbus/dbus/v5 v5.2.2
 	golang.org/x/sys v0.27.0
-	zenith/hardware v0.0.0
+	asura/hardware v0.0.0
 )
 
-replace zenith/hardware => ../system/hardware
+replace asura/hardware => ../system/hardware

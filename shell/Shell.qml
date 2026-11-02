@@ -4,7 +4,7 @@ pragma ComponentBehavior: Bound
 //
 // The list of what the keyboard does, grouped by what it is for, with every
 // chord drawn as the keys it is made of. It is the catalogue — the same one
-// `zenith binds` prints and the same one the compositor's configuration is
+// `asura binds` prints and the same one the compositor's configuration is
 // checked against — drawn rather than printed, so that a person who has
 // forgotten a key can look it up without opening a terminal.
 //
@@ -61,7 +61,7 @@ Item {
 
     Process {
         id: reader
-        command: ["zenith", "binds"]
+        command: ["asura", "binds"]
         running: true
 
         stdout: StdioCollector {

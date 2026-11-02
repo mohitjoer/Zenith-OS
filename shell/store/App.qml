@@ -32,7 +32,7 @@ Rectangle {
     property bool reducedMotion: performance.lowPowerMode || performance.reduceMotion
     readonly property bool catalogLoading: Store.loading && Store.items.length === 0
     readonly property bool catalogError: !Store.loading && Store.items.length === 0 && Store.error !== ""
-    // A nav-open (from `zenith-store open` / `settings`) can arrive before the
+    // A nav-open (from `asura-store open` / `settings`) can arrive before the
     // catalogue's categories load, with nothing to validate the route against;
     // stash it and apply once the categories arrive so the store lands right.
     property string pendingRoute: ""
@@ -368,7 +368,7 @@ Rectangle {
 
     FileView {
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config"))
-              + "/zenith/performance.json"
+              + "/asura/performance.json"
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
@@ -381,7 +381,7 @@ Rectangle {
 
     StoreHeader {
         id: header
-        objectName: "zenith-store-header"
+        objectName: "asura-store-header"
         anchors { left: parent.left; top: parent.top; right: parent.right }
         height: implicitHeight
         view: app.view
@@ -403,7 +403,7 @@ Rectangle {
     }
     ProviderTabs {
         id: providerTabs
-        objectName: "zenith-store-provider-tabs"
+        objectName: "asura-store-provider-tabs"
         anchors { left: parent.left; top: header.bottom; right: parent.right }
         readonly property bool shown: app.themesBrowse || app.decorBrowse || app.pluginsBrowse
         height: shown ? implicitHeight : 0
@@ -441,7 +441,7 @@ Rectangle {
 
     ShowroomStage {
         id: stage
-        objectName: "zenith-store-stage"
+        objectName: "asura-store-stage"
         anchors { left: parent.left; top: providerTabs.bottom; right: parent.right }
         height: app.showHero ? Math.round((app.height - header.height) * 0.42) : 0
         visible: app.showHero
@@ -463,7 +463,7 @@ Rectangle {
 
     ProductGrid {
         id: productGrid
-        objectName: "zenith-store-grid"
+        objectName: "asura-store-grid"
         anchors { left: parent.left; top: stage.bottom; right: parent.right; bottom: parent.bottom }
         items: app.collection
         selectedKey: app.selectedKey
@@ -590,7 +590,7 @@ Rectangle {
 
     ProductDetail {
         id: productDetail
-        objectName: "zenith-store-detail"
+        objectName: "asura-store-detail"
         anchors { left: parent.left; top: header.bottom; right: parent.right; bottom: parent.bottom }
         z: 20
         item: app.resolvedDetail

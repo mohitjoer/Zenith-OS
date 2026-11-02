@@ -2,7 +2,7 @@
 // whole config and returns a fresh root, so an edit can never drop a subtree it
 // did not touch (menus, surfaces, dock) -- the source-side half of the
 // subtree-preservation invariant the daemon also enforces
-// (zenith/shell/ipc/settings.go). The rebuilt Bar Studio edits only the
+// (asura/shell/ipc/settings.go). The rebuilt Bar Studio edits only the
 // essentials: the four rails (on/off, reveal, thickness), the widgets in each
 // rail's three zones (add, remove, reorder), and the frame style. The bounded
 // menus and preserved surfaces keep their persisted values untouched, carried

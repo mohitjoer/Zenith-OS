@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"zenith/desktop/internal/runner"
+	"asura/desktop/internal/runner"
 )
 
 // Answer is what a fake program does when it is run.

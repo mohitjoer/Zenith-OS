@@ -15,14 +15,14 @@ set -e
 # an unrelated schema changed.
 #
 # Skipping this is the quietest failure in the package: the schema is installed,
-# the file is on disk, and `Settings { schemaId: "org.zenith.shell" }` fails at
-# run time with "Settings schema 'org.zenith.shell' is not installed" while
+# the file is on disk, and `Settings { schemaId: "org.asura.shell" }` fails at
+# run time with "Settings schema 'org.asura.shell' is not installed" while
 # glib-compile-schemas sits right there saying the XML is fine.
 if command -v glib-compile-schemas >/dev/null 2>&1; then
     glib-compile-schemas /usr/share/glib-2.0/schemas || {
-        echo "zenith: glib-compile-schemas failed; org.zenith.shell will not" >&2
-        echo "zenith: be usable and every GSettings read of it will fall back" >&2
-        echo "zenith: to a compiled-in default." >&2
+        echo "asura: glib-compile-schemas failed; org.asura.shell will not" >&2
+        echo "asura: be usable and every GSettings read of it will fall back" >&2
+        echo "asura: to a compiled-in default." >&2
         exit 1
     }
 fi
@@ -63,12 +63,12 @@ fi
 
 case "$1" in
     configure)
-        echo "zenith $2 installed."
-        echo "  zenith materialize — lay the base into ~/.config/zenith (once, as your own user)"
+        echo "asura $2 installed."
+        echo "  asura materialize — lay the base into ~/.config/asura (once, as your own user)"
         echo "  systemctl --user daemon-reload, then log out and back in — the session starts the daemons"
-        echo "  zenith doctor    — what differs between the base and your config"
-        echo "  zenith status    — current revision and drift"
-        echo "  zenith hardware report --profile — contribute this machine's profile"
+        echo "  asura doctor    — what differs between the base and your config"
+        echo "  asura status    — current revision and drift"
+        echo "  asura hardware report --profile — contribute this machine's profile"
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         ;;

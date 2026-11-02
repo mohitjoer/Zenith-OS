@@ -16,7 +16,7 @@ Singleton {
 
     readonly property string home: Quickshell.env("HOME") || ""
     // The Downloads root is the localized XDG dir the session exports (the
-    // zenith user-environment generator does); ~/Downloads only when it is unset,
+    // asura user-environment generator does); ~/Downloads only when it is unset,
     // so a Spanish desktop lands in ~/Descargas/Stash instead of the generator
     // recreating ~/Downloads on every shell start (#246).
     readonly property string dir: (Quickshell.env("XDG_DOWNLOAD_DIR") || (home + "/Downloads")) + "/Stash"
@@ -64,7 +64,7 @@ Singleton {
 
     // ── Cobalt first-run setup ──────────────────────────────────────────
     // The switch used to dead-end on "Install Docker to use cobalt", naming two
-    // chores and doing neither. The wizard drives zenith-docker instead: start
+    // chores and doing neither. The wizard drives asura-docker instead: start
     // the service, pull the image, start cobalt, each step reporting for itself.
     // No reboot or "add yourself to a group" step exists: the helper escalates
     // through polkit and does the docker work as root, so the user's session is
@@ -121,7 +121,7 @@ Singleton {
         // Nothing here can install a package, so a missing runtime is the one
         // step the wizard has to hand back rather than fix.
         if (root.dockerState === "missing") {
-            setupFail("runtime", I18n.tr("Docker is not installed. `zenith update` installs it."));
+            setupFail("runtime", I18n.tr("Docker is not installed. `asura update` installs it."));
             return;
         }
         setupMark("runtime", "done");
@@ -147,7 +147,7 @@ Singleton {
 
     Process {
         id: provisionProc
-        command: ["zenith-docker", "provision"]
+        command: ["asura-docker", "provision"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => root.onProvisionLine(line)
@@ -402,7 +402,7 @@ Singleton {
 
     FileView {
         id: engineFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/stash.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/stash.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

@@ -118,7 +118,7 @@ Singleton {
         return Math.round(b);
     }
 
-    // The display name is the shared resolver (Zenith.Ui's BtName), which knows a
+    // The display name is the shared resolver (Asura.Ui's BtName), which knows a
     // MAC-shaped BlueZ alias is not a name; this wrapper only adds the shell's
     // untranslated-device fallback.
     function label(d) {

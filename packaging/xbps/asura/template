@@ -1,0 +1,54 @@
+# Template file for 'asura'
+pkgname=asura
+version=0.1
+revision=1
+hostmakedepends="go"
+depends="hyprland quickshell seatd turnstile ghostty papirus-icon-theme font-awesome"
+short_desc="Asura OS control plane, session daemons, and system integration"
+maintainer="Asura OS Project <dev@asuraos.dev>"
+license="MIT"
+homepage="https://asuraos.dev"
+
+do_build() {
+	mkdir -p bin
+	(
+		cd desktop
+		CGO_ENABLED=0 go build -o ../bin/asura ./cmd/asura
+		CGO_ENABLED=0 go build -o ../bin/asura-sysd ./cmd/asura-sysd
+		CGO_ENABLED=0 go build -o ../bin/asura-userd ./cmd/asura-userd
+		CGO_ENABLED=0 go build -o ../bin/asura-hubd ./cmd/asura-hubd
+		CGO_ENABLED=0 go build -o ../bin/asura-shell ./cmd/asura-shell
+		CGO_ENABLED=0 go build -o ../bin/asura-wallpaper ./cmd/asura-wallpaper
+		CGO_ENABLED=0 go build -o ../bin/zpm ./cmd/zpm
+	)
+}
+
+do_install() {
+	vbin bin/asura
+	vbin bin/asura-sysd
+	vbin bin/asura-userd
+	vbin bin/asura-hubd
+	vbin bin/asura-shell
+	vbin bin/asura-wallpaper
+	vbin bin/zpm
+
+	vlicense LICENSE
+	# Install session scripts and Wayland desktop entry
+	vinstall session/asura-session 755 usr/share/asura/session
+	vinstall session/asura-activate 755 usr/share/asura/session
+	vinstall session/runit/asura-user-services 755 usr/bin
+	vinstall system/helpers/prime-run 755 usr/bin
+	vinstall installation/asura-installer.sh 755 usr/bin/asura-installer
+	vinstall session/applications/asura-installer.desktop 644 usr/share/applications
+	vinstall session/asura.desktop 644 usr/share/wayland-sessions
+
+	# Install runit service templates
+	vmkdir usr/share/asura/runit/services
+	vcopy "system/runit/user-services/*" usr/share/asura/runit/services
+
+	# Install system runit service (asura-sysd)
+	vsv asura-sysd
+
+	# Install udev power rules
+	vinstall system/udev/99-asura-power.rules 644 usr/lib/udev/rules.d
+}

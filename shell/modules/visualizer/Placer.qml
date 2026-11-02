@@ -24,7 +24,7 @@ PanelWindow {
     screen: win.screen
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.namespace: "zenith-visualizer-place"
+    WlrLayershell.namespace: "asura-visualizer-place"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     anchors { top: true; bottom: true; left: true; right: true }

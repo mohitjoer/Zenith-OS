@@ -11,8 +11,8 @@ import "../Combos.js" as Combos
 
 // Import config (TOOLS, ADVANCED). The drop-and-go migration wizard: bring an
 // existing setup (a folder, a drop, an existing ~/.config, or a git URL) onto
-// Zenith, layer it over the defaults, resolve the keybind clashes in place, and
-// keep it reversible. The engine is `zenith-hubd import` (scan/apply/undo); this
+// Asura, layer it over the defaults, resolve the keybind clashes in place, and
+// keep it reversible. The engine is `asura-hubd import` (scan/apply/undo); this
 // page is one of its two front doors. It never parses config itself: scan hands
 // back the model and the conflicts (each with a stable `norm` the UI echoes and
 // never computes), apply takes the decisions and reports the exact change set,
@@ -40,7 +40,7 @@ Item {
     // bindings that read them refresh, the way the Keybinds editor swaps arrays.
     property var scan: null
     property var appInclude: ({})        // app id -> bool (absent = included)
-    property var conflictDecision: ({})  // norm -> "zenith" | "mine" | { remap }
+    property var conflictDecision: ({})  // norm -> "asura" | "mine" | { remap }
 
     // the ApplyResult / UndoResult reported back, and the decisions we posted.
     property var applyResult: null
@@ -48,8 +48,8 @@ Item {
     property bool undone: false
     property string pendingDecisions: ""
 
-    // a previous non-Zenith setup sitting in the running provider's config tree
-    // (Zenith writes a generated config, never a hand-rolled monolith), offered as
+    // a previous non-Asura setup sitting in the running provider's config tree
+    // (Asura writes a generated config, never a hand-rolled monolith), offered as
     // a one-tap source. Only meaningful on a desktop whose format import reads.
     property bool autoDetected: false
     property string urlText: ""
@@ -57,7 +57,7 @@ Item {
 
     // The desktop the user runs and the root of its config tree, both read off the
     // provider's declared config files rather than named here. The importer turns a
-    // hand-rolled monolith's keybinds and rules into Zenith settings, so it only
+    // hand-rolled monolith's keybinds and rules into Asura settings, so it only
     // lands on a desktop whose own config is that same format.
     readonly property var configFiles: Settings.configFiles || []
     readonly property string providerName: Settings.provider
@@ -124,7 +124,7 @@ Item {
             for (var j = 0; j < cs.length; j++) {
                 var c = cs[j];
                 out.push({ app: a.name, norm: c.norm, combo: c.combo,
-                    zenith: c.zenith || ({}), mine: c.mine || ({}), kind: c.kind });
+                    asura: c.asura || ({}), mine: c.mine || ({}), kind: c.kind });
             }
         }
         return out;
@@ -156,10 +156,10 @@ Item {
     }
 
     // the segment a conflict's current decision maps to ("" = still on the safe
-    // Zenith default, nothing highlighted).
+    // Asura default, nothing highlighted).
     function segCurrent(norm) {
         var d = pg.conflictDecision[norm];
-        if (d === "zenith") return "Keep Zenith's";
+        if (d === "asura") return "Keep Asura's";
         if (d === "mine") return "Use mine";
         if (d && d.remap) return "Remap";
         return "";
@@ -173,7 +173,7 @@ Item {
         pg.conflictDecision = m;
     }
     function chooseSegment(norm, label) {
-        if (label === "Keep Zenith's") pg.setDecision(norm, "zenith");
+        if (label === "Keep Asura's") pg.setDecision(norm, "asura");
         else if (label === "Use mine") pg.setDecision(norm, "mine");
         else if (label === "Remap") pg.startRemap(norm);
     }
@@ -213,7 +213,7 @@ Item {
     }
     function tierNote(t) {
         if (t === "deep")
-            return I18n.tr("Keybinds and window rules become Zenith settings; raw config layers into hyprland/user.conf and wins.");
+            return I18n.tr("Keybinds and window rules become Asura settings; raw config layers into hyprland/user.conf and wins.");
         if (t === "layer")
             return I18n.tr("Layered into this app's override file, which already wins over the shipped config.");
         return I18n.tr("Dropped into this app's override slot, clearly labelled, applied as-is.");
@@ -263,7 +263,7 @@ Item {
         pg.conflictDecision = ({});
         pg.busy = true;
         pg.busyLabel = I18n.tr("Scanning your config");
-        scanProc.command = ["zenith-hubd", "import", "scan", arg];
+        scanProc.command = ["asura-hubd", "import", "scan", arg];
         scanProc.running = true;
     }
     function buildDecisions() {
@@ -287,14 +287,14 @@ Item {
         pg.busy = true;
         pg.busyLabel = I18n.tr("Applying and backing up");
         applyProc.stdinEnabled = true;
-        applyProc.command = ["zenith-hubd", "import", "apply", "-"];
+        applyProc.command = ["asura-hubd", "import", "apply", "-"];
         applyProc.running = true;
     }
     function undo() {
         pg.errorMsg = "";
         pg.busy = true;
         pg.busyLabel = I18n.tr("Undoing the import");
-        undoProc.command = ["zenith-hubd", "import", "undo"];
+        undoProc.command = ["asura-hubd", "import", "undo"];
         undoProc.running = true;
     }
     function reloadDesktop() { if (pg.hub) pg.hub.wmAct("config.reload"); }
@@ -487,7 +487,7 @@ Item {
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: I18n.tr("Bring another setup onto Zenith. Everything it touches is backed up.")
+            text: I18n.tr("Bring another setup onto Asura. Everything it touches is backed up.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -581,8 +581,8 @@ Item {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: pg.providerName.length
-                        ? I18n.tr("Bringing an existing setup across, its keybinds, window rules and app configs, is available on another Zenith desktop today. It lands on the %1 desktop in a future release.").arg(pg.providerName)
-                        : I18n.tr("Bringing an existing setup across, its keybinds, window rules and app configs, is available on another Zenith desktop today. It lands on this desktop in a future release.")
+                        ? I18n.tr("Bringing an existing setup across, its keybinds, window rules and app configs, is available on another Asura desktop today. It lands on the %1 desktop in a future release.").arg(pg.providerName)
+                        : I18n.tr("Bringing an existing setup across, its keybinds, window rules and app configs, is available on another Asura desktop today. It lands on this desktop in a future release.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -606,7 +606,7 @@ Item {
                 width: parent.width - Tokens.s3
                 spacing: Tokens.s4
 
-                // What Zenith can bring over, on the same row rhythm as every other
+                // What Asura can bring over, on the same row rhythm as every other
                 // sheet in the Hub: a card with value rows parted by hairlines,
                 // rather than a bespoke plate with its own tighter spacing.
                 SettingCard {
@@ -616,7 +616,7 @@ Item {
 
                     Repeater {
                         model: [
-                            { app: "Hyprland", note: "keybinds and window rules become Zenith settings; the rest layers into hyprland/user.conf and wins" },
+                            { app: "Hyprland", note: "keybinds and window rules become Asura settings; the rest layers into hyprland/user.conf and wins" },
                             { app: "Kitty", note: "kitty.conf, layered into kitty/user.conf" },
                             { app: "Fish", note: "config.fish, functions and conf.d, layered into fish/user.fish" },
                             { app: "Fastfetch", note: "config.jsonc, layered into fastfetch/user.jsonc" },
@@ -634,7 +634,7 @@ Item {
                     }
                 }
 
-                // the auto-detect banner: an existing non-Zenith setup in ~/.config.
+                // the auto-detect banner: an existing non-Asura setup in ~/.config.
                 Plate {
                     width: srcCol.width
                     height: Math.max(72, banRow.implicitHeight + Tokens.s4 * 2)
@@ -656,7 +656,7 @@ Item {
                             }
                             Text {
                                 width: parent.width
-                                text: I18n.tr("It looks like you came from another %1 setup. Scan it to bring your keybinds, rules and app configs onto Zenith.").arg(pg.providerCased())
+                                text: I18n.tr("It looks like you came from another %1 setup. Scan it to bring your keybinds, rules and app configs onto Asura.").arg(pg.providerCased())
                                 color: Tokens.inkMuted; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                             }
@@ -891,7 +891,7 @@ Item {
                 Text {
                     width: resCol.width
                     visible: pg.conflictTotal > 0
-                    text: I18n.tr("Each combo your config wants that Zenith already uses. Keep Zenith's shortcut, use yours (Zenith unbinds its own so yours actually wins), or remap yours to a free chord. Untouched rows keep Zenith's.")
+                    text: I18n.tr("Each combo your config wants that Asura already uses. Keep Asura's shortcut, use yours (Asura unbinds its own so yours actually wins), or remap yours to a free chord. Untouched rows keep Asura's.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap; lineHeight: 1.3
                 }
@@ -944,7 +944,7 @@ Item {
                                     id: seg
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
-                                    options: ["Keep Zenith's", "Use mine", "Remap"]
+                                    options: ["Keep Asura's", "Use mine", "Remap"]
                                     current: pg.segCurrent(confRow.modelData.norm)
                                     onChose: (label) => pg.chooseSegment(confRow.modelData.norm, label)
                                 }
@@ -952,7 +952,7 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: "Zenith" + ": " + (confRow.modelData.zenith.desc || I18n.tr("a shipped shortcut"))
+                                text: "Asura" + ": " + (confRow.modelData.asura.desc || I18n.tr("a shipped shortcut"))
                                 color: Tokens.inkDim; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                             }
@@ -1100,7 +1100,7 @@ Item {
                         Rectangle { width: parent.width; height: 1; color: Tokens.lineSoft }
                         Text {
                             width: parent.width
-                            text: I18n.tr("Every file this touches is copied into ~/.config/zenith/import-backups first, so the whole import can be undone from the next step.")
+                            text: I18n.tr("Every file this touches is copied into ~/.config/asura/import-backups first, so the whole import can be undone from the next step.")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap; lineHeight: 1.3
                         }

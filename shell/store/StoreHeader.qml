@@ -77,7 +77,7 @@ Item {
             color: Tokens.ink
             visible: act.current || act.activeFocus
         }
-        // Attention dot: upstream (zenith-store) has advanced past what the user
+        // Attention dot: upstream (asura-store) has advanced past what the user
         // last pulled. Fixed alert red so it always reads as "something new".
         Rectangle {
             visible: act.flagged
@@ -158,7 +158,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("ZENITH STORE")
+                text: I18n.tr("ASURA STORE")
                 color: Tokens.ink
                 font.family: Tokens.mono
                 font.pixelSize: 15
@@ -170,7 +170,7 @@ Item {
 
         Rectangle {
             id: searchBox
-            objectName: "zenith-store-header-search"
+            objectName: "asura-store-header-search"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(460, header.width * 0.42)
@@ -198,7 +198,7 @@ Item {
 
             TextInput {
                 id: searchField
-                objectName: "zenith-store-header-search-field"
+                objectName: "asura-store-header-search-field"
                 anchors {
                     left: mag.right; leftMargin: Tokens.s2
                     right: countLabel.left; rightMargin: Tokens.s2
@@ -213,7 +213,7 @@ Item {
                 clip: true
                 activeFocusOnTab: true
                 Accessible.role: Accessible.EditableText
-                Accessible.name: header.offline ? I18n.tr("Search Zenith Store (offline)") : I18n.tr("Search Zenith Store")
+                Accessible.name: header.offline ? I18n.tr("Search Asura Store (offline)") : I18n.tr("Search Asura Store")
                 Accessible.description: I18n.tr("Type to filter the store")
                 onTextEdited: header.queryEdited(text)
                 onActiveFocusChanged: if (activeFocus) header.searchActivated()
@@ -262,13 +262,13 @@ Item {
             spacing: Tokens.s5
 
             HeaderAction {
-                objectName: "zenith-store-header-library"
+                objectName: "asura-store-header-library"
                 label: header.libraryLabel
                 current: header.view === "library"
                 onTriggered: header.activateLibrary()
             }
             HeaderAction {
-                objectName: "zenith-store-header-refresh"
+                objectName: "asura-store-header-refresh"
                 label: header.refreshing ? I18n.tr("SYNCING") : I18n.tr("REFRESH")
                 current: header.refreshing
                 flagged: header.updateAvailable && !header.refreshing
@@ -291,7 +291,7 @@ Item {
 
         Flickable {
             id: navScroll
-            objectName: "zenith-store-header-categories"
+            objectName: "asura-store-header-categories"
             anchors { fill: parent; leftMargin: Tokens.s6; rightMargin: Tokens.s6 }
             contentWidth: navRow.width
             contentHeight: height
@@ -313,7 +313,7 @@ Item {
                 spacing: Tokens.s2
 
                 NavPlate {
-                    objectName: "zenith-store-header-discover"
+                    objectName: "asura-store-header-discover"
                     label: I18n.tr("DISCOVER")
                     active: header.view === "discover" && header.categoryID === "" && !header.searchActive
                     anchors.verticalCenter: parent.verticalCenter
@@ -324,7 +324,7 @@ Item {
                     delegate: NavPlate {
                         required property var modelData
                         required property int index
-                        objectName: "zenith-store-header-category-" + String(modelData.id || "")
+                        objectName: "asura-store-header-category-" + String(modelData.id || "")
                         label: String(modelData.name || modelData.id || "").toUpperCase()
                         active: header.view === "discover" && header.categoryID === String(modelData.id || "") && !header.searchActive
                         anchors.verticalCenter: parent.verticalCenter

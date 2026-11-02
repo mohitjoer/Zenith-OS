@@ -9,7 +9,7 @@ import qs.Ui.Singletons
 // by the shell's Desktop layer -- so its face reads exactly as it will on the
 // wallpaper, scaled to fit and never blown up past life size. A plugin that
 // fails to load or reports no size shows its manifest glyph instead of taking
-// the page down. The toggle applies at once through zenith-plugins-place; it
+// the page down. The toggle applies at once through asura-plugins-place; it
 // never joins this page's draft/Save flow.
 Rectangle {
     id: card

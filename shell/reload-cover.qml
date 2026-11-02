@@ -7,7 +7,7 @@ pragma ComponentBehavior: Bound
 // root and the window's own code is in `reload-cover/`, for the reason `hub.qml`
 // gives: a Quickshell configuration's root is the directory of the file it is
 // started on, and the `qs.*` imports the cover draws with resolve only from the
-// shell's root. It is started by `scripts/zenith-reload-cover begin`, which hands
+// shell's root. It is started by `scripts/asura-reload-cover begin`, which hands
 // it a token in the environment; nothing else should start it.
 //
 // The handshake is three calls on the `reload-cover` IPC target, every one of
@@ -33,13 +33,13 @@ import "reload-cover"
 ShellRoot {
     id: root
 
-    readonly property string token: Quickshell.env("ZENITH_RELOAD_COVER_TOKEN") || ""
+    readonly property string token: Quickshell.env("ASURA_RELOAD_COVER_TOKEN") || ""
     property string phase: "closing"
     property bool startClose: false
     property bool finishQueued: false
     property int mappedCount: 0
     property var mappedOutputs: ({})
-    readonly property string brandPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/brand.json"
+    readonly property string brandPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/brand.json"
     readonly property var reloadCover: brandAdapter.reloadCover || ({ path: "", name: "", kind: "default", bytes: 0 })
 
     // The media the Hub's Reload cover page chose, if any. Read once: the cover

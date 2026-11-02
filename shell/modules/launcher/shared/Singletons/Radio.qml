@@ -5,7 +5,7 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import "../lib/radio.js" as RadioLib
 
-// Live-radio state for the "@" provider, mirrored from zenith-cmd-radio. The
+// Live-radio state for the "@" provider, mirrored from asura-cmd-radio. The
 // resident launcher also acts as the radio's minder. Two jobs beyond mirroring:
 //  - collision: the moment any real player that is not the radio (and not a
 //    live wallpaper, those are mpv too) starts playing, the radio steps aside
@@ -15,7 +15,7 @@ import "../lib/radio.js" as RadioLib
 Singleton {
     id: root
 
-    // set by the "@" provider once zenith-cmd-radio is found; nothing runs before
+    // set by the "@" provider once asura-cmd-radio is found; nothing runs before
     property bool available: false
     property bool on: false
     property string station: ""
@@ -74,7 +74,7 @@ Singleton {
 
     function _run(args) {
         busy = true;
-        verbProc.command = ["zenith-cmd-radio"].concat(args);
+        verbProc.command = ["asura-cmd-radio"].concat(args);
         verbProc.running = true;
     }
     Process {
@@ -93,7 +93,7 @@ Singleton {
     }
     Process {
         id: statusProc
-        command: ["zenith-cmd-radio", "status"]
+        command: ["asura-cmd-radio", "status"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {

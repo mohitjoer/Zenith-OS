@@ -4,19 +4,19 @@ import Quickshell.Io
 import "hub"
 import qs.Ui.Singletons
 
-// Zenith Settings entry point, from Ryoku's hub/quickshell/shell.qml. A normal
+// Asura Settings entry point, from Ryoku's hub/quickshell/shell.qml. A normal
 // floating window (not a layer-shell surface); the Hyprland window rule floats
 // and centres it. The file is at the shell root because a Quickshell
 // configuration's root is the directory of its entry file, and `qs.*` only
-// resolves from there. `session/zenith-hub` starts it; `ZENITH_HUB_PAGE` names
+// resolves from there. `session/asura-hub` starts it; `ASURA_HUB_PAGE` names
 // the page to open on.
 ShellRoot {
     FloatingWindow {
         id: win
         // The literal, not I18n.tr: the compositor's window rule matches this
         // exact title, and a translated one would not match.
-        title: "Zenith Settings"
-        // Zenith Settings is a page, not a dialog: it opens at 99% of the screen
+        title: "Asura Settings"
+        // Asura Settings is a page, not a dialog: it opens at 99% of the screen
         // width, filling the height the shell bar leaves, so the settings get the
         // room the layout is designed for instead of a fixed 1200px strip. The
         // size is requested here and honoured by the Hyprland rule, which floats
@@ -67,10 +67,10 @@ ShellRoot {
         }
     }
 
-    // `zenith-hub PAGE` hands the page over in the environment: Quickshell takes
+    // `asura-hub PAGE` hands the page over in the environment: Quickshell takes
     // no arguments of its own for a configuration.
     Component.onCompleted: {
-        const page = Quickshell.env("ZENITH_HUB_PAGE");
+        const page = Quickshell.env("ASURA_HUB_PAGE");
         if (page) hubItem.navigate(page);
     }
 

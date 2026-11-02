@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The Profile plate's customization, kept in ~/.config/zenith/profile.json and
+// The Profile plate's customization, kept in ~/.config/asura/profile.json and
 // watched, so an edit shows on the plate at once and survives a reopen. A single
 // object: preset, heroSide, per-block visibility (blocks.<id>), the hero
 // (source/framing/dither), text overrides, and the chosen vitals/specs. Absent or
@@ -17,7 +17,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/profile.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/profile.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

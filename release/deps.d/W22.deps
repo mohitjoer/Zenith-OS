@@ -4,4 +4,4 @@ recommends pkexec  # installing and removing packages from the launcher
 recommends curl  # the web provider's instant answer and the hero weather
 recommends libglib2.0-bin  # gsettings, for the active GTK icon theme
 recommends xdg-utils  # xdg-open, which the finder and web rows open files and links with
-suggests qalc  # units and currency in the calculator (zenith-cmd-calc falls back without it)
+suggests qalc  # units and currency in the calculator (asura-cmd-calc falls back without it)

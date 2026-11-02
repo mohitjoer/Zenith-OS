@@ -4,9 +4,9 @@ exec 2>&1
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export XDG_RUNTIME_DIR="$RUNTIME_DIR"
 export QT_QPA_PLATFORM=wayland
-export XDG_CURRENT_DESKTOP=Zenith
-export XDG_SESSION_DESKTOP=zenith
-export DESKTOP_SESSION=zenith
+export XDG_CURRENT_DESKTOP=Asura
+export XDG_SESSION_DESKTOP=asura
+export DESKTOP_SESSION=asura
 export GDK_BACKEND=wayland
 
 # Resolve WAYLAND_DISPLAY from runtime socket if empty or invalid
@@ -23,13 +23,13 @@ for _ in $(seq 1 50); do
 	sleep 0.1
 done
 
-LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zenith"
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/asura"
 mkdir -p "$LOG_DIR"
 exec >>"$LOG_DIR/quickshell.log" 2>&1
 
-SHELL_DIR="${ZENITH_SHELL_DIR:-/usr/share/zenith/shell}"
-if [ ! -d "$SHELL_DIR" ] && [ -d "$HOME/code/Zenith-OS/shell" ]; then
-	SHELL_DIR="$HOME/code/Zenith-OS/shell"
+SHELL_DIR="${ASURA_SHELL_DIR:-/usr/share/asura/shell}"
+if [ ! -d "$SHELL_DIR" ] && [ -d "$HOME/code/Asura-OS/shell" ]; then
+	SHELL_DIR="$HOME/code/Asura-OS/shell"
 fi
 
 if ! command -v quickshell >/dev/null 2>&1 && [ ! -x /usr/bin/quickshell ]; then

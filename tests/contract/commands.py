@@ -12,7 +12,7 @@ and .desktop Exec= lines (extract.py), and resolves each bare command against:
      one ubuntu-minimal depends on (asked of dpkg, so Ubuntu only);
   4. tests/contract/optional.txt: `name  # how the caller is gated`;
   5. a `# unavailable: TOOL (fallback)` note in a .deps file.
-Absolute /usr/share/zenith/... paths must exist in the repo or in a build line.
+Absolute /usr/share/asura/... paths must exist in the repo or in a build line.
 
   commands.py            print UNRESOLVED (command, sites, file:line), exit 1 if any
   commands.py --report   same, exit 0
@@ -138,7 +138,7 @@ def owners(names):
 
 
 def path_ok(path):
-    m = re.match(r"/usr/share/zenith/(shell|session|hyprland)/(.*)", path)
+    m = re.match(r"/usr/share/asura/(shell|session|hyprland)/(.*)", path)
     if m:
         return os.path.exists(os.path.join(ROOT, {"hyprland": "session/hyprland"}.get(m.group(1), m.group(1)), m.group(2)))
     return any(path == re.sub(r"^\s*\S+\s*->\s*(\S+).*", r"\1", l) for _, _, l in read("release/build.d/*.build"))
@@ -155,7 +155,7 @@ def main(argv):
     miss = {}
     for i in inv:
         if i.path and i.path.rsplit("/", 1)[0] not in BINDIRS:
-            ok = path_ok(i.path) if i.path.startswith("/usr/share/zenith/") else os.path.exists(i.path)
+            ok = path_ok(i.path) if i.path.startswith("/usr/share/asura/") else os.path.exists(i.path)
         else:
             n = i.name
             ok = (n in bins or n in pkgs or ALIAS.get(n) in pkgs or n in optional or n in unavail
@@ -185,7 +185,7 @@ def selftest():
     assert {"flock", "qs", "sh", "a", "b", "c"} <= names, names
     assert any(i.dynamic for i in r.invocations)
     r = extract.ScanResult()
-    extract.scan_conf("t.conf", "$t = ghostty\nbind = SUPER, T, exec, $t -e btop\nexec-once = /usr/share/zenith/x\n", r)
+    extract.scan_conf("t.conf", "$t = ghostty\nbind = SUPER, T, exec, $t -e btop\nexec-once = /usr/share/asura/x\n", r)
     assert {i.name for i in r.invocations} >= {"ghostty", "btop", "x"}
     print("commands selftest ok")
     return 0

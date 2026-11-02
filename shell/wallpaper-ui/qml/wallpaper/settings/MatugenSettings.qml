@@ -18,7 +18,7 @@ Column {
 
     FileView {
         id: matugenFile
-        path: Quickshell.env("HOME") + "/.config/zenith/matugen.json"
+        path: Quickshell.env("HOME") + "/.config/asura/matugen.json"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -157,7 +157,7 @@ Column {
                     onToggle: function(v) {
                         var patch = {}
                         patch[modelData] = v
-                        Quickshell.execDetached(["zenith-hubd", "desktop", "matugen", "set",
+                        Quickshell.execDetached(["asura-hubd", "desktop", "matugen", "set",
                             JSON.stringify({ templates: patch })])
                     }
                 }

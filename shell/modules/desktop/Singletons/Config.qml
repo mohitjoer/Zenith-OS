@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Live config for the wallpaper clock. Zenith Settings, desktop dragging and the
+// Live config for the wallpaper clock. Asura Settings, desktop dragging and the
 // right-click menu share widgets.json; FileView watches it so every surface
 // follows the next write. Placement is a compass anchor or free monitor pixels.
 Singleton {
@@ -119,12 +119,12 @@ Singleton {
     property alias notesColor2:   adapter.notesColor2
     property alias notesGradient: adapter.notesGradient
 
-    // brand: the desktop's mark + name, user-overridable from Zenith Settings ->
+    // brand: the desktop's mark + name, user-overridable from Asura Settings ->
     // Shell -> Global. a small cross-cutting identity master (like theme.json).
     // markText is the glyph/short-text seal (default 天); markImage an optional
     // image path that wins over the text; markTint recolours a single-colour
-    // image to the accent; name is the wordmark ("Zenith") shown in chrome copy.
-    // Zenith's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
+    // image to the accent; name is the wordmark ("Asura") shown in chrome copy.
+    // Asura's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
     property alias markText:  brandAdapter.markText
     property alias markImage: brandAdapter.markImage
     property alias markTint:  brandAdapter.markTint
@@ -170,7 +170,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/widgets.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/widgets.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -283,7 +283,7 @@ Singleton {
     // pill seeds it; these defaults cover its absence, so no seed is written here.
     FileView {
         id: brandFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/brand.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/brand.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -294,7 +294,7 @@ Singleton {
             property string markText: "天"
             property string markImage: ""
             property bool markTint: true
-            property string name: "Zenith"
+            property string name: "Asura"
         }
     }
 

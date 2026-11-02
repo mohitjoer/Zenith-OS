@@ -17,11 +17,11 @@ var rows = [
     {
         "tab": "",
         "group": "ENGINE & MODEL",
-        "key": "# zenith-preset: <key>",
+        "key": "# asura-preset: <key>",
         "label": "Speech engine",
         "desc": "Which engine turns speech into text",
         "ctl": "seg",
-        "src": "voxtype.go, mode 0600, atomicWrite. Selection is persisted ONLY as a TOML *comment* marker `# zenith-preset: <key>` and read back by selectedPreset() scanning for that comment prefix.",
+        "src": "voxtype.go, mode 0600, atomicWrite. Selection is persisted ONLY as a TOML *comment* marker `# asura-preset: <key>` and read back by selectedPreset() scanning for that comment prefix.",
         "opts": [
             "whisper-fast",
             "whisper-accurate",

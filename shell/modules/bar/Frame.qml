@@ -59,18 +59,18 @@ Scope {
     // The frame bar's rail-action handler. External tools (lock, screenshot,
     // colour picker) still run through their standalone scripts; the launcher and
     // wallpaper switcher are in-process surfaces now, so their buttons flip this
-    // monitor's ShellState flag instead of spawning a zenith-shell client. Session
+    // monitor's ShellState flag instead of spawning a asura-shell client. Session
     // actions (logout/reboot/shutdown) raise the confirmation dialog on this
     // monitor, which runs the action only on the positive press.
     function runBarAction(id) {
         switch (id) {
-        case "lock": Quickshell.execDetached(["zenith-shell", "lock"]); break;
+        case "lock": Quickshell.execDetached(["asura-shell", "lock"]); break;
         case "logout":
         case "reboot":
         case "shutdown": ShellState.askSessionAction(id, root.modelData ? root.modelData.name : ""); break;
         case "screenshot": Spawn.run(["sh", "-c", "flock -n -o /tmp/ryoshot.lock qs -c ryoshot"]); break;
-        case "wallpaper": Quickshell.execDetached(["zenith-wallpaper", "wallpaper", "ui"]); break;
-        case "color-picker": Quickshell.execDetached(["zenith-cmd-color-picker"]); break;
+        case "wallpaper": Quickshell.execDetached(["asura-wallpaper", "wallpaper", "ui"]); break;
+        case "color-picker": Quickshell.execDetached(["asura-cmd-color-picker"]); break;
         case "app-launcher": if (root.state) root.state.launcherOpen = !root.state.launcherOpen; break;
         default: return;
         }
@@ -175,7 +175,7 @@ Scope {
         WlrLayershell.keyboardFocus: frameMenus.keyboardMode === "exclusive" ? WlrKeyboardFocus.Exclusive
             : frameMenus.keyboardMode === "ondemand" ? WlrKeyboardFocus.OnDemand
             : WlrKeyboardFocus.None
-        WlrLayershell.namespace: "zenith-frame"
+        WlrLayershell.namespace: "asura-frame"
         anchors { top: true; left: true; right: true; bottom: true }
 
         // Input catches the drawn rails and their 1px hover strips, plus every
@@ -301,7 +301,7 @@ Scope {
             visible: !overlay.monFullscreen
             Keys.onEscapePressed: if (frameMenus.keyboardMode === "exclusive") frameMenus.closeAll()
 
-            // Shared blob field for retained Zenith-owned credential, voice,
+            // Shared blob field for retained Asura-owned credential, voice,
             // stash, capture, and rail-card popouts plus RecordHud.
             BlobGroup {
                 id: blobGroup
@@ -400,10 +400,10 @@ Scope {
                     function onSurfaceRequested(id, mon, ctx) {
                         if (mon !== "" && mon !== (root.modelData ? root.modelData.name : ""))
                             return;
-                        // The wallpaper + theme picker is the zenith-wallpaper overlay now
+                        // The wallpaper + theme picker is the asura-wallpaper overlay now
                         // (Super+W); route its surface request straight there.
                         if (id === "wallpaper") {
-                            Quickshell.execDetached(["zenith-wallpaper", "wallpaper", "ui"]);
+                            Quickshell.execDetached(["asura-wallpaper", "wallpaper", "ui"]);
                             return;
                         }
                         frameMenus.openSurface(id, null, mon, ctx);

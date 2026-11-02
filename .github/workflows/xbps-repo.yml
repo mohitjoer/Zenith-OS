@@ -45,11 +45,11 @@ jobs:
         run: |
           mkdir -p build/bin
           cd desktop
-          for cmd in zenith zenith-sysd zenith-userd zenith-hubd zenith-shell zenith-wallpaper zpm; do
+          for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper zpm; do
             CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "../build/bin/$cmd" "./cmd/$cmd"
           done
 
-      - name: Build Zenith XBPS repository in Void container
+      - name: Build Asura XBPS repository in Void container
         run: |
           docker run --rm \
             -v "$PWD":/workspace \
@@ -61,7 +61,7 @@ jobs:
       - name: Upload XBPS repository artifact
         uses: actions/upload-artifact@v6
         with:
-          name: zenith-xbps-repo
+          name: asura-xbps-repo
           path: build/xbps-repo/
           if-no-files-found: error
           retention-days: 7

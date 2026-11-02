@@ -3,9 +3,9 @@
 # a manifest.json with the user's placement from plugins.json:
 #   { "id", "dir", "version", "manifest": {...}, "placement": {...} }
 # sources, first wins on duplicate id:
-#   $ZENITH_PLUGINS_DIR (dev override, colon-separated)
-#   ~/.local/share/zenith/plugins
-# placement + per-plugin settings live in ~/.config/zenith/plugins.json:
+#   $ASURA_PLUGINS_DIR (dev override, colon-separated)
+#   ~/.local/share/asura/plugins
+# placement + per-plugin settings live in ~/.config/asura/plugins.json:
 #   { "<id>": { "enabled": bool, "host": "...", "<host>": {...}, "key": "...",
 #               "settings": {...} } }
 # no entry or enabled=false = skipped. the shell only loads what the user
@@ -24,7 +24,7 @@ set -euo pipefail
 
 cfg_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
-installed_root="$data_home/zenith/plugins"
+installed_root="$data_home/asura/plugins"
 
 all=0
 [ "${1:-}" = "--all" ] && all=1
@@ -35,8 +35,8 @@ shopt -s nullglob
 manifest_files=()
 manifest_dirs=()
 dirs=()
-if [ -n "${ZENITH_PLUGINS_DIR:-}" ]; then
-	IFS=':' read -r -a extra <<<"$ZENITH_PLUGINS_DIR"
+if [ -n "${ASURA_PLUGINS_DIR:-}" ]; then
+	IFS=':' read -r -a extra <<<"$ASURA_PLUGINS_DIR"
 	dirs+=("${extra[@]}")
 fi
 dirs+=("$installed_root")
@@ -62,8 +62,8 @@ done
 
 # missing, empty or unreadable reads as empty text and parses to nothing.
 user_src=/dev/null
-if [ -s "$cfg_home/zenith/plugins.json" ] && [ -r "$cfg_home/zenith/plugins.json" ]; then
-	user_src="$cfg_home/zenith/plugins.json"
+if [ -s "$cfg_home/asura/plugins.json" ] && [ -r "$cfg_home/asura/plugins.json" ]; then
+	user_src="$cfg_home/asura/plugins.json"
 fi
 
 # the path list travels as one separator-joined string: the record separator

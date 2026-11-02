@@ -5,7 +5,7 @@ import "../.."
 import "../../components"
 import qs.Ui.Singletons
 
-// Settings for the optional Zenith Palette Bridge. The backend handles validation
+// Settings for the optional Asura Palette Bridge. The backend handles validation
 // and service policy; this page displays its status and sends actions.
 Column {
     id: root
@@ -27,7 +27,7 @@ Column {
     function refresh() {
         if (!statusProc.running) {
             root._statusBuf = ""
-            statusProc.command = ["zenith-hubd", "palette-bridge", "status", Config.paletteBridgeSource]
+            statusProc.command = ["asura-hubd", "palette-bridge", "status", Config.paletteBridgeSource]
             statusProc.running = true
         }
     }
@@ -37,7 +37,7 @@ Column {
         root.busy = true
         root.message = label + "…"
         root._actionBuf = ""
-        actionProc.command = ["zenith-hubd", "palette-bridge"].concat(args)
+        actionProc.command = ["asura-hubd", "palette-bridge"].concat(args)
         actionProc.running = true
     }
 
@@ -96,15 +96,15 @@ Column {
 
     SettingsCard {
         colors: root.colors
-        title: I18n.tr("Zenith Palette Bridge")
-        subtitle: I18n.tr("Live Zenith wallpaper colours for Zen, Spotify, and Vesktop.")
+        title: I18n.tr("Asura Palette Bridge")
+        subtitle: I18n.tr("Live Asura wallpaper colours for Zen, Spotify, and Vesktop.")
 
         RowTextInput {
             colors: root.colors
             title: I18n.tr("Build source")
-            description: I18n.tr("Use a local checkout, or Zenith's packaged source.")
+            description: I18n.tr("Use a local checkout, or Asura's packaged source.")
             value: Config.paletteBridgeSource
-            placeholder: "/usr/share/zenith/palette-bridge"
+            placeholder: "/usr/share/asura/palette-bridge"
             onCommit: function(v) {
                 if (root.saveConfigKey) root.saveConfigKey("paletteBridgeSource", v)
                 root.refresh()

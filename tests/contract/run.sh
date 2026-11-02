@@ -11,7 +11,7 @@
 #                commands with file:line; a trailing * means a file probes for the command
 #                (likely gated: a candidate for optional.txt, not a missing dependency).
 #                `commands.py --selftest` is the one runnable check of its parsers.
-#   daemon.py    zenith / zenith-shell / zenith-hubd / zenith-wallpaper verbs, and
+#   daemon.py    asura / asura-shell / asura-hubd / asura-wallpaper verbs, and
 #                `ipc call TARGET FN`, exist in the Go source / the shell's IpcHandlers.
 #   qml.sh       qmllint syntax-class errors against qml.baseline (its header says why only
 #                those; `qml.sh --update` re-baselines).

@@ -32,7 +32,7 @@ import "modules/confirm"
 import qs.Ui.Singletons
 
 /**
- * The single resident Zenith shell instance.
+ * The single resident Asura shell instance.
  *
  * One ShellRoot for the whole desktop. It brings the shared service singletons
  * online, holds the per-monitor ShellState every surface binds its visibility
@@ -41,9 +41,9 @@ import qs.Ui.Singletons
  * surface is instantiated once inside it and binds its screen and its visibility
  * to the slice, so a keybind that flips a flag on the active monitor reveals or
  * hides exactly this monitor's copy in-process, where the old shell spawned a
- * zenith-shell client per press across separate surface processes.
+ * asura-shell client per press across separate surface processes.
  *
- * The zenith-shell daemon launches this instance as `qs -c shell`, the live
+ * The asura-shell daemon launches this instance as `qs -c shell`, the live
  * desktop. Where the compositor offers a global-shortcuts protocol its binds
  * dispatch straight to the shortcuts registered here.
  *
@@ -71,10 +71,10 @@ ShellRoot {
     // The dim scrim; hypridle owns the idle clock (session/hyprland/hypridle.conf).
     Idle {}
 
-    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-reload-cover.json"
-    readonly property string reloadCoverBin: Quickshell.env("ZENITH_SHELL_DIR")
-        ? Quickshell.env("ZENITH_SHELL_DIR") + "/scripts/zenith-reload-cover"
-        : "zenith-reload-cover"
+    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-reload-cover.json"
+    readonly property string reloadCoverBin: Quickshell.env("ASURA_SHELL_DIR")
+        ? Quickshell.env("ASURA_SHELL_DIR") + "/scripts/asura-reload-cover"
+        : "asura-reload-cover"
     property string reloadToken: ""
     property bool reloadFinishSent: false
     property bool reloadReleaseArmed: false
@@ -140,7 +140,7 @@ ShellRoot {
     // (login already parsed the right value); only a later profile change reloads.
     FileView {
         id: hyprPerf
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/hypr-perf.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/hypr-perf.json"
         printErrors: false
         property bool armed: false
         onSaved: if (hyprPerf.armed) Wm.reloadConfig("")
@@ -408,7 +408,7 @@ ShellRoot {
                 property bool open: ShellState.sessionAction !== ""
                 activeAsync: open || confirmHold.running
                 onOpenChanged: if (!open && active) confirmHold.restart()
-                ZenithConfirmationDialog {
+                AsuraConfirmationDialog {
                     modelData: perScreen.modelData
                     action: ShellState.sessionActionMonitor === perScreen.modelData.name ? ShellState.sessionAction : ""
                     message: ShellState.sessionMessage
@@ -426,7 +426,7 @@ ShellRoot {
     // transition here: a per-monitor ShellState flip, a global config toggle, or
     // a request onto the frame menu bus. Both routes to a surface end in this one
     // call -- a CustomShortcut press where the compositor bridges global
-    // shortcuts, and the surfaceRequested bus a `zenith-shell <id>` spawn drives
+    // shortcuts, and the surfaceRequested bus a `asura-shell <id>` spawn drives
     // where that protocol is absent (niri) -- so a toggle is defined once.
     function toggleSurface(id) {
         const st = ShellState.forActive();
@@ -474,7 +474,7 @@ ShellRoot {
     }
 
     // The style-independent half of the surface bus. With no global-shortcuts
-    // protocol a keybind reaches a surface only by spawning `zenith-shell <id>`,
+    // protocol a keybind reaches a surface only by spawning `asura-shell <id>`,
     // which arrives here as a surfaceRequested. Frame-menu surfaces are opened by
     // the per-monitor FrameMenuManager (Frame.qml), which maps in every bar
     // style; the shell-wide flag surfaces have no such host, so this routes them
@@ -494,11 +494,11 @@ ShellRoot {
     }
 
     // In-process global shortcuts. Each dispatches to the one toggleSurface
-    // mapping above, so the compositor's global-shortcut bind and a `zenith-shell`
+    // mapping above, so the compositor's global-shortcut bind and a `asura-shell`
     // spawn drive the identical transition. Names match the compositor binds.
     CustomShortcut {
         name: "barToggle"
-        description: I18n.tr("Toggle the Zenith frame bar on the active monitor")
+        description: I18n.tr("Toggle the Asura frame bar on the active monitor")
         onPressed: root.toggleSurface("barToggle")
     }
     CustomShortcut {
@@ -527,11 +527,11 @@ ShellRoot {
     }
 
     // Keep-Awake's durable inhibitor lives outside the shell so it survives a
-    // reload/restart: zenith-cmd-caffeine runs systemd-inhibit independent of our
+    // reload/restart: asura-cmd-caffeine runs systemd-inhibit independent of our
     // lifetime, while the Wayland IdleInhibitor below only gives compositor-level
     // effect. Every surface toggle just flips Flags.keepAwake. (pill 246-257)
     function syncCaffeine(action) {
-        Quickshell.execDetached(["zenith-cmd-caffeine", action]);
+        Quickshell.execDetached(["asura-cmd-caffeine", action]);
     }
     Connections {
         target: Flags
@@ -541,7 +541,7 @@ ShellRoot {
     }
 
     // Game mode's compositor and WiFi tuning lives outside the shell, same shape
-    // as Keep-Awake: zenith-cmd-game-mode (on PATH) drives it so the tuning
+    // as Keep-Awake: asura-cmd-game-mode (on PATH) drives it so the tuning
     // survives a reload. The deck toggle just flips Flags.gameMode. It is
     // compositor tuning though (Hyprland live config eval), so it only fires
     // where the window manager can run it -- the deck tile and the launcher
@@ -550,7 +550,7 @@ ShellRoot {
     function syncGameMode(action) {
         if (Wm.caps.liveConfigEval !== true)
             return;
-        Quickshell.execDetached(["zenith-cmd-game-mode", action]);
+        Quickshell.execDetached(["asura-cmd-game-mode", action]);
     }
     Connections {
         target: Flags
@@ -578,7 +578,7 @@ ShellRoot {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Background
-        WlrLayershell.namespace: "zenith-frame-inhibit"
+        WlrLayershell.namespace: "asura-frame-inhibit"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         anchors { top: true; left: true }
         IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
@@ -605,7 +605,7 @@ ShellRoot {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "zenith-frame-kbfocus"
+        WlrLayershell.namespace: "asura-frame-kbfocus"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         anchors { top: true; left: true }
     }
@@ -700,7 +700,7 @@ ShellRoot {
     }
     // Menu global shortcuts: open a bar surface on the focused monitor. Each
     // dispatches to the one toggleSurface mapping so the compositor bind and the
-    // `zenith-shell <id>` spawn open the identical surface.
+    // `asura-shell <id>` spawn open the identical surface.
     CustomShortcut {
         name: "quicksettings"
         description: I18n.tr("Open quick settings on the active monitor")
@@ -737,12 +737,12 @@ ShellRoot {
         onPressed: root.toggleSurface("install")
     }
 
-    // --- Zenith keybind bridge --------------------------------------------
+    // --- Asura keybind bridge --------------------------------------------
     // The compositor's configuration (session/hyprland/hyprland.conf) still
-    // speaks the homegrown contract -- target "zenith" and the functions the
+    // speaks the homegrown contract -- target "asura" and the functions the
     // `kind: "shell"` entries of session/binds.json name -- because the
     // catalogue and the configuration are one list written down twice, and
-    // `zenith doctor` (internal/shell/binds.go) compares them in both
+    // `asura doctor` (internal/shell/binds.go) compares them in both
     // directions. Neither side may rename alone, so this root hosts the old
     // IpcHandler. Every function is a one-line route onto a surface the
     // ported shell already owns, ending in the same toggleSurface mapping
@@ -753,12 +753,12 @@ ShellRoot {
     // here are left in place but cannot double-fire the same chord: the
     // shipped hyprland.conf declares no `global,` dispatch binds at all, and
     // the quickshell bridge module CustomShortcut loads
-    // (Zenith.Wm.Hyprland GlobalShortcutBridge) was not carried over by the
+    // (Asura.Wm.Hyprland GlobalShortcutBridge) was not carried over by the
     // port, so nothing in this file registers those chords with the
     // global-shortcut protocol. The exec binds are the dispatcher for these
     // surface -keybinds, exactly as the conf's own comments say.
     IpcHandler {
-        target: "zenith"
+        target: "asura"
 
         function togglePopover(name: string): void {
             switch (name) {
@@ -772,7 +772,7 @@ ShellRoot {
                 root.toggleSurface("stash");
                 break;
             case "cheatsheet":
-                root.showCheatsheet(zenithSheetWindow.visible !== true);
+                root.showCheatsheet(asuraSheetWindow.visible !== true);
                 break;
             }
         }
@@ -796,34 +796,34 @@ ShellRoot {
         function toggleScreenshot(): void { root.toggleSurface("screenshot"); }
 
         // A Hub write to the idle keys lands here: hypridle reads its timeouts
-        // when it starts, so `zenith-idle apply` restarts it only if they changed.
+        // when it starts, so `asura-idle apply` restarts it only if they changed.
         // Every other setting is read reactively by the shell itself.
-        function reloadSettings(): void { Quickshell.execDetached(["zenith-idle", "apply"]); }
+        function reloadSettings(): void { Quickshell.execDetached(["asura-idle", "apply"]); }
     }
 
     function toggleCheatsheet() {
-        root.showCheatsheet(zenithSheetWindow.visible !== true);
+        root.showCheatsheet(asuraSheetWindow.visible !== true);
     }
 
     function showCheatsheet(on) {
         if (on)
-            zenithSheetLoader.active = true; // the sheet builds on first open
-        zenithSheetWindow.visible = on;
+            asuraSheetLoader.active = true; // the sheet builds on first open
+        asuraSheetWindow.visible = on;
     }
 
     function advanceSwitcher() {
-        if (zenithSwitcher.item)
-            zenithSwitcher.item.advance();
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.advance();
     }
 
     function closeSwitcher() {
-        if (zenithSwitcher.item)
-            zenithSwitcher.item.close();
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.close();
     }
 
     function reverseSwitcher() {
-        if (zenithSwitcher.item)
-            zenithSwitcher.item.reverse();
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.reverse();
     }
 
     // Super+Alt+Tab: step the desktop strip of an open overview, or open the
@@ -840,7 +840,7 @@ ShellRoot {
         }
     }
 
-    // The switcher and the cheat sheet are Zenith's own parked surfaces from
+    // The switcher and the cheat sheet are Asura's own parked surfaces from
     // the homegrown shell (Switcher.qml, Shell.qml), hosted here so the conf's
     // exec binds drive them in-process. The Loader confines a component that
     // fails to load to a log line: a sheet that will not load is a sheet that
@@ -848,12 +848,12 @@ ShellRoot {
     // resident (its window is born hidden), the sheet builds on first open
     // like the port's own toggle surfaces.
     Loader {
-        id: zenithSwitcher
+        id: asuraSwitcher
         source: "Switcher.qml"
     }
 
     PanelWindow {
-        id: zenithSheetWindow
+        id: asuraSheetWindow
         visible: false
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
@@ -868,7 +868,7 @@ ShellRoot {
         Shortcut { sequence: "Escape"; onActivated: root.showCheatsheet(false) }
 
         Loader {
-            id: zenithSheetLoader
+            id: asuraSheetLoader
             active: false
             anchors.centerIn: parent
             source: "Shell.qml"

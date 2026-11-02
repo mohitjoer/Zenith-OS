@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# grab a region, dump it to uguu.se, hand the URL to Google Lens. grim+slurp
+# pick, curl+jq do the upload + read back the URL, xdg-open opens the search.
+# --file IMAGE skips the grab. The image leaves the machine for a third-party
+# host (uguu.se keeps it for a few hours), so this only ever runs when the user
+# asks for it.
+set -euo pipefail
+
+app="Google Lens"
+prog="asura-cmd-google-lens"
+# A missing tool is a notification, because the shell runs this with nowhere to
+# print, plus exit 127 (the shell's "command not found") with the apt package
+# named. notify-send is checked first and on its own: it is the one tool whose
+# absence cannot be reported through itself.
+need() { # command [package]
+  command -v "$1" >/dev/null 2>&1 && return 0
+  echo "$prog: $1 is not installed (sudo apt install ${2:-$1})" >&2
+  command -v notify-send >/dev/null 2>&1 \
+    && notify-send -u normal "$app" "$1 is not installed (sudo apt install ${2:-$1})" 2>/dev/null
+  exit 127
+}
+
+need notify-send libnotify-bin
+
+input_file=""
+if [[ ${1:-} == "--file" ]]; then
+  [[ -n ${2:-} ]] || { notify-send -u critical "$app" "Missing image path"; exit 2; }
+  input_file="$2"; shift 2
+fi
+(( $# == 0 )) || { notify-send -u critical "$app" "Usage: $prog [--file IMAGE]"; exit 2; }
+
+need curl
+need jq
+need xdg-open xdg-utils
+
+# Only the file made here is removed; a --file image is the caller's.
+shot=""
+cleanup() { [[ -z $shot ]] || rm -f "$shot"; }
+trap cleanup EXIT
+
+tmp="$input_file"
+if [[ -z $tmp ]]; then
+  need grim
+  need slurp
+  shot="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/asura-google-lens.XXXXXX.png")"
+  tmp="$shot"
+fi
+
+if [[ -n $input_file ]]; then
+  [[ -r $tmp ]] || { notify-send -u critical "$app" "Cannot read image at $tmp"; exit 1; }
+else
+  # slurp nonzero = Esc/cancel. bail quietly.
+  geometry="$(slurp 2>/dev/null)" || exit 130
+  [[ -n $geometry ]] || exit 0
+  grim -g "$geometry" "$tmp"
+fi
+
+notify-send -u low "$app" "Uploading region and opening Google Lens"
+
+if ! response="$(curl -fsS --connect-timeout 10 --max-time 45 -F "files[]=@$tmp" https://uguu.se/upload)"; then
+  notify-send -u critical "$app" "Image upload failed"
+  exit 1
+fi
+
+remote_url="$(printf '%s' "$response" | jq -r '.files[0].url // .files[0].src // empty')"
+[[ -n $remote_url ]] || { notify-send -u critical "$app" "Upload response had no image URL"; exit 1; }
+
+encoded_url="$(jq -nr --arg url "$remote_url" '$url|@uri')"
+xdg-open "https://www.google.com/searchbyimage?image_url=$encoded_url" >/dev/null 2>&1

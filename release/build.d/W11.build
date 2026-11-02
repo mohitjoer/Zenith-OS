@@ -1,2 +1,2 @@
-session/sddm/themes/zenith -> /usr/share/zenith/session/sddm/themes/zenith
-session/sddm/zenith.conf -> /usr/share/zenith/session/sddm/zenith.conf
+session/sddm/themes/asura -> /usr/share/asura/session/sddm/themes/asura
+session/sddm/asura.conf -> /usr/share/asura/session/sddm/asura.conf

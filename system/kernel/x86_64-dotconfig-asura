@@ -1,0 +1,32 @@
+# Asura OS Low-Latency Gaming & Compilation Kernel Configuration
+# Designed for maximum 1% low gaming framerates and sub-millisecond desktop response
+# Layer 2 Tuning: CachyOS / BORE patchset, 1000Hz, Full Preemption, sched_ext
+
+# BORE (Burst-Oriented Response Enhancer) & eBPF sched_ext
+CONFIG_SCHED_BORE=y
+CONFIG_SCHED_CLASS_EXT=y
+
+# 1000Hz Timer Frequency & Full Preemption
+CONFIG_HZ_1000=y
+CONFIG_HZ=1000
+CONFIG_PREEMPT=y
+CONFIG_USER_NS=y
+
+# Multi-Queue I/O Schedulers (Kyber for NVMe, BFQ for SSD)
+CONFIG_MQ_IOSCHED_KYBER=y
+CONFIG_IOSCHED_BFQ=y
+
+# High-Performance Btrfs with ZSTD Compression
+CONFIG_BTRFS_FS=y
+CONFIG_BTRFS_FS_POSIX_ACL=y
+CONFIG_CRYPTO_ZSTD=y
+CONFIG_ZSTD_COMPRESS=y
+CONFIG_ZSTD_DECOMPRESS=y
+
+# ZRAM Compression (zstd)
+CONFIG_ZRAM=m
+CONFIG_ZRAM_DEF_COMP_ZSTD=y
+
+# Disable heavy debug info to keep compilation fast, enable BTF for scx eBPF
+CONFIG_DEBUG_INFO=n
+CONFIG_DEBUG_INFO_BTF=y

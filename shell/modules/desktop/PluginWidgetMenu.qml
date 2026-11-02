@@ -15,7 +15,7 @@ import qs.Ui.Singletons
 //   choice -> chips, toggle -> switch, slider -> slider,
 //   image  -> thumbnail strip scanned from ~/Pictures + a file chooser.
 // Text fields are left to the hub. Each change emits
-// settingChanged(id, key, value); the host persists via zenith-plugins-place
+// settingChanged(id, key, value); the host persists via asura-plugins-place
 // and the shell retunes live.
 Item {
     id: menu

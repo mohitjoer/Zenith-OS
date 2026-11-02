@@ -15,22 +15,22 @@ Singleton {
     // never a second black.
     readonly property color panel: Qt.rgba(Tokens.paper.r, Tokens.paper.g, Tokens.paper.b, 0.66)
 
-    // brand mark + name, user-overridable via ~/.config/zenith/brand.json (Shell ->
-    // Global). defaults to the 天 seal / "Zenith". BrandMark renders `mark`, or
-    // `markSource` (an image) when set. Zenith's own apps never read these.
+    // brand mark + name, user-overridable via ~/.config/asura/brand.json (Shell ->
+    // Global). defaults to the 天 seal / "Asura". BrandMark renders `mark`, or
+    // `markSource` (an image) when set. Asura's own apps never read these.
     readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u5929"
     readonly property string markSource: brandAdapter.markImage
     readonly property bool markTint: brandAdapter.markTint
-    readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Zento"
+    readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Asura"
 
 
-    // brand identity master (mark + name), the same ~/.config/zenith/brand.json the
+    // brand identity master (mark + name), the same ~/.config/asura/brand.json the
     // rest of the shell and the Hub read. read-only here: the always-on
     // pill seeds the file, so this once-per-login window just falls back to the
     // adapter defaults when it is absent.
     FileView {
         id: brandFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/brand.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/brand.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -40,7 +40,7 @@ Singleton {
             property string markText: "天"
             property string markImage: ""
             property bool markTint: true
-            property string name: "Zenith"
+            property string name: "Asura"
         }
     }
 }

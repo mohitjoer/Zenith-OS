@@ -33,7 +33,7 @@ ColumnLayout {
 
     // A row is chosen from a name rather than built with a chain of conditionals,
     // so the mapping between a control type and a widget is one lookup and it is
-    // the same lookup `zenith doctor` checks has a control for every type.
+    // the same lookup `asura doctor` checks has a control for every type.
     function editorFor(key) {
         switch (key.control) {
         case "switch": return "Controls/SwitchControl.qml";
@@ -128,7 +128,7 @@ ColumnLayout {
                         // What the setting is, and the key it is stored under.
                         //
                         // The summary is the label and the key is the identity,
-                        // and the key is what `zenith config set` takes, so it
+                        // and the key is what `asura config set` takes, so it
                         // is shown rather than kept to itself: a reader who has
                         // to guess the name of a setting cannot be told to set
                         // it from a terminal.

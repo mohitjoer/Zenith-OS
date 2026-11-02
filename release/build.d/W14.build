@@ -1,3 +1,3 @@
-session/zenith-welcome -> /usr/bin/zenith-welcome
-session/zenith-pin -> /usr/bin/zenith-pin
-session/zenith-reload-cover -> /usr/bin/zenith-reload-cover
+session/asura-welcome -> /usr/bin/asura-welcome
+session/asura-pin -> /usr/bin/asura-pin
+session/asura-reload-cover -> /usr/bin/asura-reload-cover

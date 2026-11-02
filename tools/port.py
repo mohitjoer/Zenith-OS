@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """port.py SRC DST [--exclude GLOB]... [--rename SRCREL=DSTREL]...
 
-Copy text files from the Ryoku reference tree into the Zenith tree and apply the
+Copy text files from the Ryoku reference tree into the Asura tree and apply the
 port's rebranding rules to content and file names. Never overwrites an existing
 file. Binary assets are skipped (the port does not take Ryoku's first-party
 art, fonts or audio). Prints what it created and every 'ryoku' mention left.
@@ -22,18 +22,18 @@ RULES = [
     (r'\bRyoku\.PluginKit\.Singletons\b', 'qs.PluginKit.Singletons'),
     (r'\bRyoku\.PluginKit\b', 'qs.PluginKit'),
     (r'\bRyoku\.Blobs\b', 'qs.Blobs'),
-    (r'ryoku-shell', 'zenith-shell'),
-    (r'ryoku-hub\b', 'zenith-hubd'),
-    (r'ryogami', 'zenith-wallpaper'),
-    (r'ryoshot', 'zenith-shot'),
-    (r'ryostage', 'zenith-stage'),
-    (r'ryopin', 'zenith-pin'),
-    (r'ryostore', 'zenith-store'),
-    (r'ryovm', 'zenith-vm'),
-    (r'ryotunes', 'zenith-tunes'),
-    (r'RYOKU', 'ZENITH'),
-    (r'Ryoku', 'Zenith'),
-    (r'ryoku', 'zenith'),
+    (r'ryoku-shell', 'asura-shell'),
+    (r'ryoku-hub\b', 'asura-hubd'),
+    (r'ryogami', 'asura-wallpaper'),
+    (r'ryoshot', 'asura-shot'),
+    (r'ryostage', 'asura-stage'),
+    (r'ryopin', 'asura-pin'),
+    (r'ryostore', 'asura-store'),
+    (r'ryovm', 'asura-vm'),
+    (r'ryotunes', 'asura-tunes'),
+    (r'RYOKU', 'ASURA'),
+    (r'Ryoku', 'Asura'),
+    (r'ryoku', 'asura'),
 ]
 COMPILED = [(re.compile(a), b) for a, b in RULES]
 

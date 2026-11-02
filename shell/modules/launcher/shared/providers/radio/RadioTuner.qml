@@ -97,10 +97,10 @@ Provider {
     }
 
     // The provider, and the radio's status polling, exist only once the
-    // zenith-cmd-radio helper is found.
+    // asura-cmd-radio helper is found.
     Process {
         id: availProc
-        command: ["sh", "-c", "command -v zenith-cmd-radio >/dev/null 2>&1"]
+        command: ["sh", "-c", "command -v asura-cmd-radio >/dev/null 2>&1"]
         onExited: (code) => {
             if (code !== 0)
                 return;
@@ -114,7 +114,7 @@ Provider {
     // the station catalog never changes at runtime; one read once found.
     Process {
         id: stationsProc
-        command: ["zenith-cmd-radio", "stations"]
+        command: ["asura-cmd-radio", "stations"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var rows = [];

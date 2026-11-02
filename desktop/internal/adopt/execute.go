@@ -21,7 +21,7 @@ import (
 // write, so a failure at any step leaves a way back.
 func Execute(env PlanEnv, user User, base Base, machine Machine, backupDir string) error {
 	if os.Geteuid() != 0 {
-		return fmt.Errorf("zenith adopt: needs root; run with sudo")
+		return fmt.Errorf("asura adopt: needs root; run with sudo")
 	}
 
 	// Step zero: the preflight. The same check `--check` runs, because a plan
@@ -35,16 +35,16 @@ func Execute(env PlanEnv, user User, base Base, machine Machine, backupDir strin
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("zenith adopt: preflight: %w", err)
+		return fmt.Errorf("asura adopt: preflight: %w", err)
 	}
 	if !report.Ready() {
-		return fmt.Errorf("zenith adopt: preflight blocked — run `zenith adopt --check` first")
+		return fmt.Errorf("asura adopt: preflight blocked — run `asura adopt --check` first")
 	}
 
 	// Build the plan.
 	plan := BuildPlan(env)
 	if len(plan.Actions) == 0 {
-		return fmt.Errorf("zenith adopt: the plan is empty; nothing to do")
+		return fmt.Errorf("asura adopt: the plan is empty; nothing to do")
 	}
 
 	// Write the undo script before the first write. If adoption fails halfway,
@@ -64,19 +64,19 @@ func Execute(env PlanEnv, user User, base Base, machine Machine, backupDir strin
 		Prune:         Prune{Performed: env.Prune},
 	}
 	if err := WriteUndoScript(undoPath, plan, state); err != nil {
-		return fmt.Errorf("zenith adopt: writing the undo script: %w", err)
+		return fmt.Errorf("asura adopt: writing the undo script: %w", err)
 	}
 
 	// Execute each action in order.
 	for i, action := range plan.Actions {
 		if err := executeAction(action, env, state); err != nil {
-			return fmt.Errorf("zenith adopt: step %d (%s %s): %w", i+1, action.Kind, action.Target, err)
+			return fmt.Errorf("asura adopt: step %d (%s %s): %w", i+1, action.Kind, action.Target, err)
 		}
 	}
 
 	// Save the state.
 	if err := Save(state); err != nil {
-		return fmt.Errorf("zenith adopt: saving state: %w", err)
+		return fmt.Errorf("asura adopt: saving state: %w", err)
 	}
 
 	return nil

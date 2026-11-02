@@ -100,7 +100,7 @@ Item {
     }
 
     readonly property var paletteModel: SysInfo.sysPalette.length > 0 ? SysInfo.sysPalette.split(",") : Scheme.ramp
-    readonly property string barcodeText: I18n.tr("ZENITH-") + SysInfo.codename.toUpperCase() + "-" + (pg.installDate.length > 0 ? pg.installDate : I18n.tr("UNKNOWN"))
+    readonly property string barcodeText: I18n.tr("ASURA-") + SysInfo.codename.toUpperCase() + "-" + (pg.installDate.length > 0 ? pg.installDate : I18n.tr("UNKNOWN"))
 
     // customization: read from ProfileStore with the plate's built-in default, so
     // an absent/empty profile.json renders exactly the stock marble plate.
@@ -531,7 +531,7 @@ Item {
                 height: hero.height * pg.f("hero.zoom", 1.0)
                 x: (hero.width - width) * pg.f("hero.focalX", 0.5)
                 y: (hero.height - height) * pg.f("hero.focalY", 0.4)
-                source: hero.src.length > 0 ? ("file://" + (Quickshell.env("HOME") || "") + "/.config/zenith/profile/" + hero.src) : ""
+                source: hero.src.length > 0 ? ("file://" + (Quickshell.env("HOME") || "") + "/.config/asura/profile/" + hero.src) : ""
                 dotScale: pg.f("hero.dither", 1.0)
                 invert: pg.f("hero.invert", false)
                 fillMode: Image.PreserveAspectCrop
@@ -610,7 +610,7 @@ Item {
         Text {
             anchors.centerIn: parent
             rotation: -90
-            text: pg.f("text.marginalia", I18n.tr("ZENITH · %1 · KERNEL %2 · SHOT ON BLACK").arg(pg.fv(SysInfo.codename)).arg(pg.fv(SysInfo.sysKernel)))
+            text: pg.f("text.marginalia", I18n.tr("ASURA · %1 · KERNEL %2 · SHOT ON BLACK").arg(pg.fv(SysInfo.codename)).arg(pg.fv(SysInfo.sysKernel)))
             color: Tokens.inkFaint
             font.family: Tokens.mono
             font.pixelSize: Tokens.fTiny
@@ -992,7 +992,7 @@ Item {
         id: grabTimer
         interval: 60
         onTriggered: {
-            const path = (Quickshell.env("HOME") || "") + "/Pictures/zenith-profile-" + Qt.formatDate(new Date(), "yyyyMMdd") + ".png";
+            const path = (Quickshell.env("HOME") || "") + "/Pictures/asura-profile-" + Qt.formatDate(new Date(), "yyyyMMdd") + ".png";
             pg.grabToImage(function (res) { res.saveToFile(path); pg.grabbing = false; }, Qt.size(pg.width * 2, pg.height * 2));
         }
     }
@@ -1003,7 +1003,7 @@ Item {
         foldersOnly: true
         startFolder: "file://" + (Quickshell.env("HOME") || "")
         onPicked: (p) => {
-            profileProc.command = ["zenith-hubd", "profile", "export", ("" + p).replace("file://", "") + "/zenith-" + pg.fv(SysInfo.sysUser) + ".ryoprofile"];
+            profileProc.command = ["asura-hubd", "profile", "export", ("" + p).replace("file://", "") + "/asura-" + pg.fv(SysInfo.sysUser) + ".ryoprofile"];
             profileProc.running = true;
             exportDlg.active = false;
         }
@@ -1011,11 +1011,11 @@ Item {
     }
     PickFile {
         id: importDlg
-        title: I18n.tr("Open a Zenith profile")
+        title: I18n.tr("Open a Asura profile")
         fileFilters: ["*.ryoprofile"]
         startFolder: "file://" + (Quickshell.env("HOME") || "")
         onPicked: (p) => {
-            profileProc.command = ["zenith-hubd", "profile", "import", ("" + p).replace("file://", "")];
+            profileProc.command = ["asura-hubd", "profile", "import", ("" + p).replace("file://", "")];
             profileProc.running = true;
             importDlg.active = false;
         }

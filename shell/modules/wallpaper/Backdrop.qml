@@ -22,7 +22,7 @@ import "Singletons"
 // the next reveal grows from that image, so rapid Super+Shift+W never flashes.
 Item {
     id: view
-    // Yield to the zenith-wallpaper-live C player: when the frame says live, the whole
+    // Yield to the asura-wallpaper-live C player: when the frame says live, the whole
     // painter hides so the C player's layer below shows through.
     visible: !view.live
 
@@ -46,7 +46,7 @@ Item {
 
     // The live clip ("" for a still).
     property string videoUrl: ""
-    // The zenith-wallpaper-live yield flag: the painter hides while the C player owns
+    // The asura-wallpaper-live yield flag: the painter hides while the C player owns
     // the layer; false for the in-shell engine, which plays inside this surface.
     property bool live: false
 
@@ -69,7 +69,7 @@ Item {
     readonly property bool decoded: imgA.status === Image.Ready || imgB.status === Image.Ready
 
     // The player is presenting frames: the reveal shader yields to the video
-    // surface, exactly where the old zenith-wallpaper-live READY flip hid the still.
+    // surface, exactly where the old asura-wallpaper-live READY flip hid the still.
     // Read this through the player itself from any notify handler: reading the
     // binding from its own notify handler (onVideoActiveChanged) looped the
     // MediaPlayer's playbackState notify and froze the wallpaper.

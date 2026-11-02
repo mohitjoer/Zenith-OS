@@ -6,7 +6,7 @@ import qs.Ui.Singletons
 import "Singletons"
 
 // Remotes: the distant fleet. Saved SSH hosts and VPS from ~/.ssh/config and
-// zenith-vm's own book, each carrying a live state and, on demand, a full health
+// asura-vm's own book, each carrying a live state and, on demand, a full health
 // probe. The list is the console; a berth opens on the right. A PuTTY that also
 // tells you how the box is doing.
 Item {
@@ -139,7 +139,7 @@ Item {
                 width: parent.width
                 visible: rem.shown.length === 0 && !Remotes.loading
                 caption: !Remotes.engineOk
-                    ? I18n.tr("The remote engine (zenith-vm-ssh) is not installed.")
+                    ? I18n.tr("The remote engine (asura-vm-ssh) is not installed.")
                     : Remotes.hosts.length === 0
                         ? I18n.tr("No remotes yet. Add a VPS with NEW, or drop hosts in ~/.ssh/config.")
                         : I18n.tr("No host matches that filter.")

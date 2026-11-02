@@ -7,7 +7,7 @@
 # it is "does it come up anyway". Every branch that fails has to fall back to
 # plain Weston rather than exit.
 #
-# It is run rather than unit-tested, for the same reason zenith-session is: the
+# It is run rather than unit-tested, for the same reason asura-session is: the
 # properties are about how /bin/sh behaves, and the only way to know that is to
 # run it.
 #
@@ -15,7 +15,7 @@
 set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-GREETER="$REPO_ROOT/session/zenith-greeter"
+GREETER="$REPO_ROOT/session/asura-greeter"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -53,8 +53,8 @@ STUB
 
 run_greeter() {
     WESTON_ARGS="$WORK/args" WESTON_CONFIG="$WORK/weston.ini" \
-    ZENITH_WESTON="$WORK/weston" ZENITH_MODETEST="$WORK/modetest" \
-    ZENITH_KEYBOARD="${KEYBOARD_CONF:-$WORK/no-keyboard-file}" \
+    ASURA_WESTON="$WORK/weston" ASURA_MODETEST="$WORK/modetest" \
+    ASURA_KEYBOARD="${KEYBOARD_CONF:-$WORK/no-keyboard-file}" \
         "$GREETER" >"$WORK/out" 2>&1 || echo "exit=$?" >> "$WORK/out"
     cat "$WORK/out"
 }
@@ -76,7 +76,7 @@ check "it runs when modetest output cannot be parsed" $rc
 
 # The one that matters most: the tool is missing entirely.
 rc=0; WESTON_ARGS="$WORK/args" WESTON_CONFIG="$WORK/weston.ini" \
-    ZENITH_WESTON="$WORK/weston" ZENITH_MODETEST="$WORK/does-not-exist" \
+    ASURA_WESTON="$WORK/weston" ASURA_MODETEST="$WORK/does-not-exist" \
     "$GREETER" >/dev/null 2>&1 || rc=$?
 check "it runs when modetest is not installed" $rc
 
@@ -123,7 +123,7 @@ run_greeter >/dev/null
 rc=0; grep -q '^locker=false$' "$WORK/weston.ini" || rc=$?
 check "the session locker is off" $rc
 
-rc=0; grep -q 'command=.*/usr/bin/quickshell -p /usr/share/zenith/greeter$' \
+rc=0; grep -q 'command=.*/usr/bin/quickshell -p /usr/share/asura/greeter$' \
     "$WORK/weston.ini" || rc=$?
 check "the login surface is named" $rc
 
@@ -154,7 +154,7 @@ check "without a keyboard file weston keeps its default and still starts" $rc
 # --------------------------------------------------------------- the SDDM theme
 echo
 echo "checking the SDDM theme"
-THEME="$REPO_ROOT/session/sddm/themes/zenith"
+THEME="$REPO_ROOT/session/sddm/themes/asura"
 
 # Without this line SDDM looks for the Qt5 greeter, which 26.04 does not ship,
 # and quietly shows its built-in theme instead.

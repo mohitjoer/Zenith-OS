@@ -118,7 +118,7 @@ type Display struct {
 	Percent int `json:"percent"`
 	// Writable is false on a stock image, and the sidebar shows the level without
 	// a slider. Writing /sys/class/backlight/*/brightness needs a udev rule
-	// Zenith has not laid down; see docs/architecture.md.
+	// Asura has not laid down; see docs/architecture.md.
 	Writable bool `json:"writable"`
 }
 
@@ -405,7 +405,7 @@ func parseBluetoothDevices(listing string) []BluetoothDevice {
 // to "whichever backlight comes first", because a machine can have more than one
 // and the bare form silently follows the first.
 //
-// Writable is false and stays false until Zenith lays down a udev rule; see
+// Writable is false and stays false until Asura lays down a udev rule; see
 // docs/architecture.md. It is reported rather than assumed so the sidebar can
 // show the level without offering a slider that fails.
 func display() Display {

@@ -2,7 +2,7 @@
 # Local cobalt instance lifecycle for the stash download engine toggle.
 # cobalt ships only as a Docker image (no distro package, no public API), so the
 # "Cobalt engine" switch in the stash Tools section drives a single container
-# named zenith-cobalt, bound to loopback. Kept between runs so on/off is instant
+# named asura-cobalt, bound to loopback. Kept between runs so on/off is instant
 # after the first pull.
 #
 # tab-separated, line-buffered status the shell (Stash.qml) parses:
@@ -12,17 +12,17 @@
 # usage: stash-cobalt-server.sh status | up | down
 set -u
 
-NAME="zenith-cobalt"
+NAME="asura-cobalt"
 IMAGE="ghcr.io/imputnet/cobalt:11"
 PORT="${COBALT_PORT:-9000}"
 URL="http://localhost:${PORT}/"
 
 emit() { printf '%s\t%s\n' "$1" "${2:-}"; }
 
-HELPER="${ZENITH_DOCKER_HELPER:-zenith-docker}"
+HELPER="${ASURA_DOCKER_HELPER:-asura-docker}"
 
 # Two ways to reach docker. Directly, when this session already has access (the
-# user is in the docker group and the daemon is up), or through zenith-docker,
+# user is in the docker group and the daemon is up), or through asura-docker,
 # which escalates via polkit and therefore does not care about the session's
 # groups. The helper is what lets first-time setup work without a re-login.
 # Resolved once per run.
@@ -38,7 +38,7 @@ resolve_access() {
   fi
 }
 
-# missing: no docker binary at all, so `zenith update` is the fix. setup: docker
+# missing: no docker binary at all, so `asura update` is the fix. setup: docker
 # is installed but this session cannot reach it AND the privileged helper can,
 # so the setup wizard can fix it in place. denied: unreachable with no helper to
 # fix it. ready: usable right now.
@@ -124,7 +124,7 @@ up)
   d=$(docker_state)
   case "$d" in
     missing) emit ERROR "docker is not installed"; exit 2 ;;
-    denied)  emit ERROR "docker is installed but not reachable, and the zenith-docker helper is missing"; exit 2 ;;
+    denied)  emit ERROR "docker is installed but not reachable, and the asura-docker helper is missing"; exit 2 ;;
   esac
   [ "$(container_state)" = running ] && { emit READY; exit 0; }
   emit STATUS starting

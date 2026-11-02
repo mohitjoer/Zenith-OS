@@ -295,7 +295,7 @@ Item {
     // ── persistence: the page owns widgets.json ──────────────────────────────
     FileView {
         id: cfg
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/widgets.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/widgets.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -494,7 +494,7 @@ Item {
     // Plugins whose home is the wallpaper, discovered exactly as the Add-ons
     // page does (discover.sh --all, then keep only the desktopWidget host).
     // They live below the built-in grid, grouped by the set their manifest
-    // names, and toggle live through zenith-plugins-place -- outside this page's
+    // names, and toggle live through asura-plugins-place -- outside this page's
     // draft/Save flow entirely.
     property var storeRows: []
 
@@ -525,7 +525,7 @@ Item {
     function placePlugin(id, enabled) {
         if (!id)
             return;
-        storePlaceProc.command = ["zenith-plugins-place", id, "enabled", enabled ? "true" : "false"];
+        storePlaceProc.command = ["asura-plugins-place", id, "enabled", enabled ? "true" : "false"];
         storePlaceProc.running = true;
     }
 
@@ -569,7 +569,7 @@ Item {
     // this shelf without reopening the Hub.
     FileView {
         id: placementWatch
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/plugins.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/plugins.json"
         watchChanges: true
         printErrors: false
         onFileChanged: pg.refreshStore()

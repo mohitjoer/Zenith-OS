@@ -12,7 +12,7 @@ import qs.Services as Svc
  * One workspace as a scaled mini-desktop. A large Fraunces workspace numeral is
  * the identity (vermillion when active); windows sit at their real fractional
  * positions, each a LIVE ScreencopyView over an app-icon fallback. Every cell
- * carries a hard solid-black offset shadow (Zenith brutalist depth, no blur), and
+ * carries a hard solid-black offset shadow (Asura brutalist depth, no blur), and
  * Left-click empty space to switch here, or a window to focus it; RIGHT-CLICK
  * anywhere enters that workspace. Press-drag a window onto another cell to move
  * it. In the scrolling layout a workspace is an infinite horizontal tape, so the
@@ -170,7 +170,7 @@ Item {
             Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.28) }
         }
 
-        // Zenith-style workspace numeral: a bold zero-padded mono ordinal in the
+        // Asura-style workspace numeral: a bold zero-padded mono ordinal in the
         // top-left, vermillion when active/hovered.
         // Above the previews (z), on a faint chip so it reads over any window.
         Rectangle {
@@ -191,7 +191,7 @@ Item {
                 id: numText
                 anchors.centerIn: parent
                 // position within the desktop (ws11 on desktop 2 reads "01"), so
-                // every desktop counts its own 01, 02, 03... Zenith-style padded.
+                // every desktop counts its own 01, 02, 03... Asura-style padded.
                 readonly property int pos: cell.ov ? (((cell.wsId - 1) % cell.ov.perDesktop) + 1) : cell.wsId
                 text: (numText.pos < 10 ? "0" : "") + numText.pos
                 color: (cell.active || cell.hovered) ? Theme.brand : Theme.cream

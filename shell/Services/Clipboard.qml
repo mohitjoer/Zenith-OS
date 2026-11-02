@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // QML view of the daemon `clipboard` topic. The selection watcher and the whole
-// history live in zenith-shell (clipboard.go), so QML never runs an external
+// history live in asura-shell (clipboard.go), so QML never runs an external
 // history tool: `subscribe clipboard` streams a full {entries:[...]} frame,
 // newest first, on every change, and copy/delete/clear intents ride back over a
 // second connection. Each entry already carries its resolved view: a "text"
@@ -17,7 +17,7 @@ Singleton {
     id: root
 
     property var entries: []
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
 
     function apply(line) {
         try {

@@ -27,19 +27,19 @@ Item {
         ListElement { name: "guest"; realName: ""; icon: "" }
         ListElement { name: "mohit"; realName: "Mohit"; icon: "" }
     }
-    // Alphabetical, as SDDM lists them: Zenith arrives last.
+    // Alphabetical, as SDDM lists them: Asura arrives last.
     ListModel {
         id: sessionModel
         ListElement { file: "/usr/share/wayland-sessions/gnome.desktop"; name: "GNOME" }
         ListElement { file: "/usr/share/wayland-sessions/hyprland.desktop"; name: "Hyprland" }
-        ListElement { file: "/usr/share/wayland-sessions/zenith.desktop"; name: "Zenith" }
+        ListElement { file: "/usr/share/wayland-sessions/asura.desktop"; name: "Asura" }
     }
 
     Loader {
         id: loader
         anchors.fill: parent
         focus: true
-        source: Qt.resolvedUrl("themes/zenith/Main.qml")
+        source: Qt.resolvedUrl("themes/asura/Main.qml")
     }
 
     TestCase {
@@ -72,8 +72,8 @@ Item {
                 keyClick(text[i])
         }
 
-        function test_zenith_is_listed_first_and_preselected() {
-            compare(loader.item.sessions[0].name, "Zenith")
+        function test_asura_is_listed_first_and_preselected() {
+            compare(loader.item.sessions[0].name, "Asura")
             compare(loader.item.sessions[0].row, 2)
             compare(loader.item.sessionPos, 0)
             compare(loader.item.userName, "mohit")

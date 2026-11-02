@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build a bootable Zenith live ISO using Void Linux x86_64 (glibc) base and void-mklive.
+# Build a bootable Asura live ISO using Void Linux x86_64 (glibc) base and void-mklive.
 #
 # Usage: installation/build-iso-void.sh [build-directory]
 #
@@ -7,10 +7,10 @@ set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR=${1:-"$REPO_ROOT/build/iso-void"}
-ARCH=${ZENITH_ARCH:-x86_64}
-MIRROR=${ZENITH_MIRROR:-https://repo-fastly.voidlinux.org/current}
-ISO_NAME=zenith-os-beta-001
-ISO_TITLE="Zento OS Beta 001"
+ARCH=${ASURA_ARCH:-x86_64}
+MIRROR=${ASURA_MIRROR:-https://repo-fastly.voidlinux.org/current}
+ISO_NAME=asura-os-beta-001
+ISO_TITLE="Asura OS Beta 001"
 
 for tool in python3 git curl; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -37,17 +37,17 @@ mkdir -p "$INCLUDE_DIR/etc/sudoers.d" \
 	"$INCLUDE_DIR/etc/plymouth" \
 	"$INCLUDE_DIR/etc/dracut.conf.d" \
 	"$INCLUDE_DIR/usr/bin" \
-	"$INCLUDE_DIR/usr/share/zenith/branding" \
-	"$INCLUDE_DIR/usr/share/zenith/session" \
-	"$INCLUDE_DIR/usr/share/zenith/runit/services" \
-	"$INCLUDE_DIR/usr/share/zenith/hyprland" \
-	"$INCLUDE_DIR/usr/share/zenith/shell" \
+	"$INCLUDE_DIR/usr/share/asura/branding" \
+	"$INCLUDE_DIR/usr/share/asura/session" \
+	"$INCLUDE_DIR/usr/share/asura/runit/services" \
+	"$INCLUDE_DIR/usr/share/asura/hyprland" \
+	"$INCLUDE_DIR/usr/share/asura/shell" \
 	"$INCLUDE_DIR/usr/share/wayland-sessions"
 
 # Configure Plymouth boot splash with logo and loading progress bar animation
-mkdir -p "$INCLUDE_DIR/usr/share/plymouth/themes/zenith"
-cp -r "$REPO_ROOT/system/plymouth/zenith"/* "$INCLUDE_DIR/usr/share/plymouth/themes/zenith/"
-ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
+mkdir -p "$INCLUDE_DIR/usr/share/plymouth/themes/asura"
+cp -r "$REPO_ROOT/system/plymouth/asura"/* "$INCLUDE_DIR/usr/share/plymouth/themes/asura/"
+ln -sf /usr/share/plymouth/themes/asura/asura.plymouth "$INCLUDE_DIR/usr/share/plymouth/themes/default.plymouth"
 
 # Pre-stage TrueType fonts and fontconfig configuration for Plymouth label rendering
 mkdir -p "$INCLUDE_DIR/usr/share/fonts/TTF" "$INCLUDE_DIR/etc/fonts"
@@ -110,7 +110,7 @@ EOF
 
 cat >"$INCLUDE_DIR/etc/plymouth/plymouthd.conf" <<'EOF'
 [Daemon]
-Theme=zenith
+Theme=asura
 ShowDelay=0
 DeviceTimeout=5
 EOF
@@ -123,58 +123,58 @@ EOF
 
 # Setup OS identity
 cat >"$INCLUDE_DIR/etc/os-release" <<'EOF'
-NAME="Zento OS"
-PRETTY_NAME="Zento OS Beta 001"
-ID=zento
+NAME="Asura OS"
+PRETTY_NAME="Asura OS Beta 001"
+ID=asura
 ID_LIKE="linux"
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
-HOME_URL="https://zenithos.dev/"
-SUPPORT_URL="https://zenithos.dev/support"
-BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
+HOME_URL="https://asuraos.dev/"
+SUPPORT_URL="https://asuraos.dev/support"
+BUG_REPORT_URL="https://github.com/mohitjoer/Asura-OS/issues"
 EOF
 
-printf 'zento-os\n' >"$INCLUDE_DIR/etc/hostname"
+printf 'asura-os\n' >"$INCLUDE_DIR/etc/hostname"
 
 cat >"$INCLUDE_DIR/etc/issue" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001 (\m)
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001 (\m)
          ███          Kernel \r on an \m (\l)
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 EOF
 
 cat >"$INCLUDE_DIR/etc/issue.net" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
-         ███          https://zenithos.dev
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
+         ███          https://asuraos.dev
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 EOF
 
 cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
-         ███          https://zenithos.dev
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
+         ███          https://asuraos.dev
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 EOF
 
 
 # Copy branding assets
-cp "$REPO_ROOT/public/zenith-logo.svg" \
-	"$INCLUDE_DIR/usr/share/zenith/branding/"
-cp "$REPO_ROOT/public/zenith-logo-on-dark.svg" \
-	"$INCLUDE_DIR/usr/share/zenith/branding/"
+cp "$REPO_ROOT/public/asura-logo.svg" \
+	"$INCLUDE_DIR/usr/share/asura/branding/"
+cp "$REPO_ROOT/public/asura-logo-on-dark.svg" \
+	"$INCLUDE_DIR/usr/share/asura/branding/"
 if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 	cp "$REPO_ROOT/public/branding/boot-splash.png" \
-		"$INCLUDE_DIR/usr/share/zenith/branding/boot-splash.png"
+		"$INCLUDE_DIR/usr/share/asura/branding/boot-splash.png"
 fi
 
 # Ensure strict permissions on sudoers.d directory (0750) and wheel rule (0440)
@@ -183,37 +183,37 @@ echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > "$INCLUDE_DIR/etc/sudoers.d/wheel"
 chmod 0440 "$INCLUDE_DIR/etc/sudoers.d/wheel"
 
 # Copy session files, keybind catalogue, and desktop sessions
-cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/share/zenith/session/zenith-session"
-cp "$REPO_ROOT/session/zenith-session" "$INCLUDE_DIR/usr/bin/zenith-session"
-cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/share/zenith/session/zenith-activate"
-cp "$REPO_ROOT/session/zenith-activate" "$INCLUDE_DIR/usr/bin/zenith-activate"
-cp "$REPO_ROOT/session/zenith.desktop" "$INCLUDE_DIR/usr/share/zenith/session/zenith.desktop"
-cp "$REPO_ROOT/session/zenith.desktop" "$INCLUDE_DIR/usr/share/wayland-sessions/zenith.desktop"
-cp "$REPO_ROOT/session/binds.json" "$INCLUDE_DIR/usr/share/zenith/session/binds.json"
-cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/share/zenith/session/zenith-user-services"
-cp "$REPO_ROOT/session/runit/zenith-user-services" "$INCLUDE_DIR/usr/bin/zenith-user-services"
+cp "$REPO_ROOT/session/asura-session" "$INCLUDE_DIR/usr/share/asura/session/asura-session"
+cp "$REPO_ROOT/session/asura-session" "$INCLUDE_DIR/usr/bin/asura-session"
+cp "$REPO_ROOT/session/asura-activate" "$INCLUDE_DIR/usr/share/asura/session/asura-activate"
+cp "$REPO_ROOT/session/asura-activate" "$INCLUDE_DIR/usr/bin/asura-activate"
+cp "$REPO_ROOT/session/asura.desktop" "$INCLUDE_DIR/usr/share/asura/session/asura.desktop"
+cp "$REPO_ROOT/session/asura.desktop" "$INCLUDE_DIR/usr/share/wayland-sessions/asura.desktop"
+cp "$REPO_ROOT/session/binds.json" "$INCLUDE_DIR/usr/share/asura/session/binds.json"
+cp "$REPO_ROOT/session/runit/asura-user-services" "$INCLUDE_DIR/usr/share/asura/session/asura-user-services"
+cp "$REPO_ROOT/session/runit/asura-user-services" "$INCLUDE_DIR/usr/bin/asura-user-services"
 
 # Copy session store wrapper, portal configuration, and session CLI scripts
-cp "$REPO_ROOT/session/zenith-store" "$INCLUDE_DIR/usr/share/zenith/session/zenith-store"
-mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal" "$INCLUDE_DIR/usr/share/zenith/session"
-cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/xdg-desktop-portal/zenith-portals.conf"
-cp "$REPO_ROOT/session/zenith-portals.conf" "$INCLUDE_DIR/usr/share/zenith/session/zenith-portals.conf"
+cp "$REPO_ROOT/session/asura-store" "$INCLUDE_DIR/usr/share/asura/session/asura-store"
+mkdir -p "$INCLUDE_DIR/usr/share/xdg-desktop-portal" "$INCLUDE_DIR/usr/share/asura/session"
+cp "$REPO_ROOT/session/asura-portals.conf" "$INCLUDE_DIR/usr/share/xdg-desktop-portal/asura-portals.conf"
+cp "$REPO_ROOT/session/asura-portals.conf" "$INCLUDE_DIR/usr/share/asura/session/asura-portals.conf"
 
-# Stage session units into /usr/share/zenith/units and systemd user directory
-mkdir -p "$INCLUDE_DIR/usr/share/zenith/units" "$INCLUDE_DIR/usr/share/zenith/session/units" "$INCLUDE_DIR/usr/lib/systemd/user"
+# Stage session units into /usr/share/asura/units and systemd user directory
+mkdir -p "$INCLUDE_DIR/usr/share/asura/units" "$INCLUDE_DIR/usr/share/asura/session/units" "$INCLUDE_DIR/usr/lib/systemd/user"
 if [ -d "$REPO_ROOT/session/units" ]; then
-	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/units/"
-	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/zenith/session/units/"
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/asura/units/"
+	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/share/asura/session/units/"
 	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/lib/systemd/user/"
 fi
 
-# Copy default wallpapers to /usr/share/zenith/backgrounds/
-mkdir -p "$INCLUDE_DIR/usr/share/zenith/backgrounds"
+# Copy default wallpapers to /usr/share/asura/backgrounds/
+mkdir -p "$INCLUDE_DIR/usr/share/asura/backgrounds"
 if [ -d "$REPO_ROOT/public/wallpapers" ]; then
-	cp "$REPO_ROOT/public/wallpapers"/* "$INCLUDE_DIR/usr/share/zenith/backgrounds/"
+	cp "$REPO_ROOT/public/wallpapers"/* "$INCLUDE_DIR/usr/share/asura/backgrounds/"
 fi
 
-for s in zenith-hub zenith-idle zenith-pin zenith-reload-cover zenith-shot zenith-vm zenith-wallpaper-ui zenith-welcome zenith-greeter; do
+for s in asura-hub asura-idle asura-pin asura-reload-cover asura-shot asura-vm asura-wallpaper-ui asura-welcome asura-greeter; do
 	if [ -f "$REPO_ROOT/session/$s" ]; then
 		cp "$REPO_ROOT/session/$s" "$INCLUDE_DIR/usr/bin/"
 	fi
@@ -222,16 +222,16 @@ if [ -d "$REPO_ROOT/session/scripts" ]; then
 	cp "$REPO_ROOT/session/scripts"/* "$INCLUDE_DIR/usr/bin/"
 fi
 
-# Copy all shell scripts (zenith-app, zenith-cmd-*, zenith-summon, etc.) to /usr/bin/
+# Copy all shell scripts (asura-app, asura-cmd-*, asura-summon, etc.) to /usr/bin/
 if [ -d "$REPO_ROOT/shell/scripts" ]; then
 	cp "$REPO_ROOT/shell/scripts"/* "$INCLUDE_DIR/usr/bin/"
 fi
 
-# Copy all system helpers (zenith-volume, zenith-restart-audio, zenith-hw-backlight, etc.)
+# Copy all system helpers (asura-volume, asura-restart-audio, asura-hw-backlight, etc.)
 for hdir in audio display input perf pkg; do
 	if [ -d "$REPO_ROOT/system/helpers/$hdir" ]; then
 		for f in "$REPO_ROOT/system/helpers/$hdir"/*; do
-			if [ -f "$f" ] && [ "${f##*.}" != "sh" -o "${f##*/}" = "zenith-installer.sh" ]; then
+			if [ -f "$f" ] && [ "${f##*.}" != "sh" -o "${f##*/}" = "asura-installer.sh" ]; then
 				cp "$f" "$INCLUDE_DIR/usr/bin/"
 			fi
 		done
@@ -239,15 +239,15 @@ for hdir in audio display input perf pkg; do
 done
 cp "$REPO_ROOT/system/helpers/prime-run" "$INCLUDE_DIR/usr/bin/prime-run"
 cp "$REPO_ROOT/system/helpers/fan-profile" "$INCLUDE_DIR/usr/bin/fan-profile"
-cp "$REPO_ROOT/installation/zenith-installer.sh" "$INCLUDE_DIR/usr/bin/zenith-installer"
-chmod 755 "$INCLUDE_DIR/usr/bin/zenith-installer"
-touch "$INCLUDE_DIR/etc/zenith-live"
+cp "$REPO_ROOT/installation/asura-installer.sh" "$INCLUDE_DIR/usr/bin/asura-installer"
+chmod 755 "$INCLUDE_DIR/usr/bin/asura-installer"
+touch "$INCLUDE_DIR/etc/asura-live"
 
 
 
 # Copy GLib GSettings schemas
 mkdir -p "$INCLUDE_DIR/usr/share/glib-2.0/schemas"
-cp "$REPO_ROOT/shell"/org.zenith.*.gschema.xml "$INCLUDE_DIR/usr/share/glib-2.0/schemas/"
+cp "$REPO_ROOT/shell"/org.asura.*.gschema.xml "$INCLUDE_DIR/usr/share/glib-2.0/schemas/"
 
 # Copy applications .desktop entries
 mkdir -p "$INCLUDE_DIR/usr/share/applications"
@@ -271,22 +271,22 @@ Keywords=Text;Editor;Development;
 EOF
 ln -sf dev.zed.Zed.desktop "$INCLUDE_DIR/usr/share/applications/zed.desktop"
 if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
-	cp "$REPO_ROOT/apps/mimeapps"/zenith-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
+	cp "$REPO_ROOT/apps/mimeapps"/asura-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi
 
-# Copy Zenith apps (ghostty, starship, zsh configurations)
+# Copy Asura apps (ghostty, starship, zsh configurations)
 if [ -d "$REPO_ROOT/apps" ]; then
-	mkdir -p "$INCLUDE_DIR/usr/share/zenith/apps"
-	cp -r "$REPO_ROOT/apps"/* "$INCLUDE_DIR/usr/share/zenith/apps/"
+	mkdir -p "$INCLUDE_DIR/usr/share/asura/apps"
+	cp -r "$REPO_ROOT/apps"/* "$INCLUDE_DIR/usr/share/asura/apps/"
 fi
 
 # Copy Hyprland configuration, runit services, and shell tree
-cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/zenith/hyprland/"
+cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/asura/hyprland/"
 if [ -d "$REPO_ROOT/session/sddm" ]; then
-	cp -r "$REPO_ROOT/session/sddm" "$INCLUDE_DIR/usr/share/zenith/session/" 2>/dev/null || true
+	cp -r "$REPO_ROOT/session/sddm" "$INCLUDE_DIR/usr/share/asura/session/" 2>/dev/null || true
 fi
-cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/zenith/shell/"
-cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/zenith/runit/services/"
+cp -r "$REPO_ROOT/shell"/* "$INCLUDE_DIR/usr/share/asura/shell/"
+cp -r "$REPO_ROOT/system/runit/user-services"/* "$INCLUDE_DIR/usr/share/asura/runit/services/"
 
 # Stage native Void Linux Hyprland compositor stack and libraries
 echo "build-iso-void: staging native Void Linux Hyprland stack..."
@@ -299,7 +299,7 @@ import urllib.request, plistlib, subprocess
 wanted = ['tomlplusplus', 'hyprutils', 'aquamarine', 'hyprlang', 'hyprcursor', 'hyprgraphics', 'libspng', 'sdbus-cpp', 'hyprland', 'xdg-desktop-portal-hyprland', 'hyprland-qtutils']
 url = 'https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-x86_64-glibc/x86_64-repodata'
 try:
-    req = urllib.request.Request(url, headers={'User-Agent': 'Zenith-ISO-Builder'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Asura-ISO-Builder'})
     data = urllib.request.urlopen(req, timeout=10).read()
     p = subprocess.Popen(['tar', '--zstd', '-xO', 'index.plist'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     plist_bytes, _ = p.communicate(data)
@@ -364,14 +364,14 @@ cp "$INCLUDE_DIR/var/db/xbps/keys/30:93:47:9e:1f:55:c5:c5:07:b1:9a:e6:8b:10:5b:4
 # native quickshell package is installed via packages-void.yaml
 rm -f "$INCLUDE_DIR/usr/bin/quickshell"
 
-# Copy udev power rules (99-zenith-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
+# Copy udev power rules (99-asura-power.rules, 80-nvidia-pm.rules, 99-battery-threshold.rules)
 cp "$REPO_ROOT/system/udev"/*.rules "$INCLUDE_DIR/etc/udev/rules.d/"
 if [ -d "$REPO_ROOT/system/modprobe.d" ]; then
 	cp "$REPO_ROOT/system/modprobe.d"/*.conf "$INCLUDE_DIR/etc/modprobe.d/"
 fi
-cp "$REPO_ROOT/system/sysctl.d/99-zenith-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-zenith-performance.conf"
+cp "$REPO_ROOT/system/sysctl.d/99-asura-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-asura-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
-cp "$REPO_ROOT/system/xbps.d/zenith.conf" "$INCLUDE_DIR/etc/xbps.d/zenith.conf"
+cp "$REPO_ROOT/system/xbps.d/asura.conf" "$INCLUDE_DIR/etc/xbps.d/asura.conf"
 
 # Default environment for seatd & Wayland
 cat >"$INCLUDE_DIR/etc/environment" <<'EOF'
@@ -382,29 +382,29 @@ GDK_BACKEND=wayland
 MOZ_ENABLE_WAYLAND=1
 EOF
 
-# Build and copy Zenith Go control binaries into include tree
-echo "build-iso-void: building Zenith Go binaries..."
+# Build and copy Asura Go control binaries into include tree
+echo "build-iso-void: building Asura Go binaries..."
 (
 	cd "$REPO_ROOT/desktop"
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith" ./cmd/zenith
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-sysd" ./cmd/zenith-sysd
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-userd" ./cmd/zenith-userd
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-hubd" ./cmd/zenith-hubd
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-shell" ./cmd/zenith-shell
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-wallpaper" ./cmd/zenith-wallpaper
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura" ./cmd/asura
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-sysd" ./cmd/asura-sysd
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-userd" ./cmd/asura-userd
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-hubd" ./cmd/asura-hubd
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-shell" ./cmd/asura-shell
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-wallpaper" ./cmd/asura-wallpaper
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zpm" ./cmd/zpm
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-store" ./cmd/zenith-store
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-agent" ./cmd/zenith-agent
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-vm-mon" ./cmd/zenith-vm/mon
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zenith-vm-ssh" ./cmd/zenith-vm/remote
-	cp -f "$REPO_ROOT/desktop/cmd/zenith-vm/zenith-vmd" "$INCLUDE_DIR/usr/bin/zenith-vmd"
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-store" ./cmd/asura-store
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-agent" ./cmd/asura-agent
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-mon" ./cmd/asura-vm/mon
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-ssh" ./cmd/asura-vm/remote
+	cp -f "$REPO_ROOT/desktop/cmd/asura-vm/asura-vmd" "$INCLUDE_DIR/usr/bin/asura-vmd"
 )
 find "$INCLUDE_DIR/usr/bin" -type f -exec chmod 0755 {} +
 # Symlinks
-ln -sf zenith "$INCLUDE_DIR/usr/bin/os-ctl"
+ln -sf asura "$INCLUDE_DIR/usr/bin/os-ctl"
 
 # Pre-seed user skeleton configuration and XDG user directories
-mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
+mkdir -p "$INCLUDE_DIR/etc/skel/.config/asura" \
          "$INCLUDE_DIR/etc/skel/.config/ghostty" \
          "$INCLUDE_DIR/etc/skel/.config/fastfetch" \
          "$INCLUDE_DIR/etc/skel/Desktop" \
@@ -413,22 +413,22 @@ mkdir -p "$INCLUDE_DIR/etc/skel/.config/zenith" \
          "$INCLUDE_DIR/etc/skel/Music" \
          "$INCLUDE_DIR/etc/skel/Pictures" \
          "$INCLUDE_DIR/etc/skel/Videos"
-cp -a "$INCLUDE_DIR/usr/share/zenith"/* "$INCLUDE_DIR/etc/skel/.config/zenith/"
+cp -a "$INCLUDE_DIR/usr/share/asura"/* "$INCLUDE_DIR/etc/skel/.config/asura/"
 
 # Pre-seed Ghostty terminal configuration in skeleton
 cat >"$INCLUDE_DIR/etc/skel/.config/ghostty/config" <<'EOF'
-config-file = ?~/.config/zenith/apps/ghostty/config
+config-file = ?~/.config/asura/apps/ghostty/config
 EOF
 
 # Pre-seed zsh configuration in skeleton
 cat >"$INCLUDE_DIR/etc/skel/.zshrc" <<'EOF'
-# Zenith OS Zsh configuration
-[ -r "$HOME/.config/zenith/apps/zsh/zenith.zsh" ] && . "$HOME/.config/zenith/apps/zsh/zenith.zsh"
+# Asura OS Zsh configuration
+[ -r "$HOME/.config/asura/apps/zsh/asura.zsh" ] && . "$HOME/.config/asura/apps/zsh/asura.zsh"
 EOF
 
 # Pre-seed fastfetch ASCII logo and configuration
-mkdir -p "$INCLUDE_DIR/usr/share/zenith/branding"
-cat >"$INCLUDE_DIR/usr/share/zenith/branding/fastfetch-ascii.txt" <<'EOF'
+mkdir -p "$INCLUDE_DIR/usr/share/asura/branding"
+cat >"$INCLUDE_DIR/usr/share/asura/branding/fastfetch-ascii.txt" <<'EOF'
      ▄████████████████▄
             ████
             ████
@@ -444,7 +444,7 @@ cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
     "type": "file",
-    "source": "/usr/share/zenith/branding/fastfetch-ascii.txt",
+    "source": "/usr/share/asura/branding/fastfetch-ascii.txt",
     "padding": {
       "right": 4
     }
@@ -456,7 +456,7 @@ cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
   },
   "modules": [
     {
-      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mZENTO OS\u001b[0m",
+      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mASURA OS\u001b[0m",
       "type": "custom"
     },
 
@@ -523,8 +523,8 @@ cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
 }
 EOF
 
-# Stage system runit services (zenith-sysd, scx-lavd, ananicy-cpp)
-mkdir -p "$INCLUDE_DIR/etc/sv/zenith-sysd"
+# Stage system runit services (asura-sysd, scx-lavd, ananicy-cpp)
+mkdir -p "$INCLUDE_DIR/etc/sv/asura-sysd"
 for svc_dir in "$REPO_ROOT/system/runit/services"/*; do
 	if [ -d "$svc_dir" ]; then
 		svc_name=$(basename "$svc_dir")
@@ -606,18 +606,18 @@ if [ -f "$MKLIVE_DIR/lib.sh" ]; then
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/lib.sh"
 fi
 
-# Patch dracut vmklive module to use zenith-os hostname, zenith user, and include _seatd/input groups
+# Patch dracut vmklive module to use asura-os hostname, asura user, and include _seatd/input groups
 if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
-	sed -i 's/echo void-live >/echo zento-os >/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/echo void-live >/echo asura-os >/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/-G audio,video,wheel/-G audio,video,wheel,_seatd,input,tty,storage,network/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
-	sed -i 's/USERNAME=anon/USERNAME=zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
-	sed -i 's/voidlinux/zenith/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
-	sed -i 's/99-void-live/99-zenith-live/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
-	sed -i 's/void-live.rules/zenith-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/USERNAME=anon/USERNAME=asura/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/voidlinux/asura/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/99-void-live/99-asura-live/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/void-live.rules/asura-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/-s \/bin\/bash/-s \/bin\/zsh/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 fi
 
-# Replace cluttered multi-option isolinux menu with a clean, streamlined Zento OS boot menu
+# Replace cluttered multi-option isolinux menu with a clean, streamlined Asura OS boot menu
 if [ -d "$MKLIVE_DIR/isolinux" ]; then
 	cat >"$MKLIVE_DIR/isolinux/isolinux.cfg.in" <<'BOOTCFG'
 UI vesamenu.c32
@@ -626,7 +626,7 @@ TIMEOUT 30
 ONTIMEOUT linux
 
 MENU TABMSG Press ENTER to boot or TAB to edit boot options
-MENU AUTOBOOT Zento OS starts in # second{,s}...
+MENU AUTOBOOT Asura OS starts in # second{,s}...
 MENU BACKGROUND @@SPLASHIMAGE@@
 MENU WIDTH 78
 MENU MARGIN 4
@@ -645,12 +645,12 @@ MENU COLOR timeout      * #ffffffff #00000000 none
 MENU COLOR tabmsg       * #66666666 #00000000 none
 
 LABEL linux
-MENU LABEL Zento OS (Live Session)
+MENU LABEL Asura OS (Live Session)
 KERNEL /boot/vmlinuz
 APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
 
 LABEL linuxram
-MENU LABEL Zento OS (Copy to RAM)
+MENU LABEL Asura OS (Copy to RAM)
 
 KERNEL /boot/vmlinuz
 APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
@@ -689,7 +689,7 @@ ROOTFS="$1"
 
 # Enable core system runit services (Layer 1 seatd, Layer 3 scx-lavd, ananicy-cpp, zramen)
 mkdir -p "$ROOTFS/etc/runit/runsvdir/default"
-for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp zenith-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp asura-sysd; do
 	if [ -d "$ROOTFS/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
@@ -708,35 +708,35 @@ if [ -f "$ROOTFS/etc/pam.d/system-login" ] && ! grep -q 'pam_turnstile.so' "$ROO
 fi
 
 # Configure seat permissions and groups for default user
-for user in anon zenith; do
+for user in anon asura; do
 	if chroot "$ROOTFS" id "$user" >/dev/null 2>&1; then
 		chroot "$ROOTFS" usermod -aG _seatd,video,audio,input,wheel,storage,network "$user" || true
 	fi
 done
 
-# Ensure user zenith exists with zsh login shell and configure autologin
-if ! chroot "$ROOTFS" id zenith >/dev/null 2>&1; then
-	chroot "$ROOTFS" useradd -m -s /bin/zsh -U -G _seatd,video,audio,input,wheel,storage,network zenith || true
+# Ensure user asura exists with zsh login shell and configure autologin
+if ! chroot "$ROOTFS" id asura >/dev/null 2>&1; then
+	chroot "$ROOTFS" useradd -m -s /bin/zsh -U -G _seatd,video,audio,input,wheel,storage,network asura || true
 else
-	chroot "$ROOTFS" usermod -s /bin/zsh zenith || true
+	chroot "$ROOTFS" usermod -s /bin/zsh asura || true
 fi
-echo "zenith:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+echo "asura:asura" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 
 # Reset root and anon passwords to eliminate upstream voidlinux defaults
-echo "root:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+echo "root:asura" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 if chroot "$ROOTFS" id anon >/dev/null 2>&1; then
-	echo "anon:zenith" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
+	echo "anon:asura" | chroot "$ROOTFS" chpasswd 2>/dev/null || true
 fi
 
 # Neutralize upstream installer and docs commands
 if [ -f "$ROOTFS/usr/bin/void-installer" ]; then
 	rm -f "$ROOTFS/usr/bin/void-installer"
-	ln -sf /usr/bin/zenith-installer "$ROOTFS/usr/bin/void-installer"
+	ln -sf /usr/bin/asura-installer "$ROOTFS/usr/bin/void-installer"
 fi
 
 cat >"$ROOTFS/usr/bin/void-docs" <<'DOCS'
 #!/bin/sh
-echo "Zenith OS documentation is available at: https://zenithos.dev"
+echo "Asura OS documentation is available at: https://asuraos.dev"
 DOCS
 chmod 0755 "$ROOTFS/usr/bin/void-docs"
 
@@ -747,37 +747,37 @@ chmod 0440 "$ROOTFS/etc/sudoers.d/wheel"
 chmod 0440 "$ROOTFS/etc/sudoers.d"/* 2>/dev/null || true
 grep -q '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' "$ROOTFS/etc/sudoers" 2>/dev/null || echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' >> "$ROOTFS/etc/sudoers"
 
-# Compile GSettings schemas for Zenith Shell and Settings
+# Compile GSettings schemas for Asura Shell and Settings
 if command -v glib-compile-schemas >/dev/null 2>&1; then
 	glib-compile-schemas "$ROOTFS/usr/share/glib-2.0/schemas" 2>/dev/null || true
 fi
 
 # Enable automatic console login on tty1 with silent hushlogin
-mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/zenith"
-echo 'GETTY_ARGS="--autologin zenith --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
-touch "$ROOTFS/home/zenith/.hushlogin"
-# Pre-materialize user configuration for zenith user, skeleton, and XDG directories
-mkdir -p "$ROOTFS/home/zenith/.config/zenith" "$ROOTFS/etc/skel/.config/zenith" \
-         "$ROOTFS/home/zenith/.config/ghostty" "$ROOTFS/home/zenith/.config/fastfetch" \
-         "$ROOTFS/home/zenith/Desktop" "$ROOTFS/home/zenith/Documents" \
-         "$ROOTFS/home/zenith/Downloads" "$ROOTFS/home/zenith/Music" \
-         "$ROOTFS/home/zenith/Pictures" "$ROOTFS/home/zenith/Videos"
-if [ -d "$ROOTFS/usr/share/zenith" ]; then
-	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/home/zenith/.config/zenith/"
-	cp -a "$ROOTFS/usr/share/zenith"/* "$ROOTFS/etc/skel/.config/zenith/"
+mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/asura"
+echo 'GETTY_ARGS="--autologin asura --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+touch "$ROOTFS/home/asura/.hushlogin"
+# Pre-materialize user configuration for asura user, skeleton, and XDG directories
+mkdir -p "$ROOTFS/home/asura/.config/asura" "$ROOTFS/etc/skel/.config/asura" \
+         "$ROOTFS/home/asura/.config/ghostty" "$ROOTFS/home/asura/.config/fastfetch" \
+         "$ROOTFS/home/asura/Desktop" "$ROOTFS/home/asura/Documents" \
+         "$ROOTFS/home/asura/Downloads" "$ROOTFS/home/asura/Music" \
+         "$ROOTFS/home/asura/Pictures" "$ROOTFS/home/asura/Videos"
+if [ -d "$ROOTFS/usr/share/asura" ]; then
+	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/home/asura/.config/asura/"
+	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/etc/skel/.config/asura/"
 fi
-cp -a "$ROOTFS/etc/skel/.config/ghostty"/* "$ROOTFS/home/zenith/.config/ghostty/" 2>/dev/null || true
-cp -a "$ROOTFS/etc/skel/.config/fastfetch"/* "$ROOTFS/home/zenith/.config/fastfetch/" 2>/dev/null || true
-cp -a "$ROOTFS/etc/skel/.zshrc" "$ROOTFS/home/zenith/.zshrc" 2>/dev/null || true
-chroot "$ROOTFS" su - zenith -c "zenith materialize" 2>/dev/null || true
-chroot "$ROOTFS" su - zenith -c "xdg-user-dirs-update" 2>/dev/null || true
-chroot "$ROOTFS" chown -R zenith:zenith /home/zenith 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.config/ghostty"/* "$ROOTFS/home/asura/.config/ghostty/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.config/fastfetch"/* "$ROOTFS/home/asura/.config/fastfetch/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.zshrc" "$ROOTFS/home/asura/.zshrc" 2>/dev/null || true
+chroot "$ROOTFS" su - asura -c "asura materialize" 2>/dev/null || true
+chroot "$ROOTFS" su - asura -c "xdg-user-dirs-update" 2>/dev/null || true
+chroot "$ROOTFS" chown -R asura:asura /home/asura 2>/dev/null || true
 
 # Ensure Plymouth theme and configuration are active in ROOTFS
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
-ln -sf /usr/share/plymouth/themes/zenith/zenith.plymouth "$ROOTFS/usr/share/plymouth/themes/default.plymouth" 2>/dev/null || true
+ln -sf /usr/share/plymouth/themes/asura/asura.plymouth "$ROOTFS/usr/share/plymouth/themes/default.plymouth" 2>/dev/null || true
 if [ -f "$ROOTFS/etc/plymouth/plymouthd.conf" ]; then
-	sed -i 's/^Theme=.*/Theme=zenith/' "$ROOTFS/etc/plymouth/plymouthd.conf"
+	sed -i 's/^Theme=.*/Theme=asura/' "$ROOTFS/etc/plymouth/plymouthd.conf"
 fi
 if [ -f "$ROOTFS/etc/runit/1" ]; then
 	sed -i '1a exec 2>/dev/null' "$ROOTFS/etc/runit/1" 2>/dev/null || true
@@ -817,23 +817,23 @@ fi
 
 # Overwrite OS identity inside ROOTFS
 cat >"$ROOTFS/etc/os-release" <<'OSREL'
-NAME="Zento OS"
-PRETTY_NAME="Zento OS Beta 001"
-ID=zento
+NAME="Asura OS"
+PRETTY_NAME="Asura OS Beta 001"
+ID=asura
 ID_LIKE="linux"
 VERSION_ID="0.1"
 VERSION_CODENAME=beta-001
-HOME_URL="https://zenithos.dev/"
-SUPPORT_URL="https://zenithos.dev/support"
-BUG_REPORT_URL="https://github.com/mohitjoer/Zenith-OS/issues"
+HOME_URL="https://asuraos.dev/"
+SUPPORT_URL="https://asuraos.dev/support"
+BUG_REPORT_URL="https://github.com/mohitjoer/Asura-OS/issues"
 OSREL
 
-# Branding replacement: Change Welcome to Void! to Welcome to Zento OS! in the boot sequence
+# Branding replacement: Change Welcome to Void! to Welcome to Asura OS! in the boot sequence
 for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit/3" "$ROOTFS/etc/rc.local"; do
 	if [ -f "$runit_file" ]; then
-		sed -i 's/Welcome to Void!/Welcome to Zento OS!/g' "$runit_file"
-		sed -i 's/Welcome to Void Linux!/Welcome to Zento OS!/g' "$runit_file"
-		sed -i 's/Void Linux/Zento OS/g' "$runit_file"
+		sed -i 's/Welcome to Void!/Welcome to Asura OS!/g' "$runit_file"
+		sed -i 's/Welcome to Void Linux!/Welcome to Asura OS!/g' "$runit_file"
+		sed -i 's/Void Linux/Asura OS/g' "$runit_file"
 	fi
 done
 
@@ -844,80 +844,80 @@ if [ -f "$ROOTFS/etc/rc.local" ]; then
 	fi
 fi
 
-# Set Zento OS hostname and network identity
-printf 'zento-os\n' > "$ROOTFS/etc/hostname"
+# Set Asura OS hostname and network identity
+printf 'asura-os\n' > "$ROOTFS/etc/hostname"
 if [ -f "$ROOTFS/etc/rc.conf" ]; then
-	sed -i 's/^#\?HOSTNAME=.*/HOSTNAME="zento-os"/' "$ROOTFS/etc/rc.conf"
+	sed -i 's/^#\?HOSTNAME=.*/HOSTNAME="asura-os"/' "$ROOTFS/etc/rc.conf"
 	if ! grep -q '^HOSTNAME=' "$ROOTFS/etc/rc.conf"; then
-		echo 'HOSTNAME="zento-os"' >> "$ROOTFS/etc/rc.conf"
+		echo 'HOSTNAME="asura-os"' >> "$ROOTFS/etc/rc.conf"
 	fi
 fi
 if [ -f "$ROOTFS/etc/hosts" ]; then
-	sed -i 's/void-live/zento-os/g' "$ROOTFS/etc/hosts"
+	sed -i 's/void-live/asura-os/g' "$ROOTFS/etc/hosts"
 fi
 
-# Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Zento OS wordmark and logo
+# Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Asura OS wordmark and logo
 cat >"$ROOTFS/etc/issue" <<'ISSUE'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001 (\m)
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001 (\m)
          ███          Kernel \r on an \m (\l)
     █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 ISSUE
 
 cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
-         ███          https://zenithos.dev
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
+         ███          https://asuraos.dev
      █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 ISSUENET
 
 cat >"$ROOTFS/etc/motd" <<'MOTD'
-     ▄▄▄▄▄▄▄▄▄▄▄      Zento OS Beta 001
-         ███          https://zenithos.dev
+     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
+         ███          https://asuraos.dev
      █████████████
      ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'zenith' (nopasswd sudo)
-   ███   ███   ███    Run 'zenith install' or 'zenith-installer' to install
+    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
+   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
 
 MOTD
 
 
-# Auto-start Zenith Wayland desktop on tty1 login (with safe fallback if compositor exits)
+# Auto-start Asura Wayland desktop on tty1 login (with safe fallback if compositor exits)
 mkdir -p "$ROOTFS/etc/profile.d"
-cat >"$ROOTFS/etc/profile.d/zenith-autologin.sh" <<'PROFILE'
+cat >"$ROOTFS/etc/profile.d/asura-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
 	command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update 2>/dev/null || true
-	if [ ! -d "$HOME/.config/zenith/shell" ] && command -v zenith >/dev/null 2>&1; then
-		zenith materialize 2>/dev/null || true
+	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
+		asura materialize 2>/dev/null || true
 	fi
-	if ! /usr/share/zenith/session/zenith-session; then
+	if ! /usr/share/asura/session/asura-session; then
 		if command -v plymouth >/dev/null 2>&1; then
 			plymouth --quit 2>/dev/null || true
 		fi
 		echo
 		echo "================================================================"
-		echo "  Zenith graphical desktop session exited."
-		echo "  Log available at: ~/.local/state/zenith/session.log"
+		echo "  Asura graphical desktop session exited."
+		echo "  Log available at: ~/.local/state/asura/session.log"
 		echo
-		if [ -f "$HOME/.local/state/zenith/session.log" ]; then
+		if [ -f "$HOME/.local/state/asura/session.log" ]; then
 			echo "--- Last 20 lines of session.log ---"
-			tail -n 20 "$HOME/.local/state/zenith/session.log"
+			tail -n 20 "$HOME/.local/state/asura/session.log"
 			echo "------------------------------------"
 		fi
-		echo "  To launch the installer directly, run: sudo zenith install"
-		echo "  To retry launching the desktop, run: zenith-session"
+		echo "  To launch the installer directly, run: sudo asura install"
+		echo "  To retry launching the desktop, run: asura-session"
 		echo "================================================================"
 		echo
 	fi
 fi
 PROFILE
-chmod 0755 "$ROOTFS/etc/profile.d/zenith-autologin.sh"
+chmod 0755 "$ROOTFS/etc/profile.d/asura-autologin.sh"
 exit 0
 EOF
 chmod +x "$POSTSETUP_SCRIPT"
@@ -937,7 +937,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-I "$INCLUDE_DIR" \
 		-s xz \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer vga=792 video=1024x768 console=ttyS0,115200 console=tty0 live.user=zenith live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer vga=792 video=1024x768 console=ttyS0,115200 console=tty0 live.user=asura live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"

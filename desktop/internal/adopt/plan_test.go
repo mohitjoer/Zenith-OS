@@ -4,19 +4,19 @@ import (
 	"strings"
 	"testing"
 
-	"zenith/desktop/internal/portal"
+	"asura/desktop/internal/portal"
 )
 
 // TestAdoptionSourcesAreTheContentThePackageShips keeps two tables that must
 // agree about the same four files from drifting apart.
 //
-// Both exist for a reason. portal.registrations is what `zenith doctor` checks
-// — the path a third-party scanner reads and the content Zenith puts behind it.
-// registrationSources is what `zenith adopt` copies from when it writes those
-// pointers on a machine adopting Zenith. Nothing in the code connects them, and
+// Both exist for a reason. portal.registrations is what `asura doctor` checks
+// — the path a third-party scanner reads and the content Asura puts behind it.
+// registrationSources is what `asura adopt` copies from when it writes those
+// pointers on a machine adopting Asura. Nothing in the code connects them, and
 // the two had already drifted: adoption read the units from
-// /usr/share/zenith/session/units/, a directory the package has never created,
-// while the package ships them at /usr/share/zenith/units/. The plan would have
+// /usr/share/asura/session/units/, a directory the package has never created,
+// while the package ships them at /usr/share/asura/units/. The plan would have
 // installed a pointer to nothing, because a missing source is tolerated at plan
 // time — the package is legitimately not installed yet on a clean machine — so
 // the error would have surfaced at execute time, on somebody's machine, in the
@@ -56,10 +56,10 @@ func TestAdoptionSourcesAreTheContentThePackageShips(t *testing.T) {
 
 // TestAdoptionWritesOnlyInsideItsOwnTree is the boundary rule in the one place
 // that writes from the plan. Adoption materializes pointers; every source it
-// copies from is content under /usr/share/zenith/, and a source anywhere else
+// copies from is content under /usr/share/asura/, and a source anywhere else
 // would make the adopting step a second writer of somebody else's files.
 func TestAdoptionWritesOnlyInsideItsOwnTree(t *testing.T) {
-	const ownTree = "/usr/share/zenith/"
+	const ownTree = "/usr/share/asura/"
 
 	for _, registration := range registrationSources {
 		if !strings.HasPrefix(registration.MaterializedFrom, ownTree) {

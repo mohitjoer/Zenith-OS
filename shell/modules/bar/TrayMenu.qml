@@ -149,7 +149,7 @@ Item {
             exclusiveZone: 0
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-            WlrLayershell.namespace: "zenith-tray-menu"
+            WlrLayershell.namespace: "asura-tray-menu"
 
             anchors { top: true; bottom: true; left: true; right: true }
 

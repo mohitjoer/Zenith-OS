@@ -1,2 +1,2 @@
-# W06: the Hub's data plane. Calls zenith-power (not built) and zenith-gpu (W18) only when present.
-zenith-hubd -> /usr/bin/zenith-hubd
+# W06: the Hub's data plane. Calls asura-power (not built) and asura-gpu (W18) only when present.
+asura-hubd -> /usr/bin/asura-hubd

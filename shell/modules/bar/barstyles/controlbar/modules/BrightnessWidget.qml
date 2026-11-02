@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
-import "../ZenithPower.js" as ZenithPower
+import "../AsuraPower.js" as AsuraPower
 import qs.Ui.Singletons
 
 Item {
@@ -158,7 +158,7 @@ Item {
     // detect backlight on startup
     Process {
         id: detectProc
-        command: ["bash", "-c", ZenithPower.backlightDetectCmd]
+        command: ["bash", "-c", AsuraPower.backlightDetectCmd]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -175,7 +175,7 @@ Item {
     // One-shot brightnessctl read for daemon-absent fallback (kept for compat).
     Process {
         id: briProc
-        command: ["bash", "-c", ZenithPower.brightnessPercentCmd]
+        command: ["bash", "-c", AsuraPower.brightnessPercentCmd]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -205,7 +205,7 @@ Item {
     // They only run when sysfsWriteAvailable === true (currently never).
     Process {
         id: briUp
-        command: ["bash", "-c", ZenithPower.brightnessSetCmd("+5%")]
+        command: ["bash", "-c", AsuraPower.brightnessSetCmd("+5%")]
         onExited: (code) => {
             rootMod.notifyBrightnessError("Brightness up", code)
             rootMod.refreshBrightness()
@@ -213,7 +213,7 @@ Item {
     }
     Process {
         id: briDown
-        command: ["bash", "-c", ZenithPower.brightnessSetCmd("5%-")]
+        command: ["bash", "-c", AsuraPower.brightnessSetCmd("5%-")]
         onExited: (code) => {
             rootMod.notifyBrightnessError("Brightness down", code)
             rootMod.refreshBrightness()

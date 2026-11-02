@@ -5,7 +5,7 @@ pragma ComponentBehavior: Bound
 //
 // Quickshell has no catalogue of what is installed: it is a compositor shell,
 // not a software centre, and it will not grow one. So the shell asks the tool
-// that already reads the machine's files, and gets the same list `zenith apps`
+// that already reads the machine's files, and gets the same list `asura apps`
 // prints for a person.
 //
 // The list is read once, at start-up, by the shell's root and pushed in here.

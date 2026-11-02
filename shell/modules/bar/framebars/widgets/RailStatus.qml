@@ -112,7 +112,7 @@ Item {
     // only); input is a silent direct set on the source.
     function scrollBy(steps) {
         if (audioOut) {
-            Quickshell.execDetached(["zenith-shell", "audio", steps > 0 ? "up" : "down"]);
+            Quickshell.execDetached(["asura-shell", "audio", steps > 0 ? "up" : "down"]);
         } else if (audioIn && Audio.source && Audio.source.audio) {
             const v = Audio.source.audio.volume + (steps > 0 ? 0.05 : -0.05);
             Audio.source.audio.volume = Math.max(0, Math.min(1, v));

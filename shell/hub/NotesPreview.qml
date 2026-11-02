@@ -35,7 +35,7 @@ Item {
             font.family: Tokens.ui; font.pixelSize: 13
         }
         Text {
-            text: I18n.tr("Zenith wallpaper ideas \u2014 dusk")
+            text: I18n.tr("Asura wallpaper ideas \u2014 dusk")
             color: Tokens.inkMuted
             font.family: Tokens.ui; font.pixelSize: 13
         }

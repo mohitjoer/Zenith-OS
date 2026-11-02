@@ -22,7 +22,7 @@ func TestCapsReprobesAfterFailedProbe(t *testing.T) {
 
 	// The fake provider fails its first caps invocation and succeeds after, keyed
 	// on a counter file so each exec of the script advances the state.
-	prov := filepath.Join(dir, "zenith-wm-testwm")
+	prov := filepath.Join(dir, "asura-wm-testwm")
 	script := strings.NewReplacer("@COUNT@", counter).Replace(`#!/usr/bin/env bash
 set -u
 count="@COUNT@"
@@ -38,10 +38,10 @@ printf '%s' '{"name":"testwm","supports":["nightLight"],"nightLightProcess":"gam
 	if err := os.WriteFile(prov, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// The fake must win over any packaged provider on PATH; ZENITH_WM forces
+	// The fake must win over any packaged provider on PATH; ASURA_WM forces
 	// detection to it without needing that compositor's session.
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("ZENITH_WM", "testwm")
+	t.Setenv("ASURA_WM", "testwm")
 
 	c := Open()
 
@@ -63,7 +63,7 @@ printf '%s' '{"name":"testwm","supports":["nightLight"],"nightLightProcess":"gam
 
 func TestActContextPropagatesTransientCapsFailure(t *testing.T) {
 	dir := t.TempDir()
-	prov := filepath.Join(dir, "zenith-wm-testwm")
+	prov := filepath.Join(dir, "asura-wm-testwm")
 	if err := os.WriteFile(prov, []byte("#!/bin/sh\necho 'provider retraining' >&2\nexit 1\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestActContextPropagatesTransientCapsFailure(t *testing.T) {
 func TestActContextTimeoutKillsProviderProcessGroup(t *testing.T) {
 	dir := t.TempDir()
 	childPath := filepath.Join(dir, "child.pid")
-	prov := filepath.Join(dir, "zenith-wm-testwm")
+	prov := filepath.Join(dir, "asura-wm-testwm")
 	script := strings.NewReplacer("@CHILD@", childPath).Replace(`#!/usr/bin/env bash
 if [[ "${1:-}" == caps ]]; then
   printf '%s' '{"name":"testwm","supports":["outputPower"]}'

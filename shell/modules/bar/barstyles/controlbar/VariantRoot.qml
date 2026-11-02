@@ -87,7 +87,7 @@ Item {
     // visible=true creates a fresh one without resetting the rest of the shell.
     //
     // There is deliberately no give-up. A bar left closed is dead for the rest of
-    // the session and only a hand-typed `zenith reload` brings it back, so the
+    // the session and only a hand-typed `asura reload` brings it back, so the
     // retry backs off instead of stopping. Variants destroys this Scope when it
     // replaces the delegate, which is what bounds the waiting.
     component BarWindowRecovery: Scope {

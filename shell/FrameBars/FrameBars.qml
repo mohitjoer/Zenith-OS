@@ -3,7 +3,7 @@ import QtQuick
 import "FrameBars.js" as Lib
 
 // Frame-bar config schema: defaults, normalization and the bar-studio mutation
-// helpers. Wrapped as an installed-module singleton (Zenith.FrameBars) so every
+// helpers. Wrapped as an installed-module singleton (Asura.FrameBars) so every
 // config root and the Hub Bar Studio reach one copy by module import, rather
 // than a relative JS import that Quickshell sandboxes to the pill config root.
 QtObject {

@@ -9,25 +9,25 @@ import Quickshell.Io
 // (libqsvgicon under QIcon) and re-rasterised on a fractional-scale change --
 // a path that raced the dock's icon warm-up and segfaulted the surface when a
 // monitor's DPR arrived after the surfaces first mapped. This singleton loads a
-// flat name -> absolute-path index once from `zenith-shell icons` (icons.go, which
+// flat name -> absolute-path index once from `asura-shell icons` (icons.go, which
 // walks the theme inheritance chain), and path() hands QML a plain file:// URL so
 // the ordinary image plugin decodes the SVG/PNG, size-stable across DPR changes.
 Singleton {
     id: root
 
     // The loaded index: { "<name>": "/abs/path", ... }. Empty until the first
-    // `zenith-shell icons` run lands.
+    // `asura-shell icons` run lands.
     property var index: ({})
     // Bumped on every (re)load. A binding that calls path()/has() reads rev inside
     // the function, so it re-evaluates the moment a fresh index arrives.
     property int rev: 0
 
     // Resolve the binary the way the shell does elsewhere: a checkout runs it out
-    // of ZENITH_SHELL_DIR/ipc, a deployed box finds it on PATH.
-    readonly property string _shellDir: Quickshell.env("ZENITH_SHELL_DIR")
+    // of ASURA_SHELL_DIR/ipc, a deployed box finds it on PATH.
+    readonly property string _shellDir: Quickshell.env("ASURA_SHELL_DIR")
     readonly property string _bin: (root._shellDir && root._shellDir.length > 0)
-        ? root._shellDir + "/ipc/zenith-shell"
-        : "zenith-shell"
+        ? root._shellDir + "/ipc/asura-shell"
+        : "asura-shell"
 
     // path(name, fallback): Quickshell.iconPath's semantics, resolved against the
     // index instead of Qt's icon engine.
@@ -84,9 +84,9 @@ Singleton {
 
     Process {
         id: loader
-        // The daemon's index first; `zenith icons` prints the same one, so icons
+        // The daemon's index first; `asura icons` prints the same one, so icons
         // resolve before the daemon is installed or while it is down.
-        command: ["sh", "-c", "\"$0\" icons 2>/dev/null || exec zenith icons", root._bin]
+        command: ["sh", "-c", "\"$0\" icons 2>/dev/null || exec asura icons", root._bin]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {

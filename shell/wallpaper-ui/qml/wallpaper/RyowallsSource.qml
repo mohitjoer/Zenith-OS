@@ -8,7 +8,7 @@ import qs.Ui.Singletons
 // behind one object, so the picker's Browse surface gains sources without a
 // bespoke browser each. Results are NDJSON rows: {id, thumb, video, dl, name,
 // resolution, ...}. download() saves the master into the video library and
-// emits its path; the picker applies it through the zenith-wallpaper daemon.
+// emits its path; the picker applies it through the asura-wallpaper daemon.
 QtObject {
     id: src
 

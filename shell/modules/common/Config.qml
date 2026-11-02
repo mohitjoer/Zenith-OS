@@ -2,23 +2,23 @@ import QtQuick
 import Quickshell
 import qs as Root
 
-// The vendored components' settings, read from Zenith's settings store.
+// The vendored components' settings, read from Asura's settings store.
 //
 // This is an overlay. Upstream's version of this file reads a JSON file of its
 // own — it creates `~/.config/illogical-impulse/config.json` on first use and
-// writes back into it whenever a component changes an option. Zenith already
-// has a settings store, GSettings, and exactly one writer, `zenith config
+// writes back into it whenever a component changes an option. Asura already
+// has a settings store, GSettings, and exactly one writer, `asura config
 // set`. Two stores would mean two answers to "what is the bar's height", and
 // the one that wins would depend on which surface you asked.
 //
 // So this file exposes upstream's shape — `Config.options.bar.height`,
 // `Config.options.appearance.fonts.main` — and every value comes from
-// `zenith config export`. It has no writer, because there is nothing here
+// `asura config export`. It has no writer, because there is nothing here
 // that owns a setting: a vendored component that wants to change one asks the
 // desktop to, and the desktop writes GSettings.
 //
 // What is here is what a component would read to draw. Upstream's file has
-// three hundred and seventy-nine options, most of them for surfaces Zenith
+// three hundred and seventy-nine options, most of them for surfaces Asura
 // does not adopt — an AI assistant's model, a booru viewer's tags, a
 // cheatsheet's keybindings. Those are not missing by oversight: an option for
 // a surface that does not exist is a setting nobody can act on. When one of
@@ -40,16 +40,16 @@ Singleton {
             property bool vertical: Root.Config.barPosition === Root.Config.edgeLeft
                 || Root.Config.barPosition === Root.Config.edgeRight
             // Upstream calls an edged bar "attached" (0) and a floating one
-            // "corned" (1). Zenith's bar is attached: it is the top edge of
+            // "corned" (1). Asura's bar is attached: it is the top edge of
             // the screen, not a pill hovering above it.
             property int cornerStyle: 0
             // A verbosity switch that upstream's bar uses to decide whether
-            // its centre module shows a clock, a date, or both. Zenith's bar
+            // its centre module shows a clock, a date, or both. Asura's bar
             // shows both, so it is verbose.
             property bool verbose: true
             property bool showBackground: true
             // Every screen. An empty list means "all of them" upstream, and
-            // Zenith has no per-screen bar.
+            // Asura has no per-screen bar.
             property var screenList: []
             property QtObject autoHide: QtObject {
                 property bool enable: false
@@ -84,7 +84,7 @@ Singleton {
             }
             property bool extraBackgroundTint: false
             // Panels are opaque. Upstream can composite them over the
-            // wallpaper; Zenith draws a surface with a hairline, so there is
+            // wallpaper; Asura draws a surface with a hairline, so there is
             // no transparency to configure.
             property QtObject transparency: QtObject {
                 property bool enable: false
@@ -113,7 +113,7 @@ Singleton {
         }
 
         // Upstream's components read this to know whether their settings file
-        // had loaded. Zenith's settings are a GSettings read that is either
+        // had loaded. Asura's settings are a GSettings read that is either
         // there or is not, and the defaults are the schema's, so there is no
         // half-loaded state to report.
         property bool ready: true

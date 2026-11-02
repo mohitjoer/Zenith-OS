@@ -6,7 +6,7 @@ The desktop widget host carries the wallpaper clock and any enabled
 `qs -c widgets` loads `shell.qml`. The shell daemon keeps that process alive as
 the `widgets` component. It creates one bottom-layer surface per monitor, below
 normal windows, and accepts pointer input only on bare wallpaper or widget
-surfaces. Run `zenith-shell reload` after changing QML.
+surfaces. Run `asura-shell reload` after changing QML.
 
 ## Structure
 
@@ -21,7 +21,7 @@ surfaces. Run `zenith-shell reload` after changing QML.
     PluginDesktopSlot.qml    one placed third-party widget
     PluginWidgetMenu.qml     third-party widget actions
     Singletons/
-      Config.qml             ~/.config/zenith/widgets.json
+      Config.qml             ~/.config/asura/widgets.json
       Registry.qml           enabled plugin catalogue
       Theme.qml              widget tokens
       Scheme.qml             live wallpaper palette
@@ -63,8 +63,8 @@ face. Keep it visually equivalent without duplicating runtime behavior.
 
 ## Configuration
 
-The desktop menu, dragging code and Zenith Settings all meet at
-`~/.config/zenith/widgets.json`. `Singletons/Config.qml` watches that file, so a
+The desktop menu, dragging code and Asura Settings all meet at
+`~/.config/asura/widgets.json`. `Singletons/Config.qml` watches that file, so a
 write retunes the running clock without IPC or a shell reload.
 
 Desktop actions use four small helpers:
@@ -85,7 +85,7 @@ the same change, otherwise a Hub save can discard a key it does not know.
 
 The desktop menu opens that page with:
 
-    zenith-hub config set section widgets
+    asura-hub config set section widgets
 
 and then starts the guarded Hub process. There is no direct menu-to-Hub IPC.
 
@@ -94,7 +94,7 @@ and then starts the guarded Hub process. There is no direct menu-to-Hub IPC.
 `Registry` filters enabled plugins whose placement host is `desktopWidget`.
 The host repeats a stable list of plugin IDs so a placement write updates the
 live entry without rebuilding its service or losing its internal state.
-Placement writes go through `zenith-plugins-place`, resolved from `ZENITH_SHELL_DIR`
+Placement writes go through `asura-plugins-place`, resolved from `ASURA_SHELL_DIR`
 in a dev run (else the packaged `/usr/bin` name); plugin settings stay in the
 plugin store rather than `widgets.json`.
 

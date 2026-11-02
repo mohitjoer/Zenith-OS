@@ -5,15 +5,15 @@ import Quickshell.Io
 
 // SYSTEM info for the Profile section. base fields (operator, host, CPU/GPU,
 // RAM, disk, ...) = the hub-side twin of the shell's SysInfo, read from the
-// shared zenith-sysinfo helper. extended fields for the dossier (load, temp,
+// shared asura-sysinfo helper. extended fields for the dossier (load, temp,
 // processes, swap, battery, network, packages, cursor, palette) come
-// from zenith-profile-stats. both = one field per line, re-polled every 30 s,
+// from asura-profile-stats. both = one field per line, re-polled every 30 s,
 // each falls back to a placeholder when its source is absent.
 Singleton {
     id: root
 
-    readonly property string helper: "zenith-sysinfo"
-    readonly property string helperExtra: "zenith-profile-stats"
+    readonly property string helper: "asura-sysinfo"
+    readonly property string helperExtra: "asura-profile-stats"
 
     property string sysUser: "user"
     property string sysHost: "host"
@@ -41,7 +41,7 @@ Singleton {
     property string sysRefresh: ""
     property string codename: "OPERATOR"
 
-    // extended read-out for the dossier panel (zenith-profile-stats).
+    // extended read-out for the dossier panel (asura-profile-stats).
     property string sysLoad: "-"
     property string sysTemp: "-"
     property string sysProcs: "-"

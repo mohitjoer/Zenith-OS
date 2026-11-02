@@ -153,7 +153,7 @@ Item {
     transformOrigin: Item.Center
     Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutExpo } }
 
-    // per-tile opacity (the menu and Zenith Settings write desktopWidget.opacity),
+    // per-tile opacity (the menu and Asura Settings write desktopWidget.opacity),
     // clamped so a tile can fade back but never vanish or lose its clicks.
     opacity: Math.max(0.2, Math.min(1, slot.opacityCfg))
 

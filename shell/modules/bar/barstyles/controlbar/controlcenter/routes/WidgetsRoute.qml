@@ -5,7 +5,7 @@ import "../../modules"
 import qs.Ui
 import qs.Ui.Singletons
 
-// Widgets route (部品): the shipped widgets (every built-in and Zenith's own
+// Widgets route (部品): the shipped widgets (every built-in and Asura's own
 // plugins) as one CcWidgetList sheet: show, size, colour and tune each. The
 // launcher's mark and the workspaces' count/marker (the old Logo and Spaces
 // routes) are just those two widgets' settings now, and the workspaces row keeps
@@ -27,8 +27,8 @@ Item {
     // the live Theme (or the offscreen probe) does not expose the helpers.
     readonly property bool colorSupported: !!(page.root && page.root.widgetHasFill)
 
-    // The shipped set: every built-in and Zenith's own plugins. A plugin from
-    // outside Zenith lives on the Community route instead.
+    // The shipped set: every built-in and Asura's own plugins. A plugin from
+    // outside Asura lives on the Community route instead.
     readonly property var ownEntries: {
         var c = (page.root && page.root.barCatalog) ? page.root.barCatalog : []
         var out = []

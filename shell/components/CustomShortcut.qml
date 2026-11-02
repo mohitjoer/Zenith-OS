@@ -6,7 +6,7 @@ import qs.Ui.Singletons
 // One shell keybind. When the compositor offers a global-shortcuts protocol
 // (caps.globalShortcuts) the provider bridge dispatches straight to this
 // instance with no process spawn. Where the capability is absent the shortcut is
-// a compositor keybind execing zenith-shell instead, so this stays inert.
+// a compositor keybind execing asura-shell instead, so this stays inert.
 // Consumers set name/description and handle pressed/released.
 Item {
     id: root
@@ -34,7 +34,7 @@ Item {
         if (root._bridge || !Wm.caps.globalShortcuts)
             return;
         if (!root._component)
-            root._component = Qt.createComponent("Zenith.Wm.Hyprland", "GlobalShortcutBridge");
+            root._component = Qt.createComponent("Asura.Wm.Hyprland", "GlobalShortcutBridge");
         const c = root._component;
         if (c.status === Component.Loading) {
             c.statusChanged.connect(root._build);

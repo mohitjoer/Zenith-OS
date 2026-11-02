@@ -62,7 +62,7 @@ Item {
         command: ["sh", "-c",
             "command -v cava >/dev/null 2>&1 || exit 0; " +
             "mon=$(pactl get-default-sink 2>/dev/null).monitor; " +
-            "cfg=\"${XDG_RUNTIME_DIR:-/tmp}/zenith-cava-hero.conf\"; " +
+            "cfg=\"${XDG_RUNTIME_DIR:-/tmp}/asura-cava-hero.conf\"; " +
             "printf '%s\\n' '[general]' 'framerate = 25' 'bars = 20' " +
             "'' '[input]' 'method = pulse' \"source = $mon\" " +
             "'' '[output]' 'method = raw' 'raw_target = /dev/stdout' " +

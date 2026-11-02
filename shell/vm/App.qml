@@ -5,7 +5,7 @@ import qs.Ui
 import qs.Ui.Singletons
 import "Singletons"
 
-// zenith-vm, the harbour: one console for every machine you command -- the local
+// asura-vm, the harbour: one console for every machine you command -- the local
 // iron in the yard (QEMU), and the distant ports reached over SSH. A hub shell:
 // the rail owns navigation, three plates fill the stage (the harbour dashboard,
 // the machine yard, the remote fleet). Paper and ink; the frame carries no accent,
@@ -60,9 +60,9 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        var s = Quickshell.env("ZENITH_VM_SECTION");
+        var s = Quickshell.env("ASURA_VM_SECTION");
         if (s === "dashboard" || s === "machines" || s === "remotes") app.section = s;
-        var m = Quickshell.env("ZENITH_VM_START_MODE");
+        var m = Quickshell.env("ASURA_VM_START_MODE");
         if (m === "catalog" || m === "instant") app.section = "machines";
         app.refocus();
     }

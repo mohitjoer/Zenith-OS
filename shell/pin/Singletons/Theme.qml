@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import qs.Ui.Singletons
 
-// zenith-pin is a separate Quickshell config and cannot import zenith-shot's Singletons,
+// asura-pin is a separate Quickshell config and cannot import asura-shot's Singletons,
 // so this is a second copy of the same Tokens derivation, trimmed to the roles a
 // pin uses.
 Singleton {

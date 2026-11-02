@@ -5,7 +5,7 @@ import Quickshell.Io
 import "../lib/weather.js" as Model
 
 // Live weather for HeroShutter. Open-Meteo needs no API key; the location is the
-// one the user chose in Settings, read from ~/.local/state/zenith/weather-loc.json
+// one the user chose in Settings, read from ~/.local/state/asura/weather-loc.json
 // (the place picker writes it). There is no IP lookup: with no location chosen
 // the launcher shows no weather and makes no request.
 // replaced the old wttr.in scrape (rate-limited, re-located on every poll).
@@ -17,7 +17,7 @@ import "../lib/weather.js" as Model
 Singleton {
     id: root
 
-    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/zenith"
+    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/asura"
     // unit override from the launcher config: "" follows the locale (Fahrenheit
     // only for US/LR/MM), "C"/"F" force it. a change refetches in the new unit.
     property string unitOverride: ""

@@ -1,4 +1,4 @@
-# Zento OS Low-Latency NVMe & Storage I/O Elevator Rules
+# Asura OS Low-Latency NVMe & Storage I/O Elevator Rules
 
 # Layer 3 Tuning: Kyber NVMe I/O elevator prioritizes synchronous reads and interactive frame pacing.
 

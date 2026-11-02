@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"zenith/hardware/probe"
-	"zenith/hardware/redact"
+	"asura/hardware/probe"
+	"asura/hardware/redact"
 )
 
 // machineFromFixture runs the real probes against a captured machine, so these
-// tests exercise the same path `zenith hardware report` does.
+// tests exercise the same path `asura hardware report` does.
 func machineFromFixture(t *testing.T, name string) Input {
 	t.Helper()
 

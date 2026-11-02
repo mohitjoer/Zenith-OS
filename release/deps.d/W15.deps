@@ -1,4 +1,4 @@
-depends jq  # discover.sh and zenith-plugins-place merge plugins.json with jq
-depends util-linux  # zenith-plugins-place takes flock(1) so two writers never lose a placement
-recommends git  # zenith plugin install <git-url> clones, and zenith plugin new git-inits the scaffold
-recommends xdg-user-dirs  # zenith plugin new authors under the Documents folder (else ~/zenith-plugins)
+depends jq  # discover.sh and asura-plugins-place merge plugins.json with jq
+depends util-linux  # asura-plugins-place takes flock(1) so two writers never lose a placement
+recommends git  # asura plugin install <git-url> clones, and asura plugin new git-inits the scaffold
+recommends xdg-user-dirs  # asura plugin new authors under the Documents folder (else ~/asura-plugins)

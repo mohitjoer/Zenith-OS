@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Global Stage settings on ~/.config/zenith/stage.json (docs/stage.md). Only the
+// Global Stage settings on ~/.config/asura/stage.json (docs/stage.md). Only the
 // look every layer inherits (edge, shadow) and the motion the whole stack shares
 // (amount, idle, music) live here; anything per-wallpaper (effect, per-layer
 // front/depth, cut artifacts) is daemon-owned in the registry and reaches the
@@ -105,7 +105,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/zenith/stage.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/asura/stage.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

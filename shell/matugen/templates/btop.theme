@@ -1,4 +1,4 @@
-# Zenith palette -> btop. Rendered by zenith theme; do not edit.
+# Asura palette -> btop. Rendered by asura theme; do not edit.
 theme[main_bg]="{{colors.background.default.hex}}"
 theme[main_fg]="{{colors.foreground.default.hex}}"
 theme[title]="{{colors.foreground.default.hex}}"

@@ -164,7 +164,7 @@ Provider {
                 execute: function () {
                     var args = op === "remove" ? ["remove", "-y", pkg.name]
                         : (version ? ["install", "--reinstall", "-y", pkg.name] : ["install", "-y", pkg.name]);
-                    Spawn.run(["zenith-app", "terminal", "--", "sh", "-c", packages.script, "sh"].concat(args));
+                    Spawn.run(["asura-app", "terminal", "--", "sh", "-c", packages.script, "sh"].concat(args));
                     // the install/remove will change what a re-search should
                     // show; drop the cached rows so the next query refetches.
                     packages.invalidateSearch();

@@ -8,7 +8,7 @@ import qs.Ui.Singletons
 import qs.Ui
 
 // polkit authentication island, grown from the pill centre. Renders the PAM
-// conversation the zenith-shell daemon runs as the PolicyKit1 agent, in place of
+// conversation the asura-shell daemon runs as the PolicyKit1 agent, in place of
 // the stock agent's centred grey dialog: same island, fields, and buttons as the
 // keyring prompt, so an administrator password looks like the rest of the shell.
 //

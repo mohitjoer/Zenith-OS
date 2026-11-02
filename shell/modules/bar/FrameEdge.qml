@@ -9,7 +9,7 @@ import qs.Services
 // nothing and takes no input; its exclusive zone reserves the revealed bar's
 // thickness plus the frame border so tiled windows clear the bar. A hidden or
 // empty-collapsed bar reserves nothing, releasing the edge. Every bar and menu
-// is content inside the single zenith-frame overlay, never here. The four edges
+// is content inside the single asura-frame overlay, never here. The four edges
 // carry the whole screen reservation so the overlay can span the output with
 // exclusiveZone -1 and still let a bar hide without unmapping the frame.
 PanelWindow {
@@ -29,7 +29,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Background
-    WlrLayershell.namespace: "zenith-frame-edge"
+    WlrLayershell.namespace: "asura-frame-edge"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Normal
     exclusiveZone: Math.round(zone)

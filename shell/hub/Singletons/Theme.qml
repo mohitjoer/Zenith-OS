@@ -2,12 +2,12 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Zenith Settings palette, the website's "Greek-noir yakuza" language in QML.
+// Asura Settings palette, the website's "Greek-noir yakuza" language in QML.
 // A near-black canvas so the one vermillion accent (力 mark, active section,
 // focused search, numerals) reads as deliberate, never a wash. Warm-white type,
 // gold used only as kintsugi. Depth from hairlines + hard offset shadows, not
 // gradients. Display face is Fraunces (editorial serif); UI is Space Grotesk;
-// labels are JetBrains Mono. Mirrors zenith-site/app/assets/css/tokens.css.
+// labels are JetBrains Mono. Mirrors asura-site/app/assets/css/tokens.css.
 Singleton {
     // brand: one vermillion, sparingly + boldly. (site --sun / --sun-deep)
     readonly property color brand:     "#e2342a"

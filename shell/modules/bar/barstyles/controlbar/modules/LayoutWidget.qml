@@ -102,7 +102,7 @@ Item {
             if (mouse.button === Qt.RightButton)
                 Wm.cycleKeyboardLayout()
             else
-                Quickshell.execDetached(["zenith-shell", "hub", "open", "input"])
+                Quickshell.execDetached(["asura-shell", "hub", "open", "input"])
         }
     }
 }

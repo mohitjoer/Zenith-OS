@@ -1,4 +1,4 @@
-// Package svcmgr is how Zenith's tools drive the session's user services.
+// Package svcmgr is how Asura's tools drive the session's user services.
 //
 // Every control command ends in someone else's program: on the reference base,
 // Void Linux, that is sv(8) standing in front of the services seeded into
@@ -102,14 +102,14 @@ func kindFromComm(comm string) Kind {
 // own, so the mapping records the decision instead of leaving each caller to
 // rediscover it — or to diverge from the docs.
 var unitService = map[string]string{
-	"zenith-shell.service":          "quickshell",
-	"zenithd.service":               "zenithd",
-	"zenith-hubd.service":           "zenith-hubd",
-	"zenith-wallpaper.service":      "zenith-wallpaper",
-	"zenith-idle.service":           "zenith-idle",
-	"zenith-agent.service":          "zenith-agent",
-	"zenith-palette-bridge.service": "zenith-palette-bridge",
-	"zenith-portal.service":         "portal",
+	"asura-shell.service":          "quickshell",
+	"asurad.service":               "asurad",
+	"asura-hubd.service":           "asura-hubd",
+	"asura-wallpaper.service":      "asura-wallpaper",
+	"asura-idle.service":           "asura-idle",
+	"asura-agent.service":          "asura-agent",
+	"asura-palette-bridge.service": "asura-palette-bridge",
+	"asura-portal.service":         "portal",
 }
 
 // RunitServiceName maps a unit name to its runit service directory name. An
@@ -129,7 +129,7 @@ func RunitServiceName(unit string) string {
 
 // ServicesDir is where a user's runit services live. Turnstile seeds it at
 // login and runsvdir supervises it; the same layout is what
-// session/runit/zenith-user-services lays down on a machine that has no
+// session/runit/asura-user-services lays down on a machine that has no
 // turnstile yet.
 func ServicesDir() string {
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {

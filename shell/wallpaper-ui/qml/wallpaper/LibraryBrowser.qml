@@ -8,7 +8,7 @@ import qs.Ui.Singletons
 // Generic remote-source browser: a search field over a thumbnail grid, backed
 // by a RyowallsSource (moewalls / motionbgs / github repos). Clicking a tile
 // downloads the master into the video library and applies it through the
-// zenith-wallpaper daemon. One pane serves every ryowalls-shaped source, so Browse is
+// asura-wallpaper daemon. One pane serves every ryowalls-shaped source, so Browse is
 // extensible without a bespoke browser each.
 Item {
     id: browser

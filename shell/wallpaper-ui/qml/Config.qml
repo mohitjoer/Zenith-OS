@@ -12,9 +12,9 @@ QtObject {
     function _resolve(path) { return path ? path.replace("~", homeDir) : "" }
 
     readonly property string homeDir: Quickshell.env("HOME")
-    readonly property string configDir: Quickshell.env("ZENITH_WALLPAPER_WALL_CONFIG")
-        || (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/zenith-wallpaper-wall"
-    readonly property string installDir: Quickshell.env("ZENITH_WALLPAPER_WALL_INSTALL")
+    readonly property string configDir: Quickshell.env("ASURA_WALLPAPER_WALL_CONFIG")
+        || (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/asura-wallpaper-wall"
+    readonly property string installDir: Quickshell.env("ASURA_WALLPAPER_WALL_INSTALL")
         || configDir
 
     property var _data: ({})
@@ -84,13 +84,13 @@ QtObject {
         preload: true
     }
 
-    readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-wallpaper-wall"
+    readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-wallpaper-wall"
 
     readonly property string scriptsDir: _resolve(_data.paths?.scripts) || (installDir + "/scripts")
     readonly property string templateDir: _resolve(_data.paths?.templates) || (installDir + "/data/matugen/templates")
     readonly property string cacheDir: _resolve(_data.paths?.cache)
-        || Quickshell.env("ZENITH_WALLPAPER_WALL_CACHE")
-        || (Quickshell.env("XDG_CACHE_HOME") || (homeDir + "/.cache")) + "/zenith-wallpaper-wall"
+        || Quickshell.env("ASURA_WALLPAPER_WALL_CACHE")
+        || (Quickshell.env("XDG_CACHE_HOME") || (homeDir + "/.cache")) + "/asura-wallpaper-wall"
     readonly property string wallpaperDir: _resolve(_data.paths?.wallpaper)
         || ((Quickshell.env("XDG_PICTURES_DIR") || (homeDir + "/Pictures")) + "/Wallpapers")
     readonly property string videoDir: _resolve(_data.paths?.videoWallpaper)
@@ -153,14 +153,14 @@ QtObject {
         return Math.max(0, Math.min(100, Math.round(v)))
     }
 
-    // The zenith-wallpaper daemon reads the wallpaper engine options from shell.json,
+    // The asura-wallpaper daemon reads the wallpaper engine options from shell.json,
     // so the picker reads the same file it does.
-    readonly property string zenithShellPath: (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/zenith/shell.json"
+    readonly property string asuraShellPath: (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/asura/shell.json"
 
     property var _shell: ({})
 
     property var _shellFile: FileView {
-        path: Config.zenithShellPath
+        path: Config.asuraShellPath
         watchChanges: true
         onLoaded: Config._reparseShell()
         onFileChanged: { reload(); Config._reparseShell() }
@@ -203,7 +203,7 @@ QtObject {
     }
 
     property var _shellPatch: Socket {
-        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-shell.sock"
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-shell.sock"
         property string queued: ""
         function flushQueued() {
             if (queued === "") return
@@ -214,7 +214,7 @@ QtObject {
         onConnectionStateChanged: if (connected) flushQueued()
     }
 
-    readonly property string engineVideoEngine: config._shellGet("wallpaper.video_engine", "zenith-wallpaper")
+    readonly property string engineVideoEngine: config._shellGet("wallpaper.video_engine", "asura-wallpaper")
     readonly property bool   engineVideoEnabled: config._shellGet("wallpaper.video_enabled", true) !== false
     readonly property bool   engineVideoTranscode: config._shellGet("wallpaper.video_transcode", false) === true
     readonly property int    engineVideoTransFps: {
@@ -248,7 +248,7 @@ QtObject {
     readonly property string defaultMatugenConfig: _resolve(_data.defaultMatugenConfig ?? "~/.config/matugen/config.toml")
     readonly property string externalMatugenCommand: _data.externalMatugenCommand ?? "matugen -c %config% image %path% -t %scheme% -m %mode% --source-color-index %index%"
     // The matugen knobs live in the shell's own store, not in this vendored
-    // config: zenith-hubd is their single writer and zenith-shell retints from that
+    // config: asura-hubd is their single writer and asura-shell retints from that
     // file, so the picker reads them there and falls back to the vendored block
     // only for a box that has never saved one.
     property var _matugenKnobs: ({})
@@ -257,7 +257,7 @@ QtObject {
         catch (e) { config._matugenKnobs = {} }
     }
     property var _matugenKnobsFile: FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/zenith/matugen.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/asura/matugen.json"
         watchChanges: true
         onLoaded: config._reparseMatugenKnobs()
         onFileChanged: { reload(); config._reparseMatugenKnobs() }
@@ -265,7 +265,7 @@ QtObject {
 
     // Where the Palette Bridge source tree lives for build/doctor actions; the
     // packaged default is the read-only data dir, overridable in config.json.
-    readonly property string paletteBridgeSource: _resolve(_data.paletteBridgeSource ?? "/usr/share/zenith/palette-bridge")
+    readonly property string paletteBridgeSource: _resolve(_data.paletteBridgeSource ?? "/usr/share/asura/palette-bridge")
 
     readonly property string matugenScheme: _matugenKnobs.schemeType || (_data.matugen && _data.matugen.schemeType) || "scheme-fidelity"
     readonly property string matugenMode: _matugenKnobs.mode || (_data.matugen && _data.matugen.mode) || "dark"
@@ -475,7 +475,7 @@ QtObject {
         return desktop.indexOf("kde") >= 0 || desktop.indexOf("plasma") >= 0
     }
 
-    // Compositor capabilities from the zenith-wallpaper daemon (which holds the wm seam
+    // Compositor capabilities from the asura-wallpaper daemon (which holds the wm seam
     // client), so the picker gates features on what the compositor can do, never
     // on its name.
     property var _caps: ({})

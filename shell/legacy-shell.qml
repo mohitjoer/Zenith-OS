@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 // The shell's entry point.
 //
-// `quickshell -p /usr/share/zenith/shell` runs this file. Nothing else names it,
+// `quickshell -p /usr/share/asura/shell` runs this file. Nothing else names it,
 // which is why the packaging check can assert it exists: a missing entry point
 // is a shell that starts and immediately exits, with nothing in the journal that
 // says why.
@@ -197,7 +197,7 @@ ShellRoot {
     // quietest possible failure, and the one a user reports as "the shortcut
     // stopped working" rather than as a bug.
     //
-    // So the target name is written once, here, and `zenith doctor` checks the
+    // So the target name is written once, here, and `asura doctor` checks the
     // compositor's configuration against it.
     //
     // The functions are the shell's own, not wrappers around them: togglePopover
@@ -221,7 +221,7 @@ ShellRoot {
     // surfaces read through.
     Process {
         id: settingsReader
-        command: ["zenith", "config", "values"]
+        command: ["asura", "config", "values"]
         running: true
 
         stdout: StdioCollector {
@@ -239,7 +239,7 @@ ShellRoot {
 
     Process {
         id: appsReader
-        command: ["zenith", "apps"]
+        command: ["asura", "apps"]
         running: true
 
         stdout: StdioCollector {
@@ -292,7 +292,7 @@ ShellRoot {
 
     IpcHandler {
         id: ipc
-        target: "zenith"
+        target: "asura"
 
         // Open or close a surface by name: "launcher", "quick", "sidebar".
         function togglePopover(name: string): void {

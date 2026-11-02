@@ -1,5 +1,5 @@
 #!/bin/bash
-# cobalt-backed media fetcher + local remuxer for the Zenith stash.
+# cobalt-backed media fetcher + local remuxer for the Asura stash.
 # downloads through a cobalt API instance (https://github.com/imputnet/cobalt)
 # when one's reachable, falls back to yt-dlp otherwise so a fresh box still works.
 # remux is always a lossless ffmpeg container copy, same thing cobalt's own

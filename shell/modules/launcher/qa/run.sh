@@ -8,14 +8,14 @@
 # Evidence: $QA_OUT (default /tmp/launcher-qa)/run-<stamp>/<id>/
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SOCK="${XDG_RUNTIME_DIR}/zenith-launcher.sock"
+SOCK="${XDG_RUNTIME_DIR}/asura-launcher.sock"
 SUITE="${1:-$HERE/scenarios.json}"
 ONLY="${2:-}"
 RUN="run-$(date +%Y%m%d-%H%M%S)"
 OUT="${QA_OUT:-/tmp/launcher-qa}/$RUN"
 mkdir -p "$OUT"
 CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
-LAUNCHER_CONFIG="$CONFIG_HOME/zenith/launcher.json"
+LAUNCHER_CONFIG="$CONFIG_HOME/asura/launcher.json"
 
 set_variant() {
     local variant="$1"

@@ -32,7 +32,7 @@ Item {
         if (root._bridge || !Wm.caps.focusGrab)
             return;
         if (!root._component)
-            root._component = Qt.createComponent("Zenith.Wm.Hyprland", "FocusGrabBridge");
+            root._component = Qt.createComponent("Asura.Wm.Hyprland", "FocusGrabBridge");
         const c = root._component;
         if (c.status === Component.Loading) {
             c.statusChanged.connect(root._build);

@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-// The fake zenith is a shell script that echoes its argv, because what the
+// The fake asura is a shell script that echoes its argv, because what the
 // test asks zpm is: does the forward pass through name, verbs, and statuses —
 // and nothing else.
 
-func fakeZenith(t *testing.T, body string) string {
+func fakeAsura(t *testing.T, body string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "zenith")
+	path := filepath.Join(t.TempDir(), "asura")
 	script := "#!/bin/sh\n" + body + "\n"
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
@@ -22,9 +22,9 @@ func fakeZenith(t *testing.T, body string) string {
 }
 
 func TestForwardPassesEverythingThrough(t *testing.T) {
-	zenith := fakeZenith(t, `echo "pkg $*"`)
+	asura := fakeAsura(t, `echo "pkg $*"`)
 
-	out, exit := capture(t, zenith, []string{"install", "-y", "cpu"})
+	out, exit := capture(t, asura, []string{"install", "-y", "cpu"})
 	if exit != 0 {
 		t.Errorf("exit %d", exit)
 	}
@@ -34,17 +34,17 @@ func TestForwardPassesEverythingThrough(t *testing.T) {
 }
 
 func TestForwardCarriesTheExitStatus(t *testing.T) {
-	zenith := fakeZenith(t, `exit 3`)
+	asura := fakeAsura(t, `exit 3`)
 
-	_, exit := capture(t, zenith, []string{"update"})
+	_, exit := capture(t, asura, []string{"update"})
 	if exit != 3 {
 		t.Errorf("exit %d, want the manager's own 3", exit)
 	}
 }
 
-// capture runs forward against a fake zenith, with a pipe standing in for
+// capture runs forward against a fake asura, with a pipe standing in for
 // the process's real stdout so the output can be read back.
-func capture(t *testing.T, zenithPath string, argv []string) (string, int) {
+func capture(t *testing.T, asuraPath string, argv []string) (string, int) {
 	t.Helper()
 
 	r, w, err := os.Pipe()
@@ -55,7 +55,7 @@ func capture(t *testing.T, zenithPath string, argv []string) (string, int) {
 	os.Stdout = w
 	defer func() { os.Stdout = originalStdout }()
 
-	exit := forward(zenithPath, argv)
+	exit := forward(asuraPath, argv)
 
 	if err := w.Close(); err != nil {
 		t.Fatal(err)

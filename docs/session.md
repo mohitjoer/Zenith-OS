@@ -1,64 +1,64 @@
 # The session path
 
-Zenith from power-on to a desktop, and back down again. This document fixes the order of
+ASURA from power-on to a desktop, and back down again. This document fixes the order of
 everything on that path and names the owner of each step. A desktop with two owners for one
 job is a desktop that breaks in ways nobody can reproduce, so every stage below has exactly
 one owner and the reason for every ordering is written next to it.
 
 Three rules run through the whole document:
 
-- **One owner per stage.** Where a base-layer component owns a step, Zenith does not
-  duplicate it. Where no base-layer component owns it, Zenith does.
+- **One owner per stage.** Where a base-layer component owns a step, ASURA does not
+  duplicate it. Where no base-layer component owns it, ASURA does.
 - **Order is a dependency, not a preference.** Where two things must happen in a particular
   sequence, the failure that the sequence avoids is named.
 - **Everything is a file.** Every unit, config file and desktop entry named here is a file
   on the image, with a path and an owner.
 
 The companion documents are [`architecture.md`](architecture.md) for the decisions and
-[`adopting-zenith.md`](adopting-zenith.md) for putting an existing machine on this path.
+[`adopting-asura.md`](adopting-asura.md) for putting an existing machine on this path.
 Where this document repeats a decision, it repeats the reason with it.
 
 ---
 
-## Where Zenith's files live
+## Where ASURA's files live
 
-Zenith's packages write to `/usr/share/zenith/` and `/etc/zenith/`, and to nothing else that
+ASURA's packages write to `/usr/share/asura/` and `/etc/asura/`, and to nothing else that
 belongs to another package. A handful of files have to sit outside those two directories
 anyway, because the components that read them look nowhere else. Listing them is the point:
 a boundary that is not written down gets crossed by accident.
 
-| Path | What it is | Why it cannot live under `/usr/share/zenith/` |
+| Path | What it is | Why it cannot live under `/usr/share/asura/` |
 |---|---|---|
-| `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
-| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service`, `zenithd.service`, `zenith-wallpaper.service`, `zenith-idle.service`, `zenith-agent.service`, `zenith-ai-usage.service`, `zenith-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
-| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
-| `/usr/bin/zenith`, `/usr/bin/zenith-*` and the bare-name helpers | The executables, and the scripts the shell and the compositor call by name | `PATH` resolution looks nowhere else, and the user manager's `PATH` has no `~/.local/bin`. Same list |
-| `/usr/share/applications/zenith-*.desktop`, `zenith-mimeapps.list` | Desktop entries, and the default applications for Zenith sessions | The desktop-entry and mime-apps lookups scan `XDG_DATA_DIRS/applications` and nowhere else. Same list |
+| `/usr/share/wayland-sessions/asura.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
+| `/usr/lib/systemd/user/asura-shell.service`, `asura-portal.service`, `asurad.service`, `asura-wallpaper.service`, `asura-idle.service`, `asura-agent.service`, `asura-ai-usage.service`, `asura-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/asura-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/share/glib-2.0/schemas/org.asura.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
+| `/usr/share/xdg-desktop-portal/asura-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
+| `/usr/bin/asura`, `/usr/bin/asura-*` and the bare-name helpers | The executables, and the scripts the shell and the compositor call by name | `PATH` resolution looks nowhere else, and the user manager's `PATH` has no `~/.local/bin`. Same list |
+| `/usr/share/applications/asura-*.desktop`, `asura-mimeapps.list` | Desktop entries, and the default applications for ASURA sessions | The desktop-entry and mime-apps lookups scan `XDG_DATA_DIRS/applications` and nowhere else. Same list |
 | `/boot/limine.conf` | Boot configuration, deferred with the boot chain | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
 
-These are registrations — pointers a third-party binary must find — not Zenith-owned content.
-The content stays at `/usr/share/zenith/session/`, `/usr/share/zenith/shell/`,
-`/usr/share/zenith/portal/` and `/usr/share/zenith/schemas/`, and `zenith doctor` reports
+These are registrations — pointers a third-party binary must find — not ASURA-owned content.
+The content stays at `/usr/share/asura/session/`, `/usr/share/asura/shell/`,
+`/usr/share/asura/portal/` and `/usr/share/asura/schemas/`, and `asura doctor` reports
 drift between the two the same way it reports drift everywhere else.
 
 **Runtime state is not a registration.** The state daemon's socket is at
-`$XDG_RUNTIME_DIR/zenith-shell.sock`, and the wallpaper daemon's and the agent's sit beside
+`$XDG_RUNTIME_DIR/asura-shell.sock`, and the wallpaper daemon's and the agent's sit beside
 it, and none of them is on the list because it is not a file a package installs. Each daemon
-creates its socket at run time, in the per-user runtime directory, which no Zenith package
+creates its socket at run time, in the per-user runtime directory, which no ASURA package
 writes to, and it is removed when the session ends. A path that exists only while the session
 does cannot be a registration, and a registration is by definition a path that exists on
 every boot.
 
-And the list of things Zenith deliberately does **not** touch:
+And the list of things ASURA deliberately does **not** touch:
 
 - `/etc/sddm.conf` and `/etc/sddm.conf.d/` — the login manager's configuration. No package
-  writes it; the opt-in `10-zenith.conf` drop-in is installed by the user, with the command
-  `zenith greeter enable` prints.
+  writes it; the opt-in `10-asura.conf` drop-in is installed by the user, with the command
+  `asura greeter enable` prints.
 - `/etc/pam.d/` — the PAM stack. The keyring is unlocked by the base layer's own PAM module.
-- `/etc/initramfs-tools/` — the initramfs configuration. Zenith's copy lives in
-  `/etc/zenith/initramfs/` and is passed to `mkinitramfs` with `-d`.
+- `/etc/initramfs-tools/` — the initramfs configuration. ASURA's copy lives in
+  `/etc/asura/initramfs/` and is passed to `mkinitramfs` with `-d`.
 - `/usr/share/xdg-desktop-portal/portals/` — the dispatcher's backend directory.
 - `/usr/lib/udev/rules.d/`, `/etc/NetworkManager/`, and every other package's configuration.
 
@@ -72,13 +72,13 @@ from a login manager on a stock Ubuntu install, and the document picks up at
 
 ### Stages and owners
 
-| Stage | Owner | What it owns | Zenith's part |
+| Stage | Owner | What it owns | ASURA's part |
 |---|---|---|---|
 | Firmware | The machine | Secure Boot verification, the EFI variable store, the boot order | Nothing |
 | Secure Boot shim | Base layer | First-stage verification, the MOK manager, the chainloader slot | Nothing |
-| Limine | `zenith-boot` | The boot menu, loading the kernel and the initramfs, the boot parameters | The config, the volume layout, the hashes |
+| Limine | `asura-boot` | The boot menu, loading the kernel and the initramfs, the boot parameters | The config, the volume layout, the hashes |
 | Kernel | Base layer, pinned by `system/kernel/` | Drivers, the initramfs unpacker, early microcode | The fleet, the initramfs contents |
-| initramfs | Base layer's initramfs-tools, tuned by Zenith | Root discovery, the microcode blob, zram | The config directory, the module list |
+| initramfs | Base layer's initramfs-tools, tuned by ASURA | Root discovery, the microcode blob, zram | The config directory, the module list |
 | systemd | Base layer | The system manager, logind, the per-user manager | The unit files, the session units |
 
 ### The four Limine stages
@@ -91,7 +91,7 @@ from a login manager on a stock Ubuntu install, and the document picks up at
 | 4 | `limine-exec`, the final stage | Loading the kernel and the initramfs into memory, setting the video mode and the kernel boot parameters, handing over |
 
 Limine reads **FAT12/16/32 and ISO9660 and nothing else**. It cannot open an ext4
-partition. Two designs follow from that, and Zenith takes the first:
+partition. Two designs follow from that, and ASURA takes the first:
 
 1. The kernel and the initramfs live on the FAT volume and Limine loads them directly. No
    second bootloader is involved, so the Secure Boot chain is one link shorter and there is
@@ -102,17 +102,17 @@ partition. Two designs follow from that, and Zenith takes the first:
 
 ### The boot volume
 
-The `ZENITHBOOT` volume is FAT32 and is mounted at `/boot`. It is the ESP, and it carries
+The `ASURABOOT` volume is FAT32 and is mounted at `/boot`. It is the ESP, and it carries
 the whole boot chain.
 
-| Path on `ZENITHBOOT` | Contents |
+| Path on `ASURABOOT` | Contents |
 |---|---|
 | `limine.sys` | The Limine configuration search target on the boot volume |
 | `limine-bios.sys` | The BIOS boot record payload |
 | `EFI/BOOT/BOOTX64.EFI` | Limine's EFI binary, and the fallback boot path |
-| `EFI/zenith/shimx64.efi` | The Secure Boot first stage |
-| `EFI/zenith/mmX64.efi` | The MOK manager |
-| `EFI/zenith/grubx64.efi` | Shim's chainloader slot, holding Limine's EFI binary |
+| `EFI/asura/shimx64.efi` | The Secure Boot first stage |
+| `EFI/asura/mmX64.efi` | The MOK manager |
+| `EFI/asura/grubx64.efi` | Shim's chainloader slot, holding Limine's EFI binary |
 | `vmlinuz-<version>` | The kernel |
 | `initrd.img-<version>` | The initramfs |
 | `limine.conf` | The boot configuration |
@@ -122,7 +122,7 @@ against them:
 
 - **No symbolic links.** `/boot/initrd.img` and `/boot/vmlinuz` do not exist. Limine is
   pointed at versioned file names.
-- **No execute bit.** Every helper script lives under `/usr/share/zenith/`, never under
+- **No execute bit.** Every helper script lives under `/usr/share/asura/`, never under
   `/boot`.
 - **Case-insensitive names.** Every kernel and initramfs file name is lower case.
 - **No ownership.** Nothing on `/boot` is trusted to be root-owned; Limine verifies the
@@ -130,16 +130,16 @@ against them:
 
 ### The Limine configuration
 
-`/boot/limine.conf`, regenerated by `zenith-boot` on every kernel change:
+`/boot/limine.conf`, regenerated by `asura-boot` on every kernel change:
 
 ```ini
 timeout: 5
 default_entry: 1
 quiet: yes
-interface_branding: Zenith OS
+interface_branding: ASURA OS
 interface_branding_colour: 000000
 
-/Zenith OS
+/ASURA OS
 protocol: linux
 path: boot():/vmlinuz-6.14.0-33-generic#9f86d081884c7d659a2feaa0c55ad015
 module_path: boot():/initrd.img-6.14.0-33-generic#ca6914d2a3b8c1f0e5d6473ab19e5c0
@@ -155,16 +155,16 @@ Four things in that file are load-bearing:
   disk carries a `limine.conf` that would shadow it.
 - **The hash suffix is not optional once the config hash is enrolled.** Limine refuses to
   load any file whose path does not carry its BLAKE2B digest, and panics on a mismatch.
-  `zenith-boot` computes the digests when it writes the file.
+  `asura-boot` computes the digests when it writes the file.
 - **Limine verifies by hash, not by signature.** It does not use a UKS. What enforces an
   unmodified configuration is the **BLAKE2B hash of `limine.conf` enrolled inside the EFI
   binary** with `limine enroll-config`, which is why every path in the file needs a digest
   once that hash is enrolled. Separately, on a Windows-initialised firmware only Microsoft
-  keys are enrolled, so shim must present a MOK for Zenith's own key before it can chainload
+  keys are enrolled, so shim must present a MOK for ASURA's own key before it can chainload
   Limine at all. Two separate problems, two separate answers.
 - **The kernel command line carries the root device.** The initramfs resolves the root
   filesystem from it; the installer writes the UUID from the machine's partition table and
-  `zenith-boot` rewrites the line on every kernel change.
+  `asura-boot` rewrites the line on every kernel change.
 
 ### Microcode has to load early
 
@@ -176,20 +176,20 @@ front of** the main initramfs. The kernel's built-in early-microcode loader appl
 first archive before it unpacks the real one, so the CPU is correct from the first
 instruction rather than from the moment the root filesystem is mounted.
 
-Two consequences for Zenith:
+Two consequences for ASURA:
 
 - The microcode has to be **inside the initramfs**, not only in `/lib/firmware`. An image
   built without those packages boots on fallback microcode for the whole initramfs phase.
-- `zenith-boot` rebuilds the initramfs whenever a kernel **or a microcode package** changes,
+- `asura-boot` rebuilds the initramfs whenever a kernel **or a microcode package** changes,
   so the blob is never stale relative to the kernel.
 
 ### The initramfs
 
-The base layer uses initramfs-tools, and Zenith keeps it. What Zenith changes is the
+The base layer uses initramfs-tools, and ASURA keeps it. What ASURA changes is the
 configuration directory and the module set.
 
 ```
-mkinitramfs -d /etc/zenith/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-33-generic
+mkinitramfs -d /etc/asura/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-33-generic
 ```
 
 | Setting | Value | Why |
@@ -245,7 +245,7 @@ default.target
 
 `default.target` is a symlink to `graphical.target`, and `graphical.target` wants
 `display-manager.service` — an alias created by the `[Install]` section of `sddm.service`.
-Zenith never edits `sddm.service`; the only command that puts a login manager on the image
+ASURA never edits `sddm.service`; the only command that puts a login manager on the image
 is `systemctl enable display-manager.service`.
 
 ### The user instance
@@ -260,35 +260,35 @@ user@1000.service                                  started by systemd-logind for
 └── systemd --user
     └── default.target
         ├── graphical-session-pre.target             environment setup, agents, autostart
-        └── zenith-session.target                   started by the session, once the
+        └── asura-session.target                   started by the session, once the
             │                                        compositor is up
             │                                        BindsTo=graphical-session.target
             ├── wireplumber.service                 audio policy
-            ├── zenith-portal.service                the portal dispatcher
-            │   │                                    After=zenith-session.target
+            ├── asura-portal.service                the portal dispatcher
+            │   │                                    After=asura-session.target
             │   │                                    ConditionEnvironment=WAYLAND_DISPLAY
             │   └── xdg-desktop-portal-hyprland      activated on demand by the dispatcher
             │       xdg-desktop-portal-gtk          activated on demand by the dispatcher
-            ├── zenithd.service                     the shell daemon
-            │                                        After=zenith-session.target
-            ├── zenith-wallpaper.service            the wallpaper daemon
-            │                                        After=zenith-session.target
+            ├── asurad.service                     the shell daemon
+            │                                        After=asura-session.target
+            ├── asura-wallpaper.service            the wallpaper daemon
+            │                                        After=asura-session.target
             │                                        ConditionEnvironment=WAYLAND_DISPLAY
-            ├── zenith-idle.service                 hypridle, with the idle timeouts
-            │                                        After=zenith-session.target
+            ├── asura-idle.service                 hypridle, with the idle timeouts
+            │                                        After=asura-session.target
             │                                        ConditionEnvironment=WAYLAND_DISPLAY
-            └── zenith-shell.service                the shell
-                │                                    After=zenith-session.target
-                │                                    After=zenith-portal.service
-                │                                    After=zenithd.service
+            └── asura-shell.service                the shell
+                │                                    After=asura-session.target
+                │                                    After=asura-portal.service
+                │                                    After=asurad.service
                 │                                    After=wireplumber.service
                 │                                    ConditionEnvironment=WAYLAND_DISPLAY
                 └── the shell's own children         quick settings,
                                                      notification server — inside the shell
 ```
 
-`zenith-ai-usage.timer`, which refreshes the AI-usage caches the bar's pill reads, is wanted by
-the target as well. `zenith-agent.service` is installed beside these and is not wanted by the
+`asura-ai-usage.timer`, which refreshes the AI-usage caches the bar's pill reads, is wanted by
+the target as well. `asura-agent.service` is installed beside these and is not wanted by the
 target: the agent stays off until the user switches it on in Settings.
 
 Two systemd mechanisms carry the weight here.
@@ -300,8 +300,8 @@ Two systemd mechanisms carry the weight here.
   logout and be adopted by the next session, which is how a second copy of the shell ends up
   running after a fast login cycle.
 
-**The session target is Zenith's own.** Upstream Hyprland ships a session target and
-Zenith's units used to attach to it with a drop-in. Ubuntu's build of Hyprland ships no
+**The session target is ASURA's own.** Upstream Hyprland ships a session target and
+ASURA's units used to attach to it with a drop-in. Ubuntu's build of Hyprland ships no
 systemd units at all — no unit, no target, nothing that starts them — and a unit that
 requires a target which does not exist is a unit that cannot start. A shell that cannot
 start is a session with no shell in it: a grey screen, and keybindings that call a shell
@@ -310,37 +310,37 @@ nobody is running.
 So the session owns its anchor, and starts it once the compositor is up:
 
 ```ini
-# /usr/lib/systemd/user/zenith-session.target
+# /usr/lib/systemd/user/asura-session.target
 [Unit]
-Description=Zenith session
+Description=ASURA session
 BindsTo=graphical-session.target
 After=graphical-session.target
-Wants=zenith-portal.service zenith-shell.service zenithd.service zenith-wallpaper.service zenith-idle.service zenith-ai-usage.timer
+Wants=asura-portal.service asura-shell.service asurad.service asura-wallpaper.service asura-idle.service asura-ai-usage.timer
 ```
 
 The target is started by the compositor's own configuration, at the one moment the
 display exists:
 
 ```ini
-# /usr/share/zenith/hyprland/hyprland.conf
-exec-once = /usr/share/zenith/session/zenith-activate
+# /usr/share/asura/hyprland/hyprland.conf
+exec-once = /usr/share/asura/session/asura-activate
 ```
 
-`zenith-activate` puts the compositor's environment into the user manager before it starts
+`asura-activate` puts the compositor's environment into the user manager before it starts
 the target. The units are started by the user manager, and a unit inherits the manager's
 environment rather than the shell's — the compositor knows which display it made, and the
 manager does not, unless it is told. A unit that starts without the display in its
 environment believes it is on a machine with no screen, and the shell's condition on the
 display says exactly that and refuses to start.
 
-### The units Zenith ships
+### The units ASURA ships
 
 ```ini
-# /usr/lib/systemd/user/zenith-portal.service
+# /usr/lib/systemd/user/asura-portal.service
 [Unit]
-Description=Zenith portal dispatcher
+Description=ASURA portal dispatcher
 PartOf=graphical-session.target
-After=zenith-session.target
+After=asura-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
@@ -351,72 +351,72 @@ Restart=on-failure
 RestartSec=1
 
 [Install]
-WantedBy=zenith-session.target
+WantedBy=asura-session.target
 
-# /usr/lib/systemd/user/zenithd.service
+# /usr/lib/systemd/user/asurad.service
 [Unit]
-Description=Zenith shell daemon
+Description=ASURA shell daemon
 PartOf=graphical-session.target
-After=zenith-session.target
-Requires=zenith-session.target
+After=asura-session.target
+Requires=asura-session.target
 Conflicts=hyprpolkitagent.service
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/zenith-shell daemon
-ExecStartPost=/usr/bin/timeout 10 /bin/sh -c 'until [ -S %t/zenith-shell.sock ]; do sleep 0.05; done'
-Environment=ZENITH_POLKIT_AGENT=1
+ExecStart=/usr/bin/asura-shell daemon
+ExecStartPost=/usr/bin/timeout 10 /bin/sh -c 'until [ -S %t/asura-shell.sock ]; do sleep 0.05; done'
+Environment=ASURA_POLKIT_AGENT=1
 Restart=on-failure
 RestartSec=1
 
 [Install]
-WantedBy=zenith-session.target
+WantedBy=asura-session.target
 
-# /usr/lib/systemd/user/zenith-shell.service
+# /usr/lib/systemd/user/asura-shell.service
 [Unit]
-Description=Zenith shell (Quickshell)
-Documentation=man:zenith-shell(1)
+Description=ASURA shell (Quickshell)
+Documentation=man:asura-shell(1)
 PartOf=graphical-session.target
-After=zenith-session.target zenith-portal.service zenithd.service wireplumber.service
-Wants=zenithd.service
-Requires=zenith-session.target
+After=asura-session.target asura-portal.service asurad.service wireplumber.service
+Wants=asurad.service
+Requires=asura-session.target
 ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/quickshell -p /usr/share/zenith/shell
+ExecStart=/usr/bin/quickshell -p /usr/share/asura/shell
 ExecReload=/bin/kill -SIGUSR1 $MAINPID
 Restart=on-failure
 RestartSec=1
 Slice=app.slice
 
 [Install]
-WantedBy=zenith-session.target
+WantedBy=asura-session.target
 ```
 
-`zenithd.service` carries no `ConditionEnvironment=WAYLAND_DISPLAY`, and that is deliberate:
+`asurad.service` carries no `ConditionEnvironment=WAYLAND_DISPLAY`, and that is deliberate:
 the daemon probes audio, network, bluetooth, display and media, and none of those is a
 Wayland client. It can therefore be up before the compositor's display exists, and it is
 wanted by the session target rather than ordered after it. It also holds the session's
 polkit agent slot, which only one agent can have, so it conflicts with
-`hyprpolkitagent.service`, and the unit sets `ZENITH_POLKIT_AGENT=1`, which the daemon needs
+`hyprpolkitagent.service`, and the unit sets `ASURA_POLKIT_AGENT=1`, which the daemon needs
 before it registers one.
 
-The daemon listens on a Unix socket at `$XDG_RUNTIME_DIR/zenith-shell.sock` and speaks
-`zenith-shell/1` over it — line-framed, one JSON document per line. The socket lives in the
-per-user runtime directory rather than under `/usr/share/zenith/`, because it is created at
+The daemon listens on a Unix socket at `$XDG_RUNTIME_DIR/asura-shell.sock` and speaks
+`asura-shell/1` over it — line-framed, one JSON document per line. The socket lives in the
+per-user runtime directory rather than under `/usr/share/asura/`, because it is created at
 run time by a process, and a path a process creates is not a file a package installs.
 
 The shell is ordered after the daemon for a reason the QML forces. In this Quickshell build a
 first `Socket` connect that fails fires no signal, so a service that connected before the
-daemon had bound its socket never retries. `zenith-shell.service` is therefore
-`After=zenithd.service` (with `Wants=`), and the daemon has to have its socket before
-`zenithd.service` counts as started: the `ExecStartPost` above waits up to ten seconds for the
+daemon had bound its socket never retries. `asura-shell.service` is therefore
+`After=asurad.service` (with `Wants=`), and the daemon has to have its socket before
+`asurad.service` counts as started: the `ExecStartPost` above waits up to ten seconds for the
 socket file, and a daemon that never makes it fails the unit, which is louder than a shell
 that starts against nothing.
 
-`zenith-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
-a `zenith-` name, which is the pattern the base-layer boundary prescribes for a component
+`asura-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
+a `asura-` name, which is the pattern the base-layer boundary prescribes for a component
 that needs different configuration: never an edit in place, always a drop-in of your own.
 
 The base layer's unit must not also be enabled. Two dispatchers on one bus is one
@@ -428,7 +428,7 @@ was lost" and takes the session's portal with it.
 
 ## The login manager and the session file
 
-The login manager is the base layer's, and Zenith uses it as shipped.
+The login manager is the base layer's, and ASURA uses it as shipped.
 
 ### What it does
 
@@ -437,9 +437,9 @@ The login manager is the base layer's, and Zenith uses it as shipped.
 3. Starts the session file the user selected, as that user, with the session's environment.
 
 The greeter is a **Wayland** surface. The base layer's login manager has no Wayland greeter of
-its own, so Zenith supplies one: `DisplayServer=wayland` in a drop-in under `/etc/sddm.conf.d/`,
-with `CompositorCommand` pointing at `zenith-greeter`, which runs `weston --shell=kiosk` to hold
-the DRM card and hosts Zenith's own login surface on it. The package manifest therefore excludes
+its own, so ASURA supplies one: `DisplayServer=wayland` in a drop-in under `/etc/sddm.conf.d/`,
+with `CompositorCommand` pointing at `asura-greeter`, which runs `weston --shell=kiosk` to hold
+the DRM card and hosts ASURA's own login surface on it. The package manifest therefore excludes
 the Xorg metapackage and ships XWayland, and nothing is needed for the login screen at all —
 which is the point. XWayland remains the compositor serving X11 applications inside the session;
 it is not a second session type, and it is not what draws the login screen.
@@ -454,53 +454,53 @@ The login manager reads Wayland sessions from `/usr/share/wayland-sessions/` and
 login profile and then executes it.
 
 ```ini
-# /usr/share/zenith/session/zenith.desktop
-# materialized to /usr/share/wayland-sessions/zenith.desktop
+# /usr/share/asura/session/asura.desktop
+# materialized to /usr/share/wayland-sessions/asura.desktop
 [Desktop Entry]
 Type=Application
-Name=Zenith
-Comment=Zenith desktop
-TryExec=/usr/share/zenith/session/zenith-session
-Exec=/usr/share/zenith/session/zenith-session
-DesktopNames=Zenith
+Name=ASURA
+Comment=ASURA desktop
+TryExec=/usr/share/asura/session/asura-session
+Exec=/usr/share/asura/session/asura-session
+DesktopNames=ASURA
 Keywords=Hyprland;Quickshell;
 ```
 
 Three lines carry the design:
 
-- **`Exec=/usr/share/zenith/session/zenith-session`.** The session entry point is Zenith's
+- **`Exec=/usr/share/asura/session/asura-session`.** The session entry point is ASURA's
   own script, and it runs from the packaged base rather than from a copy in the user's home.
-- **`DesktopNames=Zenith`**, not `GNOME`. The login manager uses this to group and label
+- **`DesktopNames=ASURA`**, not `GNOME`. The login manager uses this to group and label
   the session, and the portal dispatcher derives its per-desktop configuration file name
-  from it. Setting it to anything else would make a display manager treat a Zenith session
+  from it. Setting it to anything else would make a display manager treat an ASURA session
   as one of its own.
 - **The file lives in `/usr/share/wayland-sessions/`, not `/usr/share/xsessions/`.** The
   directory is what decides the session type: the login manager sets
   `XDG_SESSION_TYPE=wayland` for a file found there, and `x11` for one found in the other.
 
-`/etc/zenith/session/zenith.desktop` overrides the packaged base, and
-`~/.config/zenith/session/` — through the usual overlay — overrides both. That is where a
+`/etc/asura/session/asura.desktop` overrides the packaged base, and
+`~/.config/asura/session/` — through the usual overlay — overrides both. That is where a
 machine-specific `Exec` line goes.
 
-### What `zenith-session` does
+### What `asura-session` does
 
-`/usr/share/zenith/session/zenith-session` is a small shell script, because it runs before
+`/usr/share/asura/session/asura-session` is a small shell script, because it runs before
 anything else exists and it must be readable when the disk is having a bad day.
 
 ```sh
 #!/bin/sh
-# /usr/share/zenith/session/zenith-session
+# /usr/share/asura/session/asura-session
 set -eu
 
-LOG="${XDG_STATE_HOME:-$HOME/.local/state}/zenith/session.log"
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/asura/session.log"
 mkdir -p "$(dirname "$LOG")"
 exec >>"$LOG" 2>&1
 
-echo "--- zenith-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
+echo "--- asura-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
 
-export XDG_SESSION_DESKTOP=zenith
-export XDG_CURRENT_DESKTOP=Zenith
-export DESKTOP_SESSION=zenith
+export XDG_SESSION_DESKTOP=asura
+export XDG_CURRENT_DESKTOP=ASURA
+export DESKTOP_SESSION=asura
 export XDG_SESSION_TYPE=wayland
 
 # Native Wayland dialogs everywhere, so scaling and theming are the shell's
@@ -522,11 +522,11 @@ export XCURSOR_THEME=Adwaita
 # Machine-level additions, then the user's overlay. Written as `if`, not as
 # `[ -r f ] && . f` — under `set -e` a false test in an AND-list aborts the
 # session before the compositor ever starts, which is a confusing way to fail.
-if [ -r /etc/zenith/session/zenith-session.env ]; then
-    . /etc/zenith/session/zenith-session.env
+if [ -r /etc/asura/session/asura-session.env ]; then
+    . /etc/asura/session/asura-session.env
 fi
-if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env" ]; then
-    . "${XDG_CONFIG_HOME:-$HOME/.config}/zenith/session/zenith-session.env"
+if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/asura/session/asura-session.env" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/asura/session/asura-session.env"
 fi
 
 # Make dbus-activated user services and anything the compositor spawns see the
@@ -536,11 +536,11 @@ systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
 dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
     DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
 
-echo "zenith-session: env ok, starting Hyprland"
-exec /usr/bin/Hyprland -c /usr/share/zenith/hyprland/hyprland.conf
+echo "asura-session: env ok, starting Hyprland"
+exec /usr/bin/Hyprland -c /usr/share/asura/hyprland/hyprland.conf
 ```
 
-The compositor is started with Zenith's own configuration, because the keybinds live there
+The compositor is started with ASURA's own configuration, because the keybinds live there
 and nowhere else. It is the only place the keyboard is described: a bind names the shell's
 IPC target and the shell decides what the key means, so the compositor never has to know
 what a launcher is. A compositor started without that file runs on Hyprland's own defaults,
@@ -553,7 +553,7 @@ exist; the user's half is theirs, and it is sourced after the packaged one, so i
 override anything and add anything.
 
 The `exec` at the end is what makes a failure safe: anything that goes wrong before it — a
-bad `/etc/zenith/session/zenith-session.env`, an unreadable schema, a disk-full — exits with
+bad `/etc/asura/session/asura-session.env`, an unreadable schema, a disk-full — exits with
 the compositor never started, and the display manager puts the user back on the login
 screen. A broken session that exits before the compositor is a safe failure mode by
 construction. Every step above is also written so that it cannot exit for a trivial reason,
@@ -561,9 +561,9 @@ which is why the overlay files are guarded with `if` rather than with `&&`.
 
 Two details in the script are load-bearing beyond the obvious:
 
-- **`XDG_CURRENT_DESKTOP=Zenith` and `XDG_SESSION_DESKTOP=zenith` are different strings,
+- **`XDG_CURRENT_DESKTOP=ASURA` and `XDG_SESSION_DESKTOP=asura` are different strings,
   and both are deliberate.** The dispatcher lower-cases the current desktop to derive its
-  per-desktop configuration file name, so `Zenith` finds `zenith-portals.conf`. The session
+  per-desktop configuration file name, so `ASURA` finds `asura-portals.conf`. The session
   desktop is the lower-case name the login manager records in `loginctl show-session`.
 - **The environment is published twice, to two different consumers.** `systemctl --user
   import-environment` reaches the per-user manager, so every unit started from the manager
@@ -573,15 +573,15 @@ Two details in the script are load-bearing beyond the obvious:
 
 ### How this differs from a stock desktop session
 
-| | A stock desktop session | The Zenith session |
+| | A stock desktop session | The ASURA session |
 |---|---|---|
-| Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `zenith.desktop` |
+| Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `asura.desktop` |
 | `Exec=` | A session manager that owns a private list of what a session is | A shell script that sets the environment and hands over to the compositor |
-| Root of the session | The session manager's own idea of a session | `zenith-session.target` and `graphical-session.target`; there is no second session manager |
+| Root of the session | The session manager's own idea of a session | `asura-session.target` and `graphical-session.target`; there is no second session manager |
 | Services | Started by the session manager from a private list | systemd user units with `PartOf=graphical-session.target` |
 | Environment | The session manager's exports plus a desktop-specific `environment.d` | One environment, published to the user manager and to bus activation |
-| The display | The session manager talks to the compositor | The compositor is the session's anchor, and Zenith's units attach to its target |
-| The display name | The stock desktop's own name | `Zenith`, which is what every library branches on |
+| The display | The session manager talks to the compositor | The compositor is the session's anchor, and ASURA's units attach to its target |
+| The display name | The stock desktop's own name | `ASURA`, which is what every library branches on |
 
 ---
 
@@ -589,13 +589,13 @@ Two details in the script are load-bearing beyond the obvious:
 
 | Order | Unit | Started by | What it is |
 |---|---|---|---|
-| 0 | `zenith-session` | The display manager | Environment, bus activation, `exec Hyprland` |
-| 1 | `zenith-session.target` | The session | The anchor for everything that needs a live compositor |
+| 0 | `asura-session` | The display manager | Environment, bus activation, `exec Hyprland` |
+| 1 | `asura-session.target` | The session | The anchor for everything that needs a live compositor |
 | 2 | `wireplumber.service` | The session target | Audio policy, so the shell's volume widget has something to talk to |
-| 3 | `zenith-portal.service` | The session target | The portal dispatcher, which activates the backends on demand |
-| 4 | `zenithd.service` | The session target | The shell daemon, which the shell subscribes to over its socket |
-| 5 | `zenith-wallpaper.service`, `zenith-idle.service` | The session target | The wallpaper daemon, and hypridle with the idle timeouts. Neither is ordered against the shell |
-| 5 | `zenith-shell.service` | The session target, ordered after the portals and the daemon | The shell |
+| 3 | `asura-portal.service` | The session target | The portal dispatcher, which activates the backends on demand |
+| 4 | `asurad.service` | The session target | The shell daemon, which the shell subscribes to over its socket |
+| 5 | `asura-wallpaper.service`, `asura-idle.service` | The session target | The wallpaper daemon, and hypridle with the idle timeouts. Neither is ordered against the shell |
+| 5 | `asura-shell.service` | The session target, ordered after the portals and the daemon | The shell |
 | 6 | The shell's children | The shell | Quick settings, notification server — inside the shell, not separate units |
 
 The daemon is ordered before the shell rather than beside it, and the reason is the same
@@ -649,8 +649,8 @@ started has no effect on it.
 base layer's GTK backend implements `org.freedesktop.impl.portal.Notification`, and the
 Hyprland backend does not. With no explicit configuration, the dispatcher resolves the
 Notification interface to the GTK backend, and a portal notification is rendered by a GTK
-window instead of by the shell's own surface. The notification server Zenith does not ship
-is replaced by one Zenith did not ask for, and nothing in the interface says so.
+window instead of by the shell's own surface. The notification server ASURA does not ship
+is replaced by one ASURA did not ask for, and nothing in the interface says so.
 
 **The shell's first interaction with the portal races the dispatcher's activation.** The
 shell draws a launcher with an "open file" action, a screen-share entry point and a print
@@ -663,20 +663,20 @@ that the file chooser could not be opened. The shell is the first thing the user
 it must not be the thing that triggers an activation.
 
 Ordering the dispatcher first removes both failures: the backend set is resolved from an
-environment that already names Zenith, and the dispatcher is already on the bus when the
+environment that already names ASURA, and the dispatcher is already on the bus when the
 user first clicks something.
 
 ### The portal configuration
 
 The dispatcher reads its backend preference from a per-desktop file whose name is derived
-from `XDG_CURRENT_DESKTOP`, lower-cased. For a Zenith session that is `zenith-portals.conf`.
-The packaged base lives at `/usr/share/zenith/portal/zenith-portals.conf` and is
+from `XDG_CURRENT_DESKTOP`, lower-cased. For an ASURA session that is `asura-portals.conf`.
+The packaged base lives at `/usr/share/asura/portal/asura-portals.conf` and is
 materialized to the registration path, so the overlay rules apply to it like everything
 else.
 
 ```ini
-# /usr/share/zenith/portal/zenith-portals.conf
-# materialized to /usr/share/xdg-desktop-portal/zenith-portals.conf
+# /usr/share/asura/portal/asura-portals.conf
+# materialized to /usr/share/xdg-desktop-portal/asura-portals.conf
 [preferred]
 default=hyprland;gtk
 org.freedesktop.impl.portal.ScreenCast=hyprland
@@ -707,7 +707,7 @@ Reading it:
   never asks the session bus's Secret service. See
   [the portal seam](architecture.md#the-portal-seam) and [the Secret gap](#the-secret-gap).
 
-`zenith doctor` must assert that this file is the one being read. A session that does not
+`asura doctor` must assert that this file is the one being read. A session that does not
 declare itself correctly falls back to the base layer's `portals.conf` and silently uses the
 wrong backends, which is the failure mode that is hardest to notice and the easiest to
 cause.
@@ -747,7 +747,7 @@ Two bus names reach the shell, and they are not the same name:
 - **`org.freedesktop.portal.Notification`** is the portal path, and the dispatcher routes
   it to a backend that implements the corresponding implementation interface. The GTK
   backend implements it, so by default a portal client gets a GTK window rather than the
-  shell's surface. Routing that path to the shell needs a Zenith-owned portal backend, which
+  shell's surface. Routing that path to the shell needs an ASURA-owned portal backend, which
   is a decision the portal seam has not made yet.
 
 The shell also owns the *ordering* of notifications, their grouping, their urgency styling
@@ -815,13 +815,13 @@ as `SUPER SHIFT, 1`, and the difference is a separator and nothing else: the com
 constraint rather than a style choice. The two are kept in step by a check rather than by a
 convention anybody has to remember.
 
-`zenith doctor` compares them in both directions. Every chord in the catalogue has to be bound,
-every bind has to be in the catalogue, and every `call zenith <function>` in the configuration
+`asura doctor` compares them in both directions. Every chord in the catalogue has to be bound,
+every bind has to be in the catalogue, and every `call asura <function>` in the configuration
 has to name a function the shell's `IpcHandler` actually defines. A keybind that names a
 function the shell has not got runs, succeeds, and does nothing, and that is the quietest
 failure in the desktop.
 
-`zenith binds` prints the catalogue as JSON. It is what the shell's cheat sheet reads — Super+K
+`asura binds` prints the catalogue as JSON. It is what the shell's cheat sheet reads — Super+K
 draws every chord, grouped by category, with each key as a cap — and it is the same list the
 doctor checks the configuration against.
 
@@ -837,11 +837,11 @@ lock would accept any password; neither was right.
 
 So the division is the one recorded in
 [`architecture.md`](architecture.md#the-shell): `hypridle` decides **when** —
-`zenith-idle.service` runs it with the timeouts of `org.zenith.desktop`'s `idle-*` keys — and
-`zenith-shell lock` is the one command every trigger runs (the bind, hypridle's lock stage,
+`asura-idle.service` runs it with the timeouts of `org.asura.desktop`'s `idle-*` keys — and
+`asura-shell lock` is the one command every trigger runs (the bind, hypridle's lock stage,
 `loginctl lock-session`, before sleep). That command runs `hyprlock`, and the shell only draws
 the dim scrim (`Idle.qml`). The base layer carries hyprlock, so under the base-layer rule
-Zenith does not repackage it. Every competing locker is excluded, so the image has exactly one
+ASURA does not repackage it. Every competing locker is excluded, so the image has exactly one
 and which one is in front never depends on start order. [`lock.md`](lock.md) has the details.
 
 The verified path is unchanged:
@@ -852,16 +852,16 @@ systemctl --user lock-session
 
 That command reaches logind, and logind does not call a lock interface on anyone's behalf: it
 emits the `org.freedesktop.login1.Session.Lock` signal on the system bus, and hypridle answers
-it by running its `lock_cmd`, which is `zenith-shell lock`.
+it by running its `lock_cmd`, which is `asura-shell lock`.
 
 The `org.freedesktop.ScreenSaver` interface on the session bus is no longer the shell's. Its
 `Inhibit` and `UnInhibit` methods are what the base layer's portal Inhibit backend calls,
 so an application that asks the portal to hold the screensaver while a video plays holds
-Zenith's lock as well — and the interface belongs to the locker, because the locker is the
+ASURA's lock as well — and the interface belongs to the locker, because the locker is the
 thing that can authenticate. What the design fixes is only that the shell is not the thing
 answering it.
 
-Before a suspend, hypridle runs `zenith-shell lock` again and sets `inhibit_sleep = 3`, which
+Before a suspend, hypridle runs `asura-shell lock` again and sets `inhibit_sleep = 3`, which
 delays the sleep until the session reports it is locked, so the machine does not suspend with
 the desktop showing. If hyprlock never starts, logind suspends after its own delay anyway.
 
@@ -873,17 +873,17 @@ unlocked.
 
 - **Detection is the compositor's, and hypridle is the one idle clock.** The compositor knows
   when the user last did something; no Wayland client can find that out for itself, so
-  hypridle asks it through the compositor's idle-notify protocol. `zenith-idle.service` runs
-  hypridle with the three timeouts of `org.zenith.desktop` (`idle-dim-seconds`,
+  hypridle asks it through the compositor's idle-notify protocol. `asura-idle.service` runs
+  hypridle with the three timeouts of `org.asura.desktop` (`idle-dim-seconds`,
   `idle-blank-seconds`, `idle-lock-seconds`; 0 means never). hypridle also honours D-Bus and
   systemd inhibitors, so a video or Keep Awake holds every stage.
 - **The shell draws the dim scrim** (`Idle.qml`) when hypridle says so, and locks nothing
   itself. Screen-off is `hyprctl dispatch dpms off`, and there is no suspend stage.
 - **The actions go through logind**, so the standard inhibitors apply. Locking is
-  `zenith-shell lock`, which `loginctl lock-session` reaches too; suspending is
+  `asura-shell lock`, which `loginctl lock-session` reaches too; suspending is
   `systemctl suspend`.
 
-Idle is also the thing that makes the suspend path safe: `zenith-shell`, the daemon, holds
+Idle is also the thing that makes the suspend path safe: `asura-shell`, the daemon, holds
 delay inhibitors across the sleep request, so a machine that suspends while unlocked is a
 machine that was asked to suspend with the screen already locked, not one that raced.
 
@@ -894,7 +894,7 @@ machine that was asked to suspend with the screen already locked, not one that r
 ### Logout
 
 1. The user asks to log out. The shell asks the user manager to stop the session:
-   `systemctl --user stop zenith-session.target`.
+   `systemctl --user stop asura-session.target`.
 2. Stopping the session target stops `graphical-session.target`, because the session target
    is bound to it.
 3. Every session service stops, because each one carries `PartOf=graphical-session.target`.
@@ -908,10 +908,10 @@ manager's.
 ### Suspend and resume
 
 1. Something asks for the suspend: the user closes the lid or presses the power key. There
-   is no idle suspend stage: `org.zenith.desktop` has no key for one.
+   is no idle suspend stage: `org.asura.desktop` has no key for one.
 2. The request goes to logind, which takes a delay inhibitor and emits
    `PrepareForSleep(true)`.
-3. `zenith-shell` answers the `true` half of the signal by running the lock while it holds
+3. `asura-shell` answers the `true` half of the signal by running the lock while it holds
    its own delay inhibitors, so the machine does not sleep with an unlocked screen. The
    locker does the locking; the daemon decides that it should happen.
 4. logind releases the inhibitor, `systemd-suspend.service` runs, and the machine sleeps.
@@ -925,7 +925,7 @@ shutdown inhibitors, and then the system stops. The session is torn down by the 
 a logout, because the session's units stop when the manager stops.
 
 Nothing in the display manager's configuration has to change for this, which is the reason
-it is worth checking: a change there would mean writing outside the two directories Zenith
+it is worth checking: a change there would mean writing outside the two directories ASURA
 owns.
 
 ### Who owns what
@@ -933,11 +933,11 @@ owns.
 | Concern | Owner | Mechanism |
 |---|---|---|
 | Screen lock | `hyprlock`, from the base layer's archive | The locker authenticates against PAM. `hypridle` decides *when*, and the shell draws only the dim scrim |
-| Lock on suspend | The shell daemon (`zenith-shell`) | `PrepareForSleep` on the system bus, and the delay inhibitors it holds across the request |
+| Lock on suspend | The shell daemon (`asura-shell`) | `PrepareForSleep` on the system bus, and the delay inhibitors it holds across the request |
 | Idle detection | The compositor, through hypridle | Its own idle notifications, read by hypridle |
-| Idle policy | `org.zenith.desktop`, handed to hypridle by `zenith-idle` | The timeouts live in GSettings, and `zenith config set` is their only writer |
+| Idle policy | `org.asura.desktop`, handed to hypridle by `asura-idle` | The timeouts live in GSettings, and `asura config set` is their only writer |
 | Inhibitors | logind | Delay inhibitors are held by the shell daemon and by logind itself |
-| Live desktop state | `zenithd` | The `zenith-shell/1` socket at `$XDG_RUNTIME_DIR/zenith-shell.sock` |
+| Live desktop state | `asurad` | The `asura-shell/1` socket at `$XDG_RUNTIME_DIR/asura-shell.sock` |
 | Suspend, poweroff, reboot | logind | `systemctl`, the display manager's halt and reboot commands |
 | Session teardown | systemd | `graphical-session.target` and `PartOf=` |
 
@@ -952,7 +952,7 @@ bar, no dock, no launcher, no popouts. The window switcher does nothing. Notific
 not answered, so they are lost rather than shown. The dim scrim never appears, because the
 shell draws it; hypridle still locks and blanks the screen on schedule.
 
-**Why.** `zenith-shell.service` failed, or was never reached. In order of likelihood: the
+**Why.** `asura-shell.service` failed, or was never reached. In order of likelihood: the
 shell's QML failed to load and the process exited; a GSettings schema did not compile, so
 the shell aborted while reading it; or the compositor's environment never reached the user
 manager, so the unit's `ConditionEnvironment=WAYLAND_DISPLAY` was never satisfied.
@@ -960,8 +960,8 @@ manager, so the unit's `ConditionEnvironment=WAYLAND_DISPLAY` was never satisfie
 **What to run.**
 
 ```bash
-systemctl --user status zenith-shell.service
-journalctl --user -b -u zenith-shell.service
+systemctl --user status asura-shell.service
+journalctl --user -b -u asura-shell.service
 systemctl --user show-environment | grep WAYLAND_DISPLAY
 hyprctl clients
 ```
@@ -970,19 +970,19 @@ The second command is the one that matters: the shell's own error is in its jour
 the display manager's. To see it in the foreground:
 
 ```bash
-systemctl --user stop zenith-shell.service
-quickshell -p /usr/share/zenith/shell
+systemctl --user stop asura-shell.service
+quickshell -p /usr/share/asura/shell
 ```
 
-**Recovery.** `systemctl --user restart zenith-shell.service` restarts it in place. If the
+**Recovery.** `systemctl --user restart asura-shell.service` restarts it in place. If the
 user's overlay is what broke, move it aside and restart:
 
 ```bash
-mv ~/.config/zenith/shell/shell.qml ~/.config/zenith/shell/shell.qml.bak
-systemctl --user restart zenith-shell.service
+mv ~/.config/asura/shell/shell.qml ~/.config/asura/shell/shell.qml.bak
+systemctl --user restart asura-shell.service
 ```
 
-`zenith doctor` reports drift between the base and the overlay.
+`asura doctor` reports drift between the base and the overlay.
 
 ### The shell is up but the daemon is not
 
@@ -991,7 +991,7 @@ things that read live state are wrong. The status area shows the last volume it 
 The sidebar's sections do not update, or they show the last thing they saw and never change.
 The volume slider moves the sink and the number does not follow.
 
-**Why.** `zenithd.service` failed, or was never reached. The shell starts regardless: it
+**Why.** `asurad.service` failed, or was never reached. The shell starts regardless: it
 can draw a surface with nothing to subscribe to, and it does, because a shell that refuses
 to start because a state daemon is down is a session with no desktop in it at all. The
 daemon is the thing that fails quietly.
@@ -999,18 +999,18 @@ daemon is the thing that fails quietly.
 **What to run.**
 
 ```bash
-systemctl --user status zenithd.service
-journalctl --user -b -u zenithd.service
-ls -l "$XDG_RUNTIME_DIR/zenith-shell.sock"
+systemctl --user status asurad.service
+journalctl --user -b -u asurad.service
+ls -l "$XDG_RUNTIME_DIR/asura-shell.sock"
 ```
 
 The socket is the daemon's address, and it is in the per-user runtime directory rather than
-under `/usr/share/zenith/` — it is created at run time and it is not a file a package
+under `/usr/share/asura/` — it is created at run time and it is not a file a package
 installs. A missing socket with a healthy unit is a daemon that has not bound it yet; a
 missing socket with a failed unit is the failure itself.
 
-**Recovery.** `systemctl --user restart zenithd.service`. If the daemon was down when the
-shell started, restart the shell as well, `systemctl --user restart zenith-shell.service`: in
+**Recovery.** `systemctl --user restart asurad.service`. If the daemon was down when the
+shell started, restart the shell as well, `systemctl --user restart asura-shell.service`: in
 this Quickshell build a first `Socket` connect that fails fires no signal, so the services
 that connected once never retry. If the shell is showing nothing at all rather than something
 stale, the daemon is not the fault and the
@@ -1030,8 +1030,8 @@ well-formed "no implementation" error.
 **What to run.**
 
 ```bash
-systemctl --user status zenith-portal.service
-journalctl --user -b -u zenith-portal.service
+systemctl --user status asura-portal.service
+journalctl --user -b -u asura-portal.service
 busctl --user list | grep -i portal
 ```
 
@@ -1039,17 +1039,17 @@ To see which backend the dispatcher resolved for each interface, turn on its deb
 and restart it:
 
 ```bash
-systemctl --user set-property zenith-portal.service Environment=G_MESSAGES_DEBUG=all
-systemctl --user restart zenith-portal.service
-journalctl --user -b -u zenith-portal.service | grep 'Preferred portals'
+systemctl --user set-property asura-portal.service Environment=G_MESSAGES_DEBUG=all
+systemctl --user restart asura-portal.service
+journalctl --user -b -u asura-portal.service | grep 'Preferred portals'
 ```
 
-To see who implements what on the image, and to check that Zenith's own preference file is
+To see who implements what on the image, and to check that ASURA's own preference file is
 the one in play:
 
 ```bash
 grep -H '^Interfaces=' /usr/share/xdg-desktop-portal/portals/*.portal
-ls -l /usr/share/xdg-desktop-portal/zenith-portals.conf
+ls -l /usr/share/xdg-desktop-portal/asura-portals.conf
 ```
 
 To check the file chooser itself:
@@ -1058,7 +1058,7 @@ To check the file chooser itself:
 zenity --file-selection --title "portal probe"
 ```
 
-**Recovery.** `systemctl --user restart zenith-portal.service` is enough for a dispatcher
+**Recovery.** `systemctl --user restart asura-portal.service` is enough for a dispatcher
 that is running with the wrong configuration, because the configuration is re-read at
 startup. A backend that is missing entirely is a packaging problem:
 `xdg-desktop-portal-gtk` for FileChooser and Print, `xdg-desktop-portal-hyprland` for
@@ -1067,7 +1067,7 @@ ScreenCast and Screenshot.
 ### The secret gap
 
 The gap is closed: `xdg-desktop-portal-lxqt` implements `org.freedesktop.portal.Secret` and
-`zenith-portals.conf` names it. This section is the failure mode for when it reopens.
+`asura-portals.conf` names it. This section is the failure mode for when it reopens.
 
 **What the user sees.** An application that asks for a password to store gets no error and
 no store. A Flatpak that uses the Secret interface — Firefox, Thunderbird, Evolution, VS
@@ -1075,7 +1075,7 @@ Code — has nowhere to keep a password. The request appears to succeed and the 
 gone.
 
 **Why.** The dispatcher looks for a portal backend that declares the interface. With
-`xdg-desktop-portal-lxqt` not installed, or `zenith-portals.conf` not the file being read, it
+`xdg-desktop-portal-lxqt` not installed, or `asura-portals.conf` not the file being read, it
 finds none and returns success without exporting the portal at all. `gnome-keyring` does not
 substitute: it exposes `org.freedesktop.Secret.Service` on the session bus, and the
 dispatcher never asks it.
@@ -1093,10 +1093,10 @@ gdbus call --session --dest org.freedesktop.portal.Desktop \
 The absence of `org.freedesktop.portal.Secret` in the dispatcher's object tree is the
 finding.
 
-**Recovery.** Install `xdg-desktop-portal-lxqt` and make sure `zenith-portals.conf` is the
-file in use (`zenith doctor` reads each named backend's `.portal` file and reports an
+**Recovery.** Install `xdg-desktop-portal-lxqt` and make sure `asura-portals.conf` is the
+file in use (`asura doctor` reads each named backend's `.portal` file and reports an
 interface pointed at a backend that cannot serve it), then
-`systemctl --user restart zenith-portal.service`. The image's own `libpam-gnome-keyring`
+`systemctl --user restart asura-portal.service`. The image's own `libpam-gnome-keyring`
 module, which unlocks the keyring at login so a prompt does not ask for a second password,
 is the other half of the problem and is already solved.
 
@@ -1109,10 +1109,10 @@ greeter.
 
 **Why, in order of likelihood.**
 
-1. The compositor never started, so `zenith-session` never reached its `exec`, and the
+1. The compositor never started, so `asura-session` never reached its `exec`, and the
    display manager returned the user to the login screen. This is the safe failure, and it
    is safe by construction.
-2. The user bus is not up, so `zenith-session` cannot publish the environment and the
+2. The user bus is not up, so `asura-session` cannot publish the environment and the
    session never starts.
 3. The session file is missing or its `Exec=` line points at a file that is not there.
 4. The shell failed to start after a successful compositor start. The desktop is empty, but
@@ -1125,10 +1125,10 @@ of this — or from another session:
 journalctl -b -u sddm.service
 journalctl -b _UID=1000
 loginctl session-status
-cat ~/.local/state/zenith/session.log
+cat ~/.local/state/asura/session.log
 ```
 
-The last one is Zenith's own session log, written by `zenith-session` before it execs
+The last one is ASURA's own session log, written by `asura-session` before it execs
 anything. It is the first thing to read, because it records the session's environment
 hand-off and the moment the compositor was started.
 
@@ -1136,16 +1136,16 @@ To see the session units from outside the session, as the user, with the right r
 directory:
 
 ```bash
-runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status zenith-shell.service
-runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -b -u zenith-portal.service
+runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status asura-shell.service
+runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -b -u asura-portal.service
 loginctl user-status <user>
 ```
 
 To check the session registration itself:
 
 ```bash
-ls -l /usr/share/wayland-sessions/zenith.desktop
-grep -E '^(Exec|TryExec|DesktopNames)=' /usr/share/wayland-sessions/zenith.desktop
+ls -l /usr/share/wayland-sessions/asura.desktop
+grep -E '^(Exec|TryExec|DesktopNames)=' /usr/share/wayland-sessions/asura.desktop
 ```
 
 **Recovery.** Most hangs at login are a stale session rather than a broken image. Killing
@@ -1169,8 +1169,8 @@ the error is, which is why the failure mode has to name the command.
 
 | Question | Why it matters |
 |---|---|
-| ~~The login screen's display server~~ | **Settled** — SDDM in Wayland greeter mode with a Weston kiosk compositor hosted by Zenith. The package manifest keeps the Xorg metapackage excluded. See [architecture.md](architecture.md#what-draws-the-login-screen). |
-| ~~The Secret portal~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret in `zenith-portals.conf`; see [the portal seam](architecture.md#the-portal-seam). [The secret gap](#the-secret-gap) is the failure mode if it reopens. |
+| ~~The login screen's display server~~ | **Settled** — SDDM in Wayland greeter mode with a Weston kiosk compositor hosted by ASURA. The package manifest keeps the Xorg metapackage excluded. See [architecture.md](architecture.md#what-draws-the-login-screen). |
+| ~~The Secret portal~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret in `asura-portals.conf`; see [the portal seam](architecture.md#the-portal-seam). [The secret gap](#the-secret-gap) is the failure mode if it reopens. |
 | The shell as a portal backend | The shell owns `org.freedesktop.Notifications`, so every ordinary application is served. The portal's own Notification interface still resolves to the GTK backend, because the shell is not a registered portal backend. Whether it becomes one decides whether a portal client sees the shell's surface or a GTK window. |
-| The `zenith-session` script's scope | It is the session entry point today. Whether it also owns the pre-flight checks — the portal preference file, the PAM stack, the keyring — is not decided. The failure modes above are all "something was wrong and nobody was told", and that is the argument for it. |
-| ~~Idle reporting to logind~~ | **Settled** — hypridle drives the timers from the `org.zenith.desktop` idle keys (see [lock.md](lock.md)), so nothing relies on logind's own `IdleAction`. |
+| The `asura-session` script's scope | It is the session entry point today. Whether it also owns the pre-flight checks — the portal preference file, the PAM stack, the keyring — is not decided. The failure modes above are all "something was wrong and nobody was told", and that is the argument for it. |
+| ~~Idle reporting to logind~~ | **Settled** — hypridle drives the timers from the `org.asura.desktop` idle keys (see [lock.md](lock.md)), so nothing relies on logind's own `IdleAction`. |

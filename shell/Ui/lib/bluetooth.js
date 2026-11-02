@@ -1,4 +1,4 @@
-// How a Bluetooth device should read on screen, shared by every Zenith surface
+// How a Bluetooth device should read on screen, shared by every Asura surface
 // (the shell bars, the launcher, the Hub). BlueZ leaves a device's alias equal
 // to its own address -- dashed, like "73-EC-EF-CD-48-8C" -- until it learns a
 // name, and Quickshell exposes that alias as `name` while the name the device

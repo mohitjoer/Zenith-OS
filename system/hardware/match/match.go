@@ -133,7 +133,7 @@ func Normalize(value string) string {
 // It is compared lexicographically rather than summed into a weighted score.
 // There are no magic constants to tune, and the comparison is easy to
 // reimplement in any language — which matters because someone reading a
-// hardware report on another machine has to be able to predict what Zenith did.
+// hardware report on another machine has to be able to predict what Asura did.
 type Specificity struct {
 	Identity   int
 	Narrowing  int

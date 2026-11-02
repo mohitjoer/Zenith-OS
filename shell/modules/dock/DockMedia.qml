@@ -10,7 +10,7 @@ import "../../utils/artcolor.js" as ArtColor
 
 // The dock's optional media chip: a compact frosted tile at the end of the band
 // carrying the album art, the track line and the transport moves. It reads the
-// shared Media pick every other Zenith surface uses (MusicPopout is the fuller
+// shared Media pick every other Asura surface uses (MusicPopout is the fuller
 // card) and tints its transport from the sleeve, so the chip wears the record's
 // colour. Horizontal bands get art + text + buttons in a row; a vertical band is
 // too narrow for a title, so it stacks the art over the two moves.

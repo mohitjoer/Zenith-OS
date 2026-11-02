@@ -11,7 +11,7 @@ import "../Singletons"
 
 // Plugins: every Hyprland compositor plugin on this machine in one place. One
 // tab per plugin; above its settings sits a status card from
-// `zenith-hubd desktop plugins list`: where the copy came from, its version, whether
+// `asura-hubd desktop plugins list`: where the copy came from, its version, whether
 // it matches the running Hyprland (a plugin is ABI-locked to the exact
 // compositor build, so a Hyprland update can leave a copy that no longer loads), and
 // the actions that fix it: Rebuild here from upstream, Docs, Remove. "Add from
@@ -33,7 +33,7 @@ Item {
     // ── the roster ───────────────────────────────────────────────────────────
     property var roster: ({ compositor: {}, toolchain: { ok: true, missing: [] }, plugins: [] })
     property bool loaded: false
-    // why the roster is missing, when `zenith-hubd desktop plugins list` fails
+    // why the roster is missing, when `asura-hubd desktop plugins list` fails
     property string unavailable: ""
     // the action in flight: "rebuild:<id>", "rebuild:all", "inspect", "add", "remove:<id>"
     property string busy: ""
@@ -151,8 +151,8 @@ Item {
         pg.log = [];
         pg.notice = "";
         actProc.command = id === "all"
-            ? ["zenith-hubd", "desktop", "plugins", "rebuild", "--stale"]
-            : ["zenith-hubd", "desktop", "plugins", "rebuild", id];
+            ? ["asura-hubd", "desktop", "plugins", "rebuild", "--stale"]
+            : ["asura-hubd", "desktop", "plugins", "rebuild", id];
         actProc.running = true;
     }
     function inspect() {
@@ -163,7 +163,7 @@ Item {
         pg.notice = "";
         pg.inspected = null;
         pg.picked = ({});
-        actProc.command = ["zenith-hubd", "desktop", "plugins", "add", "--inspect", url];
+        actProc.command = ["asura-hubd", "desktop", "plugins", "add", "--inspect", url];
         actProc.running = true;
     }
     function addPicked() {
@@ -173,7 +173,7 @@ Item {
         pg.busy = "add";
         pg.log = [];
         pg.notice = "";
-        actProc.command = ["zenith-hubd", "desktop", "plugins", "add", pg.inspected.repo].concat(ids);
+        actProc.command = ["asura-hubd", "desktop", "plugins", "add", pg.inspected.repo].concat(ids);
         actProc.running = true;
     }
     function remove(id) {
@@ -181,7 +181,7 @@ Item {
         pg.busy = "remove:" + id;
         pg.log = [];
         pg.notice = "";
-        actProc.command = ["zenith-hubd", "desktop", "plugins", "remove", id];
+        actProc.command = ["asura-hubd", "desktop", "plugins", "remove", id];
         actProc.running = true;
     }
     function openDocs(url) { if (url) Spawn.run(["xdg-open", url]); }
@@ -231,16 +231,16 @@ Item {
 
     Process {
         id: listProc
-        command: ["zenith-hubd", "desktop", "plugins", "list"]
+        command: ["asura-hubd", "desktop", "plugins", "list"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 try { pg.roster = JSON.parse(this.text); pg.loaded = true; pg.unavailable = ""; }
-                catch (e) { pg.unavailable = I18n.tr("not available: `zenith-hubd desktop plugins list` gave no roster"); }
+                catch (e) { pg.unavailable = I18n.tr("not available: `asura-hubd desktop plugins list` gave no roster"); }
                 pg.settleTab();
             }
         }
-        onExited: (code) => { if (code !== 0) pg.unavailable = I18n.tr("not available: `zenith-hubd desktop plugins list` failed (is zenith-hubd installed?)"); }
+        onExited: (code) => { if (code !== 0) pg.unavailable = I18n.tr("not available: `asura-hubd desktop plugins list` failed (is asura-hubd installed?)"); }
     }
     Process {
         id: actProc
@@ -580,7 +580,7 @@ Item {
                                     }
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: offer.modelData.bundled ? I18n.tr("bundled with Zenith") : (offer.modelData.installed ? I18n.tr("installed") : (offer.modelData.desc || ""))
+                                        text: offer.modelData.bundled ? I18n.tr("bundled with Asura") : (offer.modelData.installed ? I18n.tr("installed") : (offer.modelData.desc || ""))
                                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                         elide: Text.ElideRight
                                     }

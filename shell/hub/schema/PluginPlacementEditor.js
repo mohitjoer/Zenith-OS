@@ -12,7 +12,7 @@ var rows = [
         "label": "Edge",
         "desc": "Edge the popout grows from; right when unset",
         "ctl": "seg",
-        "src": "plugins.json) via `zenith-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
+        "src": "plugins.json) via `asura-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "opts": [
             "center",
             "top",
@@ -28,7 +28,7 @@ var rows = [
         "label": "Align (drag the \"popout\" chip anywhere on the stage)",
         "desc": "Where along that edge the popout sits",
         "ctl": "seg",
-        "src": "plugins.json via `zenith-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
+        "src": "plugins.json via `asura-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "opts": [
             "start",
             "center",
@@ -42,7 +42,7 @@ var rows = [
         "label": "Hover zone width",
         "desc": "Width of the hover strip; 320 when unset",
         "ctl": "step",
-        "src": "plugins.json via `zenith-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
+        "src": "plugins.json via `asura-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "unit": "px"
     },
     {
@@ -52,7 +52,7 @@ var rows = [
         "label": "Hover zone thickness",
         "desc": "How far the hover strip reaches out; 16 unset",
         "ctl": "step",
-        "src": "plugins.json via `zenith-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
+        "src": "plugins.json via `asura-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "unit": "px"
     }
 ];

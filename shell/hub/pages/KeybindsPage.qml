@@ -15,7 +15,7 @@ import "../fuzzy.js" as Fuzzy
 // Keybinds (DESIGN.md section 8, SYSTEM). Three surfaces under one head, built
 // for use and not for reading: Shortcuts is the searchable legend (a category
 // rail on the left, one calm content column on the right, read live from
-// `zenith-hubd keybinds`), Apps swaps the launcher roles and rebinds their keys,
+// `asura-hubd keybinds`), Apps swaps the launcher roles and rebinds their keys,
 // and Custom is the user-bind editor. A full-width fuzzy search sits in the head
 // and drives the legend: type "clw" for Close window, "num 3" for the number-pad
 // family, "screen" for the Displays rows. The legend is the source of truth;
@@ -60,7 +60,7 @@ Item {
 
     Process {
         id: legendGet
-        command: ["zenith-hubd", "keybinds"]
+        command: ["asura-hubd", "keybinds"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -74,12 +74,12 @@ Item {
 
     // ── app roles (Default Apps, merged into this page) ─────────────────────
     // the swappable launcher roles + candidates + each role's shipped combo,
-    // from `zenith-hubd apps` (installed candidates flagged). Shown on the Apps
+    // from `asura-hubd apps` (installed candidates flagged). Shown on the Apps
     // tab, where the key rebinds too; the choice is stored in the store's "apps".
     property var roles: []
     Process {
         id: appsGet
-        command: ["zenith-hubd", "apps"]
+        command: ["asura-hubd", "apps"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -95,7 +95,7 @@ Item {
     property bool shellBusy: false
     Process {
         id: shellGet
-        command: ["zenith-hubd", "shell", "get"]
+        command: ["asura-hubd", "shell", "get"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -121,7 +121,7 @@ Item {
             return;
         pg.shellBusy = true;
         pg.shellError = "";
-        shellSet.command = ["zenith-hubd", "shell", "set", key];
+        shellSet.command = ["asura-hubd", "shell", "set", key];
         shellSet.running = true;
     }
     function setZshPrompt(mode) {
@@ -129,7 +129,7 @@ Item {
             return;
         pg.shellBusy = true;
         pg.shellError = "";
-        shellSet.command = ["zenith-hubd", "shell", "prompt", mode];
+        shellSet.command = ["asura-hubd", "shell", "prompt", mode];
         shellSet.running = true;
     }
     // role -> chosen command (draft); empty/absent uses the shipped fallback.
@@ -157,7 +157,7 @@ Item {
 
     // ── the app catalogue + picker overlay (shared: roles + custom binds) ────
     // every installed application as { name, cmd } for the filterable picker; the
-    // command is the parsed Exec, runnable as a keybind or a zenith-app role.
+    // command is the parsed Exec, runnable as a keybind or a asura-app role.
     readonly property var appCatalog: {
         var out = [];
         var src = (typeof DesktopEntries !== "undefined" && DesktopEntries.applications)
@@ -472,7 +472,7 @@ Item {
     }
 
     // ── display tokens for a raw combo, matching the legend keycaps ──────────
-    // mirrors wm.DisplayKeys (zenith/wm/binds.go) for the chords the recorder can
+    // mirrors wm.DisplayKeys (asura/wm/binds.go) for the chords the recorder can
     // produce, so a row rebound in the draft (before the provider recomputes its
     // keys on save) reads exactly like a shipped one. The map is the same set as
     // the backend's displayNames; anything unlisted passes through, except a
@@ -885,7 +885,7 @@ Item {
                 Text {
                     width: appsCol.width
                     wrapMode: Text.WordWrap
-                    text: I18n.tr("Pick what each launcher key opens, and rebind the key itself. The key runs the app through zenith-app, so a swap takes effect on the next press, with no reload.")
+                    text: I18n.tr("Pick what each launcher key opens, and rebind the key itself. The key runs the app through asura-app, so a swap takes effect on the next press, with no reload.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; lineHeight: 1.3
                 }
@@ -1158,7 +1158,7 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: I18n.tr("Zenith adds one line to your .zshrc or .bashrc to load its defaults; the rest of your shell config stays yours.")
+                                text: I18n.tr("Asura adds one line to your .zshrc or .bashrc to load its defaults; the rest of your shell config stays yours.")
                                 color: Tokens.inkFaint
                                 font.family: Tokens.mono
                                 font.pixelSize: Tokens.fTiny
@@ -1523,8 +1523,8 @@ Item {
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 wrapMode: Text.WordWrap
                 text: pg.wmCfgPath
-                    ? I18n.tr("Custom shortcuts layered over the ones Zenith ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it, e.g. SUPER + J. Binds hand-written in %1 never appear here and are not conflict-checked.").arg(pg.wmCfgPath)
-                    : I18n.tr("Custom shortcuts layered over the ones Zenith ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it, e.g. SUPER + J. Binds hand-written in the compositor's own config never appear here and are not conflict-checked.")
+                    ? I18n.tr("Custom shortcuts layered over the ones Asura ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it, e.g. SUPER + J. Binds hand-written in %1 never appear here and are not conflict-checked.").arg(pg.wmCfgPath)
+                    : I18n.tr("Custom shortcuts layered over the ones Asura ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it, e.g. SUPER + J. Binds hand-written in the compositor's own config never appear here and are not conflict-checked.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 lineHeight: 1.3
             }

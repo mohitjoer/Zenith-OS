@@ -6,7 +6,7 @@ import "../lib/contrast.js" as Contrast
 
 Singleton {
     // Accent follows the wallpaper when matchWallpaper is on (a core feature);
-    // the fixed fallback is the Zenith brand vermillion (website tokens.css).
+    // the fixed fallback is the Asura brand vermillion (website tokens.css).
     readonly property color brand:    Config.matchWallpaper ? Scheme.accent : "#e2342a"
     readonly property color verm:     brand
     readonly property color vermLit:  Config.matchWallpaper ? Qt.lighter(Scheme.accent, 1.22) : "#e83b30"

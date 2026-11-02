@@ -22,7 +22,7 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "zenith-idle-scrim"
+    WlrLayershell.namespace: "asura-idle-scrim"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     anchors { top: true; bottom: true; left: true; right: true }
 

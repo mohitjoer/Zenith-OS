@@ -5,10 +5,10 @@ import Quickshell.Io
 
 /**
  * The live palette, for the Desktop Widgets previews. Reads the same
- * ~/.cache/zenith/colors.json the desktop widgets read, so a preview shows the
+ * ~/.cache/asura/colors.json the desktop widgets read, so a preview shows the
  * real wallpaper colours rather than a stand-in ramp. Mirrors the widgets'
  * Scheme singleton (each Quickshell config carries its own thin palette reader);
- * the defaults are the Zenith brand palette.
+ * the defaults are the Asura brand palette.
  */
 Singleton {
     id: root
@@ -48,7 +48,7 @@ Singleton {
 
     FileView {
         id: file
-        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/zenith/colors.json"
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/colors.json"
         blockLoading: true
         watchChanges: true
         printErrors: false

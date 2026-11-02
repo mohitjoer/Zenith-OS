@@ -1,7 +1,7 @@
 // The pure band maths the desktop renderer (VisualizerView) and the Hub preview
 // (VizPreview) both feed the shared SpectrumField. Kept here, framework-free, so
 // the two surfaces derive identical geometry instead of each re-deriving it and
-// drifting. No QML imports, no state: siblings in zenith/ui/lib are node-tested,
+// drifting. No QML imports, no state: siblings in asura/ui/lib are node-tested,
 // which is why this stays a plain module (no `.pragma library`) with the
 // module.exports guard below.
 

@@ -187,8 +187,8 @@ func (Direct) Write(_ context.Context, d Device, raw int) error {
 // WritableBy names the route a write to this device would take right now, or ""
 // when none is expected to work. It makes no change: logind is probed by asking
 // it to name our session, which succeeds exactly when SetBrightness has a
-// session to act for. It is a prediction for `zenith brightness list` and
-// `zenith hw status`; the write is the authority.
+// session to act for. It is a prediction for `asura brightness list` and
+// `asura hw status`; the write is the authority.
 func WritableBy(d Device, c Chain) string {
 	for _, w := range c {
 		switch w := w.(type) {

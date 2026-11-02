@@ -6,8 +6,8 @@
       "covers": "shell.qml command socket fast path",
       "steps": [
         "sh mkdir -p /tmp/launcher-qa-fixtures",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/t1.out; sleep .7; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/s1.json",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/dev/null; sleep .7"
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/t1.out; sleep .7; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/s1.json",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/dev/null; sleep .7"
       ],
       "asserts": [
         ".open == false"
@@ -22,7 +22,7 @@
       "name": "Unknown socket command answers err and changes nothing",
       "covers": "shell.qml runCommand fallback contract",
       "steps": [
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'frobnicate\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/err.out"
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'frobnicate\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/err.out"
       ],
       "asserts": [
         ".open == false"
@@ -110,7 +110,7 @@
       "name": "Enter launches the app, closes palette, bumps frecency",
       "covers": "activation, execDetached, Frecency.bump persistence",
       "steps": [
-        "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length' >/tmp/launcher-qa-fixtures/kitty.before; jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/zenith/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/frec.before || echo 0 >/tmp/launcher-qa-fixtures/frec.before",
+        "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length' >/tmp/launcher-qa-fixtures/kitty.before; jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/asura/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/frec.before || echo 0 >/tmp/launcher-qa-fixtures/frec.before",
         "show",
         "type kitty",
         "settle",
@@ -122,7 +122,7 @@
       ],
       "shell_asserts": [
         "b=$(cat /tmp/launcher-qa-fixtures/kitty.before); a=$(hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length'); [ \"$a\" -gt \"$b\" ]",
-        "b=$(cat /tmp/launcher-qa-fixtures/frec.before); a=$(jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/zenith/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
+        "b=$(cat /tmp/launcher-qa-fixtures/frec.before); a=$(jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/asura/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
       ],
       "teardown": [
         "addr=$(hyprctl clients -j | jq -r '[.[]|select(.class==\"kitty\")]|sort_by(.pid)|last.address'); [ -n \"$addr\" ] && hyprctl dispatch closewindow address:$addr"
@@ -182,7 +182,7 @@
       "name": "Enter in ALL launches the selected app and bumps frecency",
       "covers": "ALL lead primary action and frecency",
       "steps": [
-        "sh mkdir -p /tmp/launcher-qa-fixtures; jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/zenith/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/grid.frec.before || echo 0 >/tmp/launcher-qa-fixtures/grid.frec.before; hyprctl clients -j | jq -r '[.[].address]|join(\",\")' >/tmp/launcher-qa-fixtures/grid.win.before",
+        "sh mkdir -p /tmp/launcher-qa-fixtures; jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/asura/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/grid.frec.before || echo 0 >/tmp/launcher-qa-fixtures/grid.frec.before; hyprctl clients -j | jq -r '[.[].address]|join(\",\")' >/tmp/launcher-qa-fixtures/grid.win.before",
         "show",
         "ctrl a",
         "sleep 0.6",
@@ -193,7 +193,7 @@
         ".open == false"
       ],
       "shell_asserts": [
-        "b=$(cat /tmp/launcher-qa-fixtures/grid.frec.before); a=$(jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/zenith/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
+        "b=$(cat /tmp/launcher-qa-fixtures/grid.frec.before); a=$(jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/asura/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
       ],
       "teardown": [
         "before=$(cat /tmp/launcher-qa-fixtures/grid.win.before); for a in $(hyprctl clients -j | jq -r '.[].address'); do case \",$before,\" in *,\"$a\",*) : ;; *) hyprctl dispatch closewindow address:$a ;; esac; done"
@@ -267,7 +267,7 @@
       "covers": "ActionShelf open + selected Desktop Actions",
       "steps": [
         "show",
-        "type Zenith QA Options 3",
+        "type Asura QA Options 3",
         "settle",
         "ctrl k",
         "sleep 0.5"
@@ -286,7 +286,7 @@
       "covers": "escape precedence: shelf first",
       "steps": [
         "show",
-        "type Zenith QA Options 3",
+        "type Asura QA Options 3",
         "settle",
         "ctrl k",
         "sleep 0.4",
@@ -297,7 +297,7 @@
         ".shelfOpen == false",
         ".panelOpen == false",
         ".open == true",
-        ".query == \"Zenith QA Options 3\""
+        ".query == \"Asura QA Options 3\""
       ]
     },
     {
@@ -306,13 +306,13 @@
       "covers": "expanded option matrix: zero secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 0",
+        "type Asura QA Options 0",
         "settle",
         "ctrl k",
         "sleep 0.4"
       ],
       "asserts": [
-        ".results[0].title == \"Zenith QA Options 0\"",
+        ".results[0].title == \"Asura QA Options 0\"",
         ".selectedActions == [\"Launch\"]",
         ".secondaryActionCount == 0",
         ".shelfOpen == false",
@@ -328,7 +328,7 @@
       "covers": "expanded option matrix: one secondary action",
       "steps": [
         "show",
-        "type Zenith QA Options 1",
+        "type Asura QA Options 1",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -350,7 +350,7 @@
       "covers": "expanded option matrix: two secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 2",
+        "type Asura QA Options 2",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -369,7 +369,7 @@
       "covers": "expanded option matrix: three secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 3",
+        "type Asura QA Options 3",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -388,7 +388,7 @@
       "covers": "expanded option matrix: four secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 4",
+        "type Asura QA Options 4",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -407,7 +407,7 @@
       "covers": "expanded option matrix: five secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 5",
+        "type Asura QA Options 5",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -427,7 +427,7 @@
       "covers": "expanded option matrix: six secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 6",
+        "type Asura QA Options 6",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -446,7 +446,7 @@
       "covers": "expanded option matrix: seven secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 7",
+        "type Asura QA Options 7",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -466,7 +466,7 @@
       "covers": "expanded option matrix: eight secondary actions",
       "steps": [
         "show",
-        "type Zenith QA Options 8",
+        "type Asura QA Options 8",
         "settle",
         "ctrl k",
         "sleep 0.4"
@@ -486,7 +486,7 @@
       "covers": "expanded option keyboard traversal and visible range",
       "steps": [
         "show",
-        "type Zenith QA Options 8",
+        "type Asura QA Options 8",
         "settle",
         "ctrl k",
         "key Tab Tab Tab Tab Tab Tab",
@@ -503,9 +503,9 @@
       "name": "Enter runs the focused Desktop Action instead of Launch",
       "covers": "expanded option dispatch targets the chosen action",
       "steps": [
-        "sh rm -f /tmp/zenith-launcher-qa-option-1-01",
+        "sh rm -f /tmp/asura-launcher-qa-option-1-01",
         "show",
-        "type Zenith QA Options 1",
+        "type Asura QA Options 1",
         "settle",
         "ctrl k",
         "key Return",
@@ -515,10 +515,10 @@
         ".open == false"
       ],
       "shell_asserts": [
-        "test -f /tmp/zenith-launcher-qa-option-1-01"
+        "test -f /tmp/asura-launcher-qa-option-1-01"
       ],
       "teardown": [
-        "rm -f /tmp/zenith-launcher-qa-option-1-01"
+        "rm -f /tmp/asura-launcher-qa-option-1-01"
       ]
     },
     {
@@ -576,7 +576,7 @@
         "settle",
         "key Tab",
         "sleep 0.5",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/tabs.state",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/tabs.state",
         "key ISO_Left_Tab",
         "sleep 0.5"
       ],
@@ -723,10 +723,10 @@
       "steps": [
         "sh mkdir -p ~/Pictures /tmp/launcher-qa-fixtures; printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' | base64 -d > ~/Pictures/qa_stable_deck.png",
         "show",
-        "sh wtype -- '/image qa_stable_deck'; sleep 0.6; S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.before.json",
+        "sh wtype -- '/image qa_stable_deck'; sleep 0.6; S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.before.json",
         "settle",
         "sleep 0.6",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.after.json"
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.after.json"
       ],
       "asserts": [
         "[.results[] | select(.title == \"qa_stable_deck.png\")] | length == 1"
@@ -744,9 +744,9 @@
       "covers": "typed result presentation debounce",
       "steps": [
         "show",
-        "sh mkdir -p /tmp/launcher-qa-fixtures; wtype -- a; sleep .30; S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.first.json; wtype -- p; sleep .30; wtype -- p; sleep .08; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.early.json",
+        "sh mkdir -p /tmp/launcher-qa-fixtures; wtype -- a; sleep .30; S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.first.json; wtype -- p; sleep .30; wtype -- p; sleep .08; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.early.json",
         "sleep 0.5",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.settled.json"
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.settled.json"
       ],
       "asserts": [
         ".query == \"app\"",
@@ -764,7 +764,7 @@
       "covers": "query-token invalidation and single deck publication",
       "steps": [
         "show",
-        "sh wtype -- app; sleep .8; S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.before.json; wtype -- x; sleep .10; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.after.json",
+        "sh wtype -- app; sleep .8; S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.before.json; wtype -- x; sleep .10; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.after.json",
         "sleep 0.5"
       ],
       "asserts": [
@@ -976,7 +976,7 @@
         "type kitty",
         "settle",
         "sleep 0.5",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/focus.before.json",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/focus.before.json",
         "type y",
         "sleep 0.4"
       ],
@@ -1020,11 +1020,11 @@
       "name": "Snippet row copies its expanded body on Enter",
       "covers": "snippets provider + placeholder expansion",
       "steps": [
-        "sh mkdir -p ~/.config/zenith; printf '[{\"name\":\"qa-sig\",\"body\":\"QA-BODY {date}\"}]' > ~/.config/zenith/launcher-snippets.json; wl-copy qa-sentinel; sleep 0.5",
+        "sh mkdir -p ~/.config/asura; printf '[{\"name\":\"qa-sig\",\"body\":\"QA-BODY {date}\"}]' > ~/.config/asura/launcher-snippets.json; wl-copy qa-sentinel; sleep 0.5",
         "show",
         "type qa-sig",
         "settle",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/snip.state",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/snip.state",
         "key Return",
         "sleep 1"
       ],
@@ -1036,7 +1036,7 @@
         "wl-paste -n 2>/dev/null | grep -q '^QA-BODY 20'"
       ],
       "teardown": [
-        "rm -f ~/.config/zenith/launcher-snippets.json; wl-copy -c"
+        "rm -f ~/.config/asura/launcher-snippets.json; wl-copy -c"
       ]
     },
     {
@@ -1044,7 +1044,7 @@
       "name": "Quicklink surfaces by name",
       "covers": "quicklinks provider",
       "steps": [
-        "sh mkdir -p ~/.config/zenith; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/zenith/launcher-quicklinks.json; sleep 0.5",
+        "sh mkdir -p ~/.config/asura; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/asura/launcher-quicklinks.json; sleep 0.5",
         "show",
         "type qa wiki",
         "settle"
@@ -1053,7 +1053,7 @@
         "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
       ],
       "teardown": [
-        "rm -f ~/.config/zenith/launcher-quicklinks.json"
+        "rm -f ~/.config/asura/launcher-quicklinks.json"
       ]
     },
     {
@@ -1061,7 +1061,7 @@
       "name": "Quicklink with {query} accepts trailing search text",
       "covers": "snippets keyword-prefix routing into {query}",
       "steps": [
-        "sh mkdir -p ~/.config/zenith; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/zenith/launcher-quicklinks.json; sleep 0.5",
+        "sh mkdir -p ~/.config/asura; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/asura/launcher-quicklinks.json; sleep 0.5",
         "show",
         "type qa wiki pacman",
         "settle"
@@ -1070,7 +1070,7 @@
         "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
       ],
       "teardown": [
-        "rm -f ~/.config/zenith/launcher-quicklinks.json"
+        "rm -f ~/.config/asura/launcher-quicklinks.json"
       ]
     },
     {
@@ -1078,7 +1078,7 @@
       "name": "rofi-script rows appear for keyword query and get env per protocol",
       "covers": "script provider rofi protocol pass 1",
       "steps": [
-        "sh mkdir -p /tmp/launcher-qa-fixtures ~/.config/zenith; printf '#!/bin/sh\\necho \"$ROFI_RETV|$ROFI_INFO|$1\" >> /tmp/launcher-qa-fixtures/qaz.log\\nprintf \"QA Row One\\\\nQA Row Two\\\\n\"\\n' > /tmp/launcher-qa-fixtures/qaz.sh; chmod +x /tmp/launcher-qa-fixtures/qaz.sh; printf '[{\"keyword\":\"qaz\",\"name\":\"QA Script\",\"exec\":\"/tmp/launcher-qa-fixtures/qaz.sh\"}]' > ~/.config/zenith/launcher-scripts.json; rm -f /tmp/launcher-qa-fixtures/qaz.log; sleep 0.5",
+        "sh mkdir -p /tmp/launcher-qa-fixtures ~/.config/asura; printf '#!/bin/sh\\necho \"$ROFI_RETV|$ROFI_INFO|$1\" >> /tmp/launcher-qa-fixtures/qaz.log\\nprintf \"QA Row One\\\\nQA Row Two\\\\n\"\\n' > /tmp/launcher-qa-fixtures/qaz.sh; chmod +x /tmp/launcher-qa-fixtures/qaz.sh; printf '[{\"keyword\":\"qaz\",\"name\":\"QA Script\",\"exec\":\"/tmp/launcher-qa-fixtures/qaz.sh\"}]' > ~/.config/asura/launcher-scripts.json; rm -f /tmp/launcher-qa-fixtures/qaz.log; sleep 0.5",
         "show",
         "type qaz hello",
         "settle"
@@ -1091,7 +1091,7 @@
         "grep -q '^0|hello|' /tmp/launcher-qa-fixtures/qaz.log"
       ],
       "teardown": [
-        "rm -f ~/.config/zenith/launcher-scripts.json"
+        "rm -f ~/.config/asura/launcher-scripts.json"
       ]
     },
     {
@@ -1102,12 +1102,12 @@
         "show",
         "type /x",
         "sleep 0.4",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >/tmp/launcher-qa-fixtures/chips.out",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >/tmp/launcher-qa-fixtures/chips.out",
         "hide",
         "show",
         "type =1",
         "sleep 0.4",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
         "hide",
         "show",
         "type /folder x",
@@ -1122,11 +1122,11 @@
     },
     {
       "id": "ask-mode-ui",
-      "name": "Backslash enters Zenith Agent ask mode with AGENT chip",
+      "name": "Backslash enters Asura Agent ask mode with AGENT chip",
       "covers": "ask mode routing + panel",
       "steps": [
         "show",
-        "type \\what is zenith",
+        "type \\what is asura",
         "sleep 0.8"
       ],
       "asserts": [
@@ -1194,7 +1194,7 @@
         "show",
         "type p",
         "settle",
-        "sh S=$XDG_RUNTIME_DIR/zenith-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/p1.state",
+        "sh S=$XDG_RUNTIME_DIR/asura-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/p1.state",
         "type a",
         "settle"
       ],
@@ -1254,14 +1254,14 @@
       "steps": [
         "variant main",
         "show",
-        "type Zenith QA Options 1",
+        "type Asura QA Options 1",
         "settle"
       ],
       "asserts": [
         ".variant == \"main\"",
         ".open == true",
         ".resultCount >= 1",
-        "[.results[] | select(.title == \"Zenith QA Options 1\" and .type == \"App\")] | length == 1"
+        "[.results[] | select(.title == \"Asura QA Options 1\" and .type == \"App\")] | length == 1"
       ],
       "screenshot": true
     },

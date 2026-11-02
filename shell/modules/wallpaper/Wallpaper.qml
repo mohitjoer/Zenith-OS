@@ -5,23 +5,23 @@ import Quickshell
 import Quickshell.Io
 
 /**
- * Zenith wallpaper topic bridge, one instance per monitor (the shell root's
+ * Asura wallpaper topic bridge, one instance per monitor (the shell root's
  * per-screen scope constructs it with `screen`).
  *
- * zenith-wallpaper (the Go wallpaper daemon) publishes one coalesced full-state frame
+ * asura-wallpaper (the Go wallpaper daemon) publishes one coalesced full-state frame
  * {default: ENTRY, outputs: {connector: ENTRY}} per revision on the `wallpaper`
- * topic of $XDG_RUNTIME_DIR/zenith-wallpaper.sock. This bridge subscribes and re-exposes
+ * topic of $XDG_RUNTIME_DIR/asura-wallpaper.sock. This bridge subscribes and re-exposes
  * this output's entry (outputs[screen.name] or, absent an override, default)
  * as the wallpaper/video urls and fit that the desktop's backdrop
  * (modules/desktop -> WallpaperMod.Backdrop) paints: stills with the reveal
  * transition and live clips through the in-shell QtMultimedia player (or, when
- * the external zenith-wallpaper-live player is installed, yielded to it via
+ * the external asura-wallpaper-live player is installed, yielded to it via
  * `live`). Stage
  * cuts and renders its own subject from the daemon `stage` topic; the frame's
- * `depth` fold stays zenith-wallpaper's pixel-lock subject, unchanged on the wire
+ * `depth` fold stays asura-wallpaper's pixel-lock subject, unchanged on the wire
  * (docs/stage.md). Contract 08 sec 1, 2.6, 5, 7.
  *
- * The wallpaper picker (Super+W) sets wallpapers through zenith-wallpaper,
+ * The wallpaper picker (Super+W) sets wallpapers through asura-wallpaper,
  * which feeds this same topic.
  */
 Item {
@@ -48,14 +48,14 @@ Item {
     // default, volume 0-100 (Backdrop scales it to 0..1).
     readonly property bool videoMuted: frame.mute
     readonly property int videoVolume: frame.volume
-    // The zenith-wallpaper-live yield flag: hide the in-shell painter while the C
+    // The asura-wallpaper-live yield flag: hide the in-shell painter while the C
     // player owns the background layer; false for the in-shell engine.
     readonly property bool live: frame.live
     // The first topic frame gates readiness, not the in-shell decode: the
     // backdrop itself waits on the Image decode before revealing.
     readonly property bool reloadReady: frame.ready
 
-    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/zenith-wallpaper.sock"
+    readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-wallpaper.sock"
 
     function apply(line: string): void {
         frame.apply(line);
@@ -102,9 +102,9 @@ Item {
     // The daemon may never publish in a session (daemon not installed, or its unit
     // wedged off): without a frame `frame.path` stays empty and the desktop
     // paints a blank surface. Give the backdrop a still image from the local
-    // config instead: the current background seed (~/.config/zenith/current/
+    // config instead: the current background seed (~/.config/asura/current/
     // background, the same file the theme side reads for its palette), else the
-    // first image bundled in ~/.config/zenith/backgrounds. The daemon still owns
+    // first image bundled in ~/.config/asura/backgrounds. The daemon still owns
     // the wallpaper the moment it exists: nothing runs once a frame has landed,
     // and a later topic frame overwrites these fields through apply().
     Timer {
@@ -118,9 +118,9 @@ Item {
     Process {
         id: fallbackProc
         command: ["sh", "-c",
-            "p=\"$HOME/.config/zenith/current/background\"; "
+            "p=\"$HOME/.config/asura/current/background\"; "
             + "if [ -e \"$p\" ]; then printf '%s\\n' \"$p\"; exit 0; fi; "
-            + "find \"$HOME/.config/zenith/backgrounds\" -maxdepth 1 -type f "
+            + "find \"$HOME/.config/asura/backgrounds\" -maxdepth 1 -type f "
             + "\\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\) "
             + "| sort | head -n 1"]
         stdout: StdioCollector {

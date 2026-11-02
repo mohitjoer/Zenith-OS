@@ -45,7 +45,7 @@ Item {
     Process {
         id: cursorEnum
         running: false
-        command: ["zenith-hubd", "desktop", "cursors"]
+        command: ["asura-hubd", "desktop", "cursors"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
@@ -68,7 +68,7 @@ Item {
     Process {
         id: touchpadStatus
         running: false
-        command: ["zenith", "wm", "act", "input.touchpad", "status"]
+        command: ["asura", "wm", "act", "input.touchpad", "status"]
         stdout: StdioCollector {
             onStreamFinished: pg.touchpadOn = String(this.text).trim() !== "off"
         }
@@ -79,7 +79,7 @@ Item {
         onExited: touchpadStatus.running = true
     }
     function setTouchpad(on) {
-        touchpadSet.command = ["zenith", "wm", "act", "input.touchpad", on ? "on" : "off"];
+        touchpadSet.command = ["asura", "wm", "act", "input.touchpad", on ? "on" : "off"];
         touchpadSet.running = false;
         touchpadSet.running = true;
     }
@@ -237,7 +237,7 @@ Item {
 
     Process {
         id: layoutsProc
-        command: ["zenith-hubd", "desktop", "layouts"]
+        command: ["asura-hubd", "desktop", "layouts"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -258,7 +258,7 @@ Item {
     Process {
         id: variantsProc
         property string forLayout: ""
-        command: ["zenith-hubd", "desktop", "variants", forLayout]
+        command: ["asura-hubd", "desktop", "variants", forLayout]
         stdout: StdioCollector {
             onStreamFinished: {
                 var out = [{ "code": "", "name": I18n.tr("Default") }];

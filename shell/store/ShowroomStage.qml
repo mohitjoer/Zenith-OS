@@ -91,7 +91,7 @@ Item {
 
     ProductCover {
         id: artwork
-        objectName: "zenith-store-stage-artwork"
+        objectName: "asura-store-stage-artwork"
         anchors.fill: parent
         item: stage.coverItem
         mode: "hero"
@@ -109,7 +109,7 @@ Item {
     }
 
     Rectangle {
-        objectName: "zenith-store-stage-scrim"
+        objectName: "asura-store-stage-scrim"
         anchors.fill: parent
         gradient: Gradient {
             orientation: Gradient.Horizontal
@@ -171,7 +171,7 @@ Item {
     }
 
     Text {
-        objectName: "zenith-store-stage-position"
+        objectName: "asura-store-stage-position"
         anchors { top: parent.top; right: parent.right; margins: Tokens.s5 }
         text: stage.positionText
         visible: text !== ""
@@ -199,7 +199,7 @@ Item {
         }
 
         Text {
-            objectName: "zenith-store-stage-title"
+            objectName: "asura-store-stage-title"
             width: parent.width
             text: String(stage.displayItem && (stage.displayItem.name || stage.displayItem.id) || "")
             color: Tokens.ink
@@ -224,7 +224,7 @@ Item {
         }
 
         StatusReadout {
-            objectName: "zenith-store-stage-status"
+            objectName: "asura-store-stage-status"
             item: stage.displayItem
             busyKey: stage.busyKey
             installStage: stage.installStage
@@ -234,7 +234,7 @@ Item {
         }
 
         Text {
-            objectName: "zenith-store-stage-foreign-wm"
+            objectName: "asura-store-stage-foreign-wm"
             width: parent.width
             visible: StoreLogic.isUnavailable(stage.displayItem)
             text: StoreLogic.unavailableReason(stage.displayItem).length > 0
@@ -250,7 +250,7 @@ Item {
         }
 
         Text {
-            objectName: "zenith-store-stage-pause"
+            objectName: "asura-store-stage-pause"
             width: parent.width
             visible: StoreLogic.isDownloadPaused(stage.displayItem)
             text: I18n.tr("Under construction.") + " " + StoreLogic.downloadPauseReason(stage.displayItem)
@@ -267,7 +267,7 @@ Item {
             spacing: Tokens.s2
 
             Btn {
-                objectName: "zenith-store-stage-primary"
+                objectName: "asura-store-stage-primary"
                 text: I18n.tr(stage.primaryLabel)
                 primary: true
                 armed: stage.hasActionItem
@@ -281,7 +281,7 @@ Item {
             }
 
             Btn {
-                objectName: "zenith-store-stage-details"
+                objectName: "asura-store-stage-details"
                 text: I18n.tr("VIEW DETAILS")
                 armed: stage.hasActionItem
                 Accessible.role: Accessible.Button
@@ -291,7 +291,7 @@ Item {
             }
 
             Btn {
-                objectName: "zenith-store-stage-settings"
+                objectName: "asura-store-stage-settings"
                 text: I18n.tr(stage.secondaryLabel)
                 visible: text !== ""
                 armed: visible && stage.hasActionItem
@@ -302,7 +302,7 @@ Item {
             }
 
             Btn {
-                objectName: "zenith-store-stage-remove"
+                objectName: "asura-store-stage-remove"
                 text: I18n.tr("REMOVE")
                 visible: StoreLogic.isInstalled(stage.actionItem)
                 armed: visible && stage.busyKey === ""

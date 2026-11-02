@@ -1,6 +1,6 @@
 # Adapted from Ryoku's starship.toml (GPL-3.0).
 add_newline = false
-palette = "zenith"
+palette = "asura"
 
 format = """
 $cmd_duration $directory$git_branch
@@ -94,8 +94,8 @@ format = '[](bold fg:blue)[󰉋 $path]($style)[](bold fg:blue) '
 min_time = 0
 format = '[](bold fg:peach)[󰪢 $duration](bold bg:peach fg:surface)[](bold fg:peach) '
 
-# Monochrome Zenith terminal palette for starship prompt badges
-[palettes.zenith]
+# Monochrome Asura terminal palette for starship prompt badges
+[palettes.asura]
 ink = "#F2F2F2"
 ink_dim = "#CCCCCC"
 ink_faint = "#A1A1A1"

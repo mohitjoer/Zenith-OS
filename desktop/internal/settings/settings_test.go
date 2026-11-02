@@ -9,23 +9,23 @@ import (
 
 const testSchema = `<?xml version="1.0"?>
 <schemalist>
-  <enum id="org.zenith.test.Edge">
+  <enum id="org.asura.test.Edge">
     <value nick="top" value="0"/>
     <value nick="left" value="2"/>
   </enum>
-  <schema id="org.zenith.test" path="/org/zenith/test/">
+  <schema id="org.asura.test" path="/org/asura/test/">
     <key name="name" type="s"><default>'x'</default></key>
     <key name="count" type="i"><default>3</default><range min="1" max="10"/></key>
     <key name="enabled" type="b"><default>false</default></key>
     <key name="items" type="as"><default>[]</default></key>
-    <key name="edge" enum="org.zenith.test.Edge"><default>'top'</default></key>
+    <key name="edge" enum="org.asura.test.Edge"><default>'top'</default></key>
   </schema>
 </schemalist>`
 
 func testCatalogue(t *testing.T) *Catalogue {
 	t.Helper()
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "org.zenith.test.gschema.xml"),
+	if err := os.WriteFile(filepath.Join(dir, "org.asura.test.gschema.xml"),
 		[]byte(testSchema), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -36,13 +36,13 @@ func testCatalogue(t *testing.T) *Catalogue {
 	return catalogue
 }
 
-// TestOnlyZenithSchemasAreLoaded covers the filter, which is not a convenience.
+// TestOnlyAsuraSchemasAreLoaded covers the filter, which is not a convenience.
 //
 // /usr/share/glib-2.0/schemas on a real machine holds every schema the desktop
 // has. Reading all of it gives a catalogue of several hundred GNOME settings,
-// and `zenith config list` then lists GNOME's preferences — and the Hub's page
-// registry gets checked against them, which says nothing about Zenith.
-func TestOnlyZenithSchemasAreLoaded(t *testing.T) {
+// and `asura config list` then lists GNOME's preferences — and the Hub's page
+// registry gets checked against them, which says nothing about Asura.
+func TestOnlyAsuraSchemasAreLoaded(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, id string) {
 		body := `<?xml version="1.0"?><schemalist><schema id="` + id +
@@ -52,7 +52,7 @@ func TestOnlyZenithSchemasAreLoaded(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("org.zenith.test.gschema.xml", "org.zenith.test")
+	write("org.asura.test.gschema.xml", "org.asura.test")
 	write("org.gnome.desktop.interface.gschema.xml", "org.gnome.desktop.interface")
 	write("org.gtk.Settings.gschema.xml", "org.gtk.Settings.FileChooser")
 
@@ -70,7 +70,7 @@ func TestOnlyZenithSchemasAreLoaded(t *testing.T) {
 }
 
 // TestLoadFailsWhenNothingIsOurs covers the case that would otherwise be an
-// empty list, which reads as "Zenith has no settings".
+// empty list, which reads as "Asura has no settings".
 func TestLoadFailsWhenNothingIsOurs(t *testing.T) {
 	dir := t.TempDir()
 	body := `<?xml version="1.0"?><schemalist><schema id="org.gnome.desktop.interface" path="/x/">
@@ -80,7 +80,7 @@ func TestLoadFailsWhenNothingIsOurs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := Load(dir); err == nil {
-		t.Error("loading a directory with no Zenith schemas succeeded")
+		t.Error("loading a directory with no Asura schemas succeeded")
 	}
 }
 
@@ -91,7 +91,7 @@ func TestLoadFailsWhenNothingIsOurs(t *testing.T) {
 // something nobody asked for. Nothing complains at any of those steps.
 func TestRangeIsEnforcedBeforeTheWrite(t *testing.T) {
 	catalogue := testCatalogue(t)
-	ref := Ref{Schema: "org.zenith.test", Key: "count"}
+	ref := Ref{Schema: "org.asura.test", Key: "count"}
 
 	if err := catalogue.ValidateValue(ref, "5"); err != nil {
 		t.Errorf("a value inside the range was rejected: %v", err)
@@ -110,7 +110,7 @@ func TestRangeIsEnforcedBeforeTheWrite(t *testing.T) {
 // TestEnumAcceptsOnlyItsNicks covers the other type with a domain.
 func TestEnumAcceptsOnlyItsNicks(t *testing.T) {
 	catalogue := testCatalogue(t)
-	ref := Ref{Schema: "org.zenith.test", Key: "edge"}
+	ref := Ref{Schema: "org.asura.test", Key: "edge"}
 
 	if err := catalogue.ValidateValue(ref, "left"); err != nil {
 		t.Errorf("a valid nick was rejected: %v", err)
@@ -133,7 +133,7 @@ func TestEnumAcceptsOnlyItsNicks(t *testing.T) {
 // word is a different setting than a list and means nothing to the shell.
 func TestStringListMustLookLikeAList(t *testing.T) {
 	catalogue := testCatalogue(t)
-	ref := Ref{Schema: "org.zenith.test", Key: "items"}
+	ref := Ref{Schema: "org.asura.test", Key: "items"}
 
 	if err := catalogue.ValidateValue(ref, "[]"); err != nil {
 		t.Errorf("an empty list was rejected: %v", err)
@@ -149,7 +149,7 @@ func TestStringListMustLookLikeAList(t *testing.T) {
 // TestBooleanMustBeTrueOrFalse covers the last type.
 func TestBooleanMustBeTrueOrFalse(t *testing.T) {
 	catalogue := testCatalogue(t)
-	ref := Ref{Schema: "org.zenith.test", Key: "enabled"}
+	ref := Ref{Schema: "org.asura.test", Key: "enabled"}
 
 	if err := catalogue.ValidateValue(ref, "true"); err != nil {
 		t.Errorf("true was rejected: %v", err)
@@ -161,15 +161,15 @@ func TestBooleanMustBeTrueOrFalse(t *testing.T) {
 
 // TestUnknownSchemaNamesTheOnesWeShip covers the error a user can act on.
 //
-// "no schema org.zenith.shl" is not a message anyone can do anything with.
+// "no schema org.asura.shl" is not a message anyone can do anything with.
 func TestUnknownSchemaNamesTheOnesWeShip(t *testing.T) {
 	catalogue := testCatalogue(t)
 
-	_, _, err := catalogue.Lookup(Ref{Schema: "org.zenith.shl", Key: "bar-height"})
+	_, _, err := catalogue.Lookup(Ref{Schema: "org.asura.shl", Key: "bar-height"})
 	if err == nil {
 		t.Fatal("a typo'd schema was accepted")
 	}
-	if !strings.Contains(err.Error(), "org.zenith.test") {
-		t.Errorf("error = %q; it should list the schemas Zenith ships", err)
+	if !strings.Contains(err.Error(), "org.asura.test") {
+		t.Errorf("error = %q; it should list the schemas Asura ships", err)
 	}
 }

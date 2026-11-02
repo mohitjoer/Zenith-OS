@@ -64,7 +64,7 @@ PanelWindow {
     exclusiveZone: 0
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    WlrLayershell.namespace: "zenith-notifications"
+    WlrLayershell.namespace: "asura-notifications"
 
     anchors.top: true
     anchors.left: position === "Left"

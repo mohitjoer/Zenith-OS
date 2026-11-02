@@ -144,7 +144,7 @@ Item {
     }
 
     Column {
-        objectName: "zenith-store-cover-metadata"
+        objectName: "asura-store-cover-metadata"
         visible: cover.tile && cover.hasIdentity
         x: Tokens.s3
         width: parent.width - Tokens.s3 * 2

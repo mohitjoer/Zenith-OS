@@ -1,12 +1,12 @@
-# Zenith OS architecture
+# ASURA OS architecture
 
-Why Zenith is built the way it is. Read this before designing or changing anything.
+Why ASURA is built the way it is. Read this before designing or changing anything.
 
 This document records **decisions, not aspirations**. Where a decision is settled it says so
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
 closed question or assumes an open one is closed.
 
-Zenith OS is powered by a Void Linux x86_64 (glibc) base layer with runit service supervision and seatd seat management, paired with a bootable Live ISO (`build-iso-void.sh`), automated installer (`zenith install`), and dual-stack compatibility for Ubuntu/Debian hosts.
+ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service supervision and seatd seat management, paired with a bootable Live ISO (`build-iso-void.sh`), automated installer (`asura install`), and dual-stack compatibility for Ubuntu/Debian hosts.
 
 ---
 
@@ -15,32 +15,32 @@ Zenith OS is powered by a Void Linux x86_64 (glibc) base layer with runit servic
 | Decision | Choice | Reason |
 |---|---|---|
 | Base | Void Linux x86_64 (glibc) | Minimalist, stable glibc substrate providing complete compatibility for NVIDIA proprietary drivers, Steam, and modern runtimes without systemd overhead. |
-| Init System & Session Supervision | runit (system services) + `zenith-user-services` (user desktop services) | Deterministic, lightweight service supervision. System services live in `/etc/sv/`, supervised user desktop daemons live in `~/.config/service/`. |
+| Init System & Session Supervision | runit (system services) + `asura-user-services` (user desktop services) | Deterministic, lightweight service supervision. System services live in `/etc/sv/`, supervised user desktop daemons live in `~/.config/service/`. |
 | Seat Management | seatd (`LIBSEAT_BACKEND=seatd`) with fallback to elogind | Unprivileged Wayland session DRM master and input claiming without desktop environment bloat. |
-| Filesystem & Storage | Btrfs / ext4 with guided partitioning in installer | Robust root filesystem support with automated partitioning (`installation/zenith-installer.sh`). |
-| Compositor | Hyprland | Zenith draws its own shell and does not need a stock one. |
-| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets; the lock screen is `hyprlock` and the login screen an SDDM theme. The **engine** is built by Zenith; the **surfaces** are vendored open-source Quickshell components, re-themed to Zenith's monochrome design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is Zenith's. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
-| Control plane & State | Go — `zenith`; `zenith-sysd` (root daemon at `/run/zenith.sock`); `zenith-userd` (user session daemon); `zenith-shell`; `zenith-hubd`; `zenith-wallpaper`; `zpm` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
-| GPU & Power | `zenith gpu` + `prime-run` offload; `zenith power` for CPU governor and NVIDIA RTX 3050 D3cold power management | Low power drain on Intel Iris Xe graphics while unlocking high performance discrete NVIDIA GPU on demand. |
-| Terminal | Ghostty, strictly supported and configured by Zenith, never kitty | GPU-accelerated and client-side rendered. Zero kitty policy. See [terminal: Ghostty](#terminal-ghostty). |
+| Filesystem & Storage | Btrfs / ext4 with guided partitioning in installer | Robust root filesystem support with automated partitioning (`installation/asura-installer.sh`). |
+| Compositor | Hyprland | ASURA draws its own shell and does not need a stock one. |
+| Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets; the lock screen is `hyprlock` and the login screen an SDDM theme. The **engine** is built by ASURA; the **surfaces** are vendored open-source Quickshell components, re-themed to ASURA's monochrome design language | Compositor-agnostic, proven, and the design language already lives in QML/CSS. The surfaces are upstream's and the re-theme is ASURA's. See [the shell](#the-shell) and [vendored upstream components](#vendored-upstream-components). |
+| Control plane & State | Go — `asura`; `asura-sysd` (root daemon at `/run/asura.sock`); `asura-userd` (user session daemon); `asura-shell`; `asura-hubd`; `asura-wallpaper`; `zpm` | Static binaries, cross-compiles cleanly, fast startup, with strong typing and no CGo dependencies. |
+| GPU & Power | `asura gpu` + `prime-run` offload; `asura power` for CPU governor and NVIDIA RTX 3050 D3cold power management | Low power drain on Intel Iris Xe graphics while unlocking high performance discrete NVIDIA GPU on demand. |
+| Terminal | Ghostty, strictly supported and configured by ASURA, never kitty | GPU-accelerated and client-side rendered. Zero kitty policy. See [terminal: Ghostty](#terminal-ghostty). |
 | User shell | zsh + starship | fish ships alongside as an alternative. |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
 | Boot chain | GRUB EFI / Limine | Reliable UEFI boot chain across NVMe/SATA drives. |
 | Login manager | `sddm` / tty1 autologin in Live ISO | Automated Wayland autologin on live boot and clean display manager integration. |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd | Modern Wayland audio/video routing, power tuning, and network management. |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, `-lxqt` for Secret interface | Hyprland-native portal backend with GTK fallback. |
-| Package manager | XBPS with first-party repository (`zenith-xbps-repo`), plus `zpm` package manager frontend (APT supported on Ubuntu) | Ultra-fast native packaging via `xbps-create` and `xbps-rindex`. |
+| Package manager | XBPS with first-party repository (`asura-xbps-repo`), plus `zpm` package manager frontend (APT supported on Ubuntu) | Ultra-fast native packaging via `xbps-create` and `xbps-rindex`. |
 | Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
 | Scope | Open source, all laptops | Hardware reach is the product. |
-| Identity | Zenith is the distribution; the base OS is the substrate | See [the base-layer boundary](#the-base-layer-boundary). |
+| Identity | ASURA is the distribution; the base OS is the substrate | See [the base-layer boundary](#the-base-layer-boundary). |
 | Free software | Free at the distribution level, non-free declared per machine | See [firmware and free software](#firmware-and-free-software). |
 
 ### Rejected, and why
 
-- **Owning the compositor.** Zenith uses Hyprland. Forking a compositor puts a decade of
+- **Owning the compositor.** ASURA uses Hyprland. Forking a compositor puts a decade of
   undifferentiated work on the critical path for no user-visible gain.
-- **GNOME.** Not GNOME Shell, not the GNOME daemons, not `xdg-desktop-portal-gnome`. Zenith
+- **GNOME.** Not GNOME Shell, not the GNOME daemons, not `xdg-desktop-portal-gnome`. ASURA
   owns its own shell and its own surfaces. What that costs, and what it simplifies, is
   written up in [the portal seam](#the-portal-seam). The extensions that motivated this repo
   are archived in [`../agents/gnome-shell-notes.md`](../agents/gnome-shell-notes.md).
@@ -48,17 +48,17 @@ Zenith OS is powered by a Void Linux x86_64 (glibc) base layer with runit servic
   machines still running 22.04 or 24.04.
 - **snap.** The overlay model gives better rollback, and dropping snapd off the boot path is
   free performance.
-- **Building the terminal.** Zenith used to build and pin Ghostty from source, and no longer
+- **Building the terminal.** ASURA used to build and pin Ghostty from source, and no longer
   does. The archive carries Ghostty a version behind, and a version behind is a gap the user can
   see and the archive can close; a source pin is a liability that compounds every release cycle —
   build dependencies to carry and verify on each rebase, a rebuild when upstream's shader or SIMD
-  requirements move, a tag to resolve, and a `zenith-terminal` release to ship. It also handed
+  requirements move, a tag to resolve, and a `asura-terminal` release to ship. It also handed
   Ghostty's "most recent LTS" floor a veto over `base.release`, which bought nothing. See
   [terminal: Ghostty](#terminal-ghostty).
 - **A unified version manager (mise and friends) for all three languages.** Each language's
-  own official tool is what its ecosystem expects; Zenith should not put its own opinion in the
+  own official tool is what its ecosystem expects; ASURA should not put its own opinion in the
   way. See [runtime stack](#runtime-stack).
-- **Claiming to be 100% free software.** Zenith's own code and its own repository are free. The
+- **Claiming to be 100% free software.** ASURA's own code and its own repository are free. The
   *image* for a given machine may need firmware that is not. See
   [firmware and free software](#firmware-and-free-software).
 
@@ -66,49 +66,49 @@ Zenith OS is powered by a Void Linux x86_64 (glibc) base layer with runit servic
 
 ## The base-layer boundary
 
-Zenith is the distribution. Ubuntu is its base layer — the substrate, not the identity. That
+ASURA is the distribution. Void is its base layer — the substrate, not the identity. That
 distinction only stays true if it is enforced, and the enforcement is a single rule:
 
-> **Zenith's packages write only to `/usr/share/zenith/` and `/etc/zenith/`. Never to another
+> **ASURA's packages write only to `/usr/share/asura/` and `/etc/asura/`. Never to another
 > package's files.**
 
-The moment Zenith edits `/etc/NetworkManager/`, or patches a file inside `/usr/lib/`, it is no
+The moment ASURA edits `/etc/NetworkManager/`, or patches a file inside `/usr/lib/`, it is no
 longer building over the base layer — it is forking it. The cost arrives later and all at
-once: every rebase onto a newer Ubuntu becomes a merge conflict across files nobody
+once: every rebase onto a newer Void release becomes a merge conflict across files nobody
 remembered touching, and the release train stops.
 
-Zenith's packages follow from that rule:
+ASURA's packages follow from that rule:
 
-- A base-layer package with the wrong configuration gets a **Zenith's own config package**, or a
-  drop-in shadowing it under a `zenith-` name. It is never edited in place.
-- A base-layer package that is merely missing something gets a `zenith-` package that depends on
+- A base-layer package with the wrong configuration gets a **ASURA's own config package**, or a
+  drop-in shadowing it under a `asura-` name. It is never edited in place.
+- A base-layer package that is merely missing something gets a `asura-` package that depends on
   it and supplements it.
-- The only two directories Zenith owns outright are `/usr/share/zenith/` and `/etc/zenith/`. Anything
-  Zenith needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
+- The only two directories ASURA owns outright are `/usr/share/asura/` and `/etc/asura/`. Anything
+  ASURA needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
   controls.
 - **Third-party content is content.** A vendored upstream tree, the patches on top of it and
-  its licence texts are content, and they live under `/usr/share/zenith/` like every other
-  file Zenith ships. They are not registrations and they are not exceptions: nothing in the
+  its licence texts are content, and they live under `/usr/share/asura/` like every other
+  file ASURA ships. They are not registrations and they are not exceptions: nothing in the
   vendored tree is written outside the two directories, and nothing outside them points at it
   except the shell's own entry point.
-- Ship only what Zenith needs from the base layer. Every package in the image is a liability on
-  the next rebase; the manifest of what Zenith installs is itself a reviewed artefact.
+- Ship only what ASURA needs from the base layer. Every package in the image is a liability on
+  the next rebase; the manifest of what ASURA installs is itself a reviewed artefact.
 
-The vendored upstream tree is **content** under `/usr/share/zenith/`, and that is the whole of
+The vendored upstream tree is **content** under `/usr/share/asura/`, and that is the whole of
 its boundary story. It is not a registration: a registration is a pointer a third-party binary
 must find in a fixed directory, and the vendored tree is in none of those directories — it is
-read by Zenith's own shell, at a path Zenith's own package lays down. The rule that applies to
+read by ASURA's own shell, at a path ASURA's own package lays down. The rule that applies to
 it is the ordinary one. It is replaced on update, and a change to it is a configuration value,
 an overlay, or a patch — never a hand edit.
 
-The payoff is that rebasing Zenith onto a new Ubuntu becomes a package-set change rather than a
+The payoff is that rebasing ASURA onto a newer Void release becomes a package-set change rather than a
 merge. That is the difference between a distribution that can track its base and one that
 slowly becomes an unmaintainable fork of it.
 
 ### The sanctioned list outside the boundary
 
-Two rules cannot both be absolute. A handful of files have to sit outside `/usr/share/zenith/`
-and `/etc/zenith/`, because the binaries that read them look nowhere else — a systemd unit
+Two rules cannot both be absolute. A handful of files have to sit outside `/usr/share/asura/`
+and `/etc/asura/`, because the binaries that read them look nowhere else — a systemd unit
 directory, a GLib schema directory, the login manager's fixed config directory. Those files are
 **registrations**: pointers a third-party binary must be able to find.
 
@@ -116,63 +116,63 @@ So the boundary rule is enforced as a closed list rather than an absolute. Every
 the two directories must appear here, and a path that is not on this list is a boundary
 violation until it is added:
 
-| Path | What it is | Why it cannot live under `/usr/share/zenith/` |
+| Path | What it is | Why it cannot live under `/usr/share/asura/` |
 |---|---|---|
-| `/usr/share/wayland-sessions/zenith.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
-| `/usr/share/doc/zenith/` | The copyright file and the licence texts | Debian policy: a package's copyright file is read from `/usr/share/doc/<package>/` and nowhere else |
-| `/usr/share/glib-2.0/schemas/org.zenith.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
-| `/usr/lib/systemd/user/zenith-shell.service`, `zenith-portal.service`, `zenithd.service`, `zenith-wallpaper.service`, `zenith-idle.service`, `zenith-agent.service`, `zenith-ai-usage.service`, `zenith-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/zenith-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/share/xdg-desktop-portal/zenith-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
-| `/etc/sddm.conf.d/10-zenith.conf` | Login manager preferences, opt-in: no package installs it, and `zenith greeter enable` prints the command that does | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
+| `/usr/share/wayland-sessions/asura.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
+| `/usr/share/doc/asura/` | The copyright file and the licence texts | Debian policy: a package's copyright file is read from `/usr/share/doc/<package>/` and nowhere else |
+| `/usr/share/glib-2.0/schemas/org.asura.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
+| `/usr/lib/systemd/user/asura-shell.service`, `asura-portal.service`, `asurad.service`, `asura-wallpaper.service`, `asura-idle.service`, `asura-agent.service`, `asura-ai-usage.service`, `asura-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/lib/systemd/user/asura-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/usr/share/xdg-desktop-portal/asura-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
+| `/etc/sddm.conf.d/10-asura.conf` | Login manager preferences, opt-in: no package installs it, and `asura greeter enable` prints the command that does | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
 | `/boot/limine.conf` | Boot configuration, deferred with the boot chain | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
-| `/usr/bin/zenith`, `/usr/bin/zenith-*`, `/usr/bin/zpm`, `/usr/bin/prime-run`, `/usr/bin/fan-profile`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`zenith`, `zenith-shell`, `zenith-hubd`, `zenith-wallpaper`, `zenith-agent`, `zenith-store`, `zenith-vm`, `zpm`, `prime-run`, `fan-profile`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under `systemd --user`, whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `zenith` package. |
-| `/usr/share/applications/zenith-hub.desktop`, `zenith-store.desktop`, `zenith-vm.desktop` | Desktop entries for the windows Zenith adds | The launcher and every other desktop-entry reader scan `XDG_DATA_DIRS/applications` and nowhere else |
-| `/usr/share/applications/zenith-mimeapps.list` | Default applications for Zenith sessions | The XDG mime-apps lookup reads `<desktop>-mimeapps.list` from the data directories. Named for the desktop, it applies to Zenith sessions only, and the user's own `mimeapps.list` still wins |
+| `/usr/bin/asura`, `/usr/bin/asura-*`, `/usr/bin/zpm`, `/usr/bin/prime-run`, `/usr/bin/fan-profile`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`asura`, `asura-shell`, `asura-hubd`, `asura-wallpaper`, `asura-agent`, `asura-store`, `asura-vm`, `zpm`, `prime-run`, `fan-profile`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under `systemd --user`, whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `asura` package. |
+| `/usr/share/applications/asura-hub.desktop`, `asura-store.desktop`, `asura-vm.desktop` | Desktop entries for the windows ASURA adds | The launcher and every other desktop-entry reader scan `XDG_DATA_DIRS/applications` and nowhere else |
+| `/usr/share/applications/asura-mimeapps.list` | Default applications for ASURA sessions | The XDG mime-apps lookup reads `<desktop>-mimeapps.list` from the data directories. Named for the desktop, it applies to ASURA sessions only, and the user's own `mimeapps.list` still wins |
 
 Content stays inside the two directories: the login surface's own files belong at
-`/usr/share/zenith/session/`, and everything SDDM needs to point at belongs there too. The
-login theme is exactly that: it lives at `/usr/share/zenith/session/sddm/themes/zenith` and the
+`/usr/share/asura/session/`, and everything SDDM needs to point at belongs there too. The
+login theme is exactly that: it lives at `/usr/share/asura/session/sddm/themes/asura` and the
 opt-in drop-in reaches it through `ThemeDir`, so nothing is placed in SDDM's own theme
 directory. A registration is a pointer, never a place to put content — a file that grows past a
-few lines of pointer belongs under `/usr/share/zenith/` with a registration pointing at it.
+few lines of pointer belongs under `/usr/share/asura/` with a registration pointing at it.
 
-The list used to carry `/usr/bin/zenith-shell` and dropped it, because no such executable
+The list used to carry `/usr/bin/asura-shell` and dropped it, because no such executable
 existed: the shell is a QML configuration read by Quickshell, started by
-`zenith-shell.service` as `quickshell -p /usr/share/zenith/shell`, and the binary that runs
-it is Quickshell's. The name has since been given to something real. `/usr/bin/zenith-shell` is
-the shell's Go daemon and its command line, covered by the `zenith-*` entry above; it is not
+`asura-shell.service` as `quickshell -p /usr/share/asura/shell`, and the binary that runs
+it is Quickshell's. The name has since been given to something real. `/usr/bin/asura-shell` is
+the shell's Go daemon and its command line, covered by the `asura-*` entry above; it is not
 the executable that runs the QML. See [the shell](#the-shell).
 
 **Runtime state is not a package file.** The daemon's socket lives at
-`$XDG_RUNTIME_DIR/zenith-shell.sock`, and the wallpaper daemon's and the agent's sit beside it
-(`zenith-wallpaper.sock`, `zenith-agent.sock`), in the per-user runtime directory. They are not
+`$XDG_RUNTIME_DIR/asura-shell.sock`, and the wallpaper daemon's and the agent's sit beside it
+(`asura-wallpaper.sock`, `asura-agent.sock`), in the per-user runtime directory. They are not
 on the list because they are not files a package installs: each daemon creates its socket at
 run time, in a directory no package writes to, and it goes away when the session ends. A path
 that exists only while the session does cannot be a registration, and a registration is by
 definition a path that exists on every boot.
 
-`zenith doctor` reports drift between the registrations and the content they point at, the same
+`asura doctor` reports drift between the registrations and the content they point at, the same
 way it reports drift everywhere else.
 
 ---
 
 ## Layer map
 
-Zenith's layers, from bottom up.
+ASURA's layers, from bottom up.
 
 | Layer | Owner | Notes |
 |---|---|---|
 | Kernel, firmware, boot | `system/kernel/`, installer | Pinned fleet, not a single kernel |
-| Base system | Ubuntu packages | Unmodified; Zenith adds only what it needs |
-| Desktop services | Zenith + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
-| Display | Hyprland | Behind a `zenith wm` seam so it can be swapped |
-| Shell surfaces | Quickshell, over a ported shell tree and a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The ported components are Ryoku's ([`NOTICE.md`](../NOTICE.md)); the vendored ones are upstream's, at a pinned commit; the theme and the settings binding are Zenith's. See [vendored upstream components](#vendored-upstream-components) |
-| Shell state | `zenith-shell daemon` (`zenithd.service`) | The state daemon. One socket, one protocol, one writer of `shell.json` |
+| Base system | Void packages | Unmodified; ASURA adds only what it needs |
+| Desktop services | ASURA + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
+| Display | Hyprland | Behind a `asura wm` seam so it can be swapped |
+| Shell surfaces | Quickshell, over a ported shell tree and a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The ported components are Ryoku's ([`NOTICE.md`](../NOTICE.md)); the vendored ones are upstream's, at a pinned commit; the theme and the settings binding are ASURA's. See [vendored upstream components](#vendored-upstream-components) |
+| Shell state | `asura-shell daemon` (`asurad.service`) | The state daemon. One socket, one protocol, one writer of `shell.json` |
 | Settings store | GSettings / dconf, and `shell.json` | One writer per setting |
-| Control tools | `zenith`, `zenith-shell`, `zenith-hubd` | The only writers |
+| Control tools | `asura`, `asura-shell`, `asura-hubd` | The only writers |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk` | See below |
-| Updates | `zenith update` · `rollback` · `doctor` | Overlay model |
+| Updates | `asura update` · `rollback` · `doctor` | Overlay model |
 
 ---
 
@@ -183,7 +183,7 @@ the compositor directly. An app that has ever shown a file chooser, shared a scr
 for a secret has gone through it. If this layer is wrong, a thousand apps break in a thousand
 different ways, so it is worth getting right early.
 
-Zenith's stack, with each backend's interfaces verified against what it actually exports rather
+ASURA's stack, with each backend's interfaces verified against what it actually exports rather
 than what its name suggests:
 
 | Component | Interfaces it implements |
@@ -210,7 +210,7 @@ declares the interface, finds none, and returns success without exporting the po
 No error, no warning, no fallback.
 
 The consequence is concrete: every Flatpak that uses the Secret interface — Firefox,
-Thunderbird, Evolution, VS Code — has nowhere to store a password on Zenith. This is the single
+Thunderbird, Evolution, VS Code — has nowhere to store a password on ASURA. This is the single
 worst portal gap and it is not cosmetic.
 
 **This is closed.** `xdg-desktop-portal-lxqt` is installed and named for Secret in
@@ -231,17 +231,17 @@ competes with the shell.
 **The configuration had been quietly wrong the whole time.** `portals.conf` named
 `gtk` for Secret. gtk is installed, gtk's `.portal` file is present and readable,
 and gtk does not implement Secret — so every other check passed, the file read as
-though the interface were handled, and the gap stayed open. `zenith doctor` now
+though the interface were handled, and the gap stayed open. `asura doctor` now
 reads each named backend's own `.portal` file and reports an interface the
 backend cannot serve.
 
 ### The contract
 
-An application that works on a stock desktop must work on Zenith. That now holds for every portal
+An application that works on a stock desktop must work on ASURA. That now holds for every portal
 interface this desktop exposes, including Secret. A hardware report should ask contributors to
 confirm portal behaviour, and a portal regression is a distribution-wide bug, not a cosmetic one.
 
-`zenith doctor` must assert that the portal configuration file is actually being read: the
+`asura doctor` must assert that the portal configuration file is actually being read: the
 per-desktop file name is derived from `XDG_CURRENT_DESKTOP`, and a session that does not
 declare itself correctly falls back to `portals.conf` and silently uses the wrong backends.
 
@@ -250,14 +250,14 @@ It must also assert that each interface named in `portals.conf` is one the named
 configuration that looked correct: `Secret` named `gtk`, which does not implement it, and
 `Access` was never named at all. Both files read as though the interfaces were handled.
 
-Interfaces Zenith still owns itself, because no backend provides them:
+Interfaces ASURA still owns itself, because no backend provides them:
 
 - **Camera.** No portal backend implements it; capture is Pipewire's job. **This one is currently
   unassigned** — Notifications has an owner in the shell (M6), Camera has none. `pipewire` and
   `wireplumber` are in the manifest, so the capture side of the stack is installed, but nothing
   exports `org.freedesktop.portal.Camera` to an application that asks for it. A Flatpak with a
-  camera permission is refused rather than prompted. Until a backend exports it, either Zenith
-  ships a small Camera backend over Pipewire, or Zenith ships none and this interface is
+  camera permission is refused rather than prompted. Until a backend exports it, either ASURA
+  ships a small Camera backend over Pipewire, or ASURA ships none and this interface is
   documented as unsupported rather than silently failing. That choice is not made yet — see
   [open questions](#open-questions).
 - **Notifications.** With no notification daemon in the image, the shell hosts the
@@ -270,27 +270,27 @@ backend, not by the shell.
 
 ## Overlay and rollback
 
-Zenith's packages write **only** to `/usr/share/zenith/` and `/etc/zenith/`. Never to `~`. That single
+ASURA's packages write **only** to `/usr/share/asura/` and `/etc/asura/`. Never to `~`. That single
 rule is what makes rollback possible.
 
 ```
-/usr/share/zenith/                     the packaged base; replaced on update
-/etc/zenith/                           machine-level config; replaced on update
-~/.config/zenith/                      materialized base, user's copy
-~/.config/zenith/user_edits/           the user's overlay; wins at the mirrored path
-~/.local/share/zenith/plugins/         installed plugins
-~/.local/state/zenith/                 runtime state, revisions, snapshots
+/usr/share/asura/                     the packaged base; replaced on update
+/etc/asura/                           machine-level config; replaced on update
+~/.config/asura/                      materialized base, user's copy
+~/.config/asura/user_edits/           the user's overlay; wins at the mirrored path
+~/.local/share/asura/plugins/         installed plugins
+~/.local/state/asura/                 runtime state, revisions, snapshots
 ```
 
 | Command | Does |
 |---|---|
-| `zenith update` | snapshot `~/.config` to git, fetch debs, re-materialize base, repaint |
-| `zenith rollback` | re-materialize the previous revision |
-| `zenith materialize <path>` | re-lay the base file, clobbering shipped content |
-| `zenith reset <path>` | drop one overlay file back to the base |
-| `zenith doctor` | report drift between base and overlay |
+| `asura update` | snapshot `~/.config` to git, fetch debs, re-materialize base, repaint |
+| `asura rollback` | re-materialize the previous revision |
+| `asura materialize <path>` | re-lay the base file, clobbering shipped content |
+| `asura reset <path>` | drop one overlay file back to the base |
+| `asura doctor` | report drift between base and overlay |
 
-A user override always wins at its mirrored path, and `zenith update` can never clobber it.
+A user override always wins at its mirrored path, and `asura update` can never clobber it.
 This is the discipline that makes the rest of the system safe to automate.
 
 ---
@@ -303,19 +303,19 @@ Settings live in two stores, and each has one writer.
 dconf, and `gsettings list-recursively` for introspection — which is exactly what a widget
 catalogue needs.
 
-- `org.zenith.desktop` — desktop-level behaviour; the idle timeouts are the keys the running
+- `org.asura.desktop` — desktop-level behaviour; the idle timeouts are the keys the running
   desktop reads
-- `org.zenith.shell` — the keys adoption imports into, among them the wallpaper paths and the
+- `org.asura.shell` — the keys adoption imports into, among them the wallpaper paths and the
   favourites. The ported shell takes its look from `shell.json` instead, so every key of this
-  schema is on the list of unread settings in `desktop/internal/hub`; `zenith-wallpaper` reads
+  schema is on the list of unread settings in `desktop/internal/hub`; `asura-wallpaper` reads
   the wallpaper paths once, to choose a fresh account's first wallpaper
 
-`zenith config set` is their only writer, and it validates a value against the key's type,
+`asura config set` is their only writer, and it validates a value against the key's type,
 range and enum before it reaches dconf. Hand-editing dconf directly causes drift and
-`zenith doctor` reports it.
+`asura doctor` reports it.
 
-**`~/.config/zenith/shell.json`** is the ported shell's look: the bar style, the dock, the
-interface scale, the language and the wallpaper options. The `zenith-shell` daemon owns it, and
+**`~/.config/asura/shell.json`** is the ported shell's look: the bar style, the dock, the
+interface scale, the language and the wallpaper options. The `asura-shell` daemon owns it, and
 the Hub's pages and the welcome tour change it by asking the daemon (`settings.patch`) rather
 than by writing the file.
 
@@ -324,7 +324,7 @@ than by writing the file.
 ## The keybinding catalogue
 
 The keybinds are a list of lines in the compositor's configuration, and they are also a
-catalogue: `session/binds.json`, installed at `/usr/share/zenith/session/binds.json`, with a
+catalogue: `session/binds.json`, installed at `/usr/share/asura/session/binds.json`, with a
 label and a category for every chord. The claim is the one the check exists to keep true:
 
 > Every chord in the catalogue is bound in the compositor's configuration, every bind in the
@@ -332,14 +332,14 @@ label and a category for every chord. The claim is the one the check exists to k
 > a function the shell's `IpcHandler` defines.
 
 A claim about two lists is only true if somebody compares them, and the comparison is
-`zenith doctor`'s. It reports a catalogue chord with no bind, a bind with no catalogue entry,
+`asura doctor`'s. It reports a catalogue chord with no bind, a bind with no catalogue entry,
 and a call to a function the shell does not have. All three are silent at run time: a keybind
 that names a function the shell has not got runs, the command succeeds, and no launcher opens,
 which is what a user reports as "the shortcut stopped working" and what nothing in the journal
 explains.
 
-The catalogue is read by the shell through `zenith binds` rather than off the file, for the same
-reason the settings catalogue is read through `zenith config export`: a file read twice is read
+The catalogue is read by the shell through `asura binds` rather than off the file, for the same
+reason the settings catalogue is read through `asura config export`: a file read twice is read
 by two pieces of code, and the two agree until the day one of them is changed. The Go side
 owns the format, and the shell asks it.
 
@@ -362,41 +362,41 @@ same way. The separator is the compositor's constraint and not a style choice.
 > and has `Quickshell.Services.Pam` — so an earlier version of this box, which said there is
 > no QML PAM API and that a shell-drawn lock would accept any password, was wrong.
 >
-> So the division is: **when** locking happens is `hypridle`'s, run by `zenith-idle.service`
-> from `org.zenith.desktop`'s `idle-*` keys, and `zenith-shell lock` is the one command every
+> So the division is: **when** locking happens is `hypridle`'s, run by `asura-idle.service`
+> from `org.asura.desktop`'s `idle-*` keys, and `asura-shell lock` is the one command every
 > trigger runs; `hyprlock` does the locking; the shell only draws the dim scrim (`Idle.qml`).
 > hyprlock is in the archive, which under the base-layer rule settles it — the base layer
-> carries it, so Zenith does not repackage it. Every competing locker is excluded, so the
+> carries it, so ASURA does not repackage it. Every competing locker is excluded, so the
 > image has exactly one and which one is in front never depends on start order.
 
-Quickshell, and Zenith builds it. The base layer carries no compositor-agnostic
+Quickshell, and ASURA builds it. The base layer carries no compositor-agnostic
 shell toolkit at all — verified rather than assumed: `quickshell`, `ags`, `eww` and
 `ironbar` are in no component of 26.04. What the archive does carry is *panels* —
 `waybar`, `yambar`, `tint2`, `polybar`, `xfce4-panel` — and a panel is not a
-substitute. A panel draws a bar. Zenith's shell hosts the bar, dock, launcher,
+substitute. A panel draws a bar. ASURA's shell hosts the bar, dock, launcher,
 popouts, widget catalogue, notification server, idle screen, quick settings
 and status icons, and the Hub window as well, in one compositor-agnostic toolkit,
 so that the desktop has one UI toolkit and one design system rather than two.
 
-**The engine is what Zenith builds; the surfaces are what Zenith has adopted.** Those are
+**The engine is what ASURA builds; the surfaces are what ASURA has adopted.** Those are
 two different statements, and the licence depends on the difference, so they are kept apart
-here as well. The engine is Quickshell: the binary, built by Zenith, shipped unmodified,
-**LGPL-3.0-only**. The surfaces are the QML — some of it Zenith's own, a ported tree from
+here as well. The engine is Quickshell: the binary, built by ASURA, shipped unmodified,
+**LGPL-3.0-only**. The surfaces are the QML — some of it ASURA's own, a ported tree from
 Ryoku (**GPL-3.0**, with the MIT portions [`NOTICE.md`](../NOTICE.md) records) and a vendored
 upstream component under **GPL-3.0**. The composed shell is GPL-3.0. See
 [vendored upstream components](#vendored-upstream-components) for the component, the pin and
 the three overlay files, and [`LICENSING.md`](../LICENSING.md) for the obligations.
 
 That makes this the recorded exception to the base-layer boundary, and it used to have a
-companion: the terminal, which Zenith also used to build. The terminal is not built any more —
+companion: the terminal, which ASURA also used to build. The terminal is not built any more —
 see [terminal: Ghostty](#terminal-ghostty) — so this exception is now the only one, and the
-shell is the only thing in the stack Zenith compiles for itself. It is a comfortable one:
+shell is the only thing in the stack ASURA compiles for itself. It is a comfortable one:
 Quickshell is **LGPL-3.0-only**, and the build needs nothing the archive does not already
 carry — `qt6-declarative-dev`, `qt6-declarative-private-dev`, `qt6-base-private-dev`,
 `qt6-base-dev`, `qt6-wayland`, `ninja-build`, `cmake` and `pkgconf` are all archive
 packages. Redistribution under LGPL-3 is a matter of shipping the licence and the copyright
 with the binary, which the package does; there is no question of deriving from it, because
-Zenith ships the binary unmodified and links nothing of its own into it. The rule the
+ASURA ships the binary unmodified and links nothing of its own into it. The rule the
 exception sits against is the one in the manifest's header: never repackage what the base
 layer carries. Quickshell is not in the base layer, so building it is not a fork.
 
@@ -404,36 +404,36 @@ layer carries. Quickshell is not in the base layer, so building it is not a fork
 used to end with those words, and it was right about Quickshell and wrong about everything
 the shell draws. There is now a vendored tree of several hundred files under
 `shell/modules/` and `shell/services/`. It is GPL-3.0, it is declared, it is pinned, and it
-is byte-identical to its upstream commit — which is what makes it a dependency Zenith has
-taken rather than a fork Zenith has made. The two departures from the base-layer rule are
-now of different kinds and are recorded separately: one is a binary Zenith compiles, the
-other is source Zenith adopts.
+is byte-identical to its upstream commit — which is what makes it a dependency ASURA has
+taken rather than a fork ASURA has made. The two departures from the base-layer rule are
+now of different kinds and are recorded separately: one is a binary ASURA compiles, the
+other is source ASURA adopts.
 
-**`zenith-shell` is the daemon, and `zenithd` is the unit that runs it.** Two things in this
-project were called `zenith-shell`, and they were not the same thing, which is the kind of
+**`asura-shell` is the daemon, and `asurad` is the unit that runs it.** Two things in this
+project were called `asura-shell`, and they were not the same thing, which is the kind of
 collision that produces a bug report rather than a fix. The name was once the package that
-builds Quickshell; it now belongs to the shell's Go daemon. `/usr/bin/zenith-shell` is that
-binary: `zenith-shell daemon` is what `zenithd.service` runs, and every other
-`zenith-shell <verb>` (`lock`, `hub open`, `reload`, `icons`) is a client that sends one line
-to it. The unit that runs the QML keeps its name, `zenith-shell.service`, and the shell's own
-configuration is `/usr/share/zenith/shell/`, read by `quickshell -p /usr/share/zenith/shell`
-from that unit. So `zenith-shell` serves the shell's state and Quickshell is the engine that
-draws it; where this document says `zenithd`, it means the daemon. The manifest's
-`zenith_built:` key exists so the departure from its own rule is
+builds Quickshell; it now belongs to the shell's Go daemon. `/usr/bin/asura-shell` is that
+binary: `asura-shell daemon` is what `asurad.service` runs, and every other
+`asura-shell <verb>` (`lock`, `hub open`, `reload`, `icons`) is a client that sends one line
+to it. The unit that runs the QML keeps its name, `asura-shell.service`, and the shell's own
+configuration is `/usr/share/asura/shell/`, read by `quickshell -p /usr/share/asura/shell`
+from that unit. So `asura-shell` serves the shell's state and Quickshell is the engine that
+draws it; where this document says `asurad`, it means the daemon. The manifest's
+`asura_built:` key exists so the departure from its own rule is
 visible in one place rather than implied by a comment, and
-`system/verify-packages.py` checks it in the inverse direction: a `zenith_built:`
+`system/verify-packages.py` checks it in the inverse direction: a `asura_built:`
 entry that turns up in the archive is a warning, because rebuilding a package the
 base layer now maintains is exactly the fork the rule prevents.
 
-The wire protocol the daemon speaks keeps the name `zenith-shell/1`, after the shell it
+The wire protocol the daemon speaks keeps the name `asura-shell/1`, after the shell it
 serves rather than after the process that implements it. A protocol name that changed with
 its implementation would break every client that had already learned it, and the shell is
 the thing that will still be there when the daemon is replaced. Its framing is the topic
-stream and the `call` of `desktop/cmd/zenith-shell/CONTRACT.md`, over
-`$XDG_RUNTIME_DIR/zenith-shell.sock`; [`shell-daemon.md`](shell-daemon.md) says how it runs.
+stream and the `call` of `desktop/cmd/asura-shell/CONTRACT.md`, over
+`$XDG_RUNTIME_DIR/asura-shell.sock`; [`shell-daemon.md`](shell-daemon.md) says how it runs.
 
 The test matrix question stays open — see [open questions](#open-questions) — and the
-re-vendoring cost has joined it. A shell Zenith builds is a shell Zenith has to rebuild when
+re-vendoring cost has joined it. A shell ASURA builds is a shell ASURA has to rebuild when
 upstream moves: a new Quickshell release is a new build, a new package version and a new
 binary to put through every kernel and every Hyprland in the matrix. A vendored component is
 a different kind of debt. It is not rebuilt — it is *re-vendored*, which is one command,
@@ -449,32 +449,32 @@ checked against. That is why the matrix question now covers two things rather th
 
 Client-side rendered on the GPU, with its own renderer rather than a VTE text grid, so it costs
 far less than a GTK terminal. It is the most capable terminal in the stack, and it is the one
-thing here Zenith is willing to give up currency for, because the terminal is the surface every
+thing here ASURA is willing to give up currency for, because the terminal is the surface every
 developer looks at all day and a version behind is a far smaller cost than a permanent build.
 
 Four places declare it the default, and all four must be set or the desktop is inconsistent:
 
-1. **Zenith's shell** — the terminal-launcher setting the bar button calls
+1. **ASURA's shell** — the terminal-launcher setting the bar button calls
 2. **`gsettings set org.gnome.desktop.default-applications.terminal exec ghostty`** — so the
    file manager's "Open in Terminal" and GTK dialogs use it
 3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator`, registered under an explicit
    alternatives name — for applications that hardcode the VTE path. No `--slave` is needed or
    wanted: Ghostty is not itself a registered alternative here, and registering it as a slave of
    something it does not implement would give the user a second way to be wrong. Ghostty's own
-   package registers no alternative at all, so `zenith-terminal` owns registering the only one.
+   package registers no alternative at all, so `asura-terminal` owns registering the only one.
 4. **Ghostty's zsh shell integration**, sourced from `~/.zshrc` — prompt marking via OSC 133,
    which is what the pager integration and starship's own status reporting depend on
 
 **Packaging consequence, stated plainly:** Ghostty is carried by the base layer's archive, at a
 version behind upstream, in `universe` — the component the base layer does not treat as part of
-a release. Zenith installs that package as-is. It does not build Ghostty, does not pin a source
-tag, and does not own a rebuild. `zenith-terminal` is a configuration package, not a build.
+a release. ASURA installs that package as-is. It does not build Ghostty, does not pin a source
+tag, and does not own a rebuild. `asura-terminal` is a configuration package, not a build.
 
-This is the decision that most distinguishes Zenith from a typical "I compile my dotfiles" setup,
-and it is worth stating as a trade rather than a virtue. Zenith gives up a current terminal. It
+This is the decision that most distinguishes ASURA from a typical "I compile my dotfiles" setup,
+and it is worth stating as a trade rather than a virtue. ASURA gives up a current terminal. It
 buys back every cost a source pin accrues: no build dependencies to carry and verify on each
 rebase, no breakage when Ghostty's shader or SIMD dependencies move, no source tag to resolve
-when upstream tags, and no `zenith-terminal` release to ship when Ghostty patches a release. A
+when upstream tags, and no `asura-terminal` release to ship when Ghostty patches a release. A
 version behind is a gap the user can see and the archive can close. A build is a liability that
 compounds every release cycle and needs a maintainer forever. The gap is the cheaper one, and
 the terminal is not the surface that decides whether this desktop is usable.
@@ -483,16 +483,16 @@ the terminal is not the surface that decides whether this desktop is usable.
 GTK/Adwaita in the most recent LTS at the time of a minor release."* A distribution that built
 Ghostty would adopt that policy and inherit a hard constraint: Ghostty 1.2.x needs GTK 4.14 and
 Adwaita 1.5, 1.1.x needs GTK 4.8 and Adwaita 1.2, so moving the base would move Ghostty's floor
-in the same release and `base.release` would stop being a free parameter. Zenith does not build
+in the same release and `base.release` would stop being a free parameter. ASURA does not build
 it, so it does not adopt that policy, and the floor belongs to the archive. `base.release` is
 chosen for hardware reach and nothing else constrains it.
 
-**No build dependencies, because there is no build.** Zenith used to carry Ghostty's build
+**No build dependencies, because there is no build.** ASURA used to carry Ghostty's build
 requirements explicitly — `gtk4-layer-shell`, `glslang-dev`, `libhwy-dev`, `libsimdutf-dev`,
 `libonig-dev` and ten more, every one a name that had to be verified against the 26.04 indexes
 because every one of them is spelled differently on this archive than in Ghostty's upstream
 docs. That list is gone, and its absence is the record of the decision rather than an omission.
-This is also why the terminal is no longer an entry in the manifest's `zenith_built:` key: a
+This is also why the terminal is no longer an entry in the manifest's `asura_built:` key: a
 package the base layer carries is installed, not rebuilt. See
 [the rejected options](#rejected-and-why).
 
@@ -502,7 +502,7 @@ package the base layer carries is installed, not rebuilt. See
 `/usr/share/terminfo/x/xterm-ghostty` inside itself, verified against the 26.04 Contents index.
 Naming the split packages would fail the build on packages that do not exist here. That same
 index confirms the `x-terminal-emulator` alternative is *not* registered by the package, which is
-why the third declaration above is entirely Zenith's work — and why that declaration is
+why the third declaration above is entirely ASURA's work — and why that declaration is
 configuration rather than packaging.
 
 What Ghostty brings that a stock terminal does not, and why it is the terminal:
@@ -513,7 +513,7 @@ What Ghostty brings that a stock terminal does not, and why it is the terminal:
 | Shell integration | OSC 133 prompt marking, hyperlink handling, clickable paths |
 | Tab and split configuration | Tabs and splits configured declaratively, per config rather than per menu |
 | `ghostty +…` CLI | `ghostty +show-config`, `ghostty +list-fonts`, `ghostty +version` — the config is inspectable and scriptable rather than a GUI-only surface |
-| Single config file | `~/.config/ghostty/config`, which sits under Zenith's overlay like everything else, so `zenith update` cannot clobber it |
+| Single config file | `~/.config/ghostty/config`, which sits under ASURA's overlay like everything else, so `asura update` cannot clobber it |
 
 Default font: **JetBrains Mono** — for the terminal's own text. It is deliberately *not* called a
 Nerd Font, because it is not one: `fonts-jetbrains-mono` on this base layer is the upstream build
@@ -531,22 +531,22 @@ zsh is the shell, starship is the prompt, and Ghostty is where they meet.
   does not depend on what `$SHELL` happens to say
 - Ghostty's zsh integration is sourced from `~/.zshrc`, guarded so a non-Ghostty terminal does
   not error on the missing file
-- `starship` renders the prompt; its configuration lives under Zenith's overlay like everything
-  else, so `zenith update` cannot clobber it
+- `starship` renders the prompt; its configuration lives under ASURA's overlay like everything
+  else, so `asura update` cannot clobber it
 - fish ships alongside zsh for users who prefer it; neither is the default
 - blesh does not ship, and this is a decision rather than an omission. It is absent from every
   component of the base layer, and it belongs with mise, fnm and uv in the setup step's offer: an
   alternative shell is something a user asks for at setup, not something every machine carries. See
   the manifest's `terminal-and-shell` group, which is the authority.
 
-Zenith's overlay model gives the shell the same protection as the rest of the desktop: a change
+ASURA's overlay model gives the shell the same protection as the rest of the desktop: a change
 to `~/.zshrc` is a user's change and survives every update.
 
 ### Languages
 
 | | Ships | Managed by | Why |
 |---|---|---|---|
-| Rust | `rustup`, shared toolchain at `/opt/zenith/rust` | rustup | Ubuntu's apt `rustc` lags years behind. Never ship Rust via apt. |
+| Rust | `rustup`, shared toolchain at `/opt/asura/rust` | rustup | Ubuntu's apt `rustc` lags years behind. Never ship Rust via apt. |
 | Node | `nodejs` + `npm` pinned to LTS, `corepack` enabled | fnm | System Node is the floor; per-project versions per repository. |
 | Python | `python3`, `python3-venv`, `python3-dev` | mise + `uv` | System Python stays pristine — it is an OS dependency and PEP 668 marks it externally managed. |
 
@@ -557,9 +557,9 @@ Preinstalled Rust tooling, because they are near-universal wins:
 
 ## Vendored upstream components
 
-Zenith's shell draws some of its surfaces with a vendored open-source Quickshell
+ASURA's shell draws some of its surfaces with a vendored open-source Quickshell
 configuration. The tree is checked in, held byte-identical to a pinned upstream commit, and
-re-themed by three overlay files that Zenith owns. This section is the record: what is
+re-themed by three overlay files that ASURA owns. This section is the record: what is
 vendored, what is not, what may be changed, and who owns what.
 
 ### What is vendored, and at which commit
@@ -585,27 +585,27 @@ decisions rather than accidents.
 
 | Upstream | Why it is not here |
 |---|---|
-| The shell root — upstream's `shell.qml` | The shell root is Zenith's. Zenith's shell is a different shell that happens to draw some of the same surfaces, and upstream's root wires upstream's panels, upstream's services and upstream's state |
-| The settings window — upstream's `settings.qml` | The settings surface is the Hub, and the Hub is Zenith's |
-| Upstream's `Config.qml` and `Appearance.qml` | Replaced by Zenith's own at the same paths. See [the theme boundary](#the-theme-boundary) |
-| Upstream's `GlobalStates.qml` | Replaced by Zenith's own at the same path, for the same reason and one more |
-| Upstream's assets, defaults, panel families, scripts, translations, welcome screen, kill dialog and reload popup | None of it is Zenith's desktop. Upstream's icons and images are upstream's; Zenith's are its own |
-| Upstream's compositor configuration, including its Hyprland Lua | Zenith owns its own compositor configuration. The vendored tree is a Quickshell configuration and nothing else |
-| Upstream's licence files in place, and its examples | The licence texts are kept under `shell/vendor/` and the examples are not shipped. A file named `LICENSE` inside the tree would be caught by this repository's own licence rule, which is about Zenith's licence. See [licence hygiene](../LICENSING.md#the-rule-for-vendored-licence-files) |
+| The shell root — upstream's `shell.qml` | The shell root is ASURA's. ASURA's shell is a different shell that happens to draw some of the same surfaces, and upstream's root wires upstream's panels, upstream's services and upstream's state |
+| The settings window — upstream's `settings.qml` | The settings surface is the Hub, and the Hub is ASURA's |
+| Upstream's `Config.qml` and `Appearance.qml` | Replaced by ASURA's own at the same paths. See [the theme boundary](#the-theme-boundary) |
+| Upstream's `GlobalStates.qml` | Replaced by ASURA's own at the same path, for the same reason and one more |
+| Upstream's assets, defaults, panel families, scripts, translations, welcome screen, kill dialog and reload popup | None of it is ASURA's desktop. Upstream's icons and images are upstream's; ASURA's are its own |
+| Upstream's compositor configuration, including its Hyprland Lua | ASURA owns its own compositor configuration. The vendored tree is a Quickshell configuration and nothing else |
+| Upstream's licence files in place, and its examples | The licence texts are kept under `shell/vendor/` and the examples are not shipped. A file named `LICENSE` inside the tree would be caught by this repository's own licence rule, which is about ASURA's licence. See [licence hygiene](../LICENSING.md#the-rule-for-vendored-licence-files) |
 
 ### What is vendored but not taken
 
-The tree carries more than Zenith's shell uses, and the extra is upstream's rather than
-Zenith's. The AI assistant, the booru image service, the weather service, the Google Cloud
+The tree carries more than ASURA's shell uses, and the extra is upstream's rather than
+ASURA's. The AI assistant, the booru image service, the weather service, the Google Cloud
 translation and vision services, and upstream's own lock surface with its PAM plumbing are all
-in the tree, byte-identical and listed in the manifest — and none of them is part of Zenith's
+in the tree, byte-identical and listed in the manifest — and none of them is part of ASURA's
 shell.
 
 They are there because removing them would be an edit to the vendored tree, and an edit to the
-vendored tree is exactly what the byte-identical rule forbids. What Zenith does instead is not
-wire them up. The lock is the clearest case: Zenith's lock is `hyprlock`, the shell decides
+vendored tree is exactly what the byte-identical rule forbids. What ASURA does instead is not
+wire them up. The lock is the clearest case: ASURA's lock is `hyprlock`, the shell decides
 *when* to lock and never draws a lock surface, and upstream's lock components are vendored
-because they live upstream's directory and not because Zenith wanted them.
+because they live upstream's directory and not because ASURA wanted them.
 
 ### The byte-identical rule
 
@@ -613,7 +613,7 @@ Every file in the vendored tree is byte-identical to the file at the pinned upst
 and that is checked rather than asserted.
 
 The reason is the same rule that governs every other shipped file in this project, applied to
-files that are not Zenith's: a shipped file is replaced on update, so a hand edit is destroyed
+files that are not ASURA's: a shipped file is replaced on update, so a hand edit is destroyed
 by the next sync, cannot be re-vendored from upstream, and makes the manifest — a record of
 what changed — lie.
 
@@ -621,8 +621,8 @@ what changed — lie.
 
 | Home | What it is | When it is the answer |
 |---|---|---|
-| A **configuration value** | A setting the component reads | The component reads the setting and the setting is what you want to change. Upstream's components read `Config.options.*` for exactly this, and Zenith's bridge answers that shape |
-| An **overlay file** | A Zenith-owned file at the path the component expects | The component's *interface* is the thing that has to change. The palette bridge, the settings bridge and the shell-state bridge are all overlays, because the file is the interface |
+| A **configuration value** | A setting the component reads | The component reads the setting and the setting is what you want to change. Upstream's components read `Config.options.*` for exactly this, and ASURA's bridge answers that shape |
+| An **overlay file** | An ASURA-owned file at the path the component expects | The component's *interface* is the thing that has to change. The palette bridge, the settings bridge and the shell-state bridge are all overlays, because the file is the interface |
 | A **patch** in `shell/vendor/patches/` | A diff applied on top of the pinned tree | The component's behaviour is wrong and no setting reaches it. There is no patch there today, because no change has needed one yet |
 
 ### The theme boundary
@@ -631,28 +631,28 @@ This is the part worth reading twice, because "strict monochrome" and "the vendo
 byte-identical" look like a contradiction and are not.
 
 **Enforced by configuration.** Everything upstream's components read through `Appearance` is
-Zenith's: the palette, the layer ramp, the rounding, the spacing, the motion curves. A
-component that asks for `Appearance.colors.colPrimary` gets Zenith's monochrome ink; one that
-asks for `Appearance.rounding.normal` gets Zenith's radius scale. The components name
-Material 3 property names, and those names are Zenith's answers.
+ASURA's: the palette, the layer ramp, the rounding, the spacing, the motion curves. A
+component that asks for `Appearance.colors.colPrimary` gets ASURA's monochrome ink; one that
+asks for `Appearance.rounding.normal` gets ASURA's radius scale. The components name
+Material 3 property names, and those names are ASURA's answers.
 
 The bridge is **complete**, and that is a decision rather than tidiness. Upstream's file
-names every colour it uses, so Zenith's does too: a component that reads a name the bridge
+names every colour it uses, so ASURA's does too: a component that reads a name the bridge
 does not have gets `undefined`, and `undefined` assigned to a colour is a binding error in
 the journal — a failure, but a quiet one, on a surface nobody may be looking at. A complete
 set costs one line per name and cannot fail that way.
 
 The vendored files do carry hex literals — thirty-four of them — and twenty-seven are
 fallbacks written as `Appearance?.colors.colPrimary ?? "#65558F"`: the value to use when the
-palette is not there. The palette is always there, because Zenith supplies it, so those
-literals are never the colour that is drawn. Zenith's own overlay carries two more, and both
+palette is not there. The palette is always there, because ASURA supplies it, so those
+literals are never the colour that is drawn. ASURA's own overlay carries two more, and both
 are `#000000` — the shadow and the scrim, which are black on a monochrome desktop anyway.
 
 A handful name a colour outright, and that is the finding a strict monochrome rule has to
 record rather than paper over. `DashedBorder.qml` draws `#ffffff`, `RoundCorner.qml` draws
 `#000000`, `SineCookie.qml` draws `#605790`, `ShapeCanvas.qml` draws `#685496`, and
 `LightDarkPreferenceButton.qml` mixes three literals into a hue. Black and white are inside
-the rule. The two Material purples are not, and they are upstream's, in a tree Zenith does
+the rule. The two Material purples are not, and they are upstream's, in a tree ASURA does
 not edit. That is a patch, or a bridge that overrides them, and until one of those happens
 there are two colours on a desktop that has no colours in it. It is recorded here rather
 than left to be found in a screenshot.
@@ -663,13 +663,13 @@ where the file *is* the interface.
 1. *The palette itself.* Upstream's `Appearance.qml` derives its colours from a Material 3
    scheme and from the wallpaper, through `ColorQuantizer`, `MaterialThemeLoader.qml` and
    `AdaptedMaterialScheme.qml`, and it reads the wallpaper path out of the configuration.
-   Zenith's design system says the wallpaper does not drive the drawing — the token set is
+   ASURA's design system says the wallpaper does not drive the drawing — the token set is
    canonical, and the wallpaper palette is a record of what the wallpaper would have said.
    That cannot be a setting, because the palette is the thing being set. It has to be a file.
    Hence `shell/modules/common/Appearance.qml`: a monochrome token bridge that answers
-   upstream's property names with Zenith's tokens.
+   upstream's property names with ASURA's tokens.
 2. *The settings store.* Upstream's `Config.qml` is a JSON store — a `JsonAdapter` over a
-   file in the shell's own configuration directory, written by the shell itself. Zenith's
+   file in the shell's own configuration directory, written by the shell itself. ASURA's
    settings live in GSettings and are written by one tool. That cannot be a setting either:
    the store is the thing being replaced. Hence `shell/modules/common/Config.qml`: a
    GSettings-backed bridge that exposes upstream's `options.*` shape.
@@ -678,9 +678,9 @@ And a third overlay, which is not a theme question at all: `shell/GlobalStates.q
 Upstream keeps its open-surface flags in a singleton at the shell root, and the vendored
 components read it — the bar asks whether the overview is open before it draws itself over
 it, the dock asks whether the screen is locked before it hides. Upstream's own file is not
-vendored for two reasons: it is upstream's shell root, and the shell root is Zenith's; and it
+vendored for two reasons: it is upstream's shell root, and the shell root is ASURA's; and it
 imports the whole service graph, which closes a cycle through the `modules/` directory — the
-services reach back into the modules, and the modules reach back into the root. So Zenith
+services reach back into the modules, and the modules reach back into the root. So ASURA
 supplies its own at the same path, carrying the same flags.
 
 The three overlays are therefore the entire re-theme and the entire re-bind.
@@ -690,16 +690,16 @@ The three overlays are therefore the entire re-theme and the entire re-bind.
 The chain is four links, and it has one writer.
 
 ```
-org.zenith.shell  →  the settings bridge  →  upstream's Config.options.*  →  the surface
+org.asura.shell  →  the settings bridge  →  upstream's Config.options.*  →  the surface
 ```
 
-- The **store** is `org.zenith.shell`, with `org.zenith.desktop` beside it.
+- The **store** is `org.asura.shell`, with `org.asura.desktop` beside it.
 - The **bridge** is `shell/modules/common/Config.qml`: it answers upstream's `options.*`
   shape from the store, so a vendored component asks for a setting the way upstream taught it
-  to and gets Zenith's value.
+  to and gets ASURA's value.
 - The **surface** binds to the property and redraws. It never writes.
-- The **writer** is `zenith config set`, which the Hub calls, and nothing else. A vendored
-  component binds; it does not write. `zenith config set` validates the
+- The **writer** is `asura config set`, which the Hub calls, and nothing else. A vendored
+  component binds; it does not write. `asura config set` validates the
   value against the schema's type, range and enum before it is stored — because a value that
   is well-formed GVariant and outside a declared range is accepted by GSettings, committed to
   dconf, and then read by a surface that does something nobody asked for.
@@ -708,7 +708,7 @@ One writer per setting is what stops a component written by somebody else from b
 second writer in the middle of a desktop.
 
 The settings bridge is **deliberately partial**, and the partiality is the point. Upstream's
-file carries three hundred and seventy-nine options, most of them for surfaces Zenith does
+file carries three hundred and seventy-nine options, most of them for surfaces ASURA does
 not adopt — an assistant's model, an image viewer's tags, a cheatsheet's keybindings — and
 those are not missing by oversight: an option for a surface that does not exist is a setting
 nobody can act on. What the bridge carries is what a component would read to draw. When one
@@ -739,7 +739,7 @@ sh shell/vendor/vendor.sh verify
 the new pin.
 
 The cost is not the move. A vendored tree is not a fork, so there is no merge to reconcile:
-the new commit's files land, and Zenith's changes — the three overlays — land on top of them.
+the new commit's files land, and ASURA's changes — the three overlays — land on top of them.
 The cost is that **the bridges are the contract, and nothing checks the contract.** The
 shell's own QML is checked against the schema and against the engine; the vendored QML is
 exempt from linting, because it is upstream's. So a commit that renames
@@ -756,13 +756,13 @@ against.
 
 | Capability | Owner | Why |
 |---|---|---|
-| The notification server | **Zenith** | `org.freedesktop.Notifications` is a session-scoped bus name and no daemon in the image holds it, so the shell draws it and hosts the server |
-| The lock screen | **Zenith** owns when; `hyprlock` does the locking | `hypridle`, run by `zenith-idle.service` from the `org.zenith.desktop` `idle-*` keys, decides *when*, and `zenith-shell lock` is the one command every trigger runs; the locker owns the surface and the PAM conversation. `hyprlock` is a decision (mature, in the archive, a process of its own), not a platform limit: Quickshell here has `Quickshell.Services.Pam` |
-| The idle policy | **Zenith** | The timeouts live in `org.zenith.desktop`, `zenith config set` is their only writer, and `zenith-idle.service` hands them to hypridle |
-| The keybind catalogue | **Zenith** | `session/binds.json`, installed at `/usr/share/zenith/session/binds.json`, checked in both directions against the compositor's configuration by `zenith doctor` |
-| The Hub | **Zenith** | The settings application: Ryoku's Hub, ported (`shell/hub/`) — a grouped navigation rail, a global search and a page per area of the desktop. The look pages change `shell.json` by asking the `zenith-shell` daemon, the compositor and machine pages go through `zenith-hubd`, and the **Zenith** group draws what `zenith config export` hands it (the pages, the keys, their types, their permitted values, their ranges and their current values) and writes only through `zenith config set`, never through GSettings. Its chrome is the shell's own component kit, so both windows are one design system |
-| The wallpaper | **Zenith** | `zenith-wallpaper` chooses it (the catalogue, the choice per output, playlists, the day/night schedule) and the shell's own surface draws what the daemon publishes. `org.zenith.shell`'s `wallpaper-path` and `wallpaper-path-dark` only seed a fresh account's first wallpaper |
-| The palette, the settings binding, the shell's own state | **Zenith** | The three overlays, at upstream's paths |
+| The notification server | **ASURA** | `org.freedesktop.Notifications` is a session-scoped bus name and no daemon in the image holds it, so the shell draws it and hosts the server |
+| The lock screen | **ASURA** owns when; `hyprlock` does the locking | `hypridle`, run by `asura-idle.service` from the `org.asura.desktop` `idle-*` keys, decides *when*, and `asura-shell lock` is the one command every trigger runs; the locker owns the surface and the PAM conversation. `hyprlock` is a decision (mature, in the archive, a process of its own), not a platform limit: Quickshell here has `Quickshell.Services.Pam` |
+| The idle policy | **ASURA** | The timeouts live in `org.asura.desktop`, `asura config set` is their only writer, and `asura-idle.service` hands them to hypridle |
+| The keybind catalogue | **ASURA** | `session/binds.json`, installed at `/usr/share/asura/session/binds.json`, checked in both directions against the compositor's configuration by `asura doctor` |
+| The Hub | **ASURA** | The settings application: Ryoku's Hub, ported (`shell/hub/`) — a grouped navigation rail, a global search and a page per area of the desktop. The look pages change `shell.json` by asking the `asura-shell` daemon, the compositor and machine pages go through `asura-hubd`, and the **ASURA** group draws what `asura config export` hands it (the pages, the keys, their types, their permitted values, their ranges and their current values) and writes only through `asura config set`, never through GSettings. Its chrome is the shell's own component kit, so both windows are one design system |
+| The wallpaper | **ASURA** | `asura-wallpaper` chooses it (the catalogue, the choice per output, playlists, the day/night schedule) and the shell's own surface draws what the daemon publishes. `org.asura.shell`'s `wallpaper-path` and `wallpaper-path-dark` only seed a fresh account's first wallpaper |
+| The palette, the settings binding, the shell's own state | **ASURA** | The three overlays, at upstream's paths |
 | The bar, the dock, the launcher and the popover surfaces | **upstream** | The components, byte-identical to the pinned commit |
 | The overview, the media controls, the on-screen display, the cheatsheet | **upstream** | The components, byte-identical to the pinned commit |
 | The vertical bar, the background, the rounded-polygon widget kit | **upstream** | The components, byte-identical to the pinned commit |
@@ -774,13 +774,13 @@ surfaces the running shell draws — the bar, the dock, the launcher, the overvi
 on-screen display, the notifications and the wallpaper — and its service graph
 (`shell/Services/`) are Ryoku's ported components, adapted in place and recorded in
 [`NOTICE.md`](../NOTICE.md). The shell root (`shell/shell.qml`) hosts them and wires them
-together, and Zenith owns the desktop they appear on.
+together, and ASURA owns the desktop they appear on.
 
 ---
 
 ## Hardware strategy
 
-This is the largest subsystem and the one that decides whether Zenith is usable by anyone but
+This is the largest subsystem and the one that decides whether ASURA is usable by anyone but
 its author.
 
 ### Support tiers
@@ -791,20 +791,20 @@ tier is determined by whether a profile exists, not by marketing.
 
 ### The profile database
 
-`zenith-machines` is a database of verified machine profiles in this repository. Nobody can test
+`asura-machines` is a database of verified machine profiles in this repository. Nobody can test
 every laptop, but every user can test one:
 
 1. A machine boots successfully
-2. `zenith hardware report` emits a candidate profile
+2. `asura hardware report` emits a candidate profile
 3. The contributor attaches it to a pull request
 4. Merged profiles ship in the next ISO and are selected automatically at install time
 
 This turns an unbounded hardware problem into a union of working setups that grows without
-anyone owning a hardware lab. It is the highest-leverage mechanism in Zenith.
+anyone owning a hardware lab. It is the highest-leverage mechanism in ASURA.
 
 ### Kernel fleet
 
-A single kernel cannot support both old drivers and new silicon. Zenith pins a fleet:
+A single kernel cannot support both old drivers and new silicon. ASURA pins a fleet:
 
 - **upstream generic** — the baseline, always boots
 - **HWE** — recent hardware enablement, backported continuously
@@ -840,18 +840,18 @@ paths. Whether some of it should return as profile content is an open question f
 ### The offline problem
 
 A laptop whose WiFi needs an unloaded driver cannot fetch that driver over the network it does
-not have. This is why every Linux ISO hits the same wall. Zenith's answer is a broad firmware
-rescue bundle on the ISO plus `zenith-firmware load` from a USB stick. Unglamorous, and the
+not have. This is why every Linux ISO hits the same wall. ASURA's answer is a broad firmware
+rescue bundle on the ISO plus `asura-firmware load` from a USB stick. Unglamorous, and the
 difference between "installs on my laptop" and "installs on most laptops".
 
 ---
 
 ## Firmware and free software
 
-Zenith is free software. It cannot honestly claim to be free of proprietary code *on disk*, and
+ASURA is free software. It cannot honestly claim to be free of proprietary code *on disk*, and
 the difference matters, so state it precisely.
 
-**The distribution level.** Zenith's own code is GPL-3.0 and Zenith's own APT repository contains
+**The distribution level.** ASURA's own code is GPL-3.0 and ASURA's own APT repository contains
 nothing but free software. That claim is clean, verifiable with `apt-cache` , and true.
 
 **The image level.** A specific machine's firmware is a separate question. Most of
@@ -862,8 +862,8 @@ back on. An image without them may not bring up networking or graphics at all.
 
 So the honest formulation is:
 
-> Zenith's code and Zenith's repository are free software. Some hardware requires proprietary
-> firmware, which Zenith does not redistribute — it installs the base layer's own
+> ASURA's code and ASURA's repository are free software. Some hardware requires proprietary
+> firmware, which ASURA does not redistribute — it installs the base layer's own
 > `linux-firmware-*` packages, where the redistributor already holds the rights.
 
 Note what the base layer actually offers: there is **no `non-free-firmware` component**, and
@@ -874,15 +874,15 @@ Atheros — and some of it is not.
 
 Three consequences, all deliberate:
 
-1. **Zenith references, it does not repackage.** The installer pulls the base layer's
-   `linux-firmware-<vendor>` packages rather than carrying firmware in a Zenith package. This
-   keeps Zenith's repository entirely free software and stops Zenith taking on a redistribution it
+1. **ASURA references, it does not repackage.** The installer pulls the base layer's
+   `linux-firmware-<vendor>` packages rather than carrying firmware in an ASURA package. This
+   keeps ASURA's repository entirely free software and stops ASURA taking on a redistribution it
    has no right to.
 2. **A hardware profile declares what it needs.** `firmware:` in a profile names *packages*.
    That is the same mechanism a community profile already uses for its driver list, and it is
    why per-machine declaration scales — see [the hard list](#the-hard-list).
-3. **Nothing claims FSF eligibility.** Zenith does not describe itself as a fully free
-   distribution, and no Zenith ISO should be labelled that way. `firmware-reporter` would say
+3. **Nothing claims FSF eligibility.** ASURA does not describe itself as a fully free
+   distribution, and no ASURA ISO should be labelled that way. `firmware-reporter` would say
    otherwise within minutes of someone checking.
 
 ### The ISO question
@@ -922,19 +922,19 @@ integrity by hash, not authenticity by signature. Signing the Limine EFI executa
 enrolling the **BLAKE2B hash of `limine.conf` inside it** is what enforces an unmodified
 config, and once that hash is enrolled every file path in the config must carry a matching
 `#<blake2b>` suffix. Separately, on Windows-initialised firmware only Microsoft keys are
-enrolled, so shim must present a MOK for Zenith's key before chainloading Limine at all.
+enrolled, so shim must present a MOK for ASURA's key before chainloading Limine at all.
 
-Package flow is an APT repository signed with Zenith's own GPG key, referenced by `signed-by`
+Package flow is an APT repository signed with ASURA's own GPG key, referenced by `signed-by`
 in `sources.list.d`. Releases are published with signed checksums.
 
 ---
 
 ## Performance plan
 
-Zenith ships a deliberately small daemon set, which makes the performance work subtractive rather
+ASURA ships a deliberately small daemon set, which makes the performance work subtractive rather
 than desperate. In rough order of payoff:
 
-1. Ship only what the base layer provides that Zenith actually uses — every extra package is
+1. Ship only what the base layer provides that ASURA actually uses — every extra package is
    boot time and memory
 2. `tracker3`, `gnome-software`, `packagekit` autoupdate, `apport`, `whoopsie`, cups-bsd — the
    image should not contain a software centre
@@ -949,7 +949,7 @@ than desperate. In rough order of payoff:
    decade, it ships no `postinst`, and it is fundamentally incompatible with ASLR. There is
    nothing to measure because there is nothing to install.
 
-Measure before claiming a win. `zenith benchmark` should record idle RSS, boot time and CPU so
+Measure before claiming a win. `asura benchmark` should record idle RSS, boot time and CPU so
 regressions are visible rather than anecdotal.
 
 ---
@@ -958,17 +958,17 @@ regressions are visible rather than anecdotal.
 
 The greeter runs before any user session exists, so neither Hyprland nor XWayland is available
 to it. That was the open question that blocked the image from logging in at all, and it is now
-settled: **SDDM in Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith.**
+settled: **SDDM in Wayland greeter mode, with a Weston kiosk compositor hosted by ASURA.**
 
 The chain, in the order it happens at login:
 
 | Stage | Who | What |
 |---|---|---|
 | Login surface appears | SDDM | `DisplayServer=wayland`, launching `CompositorCommand` rather than starting an X server |
-| Something holds the DRM card | Zenith's greeter wrapper | `weston --shell=kiosk`, run at each output's top mode so the login screen matches a high-refresh session instead of the EDID-preferred 60Hz |
-| Login form is drawn | Zenith | Zenith's own login surface, on the compositor above |
-| Authentication | the base layer | PAM, in `sddm-session`. Zenith does not touch `/etc/pam.d/` |
-| Session starts | `zenith-session` | `exec Hyprland`, then the shell's unit after the compositor |
+| Something holds the DRM card | ASURA's greeter wrapper | `weston --shell=kiosk`, run at each output's top mode so the login screen matches a high-refresh session instead of the EDID-preferred 60Hz |
+| Login form is drawn | ASURA | ASURA's own login surface, on the compositor above |
+| Authentication | the base layer | PAM, in `sddm-session`. ASURA does not touch `/etc/pam.d/` |
+| Session starts | `asura-session` | `exec Hyprland`, then the shell's unit after the compositor |
 
 **Why SDDM and not `greetd`.** The greeter needs a Wayland compositor of its own, because
 there is no session to borrow one from. SDDM provides that seam — a `CompositorCommand` hook —
@@ -1025,26 +1025,26 @@ Upstream names its icons the Material Symbols way — `battery_android_full`,
 asks for the "Material Symbols Rounded" family. No component of 26.04 provides that family.
 The archive does carry two material icon packages —
 `fonts-material-design-icons-iconfont` and `fonts-materialdesignicons-webfont` — and
-neither is the Material Symbols family the components ask for. Zenith does not add one: the
+neither is the Material Symbols family the components ask for. ASURA does not add one: the
 archive's Font Awesome 4.7 and Powerline are what the desktop draws with, and the argument
 for taking a font from the archive rather than shipping one applies to a vendored component
-exactly as it applies to Zenith's own surfaces.
+exactly as it applies to ASURA's own surfaces.
 
 The consequence is not that the icons look different. It is that they do not resolve. A
 Material Symbols *name* is a ligature, and Font Awesome 4.7 is a codepoint font with no
-ligatures at all — so `battery_android_full` has nothing behind it in the font Zenith
+ligatures at all — so `battery_android_full` has nothing behind it in the font ASURA
 carries, and the shell's own `Icons.qml` is the only place a codepoint may be declared.
 A vendored icon name that has no entry in that map is a hollow box, in exactly the way the
 U+F8FF draft was, and for the same reason: the font does not contain the glyph.
 
 Which makes it a finding about the component rather than a licence to add a font. Upstream's
-icon names are upstream's, the desktop's font is Zenith's, and they do not match. What
+icon names are upstream's, the desktop's font is ASURA's, and they do not match. What
 resolves it is a mapping from upstream's names onto the codepoints the desktop already has,
 and that mapping belongs in the bridge — the same place the palette and the settings are
 bridged — rather than in the component.
 
 **Why Weston and not the Xorg server.** The obvious alternative was keeping `xorg-server` in the
-image purely so the greeter could draw on it. That keeps a display server Zenith otherwise has
+image purely so the greeter could draw on it. That keeps a display server ASURA otherwise has
 no use for, adds an X11 login path whose failure modes nobody would be watching, and means the
 login screen renders through XWayland-era code. A kiosk Weston costs one process at login and
 nothing afterwards. `modetest` reads each connector's modes without holding DRM master, so it
@@ -1055,8 +1055,8 @@ This is a working answer, not a theory, and the reason it is closed rather than 
 technical rather than rhetorical. SDDM's Wayland greeter mode needs a compositor to hold the
 login surface, the base layer carries one, and the only question left was who hosts it. A
 kiosk Weston is a process that starts at login and exits at logout, it needs no session, and
-it lets the login surface be drawn by the same toolkit the desktop is drawn by. Zenith's copy
-must be its own — a `zenith-greeter` wrapper and a Zenith-drawn login surface, under a
+it lets the login surface be drawn by the same toolkit the desktop is drawn by. ASURA's copy
+must be its own — a `asura-greeter` wrapper and an ASURA-drawn login surface, under a
 drop-in in `/etc/sddm.conf.d/` — because a shipped file is never edited in place.
 
 ---
@@ -1064,17 +1064,17 @@ drop-in in `/etc/sddm.conf.d/` — because a shipped file is never edited in pla
 ## The mark
 
 <p align="center">
-  <img src="../public/zenith-logo.svg" alt="Zenith OS" width="150">
+  <img src="../public/asura-logo.svg" alt="ASURA OS" width="150">
 </p>
 
-天 — read *ten* — is heaven: the highest point of the sky. A zenith is that same point. The
+天 — read *ten* — is heaven: the highest point of the sky. A asura is that same point. The
 mark and the name say one thing, and they say it about the architecture as much as about the
 project: this is the top of the stack, and it sits above everything it is built on.
 
 | File | Use |
 |---|---|
-| `public/zenith-logo.svg` | Black, for light backgrounds |
-| `public/zenith-logo-on-dark.svg` | White, for dark backgrounds |
+| `public/asura-logo.svg` | Black, for light backgrounds |
+| `public/asura-logo-on-dark.svg` | White, for dark backgrounds |
 
 Both are the same drawing. That is enforced, not assumed: `ci.yml` fails if the two files'
 path geometry differs by a single character or if they differ by anything other than fill
@@ -1105,11 +1105,11 @@ every user outside `video`. Reading works unprivileged, writing does not.
 **This is settled, and the answer is neither of the two this section used to weigh.**
 systemd-logind writes it: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
 sets the value, as root, for the owner of the active session, for both `backlight` and `leds`.
-`zenith brightness` makes that call, then tries `brightnessctl`, then the sysfs file if it is
+`asura brightness` makes that call, then tries `brightnessctl`, then the sysfs file if it is
 writable (`desktop/internal/backlight`), and the keys, the daemon and the sliders all go
-through it as `zenith-cmd-brightness`. It needs no group, no udev rule and no authentication
-prompt. A udev rule would have been a registration outside `/usr/share/zenith/` and
-`/etc/zenith/`, which is a change to the boundary rather than a change inside it, and polkit
+through it as `asura-cmd-brightness`. It needs no group, no udev rule and no authentication
+prompt. A udev rule would have been a registration outside `/usr/share/asura/` and
+`/etc/asura/`, which is a change to the boundary rather than a change inside it, and polkit
 elevation would have put a prompt on every brightness change. Neither is needed, and the
 boundary did not move. See [`hardware-keys.md`](hardware-keys.md).
 
@@ -1157,16 +1157,16 @@ same press ([the journal](journal/2026-10-23.md)).
 
 ## Why the shell subscribes to a daemon
 
-`zenith state` probes five command-line tools and the sidebar redraws from its JSON.
+`asura state` probes five command-line tools and the sidebar redraws from its JSON.
 Every other widget in the shell reads a Quickshell service singleton instead —
 `PulseAudio.sinks` in `Widgets/Volume.qml`, `NetworkManager.status` in
 `Widgets/Network.qml`, `Hyprland.workspaces` in `Widgets/Workspaces.qml`. Those are
 event-driven and they push changes; this pulled and re-ran five subprocesses every
 two seconds.
 
-It does not any more. The daemon is `zenith-shell daemon`, run as `zenithd.service`: a streaming
-Go daemon that speaks `zenith-shell/1` — line-framed JSON over a Unix socket at
-`$XDG_RUNTIME_DIR/zenith-shell.sock` — and the shell subscribes to the topics it publishes.
+It does not any more. The daemon is `asura-shell daemon`, run as `asurad.service`: a streaming
+Go daemon that speaks `asura-shell/1` — line-framed JSON over a Unix socket at
+`$XDG_RUNTIME_DIR/asura-shell.sock` — and the shell subscribes to the topics it publishes.
 The daemon runs its collectors on a schedule it owns and pushes a frame when something
 changes. The live shell no longer polls: the two-second timer is in the old sidebar
 (`shell/Sidebar.qml`), which `shell/shell.qml` does not load.
@@ -1182,7 +1182,7 @@ The argument underneath the change is the one that was already true and is still
 2. **The parsing stays in Go.** A daemon is not a licence to move the parsers into QML. The
    collectors and their fixtures are the daemon's, and the shell reads a frame rather than
    interpreting a tool's output.
-3. **`zenith state` survives as a CLI.** It is a command, it is useful at a terminal, in a
+3. **`asura state` survives as a CLI.** It is a command, it is useful at a terminal, in a
    script, and to anything that is not Quickshell. It still probes its five tools through
    `desktop/internal/desktopstate`, which the daemon does not use: the daemon is a port of
    Ryoku's and has collectors of its own, so the two are separate implementations.
@@ -1195,14 +1195,14 @@ where the document is drawn.
 
 | Question | Why it matters |
 |---|---|
-| ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by Zenith. Written up in [what draws the login screen](#what-draws-the-login-screen). |
+| ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by ASURA. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
 | ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
-| ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and Zenith does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
-| Repository hosting | Zenith's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
-| ~~**Plugin mechanism**~~ | **Settled** — a plugin is a folder with a `manifest.json`, a `service/Main.qml` for the logic and a `content/Widget.qml` for the one view, drawn through the `qs.PluginKit` kit. `zenith plugin new`, `audit`, `install`, `enable`, `disable`, `remove` and `list` scaffold, check and place it, the plugin runtime in `shell/plugins/` loads it, and it lives in `~/.local/share/zenith/plugins/`. See [`plugins.md`](plugins.md). A package index for plugins is not built. |
-| Hardware report scope | What `zenith hardware report` captures, and how aggressively it strips PII before emitting. |
-| Ryoku's hardware tuning | Zenith ports none of the per-machine tuning (udev, NetworkManager, Bluetooth, GPU, power) that the desktop it was ported from ships under `system/hardware/`; the hardware profiles own that job. Whether some of it should return as profile content is the user's decision. See [the hard list](#the-hard-list). |
+| ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and ASURA does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
+| Repository hosting | ASURA's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
+| ~~**Plugin mechanism**~~ | **Settled** — a plugin is a folder with a `manifest.json`, a `service/Main.qml` for the logic and a `content/Widget.qml` for the one view, drawn through the `qs.PluginKit` kit. `asura plugin new`, `audit`, `install`, `enable`, `disable`, `remove` and `list` scaffold, check and place it, the plugin runtime in `shell/plugins/` loads it, and it lives in `~/.local/share/asura/plugins/`. See [`plugins.md`](plugins.md). A package index for plugins is not built. |
+| Hardware report scope | What `asura hardware report` captures, and how aggressively it strips PII before emitting. |
+| Ryoku's hardware tuning | ASURA ports none of the per-machine tuning (udev, NetworkManager, Bluetooth, GPU, power) that the desktop it was ported from ships under `system/hardware/`; the hardware profiles own that job. Whether some of it should return as profile content is the user's decision. See [the hard list](#the-hard-list). |
 | ISO firmware policy | Whether one ISO carries firmware or firmware is fetched at install time. See [firmware and free software](#firmware-and-free-software). |
 | live-build and Limine | live-build cannot emit a Limine ISO. A custom hook, or `mmdebstrap` plus a hand-built boot chain. |
 | Test matrix | Which Hyprland, Quickshell and kernel versions CI must pass before a release. |

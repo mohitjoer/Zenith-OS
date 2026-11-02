@@ -158,7 +158,7 @@ Item {
             minH: placeLabel.implicitHeight + 2 * pad
             pad: Theme.paddingMd * root.s
             radius: Theme.radiusWidget
-            onClicked: Quickshell.execDetached(["zenith-shell", "hub", "open", "global"])
+            onClicked: Quickshell.execDetached(["asura-shell", "hub", "open", "global"])
             Text {
                 id: placeLabel
                 anchors.centerIn: parent

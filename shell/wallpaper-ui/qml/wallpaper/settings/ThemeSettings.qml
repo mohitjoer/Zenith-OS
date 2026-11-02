@@ -13,12 +13,12 @@ Column {
     property var _theme: ({ themeApps: true, gtkTheme: "adw", gnomeAccent: false })
     property var _mat: ({ lightnessDark: 0, lightnessLight: 0, prefer: "saturation", sourceColorIndex: 0 })
 
-    function _runHub(args) { Quickshell.execDetached(["zenith-hubd"].concat(args)) }
-    function _matugenSet(patch) { Quickshell.execDetached(["zenith-hubd", "desktop", "matugen", "set", JSON.stringify(patch)]) }
+    function _runHub(args) { Quickshell.execDetached(["asura-hubd"].concat(args)) }
+    function _matugenSet(patch) { Quickshell.execDetached(["asura-hubd", "desktop", "matugen", "set", JSON.stringify(patch)]) }
 
     FileView {
         id: themeFile
-        path: Quickshell.env("HOME") + "/.config/zenith/theme.json"
+        path: Quickshell.env("HOME") + "/.config/asura/theme.json"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -31,7 +31,7 @@ Column {
 
     FileView {
         id: matugenFile
-        path: Quickshell.env("HOME") + "/.config/zenith/matugen.json"
+        path: Quickshell.env("HOME") + "/.config/asura/matugen.json"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -223,10 +223,10 @@ Column {
 
         RowAction {
             colors: root.colors
-            title: I18n.tr("Zenith signature")
-            description: I18n.tr("Apply the Zenith theme: frame bars, zero roundness, mono scheme.")
+            title: I18n.tr("Asura signature")
+            description: I18n.tr("Apply the Asura theme: frame bars, zero roundness, mono scheme.")
             valueLabel: I18n.tr("APPLY")
-            onClicked: root._runHub(["desktop", "zenith-theme"])
+            onClicked: root._runHub(["desktop", "asura-theme"])
         }
     }
 

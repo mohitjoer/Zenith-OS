@@ -135,7 +135,7 @@ Item {
     // Fetch the session's slash commands (available once a session exists).
     Process {
         id: cmdsProc
-        command: ["zenith-agent", "chat", "--commands"]
+        command: ["asura-agent", "chat", "--commands"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -149,7 +149,7 @@ Item {
     }
     Process {
         id: skillsProc
-        command: ["zenith-agent", "chat", "--skills"]
+        command: ["asura-agent", "chat", "--skills"]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
@@ -210,7 +210,7 @@ Item {
         id: pasteImgProc
         command: ["sh", "-c",
             't=$(wl-paste --list-types 2>/dev/null | grep -m1 -E "^image/"); [ -z "$t" ] && exit 0; ' +
-            'd="${XDG_RUNTIME_DIR:-/tmp}/zenith-chat"; mkdir -p "$d"; ext=${t#image/}; ' +
+            'd="${XDG_RUNTIME_DIR:-/tmp}/asura-chat"; mkdir -p "$d"; ext=${t#image/}; ' +
             'case "$ext" in jpeg) ext=jpg;; svg+xml) ext=svg;; esac; ' +
             'f="$d/paste-$(date +%s%N).$ext"; wl-paste --type "$t" > "$f" 2>/dev/null && printf "%s" "$f"']
         stdout: StdioCollector {
@@ -1232,8 +1232,8 @@ Item {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             text: Needle.ready
-                ? I18n.tr("It knows this machine, your desktop, and the Zenith source. Drop in an image to ask about it.")
-                : (Needle.readyReason !== "" ? Needle.readyReason : I18n.tr("No agent engine configured: set engine.command in ~/.config/zenith/agent/config.json"))
+                ? I18n.tr("It knows this machine, your desktop, and the Asura source. Drop in an image to ask about it.")
+                : (Needle.readyReason !== "" ? Needle.readyReason : I18n.tr("No agent engine configured: set engine.command in ~/.config/asura/agent/config.json"))
             wrapMode: Text.WordWrap
             color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
             font.family: Theme.fontPrimary
@@ -1334,13 +1334,13 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Quickshell.execDetached(["zenith-shell", "hub", "open", "agent"])
+                    onClicked: Quickshell.execDetached(["asura-shell", "hub", "open", "agent"])
                 }
             }
             Text {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
-                text: I18n.tr("Or edit engine.command in ~/.config/zenith/agent/config.json")
+                text: I18n.tr("Or edit engine.command in ~/.config/asura/agent/config.json")
                 wrapMode: Text.WordWrap
                 color: Theme.inkOn(Theme.effectiveSurface, Theme.outlineVariant, 3.0)
                 font.family: Theme.mono

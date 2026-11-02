@@ -59,7 +59,7 @@ FocusScope {
     ].filter(Boolean).join("\n")
     readonly property bool isBundle: String(actionItem.category || "") === "bundles"
     // A plugins-category item the registry did not mark official: the store shows
-    // it, but Zenith neither reviews nor maintains it. Drives the warning + tag.
+    // it, but Asura neither reviews nor maintains it. Drives the warning + tag.
     readonly property bool isCommunityPlugin: String(actionItem.category || "") === "plugins"
             && !!(actionItem.metadata && actionItem.metadata.community === true)
     readonly property var components: (actionItem.metadata && Array.isArray(actionItem.metadata.items)) ? actionItem.metadata.items : []
@@ -263,7 +263,7 @@ FocusScope {
 
     ProductCover {
         id: cover
-        objectName: "zenith-store-detail-cover"
+        objectName: "asura-store-detail-cover"
         x: detail.mix(detail.effectiveOrigin.x, detail.targetX)
         y: detail.mix(detail.effectiveOrigin.y, detail.targetY)
         width: detail.mix(detail.effectiveOrigin.width, detail.targetWidth)
@@ -280,7 +280,7 @@ FocusScope {
 
     Item {
         id: dossier
-        objectName: "zenith-store-detail-dossier"
+        objectName: "asura-store-detail-dossier"
         x: detail.targetX + detail.targetWidth + Tokens.s6
         y: detail.targetY
         width: Math.max(1, detail.width - x - Tokens.s6)
@@ -425,7 +425,7 @@ FocusScope {
 
                 Text {
                     id: detailTitle
-                    objectName: "zenith-store-detail-title"
+                    objectName: "asura-store-detail-title"
                     width: parent.width - (communityTag.visible ? communityTag.width + parent.spacing : 0)
                     text: String(detail.actionItem.name || detail.actionItem.id || "")
                     color: Tokens.ink
@@ -441,7 +441,7 @@ FocusScope {
                 // names an unreviewed community plugin next to its title.
                 Rectangle {
                     id: communityTag
-                    objectName: "zenith-store-detail-community-tag"
+                    objectName: "asura-store-detail-community-tag"
                     visible: detail.isCommunityPlugin
                     anchors.verticalCenter: parent.verticalCenter
                     width: communityTagLabel.implicitWidth + Tokens.s3 * 2
@@ -464,7 +464,7 @@ FocusScope {
             }
 
             Text {
-                objectName: "zenith-store-detail-description"
+                objectName: "asura-store-detail-description"
                 width: parent.width
                 text: String(detail.actionItem.description || detail.actionItem.summary || "")
                 visible: text !== ""
@@ -477,7 +477,7 @@ FocusScope {
             }
 
             Flow {
-                objectName: "zenith-store-detail-tags"
+                objectName: "asura-store-detail-tags"
                 width: parent.width
                 spacing: Tokens.s2
                 visible: detail.tags.length > 0
@@ -508,7 +508,7 @@ FocusScope {
             }
 
             Text {
-                objectName: "zenith-store-detail-metadata"
+                objectName: "asura-store-detail-metadata"
                 width: parent.width
                 text: detail.metadataText
                 visible: text !== ""
@@ -522,14 +522,14 @@ FocusScope {
             // Provenance: the project's home (a github glyph) and, when it names
             // one, its community (a discord glyph). Rendered only when present.
             Row {
-                objectName: "zenith-store-detail-links"
+                objectName: "asura-store-detail-links"
                 spacing: Tokens.s2
                 readonly property string upstreamUrl: String(detail.actionItem.upstream || "")
                 readonly property string discordUrl: String(detail.actionItem.discord || "")
                 visible: upstreamUrl !== "" || discordUrl !== ""
 
                 LinkChip {
-                    objectName: "zenith-store-detail-upstream"
+                    objectName: "asura-store-detail-upstream"
                     glyph: "\uf09b"
                     url: parent.upstreamUrl
                     visible: url !== ""
@@ -537,7 +537,7 @@ FocusScope {
                 }
 
                 LinkChip {
-                    objectName: "zenith-store-detail-discord"
+                    objectName: "asura-store-detail-discord"
                     glyph: "\uf1ff"
                     url: parent.discordUrl
                     visible: url !== ""
@@ -549,7 +549,7 @@ FocusScope {
             // shell with the user's permissions, so warn before trust. House
             // style: hairline frame, dim ink, a warning mark, no colour.
             Rectangle {
-                objectName: "zenith-store-detail-community-warning"
+                objectName: "asura-store-detail-community-warning"
                 width: parent.width
                 visible: detail.isCommunityPlugin
                 implicitHeight: communityWarningRow.implicitHeight + Tokens.s3 * 2
@@ -578,7 +578,7 @@ FocusScope {
 
                     Text {
                         width: parent.width - communityWarningMark.width - parent.spacing
-                        text: I18n.tr("Community plugin. Zenith does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
+                        text: I18n.tr("Community plugin. Asura does not review or maintain it: it runs inside your shell with your permissions, so inspect its code before you trust it.")
                         color: Tokens.inkDim
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -596,7 +596,7 @@ FocusScope {
             spacing: Tokens.s3
 
             Text {
-                objectName: "zenith-store-detail-selected"
+                objectName: "asura-store-detail-selected"
                 width: parent.width
                 visible: detail.isBundle && detail.components.length > 0
                 text: I18n.tr("%1 / %2 SELECTED").arg(detail.selectedNames.length).arg(detail.components.length)
@@ -607,7 +607,7 @@ FocusScope {
             }
 
             StatusReadout {
-                objectName: "zenith-store-detail-status"
+                objectName: "asura-store-detail-status"
                 item: detail.actionItem
                 busyKey: detail.busyKey
                 installStage: detail.installStage
@@ -616,7 +616,7 @@ FocusScope {
             }
 
             Text {
-                objectName: "zenith-store-detail-foreign-wm"
+                objectName: "asura-store-detail-foreign-wm"
                 width: parent.width
                 visible: StoreLogic.isUnavailable(detail.actionItem)
                 text: StoreLogic.unavailableReason(detail.actionItem).length > 0
@@ -632,7 +632,7 @@ FocusScope {
             }
 
             Text {
-                objectName: "zenith-store-detail-pause"
+                objectName: "asura-store-detail-pause"
                 width: parent.width
                 visible: StoreLogic.isDownloadPaused(detail.actionItem)
                 text: I18n.tr("Under construction.") + " " + StoreLogic.downloadPauseReason(detail.actionItem)
@@ -644,7 +644,7 @@ FocusScope {
             }
 
             Text {
-                objectName: "zenith-store-detail-error"
+                objectName: "asura-store-detail-error"
                 width: parent.width
                 text: detail.errorText
                 visible: text !== ""
@@ -659,7 +659,7 @@ FocusScope {
                 spacing: Tokens.s2
 
                 Btn {
-                    objectName: "zenith-store-detail-dither"
+                    objectName: "asura-store-detail-dither"
                     visible: detail.hasDither
                     text: detail.ditherOn ? I18n.tr("DITHER / ON") : I18n.tr("DITHER / OFF")
                     armed: detail.busyKey === ""
@@ -670,7 +670,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-install-selected"
+                    objectName: "asura-store-detail-install-selected"
                     visible: detail.isBundle
                     text: detail.busyKey === detail.actionKey && detail.installStage !== ""
                             ? I18n.tr(detail.installStage)
@@ -685,7 +685,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-install-all"
+                    objectName: "asura-store-detail-install-all"
                     visible: detail.isBundle
                     text: I18n.tr("INSTALL ALL")
                     armed: detail.item !== null && detail.busyKey === ""
@@ -697,7 +697,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-install"
+                    objectName: "asura-store-detail-install"
                     visible: !detail.isBundle
                     text: detail.busyKey === detail.actionKey && detail.installStage !== ""
                             ? I18n.tr(detail.installStage)
@@ -714,7 +714,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-retry"
+                    objectName: "asura-store-detail-retry"
                     text: I18n.tr("RETRY")
                     visible: detail.errorText !== ""
                     armed: visible && detail.busyKey === ""
@@ -726,7 +726,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-cancel"
+                    objectName: "asura-store-detail-cancel"
                     text: I18n.tr("CANCEL")
                     visible: detail.busyKey !== "" && detail.busyKey === detail.actionKey
                     Accessible.role: Accessible.Button
@@ -736,7 +736,7 @@ FocusScope {
                 }
 
                 Btn {
-                    objectName: "zenith-store-detail-remove"
+                    objectName: "asura-store-detail-remove"
                     text: I18n.tr("REMOVE")
                     visible: StoreLogic.isInstalled(detail.actionItem)
                     armed: visible && detail.busyKey === ""
@@ -746,7 +746,7 @@ FocusScope {
                     Accessible.onPressAction: detail.triggerRemove()
                 }
                 Btn {
-                    objectName: "zenith-store-detail-settings"
+                    objectName: "asura-store-detail-settings"
                     text: I18n.tr("OPEN IN SETTINGS")
                     visible: StoreLogic.secondaryAction(detail.actionItem) !== ""
                     armed: visible
@@ -758,7 +758,7 @@ FocusScope {
 
                 Btn {
                     id: closeButton
-                    objectName: "zenith-store-detail-close"
+                    objectName: "asura-store-detail-close"
                     focus: detail.open
                     text: I18n.tr("BACK")
                     Accessible.role: Accessible.Button
@@ -786,7 +786,7 @@ FocusScope {
 
             Flickable {
                 id: bundleComponents
-                objectName: "zenith-store-detail-components"
+                objectName: "asura-store-detail-components"
                 anchors.fill: parent
                 visible: detail.isBundle && detail.components.length > 0
                 contentWidth: width
@@ -842,7 +842,7 @@ FocusScope {
             // Tapping the preview opens the lightbox at full size.
             Item {
                 id: gallery
-                objectName: "zenith-store-detail-screenshots"
+                objectName: "asura-store-detail-screenshots"
                 anchors.fill: parent
                 visible: !detail.isBundle && detail.screenshotCount > 0
 
@@ -947,7 +947,7 @@ FocusScope {
     // read, with a shot counter and prev/next; a tap on the backdrop or Escape
     // (via the app) closes it. Declared last so it sits above the dossier.
     Item {
-        objectName: "zenith-store-detail-lightbox"
+        objectName: "asura-store-detail-lightbox"
         anchors.fill: parent
         visible: detail.lightboxOpen
         z: 5
