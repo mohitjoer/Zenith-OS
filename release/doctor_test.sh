@@ -169,8 +169,8 @@ must_not_contain "no portal configuration was found"
 #
 # Lines under these headings that are not in the list are a regression.
 allowed='login manager preferences not installed; the package that should write it did not
-asura-shell.service   ExecStart points at /usr/bin/quickshell, which does not exist
-asura-portal.service  ExecStart points at /usr/libexec/xdg-desktop-portal, which does not exist
+asura-shell.service    ExecStart points at /usr/bin/quickshell, which does not exist
+asura-portal.service   ExecStart points at /usr/libexec/xdg-desktop-portal, which does not exist
 problem           named backend "hyprland" is not installed; nothing implements org.freedesktop.impl.portal.ScreenCast
 problem           named backend "hyprland" is not installed; nothing implements org.freedesktop.impl.portal.Screenshot
 problem           named backend "gtk" is not installed; nothing implements org.freedesktop.impl.portal.FileChooser
@@ -182,8 +182,8 @@ problem           named backend "gtk" is not installed; nothing implements org.f
 # is_allowed trims doctor's leading spaces and padded column name, because the
 # list names the finding and not the formatting.
 is_allowed() {
-	trimmed=$(printf '%s\n' "$1" | sed 's/^[[:space:]]*//')
-	printf '%s\n' "$allowed" | grep -Fxq "$trimmed"
+	trimmed=$(printf '%s\n' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+/ /g')
+	printf '%s\n' "$allowed" | sed -E 's/[[:space:]]+/ /g' | grep -Fxq "$trimmed"
 }
 
 # Portal faults are uniformly prefixed, so the whole class is checkable without
