@@ -14,8 +14,8 @@ clear 2>/dev/null || true
 
 cat <<EOF
 ${WHITE}┌──────────────────────────────────────────────────────────┐
-│                       ${BOLD}天  ASURA OS${RESET}${WHITE}                       │
-│               Guided System Installer                    │
+│                         ${BOLD}ASURA OS${RESET}${WHITE}                         │
+│                 Guided System Installer                  │
 └──────────────────────────────────────────────────────────┘${RESET}
 
 EOF

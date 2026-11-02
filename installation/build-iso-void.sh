@@ -137,44 +137,93 @@ EOF
 printf 'asura-os\n' >"$INCLUDE_DIR/etc/hostname"
 
 cat >"$INCLUDE_DIR/etc/issue" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001 (\m)
-         ███          Kernel \r on an \m (\l)
-    █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001 (\m)
+     %##                    ##%       Kernel \r on an \m (\l)
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%    https://asuraos.dev
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 EOF
 
 cat >"$INCLUDE_DIR/etc/issue.net" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
-         ███          https://asuraos.dev
-    █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001
+     %##                    ##%       https://asuraos.dev
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 EOF
 
 cat >"$INCLUDE_DIR/etc/motd" <<'EOF'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
-         ███          https://asuraos.dev
-    █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001
+     %##                    ##%       https://asuraos.dev
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 EOF
 
 
+
 # Copy branding assets
+mkdir -p "$INCLUDE_DIR/usr/share/asura/branding"
 cp "$REPO_ROOT/public/asura-logo.svg" \
 	"$INCLUDE_DIR/usr/share/asura/branding/"
 cp "$REPO_ROOT/public/asura-logo-on-dark.svg" \
 	"$INCLUDE_DIR/usr/share/asura/branding/"
+if [ -f "$REPO_ROOT/public/asura-logo-red.svg" ]; then
+	cp "$REPO_ROOT/public/asura-logo-red.svg" \
+		"$INCLUDE_DIR/usr/share/asura/branding/"
+fi
 if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 	cp "$REPO_ROOT/public/branding/boot-splash.png" \
 		"$INCLUDE_DIR/usr/share/asura/branding/boot-splash.png"
+fi
+if [ -d "$REPO_ROOT/public/branding" ]; then
+	cp -r "$REPO_ROOT/public/branding"/* \
+		"$INCLUDE_DIR/usr/share/asura/branding/" 2>/dev/null || true
 fi
 
 # Ensure strict permissions on sudoers.d directory (0750) and wheel rule (0440)
@@ -427,42 +476,44 @@ cat >"$INCLUDE_DIR/etc/skel/.zshrc" <<'EOF'
 EOF
 
 # Pre-seed fastfetch ASCII logo and configuration
-mkdir -p "$INCLUDE_DIR/usr/share/asura/branding"
-cat >"$INCLUDE_DIR/usr/share/asura/branding/fastfetch-ascii.txt" <<'EOF'
-     ▄████████████████▄
-            ████
-            ████
-     ▄████████████████▄
-       ███  ████  ███
-      ███   ████   ███
-     ███    ████    ███
-    ███     ████     ███
-EOF
+mkdir -p "$INCLUDE_DIR/usr/share/asura/branding" "$INCLUDE_DIR/etc/skel/.config/fastfetch"
+if [ -f "$REPO_ROOT/public/branding/asura-logo.txt" ]; then
+	cp "$REPO_ROOT/public/branding/asura-logo.txt" "$INCLUDE_DIR/usr/share/asura/branding/asura-logo.txt"
+	cp "$REPO_ROOT/public/branding/asura-logo.txt" "$INCLUDE_DIR/usr/share/asura/branding/fastfetch-ascii.txt"
+fi
+if [ -f "$REPO_ROOT/public/branding/asura-logo-mono.txt" ]; then
+	cp "$REPO_ROOT/public/branding/asura-logo-mono.txt" "$INCLUDE_DIR/usr/share/asura/branding/asura-logo-mono.txt"
+fi
+if [ -f "$REPO_ROOT/public/branding/fastfetch-emblem.png" ]; then
+	cp "$REPO_ROOT/public/branding/fastfetch-emblem.png" "$INCLUDE_DIR/usr/share/asura/branding/fastfetch-emblem.png"
+fi
 
 cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
-    "type": "file",
-    "source": "/usr/share/asura/branding/fastfetch-ascii.txt",
+    "type": "file-raw",
+    "source": "/usr/share/asura/branding/asura-logo.txt",
     "padding": {
-      "right": 4
+      "left": 2,
+      "right": 4,
+      "top": 1
     }
   },
   "display": {
+    "separator": " ── ",
     "color": {
-      "keys": "38;2;230;230;230"
+      "keys": "38;2;219;20;49"
     }
   },
   "modules": [
     {
-      "format": "\u001b[38;2;230;230;230m■\u001b[0m \u001b[38;2;143;135;112mASURA OS\u001b[0m",
+      "format": "\u001b[38;2;219;20;49m■\u001b[0m \u001b[1;38;2;240;240;240mASURA OS\u001b[0m",
       "type": "custom"
     },
-
     "break",
     {
-      "format": "\u001b[38;2;230;230;230m──\u001b[0m \u001b[1;38;2;243;237;225mSYSTEM\u001b[0m \u001b[38;2;58;46;36m──────────────────────────\u001b[0m",
+      "format": "\u001b[38;2;219;20;49m──\u001b[0m \u001b[1;38;2;240;240;240mSYSTEM\u001b[0m \u001b[38;2;80;80;80m──────────────────────────\u001b[0m",
       "type": "custom"
     },
     {
@@ -491,7 +542,7 @@ cat >"$INCLUDE_DIR/etc/skel/.config/fastfetch/config.jsonc" <<'EOF'
     },
     "break",
     {
-      "format": "\u001b[38;2;230;230;230m──\u001b[0m \u001b[1;38;2;243;237;225mHARDWARE\u001b[0m \u001b[38;2;58;46;36m────────────────────────\u001b[0m",
+      "format": "\u001b[38;2;219;20;49m──\u001b[0m \u001b[1;38;2;240;240;240mHARDWARE\u001b[0m \u001b[38;2;80;80;80m────────────────────────\u001b[0m",
       "type": "custom"
     },
     {
@@ -865,32 +916,71 @@ fi
 
 # Update all TTY greeting messages (/etc/issue, /etc/issue.net, /etc/motd) to show Asura OS wordmark and logo
 cat >"$ROOTFS/etc/issue" <<'ISSUE'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001 (\m)
-         ███          Kernel \r on an \m (\l)
-    █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001 (\m)
+     %##                    ##%       Kernel \r on an \m (\l)
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%    https://asuraos.dev
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 ISSUE
 
 cat >"$ROOTFS/etc/issue.net" <<'ISSUENET'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
-         ███          https://asuraos.dev
-     █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001
+     %##                    ##%       https://asuraos.dev
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 ISSUENET
 
 cat >"$ROOTFS/etc/motd" <<'MOTD'
-     ▄▄▄▄▄▄▄▄▄▄▄      Asura OS Beta 001
-         ███          https://asuraos.dev
-     █████████████
-     ███ ███ ███      天 — Robust. Minimal. Kinetic.
-    ███  ███  ███     Live Session: user 'asura' (nopasswd sudo)
-   ███   ███   ███    Run 'asura install' or 'asura-installer' to install
+       #                    #         Asura OS Beta 001
+     %##                    ##%       https://asuraos.dev
+    ####   %%%%%%%%%%%%%%   ####
+  ######% %%%%%%%%%%%%%%%% %######    Robust. Minimal. Kinetic.
+%###########% %%%%%%%%  ###########%  Live Session: user 'asura' (nopasswd sudo)
+ %###########          ###########%   Run 'asura install' or 'asura-installer' to install
+     ########  @@@@@@  ########
+   %% ########%      %######## %%%
+   %%  %%##################%%% %%%
+   %% ##     %########%     ## %%%
+   %% ####%%%%%      %%%%%#### %%
+       %####################%
+      %%  %##############%  %%
+       ### ############## %##
+       %##  ############  ###
+        ###  %        %  ###
+         %################%
+           %############%
+             ##########
 
 MOTD
 
