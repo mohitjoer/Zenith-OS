@@ -615,6 +615,7 @@ if [ -f "$MKLIVE_DIR/dracut/vmklive/adduser.sh" ]; then
 	sed -i 's/99-void-live/99-asura-live/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/void-live.rules/asura-live.rules/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 	sed -i 's/-s \/bin\/bash/-s \/bin\/zsh/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
+	sed -i 's/chroot ${NEWROOT} useradd/chroot ${NEWROOT} id "$USERNAME" >\/dev\/null 2>\&1 || chroot ${NEWROOT} useradd/g' "$MKLIVE_DIR/dracut/vmklive/adduser.sh"
 fi
 
 # Replace cluttered multi-option isolinux menu with a clean, streamlined Asura OS boot menu
@@ -647,13 +648,13 @@ MENU COLOR tabmsg       * #66666666 #00000000 none
 LABEL linux
 MENU LABEL Asura OS (Live Session)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
 
 LABEL linuxram
 MENU LABEL Asura OS (Copy to RAM)
 
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 quiet splash rd.plymouth=1 plymouth.enable=1 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 vt.global_cursor_default=0 fbcon=nodefer vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ vga=792 video=1024x768 @@BOOT_CMDLINE@@ rd.live.ram
+APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ rd.live.ram
 
 LABEL reboot
 MENU LABEL Reboot System
@@ -689,11 +690,17 @@ ROOTFS="$1"
 
 # Enable core system runit services (Layer 1 seatd, Layer 3 scx-lavd, ananicy-cpp, zramen)
 mkdir -p "$ROOTFS/etc/runit/runsvdir/default"
-for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp asura-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen asura-sysd; do
 	if [ -d "$ROOTFS/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$ROOTFS/etc/runit/runsvdir/default/$svc"
 	fi
 done
+if [ -x "$ROOTFS/usr/bin/scx_lavd" ] && [ -d "$ROOTFS/etc/sv/scx-lavd" ]; then
+	ln -sf /etc/sv/scx-lavd "$ROOTFS/etc/runit/runsvdir/default/scx-lavd"
+fi
+if [ -x "$ROOTFS/usr/bin/ananicy-cpp" ] && [ -d "$ROOTFS/etc/sv/ananicy-cpp" ]; then
+	ln -sf /etc/sv/ananicy-cpp "$ROOTFS/etc/runit/runsvdir/default/ananicy-cpp"
+fi
 
 # Ensure runtime library compatibility symlinks exist inside rootfs
 mkdir -p "$ROOTFS/usr/lib"
@@ -935,9 +942,10 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \
-		-s xz \
+		-i gzip \
+		-s zstd \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer vga=792 video=1024x768 console=ttyS0,115200 console=tty0 live.user=asura live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer console=tty0 live.user=asura live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"

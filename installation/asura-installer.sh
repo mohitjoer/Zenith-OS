@@ -3,12 +3,12 @@
 # Installs Asura OS onto target drive.
 set -eu
 
-BOLD="\033[1m"
-DIM="\033[2m"
-WHITE="\033[1;37m"
-GREEN="\033[1;32m"
-RED="\033[1;31m"
-RESET="\033[0m"
+BOLD=$(printf '\033[1m')
+DIM=$(printf '\033[2m')
+WHITE=$(printf '\033[1;37m')
+GREEN=$(printf '\033[1;32m')
+RED=$(printf '\033[1;31m')
+RESET=$(printf '\033[0m')
 
 clear 2>/dev/null || true
 

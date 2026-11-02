@@ -2,7 +2,6 @@
 exec 2>&1
 # Layer 3 Tuning: ananicy-cpp (Auto-nice background compilers/scanners)
 if ! command -v ananicy-cpp >/dev/null 2>&1; then
-	echo "ananicy-cpp: /usr/bin/ananicy-cpp not found, pausing service"
 	pause
 fi
 
