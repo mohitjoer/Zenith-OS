@@ -222,11 +222,18 @@ echo "asura-session: env ok, starting Hyprland"
 if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
    grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
    lspci 2>/dev/null | grep -qi "VMware\|VirtualBox"; then
-    echo "asura-session: VM hypervisor detected, enabling software rasterizer and safe modifiers"
+    echo "asura-session: VM hypervisor detected, applying high-performance VM defaults"
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export AQ_NO_MODIFIERS=1
     export WLR_NO_HARDWARE_CURSORS=1
-    export LIBGL_ALWAYS_SOFTWARE=1
+    USER_HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/asura/hyprland"
+    mkdir -p "$USER_HYPR_DIR"
+    cat > "$USER_HYPR_DIR/vm-perf.conf" <<'VMCFG'
+decoration:blur:enabled = false
+decoration:shadow:enabled = false
+animations:enabled = false
+misc:vfr = true
+VMCFG
 fi
 
 # Detect compositor executable: on Void Linux the packaged binary is Hyprland,

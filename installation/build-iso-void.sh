@@ -112,12 +112,12 @@ cat >"$INCLUDE_DIR/etc/plymouth/plymouthd.conf" <<'EOF'
 [Daemon]
 Theme=asura
 ShowDelay=0
-DeviceTimeout=5
+DeviceTimeout=2
 EOF
 
 cat >"$INCLUDE_DIR/etc/dracut.conf.d/50-plymouth.conf" <<'EOF'
 add_dracutmodules+=" plymouth "
-add_drivers+=" vmwgfx bochs virtio_gpu qxl simpledrm "
+add_drivers+=" vboxvideo vmwgfx bochs virtio_gpu qxl simpledrm "
 install_optional_items+=" /usr/lib/plymouth/script.so /usr/lib/plymouth/label.so /usr/lib/plymouth/label-pango.so /usr/lib/plymouth/renderers/drm.so /usr/lib/plymouth/renderers/frame-buffer.so /etc/fonts/fonts.conf /etc/fonts/local.conf /usr/share/fonts/TTF/DejaVuSans.ttf /usr/share/fonts/TTF/DejaVuSans-Bold.ttf /usr/share/fonts/TTF/DejaVuSansMono.ttf "
 EOF
 
@@ -645,12 +645,13 @@ if [ -d "$MKLIVE_DIR/data" ]; then
 	fi
 fi
 
-# Clean up void-mklive bootstrap repository flags and force-include plymouth in initramfs
+# Clean up void-mklive bootstrap repository flags and force-include plymouth and VM drivers in initramfs
 if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
 	sed -i 's/--force-add "vmklive autoinstaller"/--force-add "vmklive autoinstaller plymouth"/g' "$MKLIVE_DIR/mklive.sh"
+	sed -i 's/--add-drivers "ahci"/--add-drivers "ahci vboxvideo vmwgfx virtio_gpu bochs qxl simpledrm"/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
 	sed -i "s|https://repo-default.voidlinux.org/current|$MIRROR|g" "$MKLIVE_DIR/mklive.sh"
-	sed -i 's/loglevel=4/quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer/g' "$MKLIVE_DIR/mklive.sh"
+	sed -i 's/loglevel=4/loglevel=4 quiet splash rd.plymouth=1 plymouth.enable=1 console=tty0/g' "$MKLIVE_DIR/mklive.sh"
 fi
 if [ -f "$MKLIVE_DIR/lib.sh" ]; then
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/lib.sh"
@@ -810,10 +811,10 @@ if command -v glib-compile-schemas >/dev/null 2>&1; then
 	glib-compile-schemas "$ROOTFS/usr/share/glib-2.0/schemas" 2>/dev/null || true
 fi
 
-# Enable automatic console login on tty1 with silent hushlogin
+# Enable automatic console login on tty1 with Asura OS greeting banner
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/asura"
-echo 'GETTY_ARGS="--autologin asura --noclear --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
-touch "$ROOTFS/home/asura/.hushlogin"
+echo 'GETTY_ARGS="--autologin asura --noclear"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+rm -f "$ROOTFS/home/asura/.hushlogin"
 # Pre-materialize user configuration for asura user, skeleton, and XDG directories
 mkdir -p "$ROOTFS/home/asura/.config/asura" "$ROOTFS/etc/skel/.config/asura" \
          "$ROOTFS/home/asura/.config/ghostty" "$ROOTFS/home/asura/.config/fastfetch" \
@@ -836,9 +837,6 @@ mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 ln -sf /usr/share/plymouth/themes/asura/asura.plymouth "$ROOTFS/usr/share/plymouth/themes/default.plymouth" 2>/dev/null || true
 if [ -f "$ROOTFS/etc/plymouth/plymouthd.conf" ]; then
 	sed -i 's/^Theme=.*/Theme=asura/' "$ROOTFS/etc/plymouth/plymouthd.conf"
-fi
-if [ -f "$ROOTFS/etc/runit/1" ]; then
-	sed -i '1a exec 2>/dev/null' "$ROOTFS/etc/runit/1" 2>/dev/null || true
 fi
 
 # Silence runit boot messages and sysctl dump while Plymouth splash is active
@@ -993,6 +991,7 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
 		asura materialize 2>/dev/null || true
 	fi
+	printf "\033[1;37m==> Starting Asura OS graphical desktop session...\033[0m\n"
 	if ! /usr/share/asura/session/asura-session; then
 		if command -v plymouth >/dev/null 2>&1; then
 			plymouth --quit 2>/dev/null || true
@@ -1035,7 +1034,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 		-i gzip \
 		-s zstd \
 		-S "dbus seatd NetworkManager zramen" \
-		-C "quiet splash rd.plymouth=1 plymouth.enable=1 vt.global_cursor_default=0 loglevel=0 rd.udev.log_level=0 udev.log_priority=3 fbcon=nodefer console=tty0 live.user=asura live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
+		-C "loglevel=4 quiet splash rd.plymouth=1 plymouth.enable=1 console=tty0 live.user=asura live.autologin nvidia-drm.modeset=1 nvidia-drm.fbdev=1 NVreg_DynamicPowerManagement=0x02 nowatchdog mitigations=off preempt=full" \
 		-x "$POSTSETUP_SCRIPT" \
 		-T "$ISO_TITLE" \
 		-o "$FINAL_ISO"
