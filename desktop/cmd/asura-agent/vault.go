@@ -27,12 +27,12 @@ const (
 // generatedFiles are the vault docs Reindex owns end to end. Everything else in
 // the vault belongs to the user or an agent.
 var generatedFiles = map[string]bool{
-	"system.md":      true,
-	"desktop.md":     true,
-	"packages.md":    true,
+	"system.md":     true,
+	"desktop.md":    true,
+	"packages.md":   true,
 	"asura-repo.md": true,
-	"user.md":        true,
-	"habits.md":      true,
+	"user.md":       true,
+	"habits.md":     true,
 }
 
 // AgentsTemplate is the vault entry contract. Its fenced body is refreshed on

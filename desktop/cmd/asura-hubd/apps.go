@@ -1,11 +1,11 @@
 package main
 
 import (
+	"asura/desktop/cmd/asura-hubd/internal/wm"
 	"encoding/json"
 	"os"
 	"os/exec"
 	"strings"
-	"asura/desktop/cmd/asura-hubd/internal/wm"
 )
 
 // Default Apps: the swappable roles the Default Apps page offers, each with a

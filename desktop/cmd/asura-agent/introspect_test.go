@@ -29,13 +29,13 @@ func TestSkillsReportShippedAndYours(t *testing.T) {
 	shipped := filepath.Join(h, "shipped")
 	t.Setenv(envName("SKILLS"), shipped)
 	seedFiles(t, shipped, map[string]string{
-		"asura/SKILL.md":       "---\nname: asura\ndescription: Customize the desktop\nversion: 1.0.0\n---\nbody",
-		"asura/bar.md":         "a sibling doc is not a skill",
+		"asura/SKILL.md":        "---\nname: asura\ndescription: Customize the desktop\nversion: 1.0.0\n---\nbody",
+		"asura/bar.md":          "a sibling doc is not a skill",
 		"not-a-skill/README.md": "no SKILL.md here",
 	})
 	seedFiles(t, filepath.Join(h, "vault", "skills"), map[string]string{
 		"my-fix/SKILL.md": "---\nname: my-fix\ndescription: Grown by the agent\n---\nbody",
-		"asura/SKILL.md": "---\nname: asura\ndescription: shadow copy\n---\nbody",
+		"asura/SKILL.md":  "---\nname: asura\ndescription: shadow copy\n---\nbody",
 	})
 	rep := SkillsReportNow()
 	if rep.Counts["shipped"] != 1 || rep.Counts["yours"] != 1 {

@@ -11,6 +11,7 @@ package main
 // error.
 
 import (
+	"asura/desktop/cmd/asura-hubd/internal/wm"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"asura/desktop/cmd/asura-hubd/internal/wm"
 )
 
 // pendingWrite is one file apply will replace; confCheck marks hyprlang output that

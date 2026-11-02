@@ -17,7 +17,7 @@ type matugenConfig struct {
 	Prefer           string          `json:"prefer"`           // "dominant" or "vibrant"
 	SchemeType       string          `json:"schemeType"`       // matugen -t variant
 	SourceColorIndex int             `json:"sourceColorIndex"` // 0..4
-	ThemeAsuraApps  bool            `json:"themeAsuraApps"`  // theme Asura's native shell & apps
+	ThemeAsuraApps   bool            `json:"themeAsuraApps"`   // theme Asura's native shell & apps
 	Templates        map[string]bool `json:"templates"`        // app -> bool
 }
 
@@ -133,30 +133,30 @@ func defaultMatugenConfig() matugenConfig {
 		Prefer:           "saturation",
 		SchemeType:       "scheme-tonal-spot",
 		SourceColorIndex: 0,
-		ThemeAsuraApps:  true,
+		ThemeAsuraApps:   true,
 		Templates: map[string]bool{
-			"btop":         true,
-			"qt":           true,
-			"gtk":          true,
-			"discord":      true,
-			"obs":          true,
-			"zed":          true,
-			"heroic":       true,
-			"hyprland":     true,
-			"telegram":     true,
-			"steam":        true,
-			"kitty":        true,
-			"cava":         true,
-			"fish":         true,
-			"yazi":         true,
-			"ghostty":      true,
-			"micro":        true,
-			"papirus":      true,
-			"obsidian":     true,
-			"zathura":      true,
-			"alacritty":    true,
-			"tmux":         true,
-			"sidra":        true,
+			"btop":        true,
+			"qt":          true,
+			"gtk":         true,
+			"discord":     true,
+			"obs":         true,
+			"zed":         true,
+			"heroic":      true,
+			"hyprland":    true,
+			"telegram":    true,
+			"steam":       true,
+			"kitty":       true,
+			"cava":        true,
+			"fish":        true,
+			"yazi":        true,
+			"ghostty":     true,
+			"micro":       true,
+			"papirus":     true,
+			"obsidian":    true,
+			"zathura":     true,
+			"alacritty":   true,
+			"tmux":        true,
+			"sidra":       true,
 			"asura-tunes": true,
 		},
 	}

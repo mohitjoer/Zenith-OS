@@ -244,8 +244,8 @@ func hyprConflicts(binds []importBind) []scanConflict {
 			out = append(out, scanConflict{
 				Combo: b.Combo, Norm: n,
 				Asura: conflictAsura{Action: si.Action, Desc: si.Desc},
-				Mine:   conflictMine{Raw: b.Raw, Desc: b.Desc},
-				Kind:   "shipped",
+				Mine:  conflictMine{Raw: b.Raw, Desc: b.Desc},
+				Kind:  "shipped",
 			})
 			done[n] = true
 			continue
@@ -254,8 +254,8 @@ func hyprConflicts(binds []importBind) []scanConflict {
 			out = append(out, scanConflict{
 				Combo: b.Combo, Norm: n,
 				Asura: conflictAsura{Action: first.Action, Desc: first.Desc},
-				Mine:   conflictMine{Raw: b.Raw, Desc: b.Desc},
-				Kind:   "duplicate",
+				Mine:  conflictMine{Raw: b.Raw, Desc: b.Desc},
+				Kind:  "duplicate",
 			})
 			done[n] = true
 			continue

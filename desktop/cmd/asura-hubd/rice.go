@@ -1,6 +1,7 @@
 package main
 
 import (
+	"asura/desktop/cmd/asura-hubd/internal/wm"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"asura/desktop/cmd/asura-hubd/internal/wm"
 )
 
 // rice = a named, versioned look document for the whole desktop. it captures a
@@ -483,13 +483,13 @@ func captureRice(name string, layers []string) (Rice, error) {
 		Author:      currentUser(),
 		CreatedWith: asuraVersion(),
 		Look: map[string]map[string]any{
-			"hypr":             pick(hy, riceHyprLook),
-			"shell":            omit(readJSONMap(shellStorePath()), riceShellOmit),
-			"launcher":         omit(readJSONMap(launcherStorePath()), riceLauncherOmit),
-			"widgets":          extractStore(widgetsStorePath(), nil),
-			"visualizer":       extractStore(visualizerStorePath(), nil),
-			"decor":            extractStore(decorStorePath(), nil),
-			"theme":            readJSONMap(themeStatePath()),
+			"hypr":            pick(hy, riceHyprLook),
+			"shell":           omit(readJSONMap(shellStorePath()), riceShellOmit),
+			"launcher":        omit(readJSONMap(launcherStorePath()), riceLauncherOmit),
+			"widgets":         extractStore(widgetsStorePath(), nil),
+			"visualizer":      extractStore(visualizerStorePath(), nil),
+			"decor":           extractStore(decorStorePath(), nil),
+			"theme":           readJSONMap(themeStatePath()),
 			"asura-wallpaper": pick(readJSONMap(wallpaperStorePath()), []string{"matugen"}),
 		},
 	}

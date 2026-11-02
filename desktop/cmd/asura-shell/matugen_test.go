@@ -345,7 +345,7 @@ activeBackground=#202020
 		"font=Comic Sans,11", // the user's font
 		"Theme=breeze-dark",  // the user's icon theme
 		"widgetStyle=Darkly", // the user's widget style
-		"ColorScheme=Asura", // the one General key the palette owns
+		"ColorScheme=Asura",  // the one General key the palette owns
 		"BackgroundNormal=#101010",
 		"BackgroundAlternate=#181818",
 		"[Colors:Header][Inactive]",

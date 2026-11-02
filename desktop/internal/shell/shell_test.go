@@ -193,7 +193,7 @@ const goodSchema = `<?xml version="1.0"?>
 func goodShell() map[string]string {
 	return map[string]string{
 		"org.asura.shell.gschema.xml": goodSchema,
-		"shell.qml":                    "import Quickshell\nShellRoot {}\n",
+		"shell.qml":                   "import Quickshell\nShellRoot {}\n",
 		"Config.qml": "import Quickshell\nSingleton {\n" +
 			"  readonly property int barHeight: shell.barHeight\n" +
 			"  readonly property int barPosition: shell.barPosition\n" +

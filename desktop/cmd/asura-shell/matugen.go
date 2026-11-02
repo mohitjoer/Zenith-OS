@@ -60,7 +60,7 @@ type matugenKnobs struct {
 	Prefer           string          // source-colour pick, e.g. "saturation"
 	SchemeType       string          // matugen -t variant; "" resolves to the default
 	SourceColorIndex int             // 0..4, most dominant first
-	ThemeAsuraApps  bool            // theme the GTK / GUI app suite (apps.toml)
+	ThemeAsuraApps   bool            // theme the GTK / GUI app suite (apps.toml)
 	Templates        map[string]bool // per-app roster, keyed by group
 }
 
@@ -90,10 +90,10 @@ var matugenSchemes = map[string]bool{
 // produces a valid argv. They mirror the shipped matugen.json.
 func defaultMatugenKnobs() matugenKnobs {
 	return matugenKnobs{
-		Mode:            "smart",
-		Contrast:        0,
-		Prefer:          "saturation",
-		SchemeType:      matugenSchemeType,
+		Mode:           "smart",
+		Contrast:       0,
+		Prefer:         "saturation",
+		SchemeType:     matugenSchemeType,
 		ThemeAsuraApps: true,
 	}
 }
@@ -115,7 +115,7 @@ func readMatugenKnobs() matugenKnobs {
 		Prefer           *string         `json:"prefer"`
 		SchemeType       *string         `json:"schemeType"`
 		SourceColorIndex *int            `json:"sourceColorIndex"`
-		ThemeAsuraApps  *bool           `json:"themeAsuraApps"`
+		ThemeAsuraApps   *bool           `json:"themeAsuraApps"`
 		Templates        map[string]bool `json:"templates"`
 	}
 	if json.Unmarshal(b, &doc) != nil {

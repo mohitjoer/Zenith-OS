@@ -69,7 +69,7 @@ var readSubs = map[string]map[string]bool{
 		"list-timers": true, "is-active": true, "is-enabled": true, "is-failed": true, "cat": true},
 	"docker": {"ps": true, "images": true, "logs": true, "inspect": true, "stats": true},
 	"nmcli":  {"device": true, "connection": true, "general": true},
-	"asura": {"status": true, "snapshots": true},
+	"asura":  {"status": true, "snapshots": true},
 	binName:  {"status": true},
 	"loginctl": {"list-sessions": true, "session-status": true, "show-session": true,
 		"show-user": true, "user-status": true},

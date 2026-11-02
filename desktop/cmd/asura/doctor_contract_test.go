@@ -25,8 +25,8 @@ func TestDoctorContractIpcTargets(t *testing.T) {
 
 	validTargets := map[string]bool{
 		"asura": true,
-		"shell":  true,
-		"qsbar":  true,
+		"shell": true,
+		"qsbar": true,
 	}
 
 	lines := strings.Split(config, "\n")
@@ -60,8 +60,8 @@ bind = SUPER, X, exec, asura ipc call nosuch doSomething
 
 	validTargets := map[string]bool{
 		"asura": true,
-		"shell":  true,
-		"qsbar":  true,
+		"shell": true,
+		"qsbar": true,
 	}
 
 	lines := strings.Split(badConfig, "\n")

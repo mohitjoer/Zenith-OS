@@ -15,6 +15,7 @@ package main
 // import_undo.go the restore.
 
 import (
+	"asura/desktop/cmd/asura-hubd/internal/wm"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +24,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"asura/desktop/cmd/asura-hubd/internal/wm"
 )
 
 // --- JSON contract (lowerCamel field names are the cross-slice interface) ----
@@ -53,11 +53,11 @@ type scanItem struct {
 }
 
 type scanConflict struct {
-	Combo  string         `json:"combo"` // display form
-	Norm   string         `json:"norm"`  // stable key, opaque to UI/CLI
+	Combo string        `json:"combo"` // display form
+	Norm  string        `json:"norm"`  // stable key, opaque to UI/CLI
 	Asura conflictAsura `json:"asura"`
-	Mine   conflictMine   `json:"mine"`
-	Kind   string         `json:"kind"` // shipped | duplicate
+	Mine  conflictMine  `json:"mine"`
+	Kind  string        `json:"kind"` // shipped | duplicate
 }
 
 type conflictAsura struct {
