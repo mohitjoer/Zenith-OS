@@ -893,8 +893,13 @@ for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit
 	fi
 done
 
-# Set 80% battery charge threshold fallback in /etc/rc.local
+# Release Plymouth boot splash cleanly in /etc/rc.local before login gettys start
+mkdir -p "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig"
+chmod 1777 "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig" 2>/dev/null || true
 if [ -f "$ROOTFS/etc/rc.local" ]; then
+	if ! grep -q 'plymouth --quit' "$ROOTFS/etc/rc.local"; then
+		echo 'command -v plymouth >/dev/null 2>&1 && { plymouth --quit 2>/dev/null || killall -9 plymouthd 2>/dev/null || true; }' >> "$ROOTFS/etc/rc.local"
+	fi
 	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
 		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"
 	fi
@@ -991,25 +996,44 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
 		asura materialize 2>/dev/null || true
 	fi
+	if command -v plymouth >/dev/null 2>&1; then
+		sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || true
+	fi
 	printf "\033[1;37m==> Starting Asura OS graphical desktop session...\033[0m\n"
 	if ! /usr/share/asura/session/asura-session; then
 		if command -v plymouth >/dev/null 2>&1; then
-			plymouth --quit 2>/dev/null || true
+			sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || true
 		fi
 		echo
 		echo "================================================================"
-		echo "  Asura graphical desktop session exited."
-		echo "  Log available at: ~/.local/state/asura/session.log"
-		echo
-		if [ -f "$HOME/.local/state/asura/session.log" ]; then
-			echo "--- Last 20 lines of session.log ---"
-			tail -n 20 "$HOME/.local/state/asura/session.log"
-			echo "------------------------------------"
+		if grep -q "No 3D enabled" "$HOME/.local/state/asura/session.log" 2>/dev/null || \
+		   grep -q "failed to create dri2 screen" "$HOME/.local/state/asura/session.log" 2>/dev/null; then
+			echo "  [Virtual Machine Display Notice]"
+			echo "  VirtualBox / VMware 3D Acceleration is currently DISABLED."
+			echo "  Hyprland Wayland compositor requires hardware 3D acceleration."
+			echo
+			echo "  To run the full Wayland graphical desktop in VirtualBox:"
+			echo "    1. Power off this virtual machine."
+			echo "    2. Go to VirtualBox Settings -> Display -> Screen."
+			echo "    3. Check 'Enable 3D Acceleration' and set Video Memory >= 128MB."
+			echo
+		else
+			echo "  Asura graphical desktop session exited."
+			echo "  Log available at: ~/.local/state/asura/session.log"
+			echo
 		fi
-		echo "  To launch the installer directly, run: sudo asura install"
-		echo "  To retry launching the desktop, run: asura-session"
-		echo "================================================================"
-		echo
+		if [ -f /etc/asura-live ] || grep -qE "boot=live|live" /proc/cmdline 2>/dev/null; then
+			echo "  Launching Asura OS Guided System Installer..."
+			echo "================================================================"
+			echo
+			sleep 2
+			sudo /usr/bin/asura-installer || true
+		else
+			echo "  To launch the installer directly, run: sudo asura install"
+			echo "  To retry launching the desktop, run: asura-session"
+			echo "================================================================"
+			echo
+		fi
 	fi
 fi
 PROFILE

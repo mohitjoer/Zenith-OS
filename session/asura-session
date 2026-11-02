@@ -20,7 +20,11 @@ echo "--- asura-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
 
 # Stop Plymouth boot splash so Hyprland has exclusive access to DRM master
 if command -v plymouth >/dev/null 2>&1; then
-    plymouth --quit 2>/dev/null || true
+    if [ "$(id -u)" -eq 0 ]; then
+        plymouth --quit 2>/dev/null || killall -9 plymouthd 2>/dev/null || true
+    else
+        sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || plymouth --quit 2>/dev/null || true
+    fi
     for _ in 1 2 3 4 5; do
         plymouth --ping 2>/dev/null || break
         sleep 0.1
@@ -221,10 +225,11 @@ echo "asura-session: env ok, starting Hyprland"
 # Auto-detect virtual machine hypervisors and configure safe DRM/EGL defaults
 if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
    grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
-   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox"; then
+   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
     echo "asura-session: VM hypervisor detected, applying high-performance VM defaults"
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export AQ_NO_MODIFIERS=1
+    export AQ_NO_ATOMIC=1
     export WLR_NO_HARDWARE_CURSORS=1
     USER_HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/asura/hyprland"
     mkdir -p "$USER_HYPR_DIR"
@@ -232,7 +237,7 @@ if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/de
 decoration:blur:enabled = false
 decoration:shadow:enabled = false
 animations:enabled = false
-misc:vfr = true
+misc:vfr = false
 VMCFG
 fi
 
