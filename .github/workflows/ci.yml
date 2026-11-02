@@ -70,7 +70,7 @@ jobs:
           cache-dependency-path: |
             system/hardware/go.mod
             desktop/go.mod
-      - name: gofmt, vet and test
+      - name: check gofmt
         working-directory: desktop
         run: |
           unformatted="$(gofmt -l .)"
@@ -78,8 +78,12 @@ jobs:
             echo "::error::These files are not gofmt-clean:"; printf '%s\n' "$unformatted"; exit 1
           fi
           echo "gofmt clean."
-          go vet ./...
-          go test ./... -v
+      - name: go vet
+        working-directory: desktop
+        run: go vet ./...
+      - name: go test
+        working-directory: desktop
+        run: go test -v -count=1 ./...
 
   # ==========================================================================
   # PART 2: Go module version agreement
