@@ -38,6 +38,20 @@ for _ in $(seq 1 50); do
 	sleep 0.1
 done
 
+# Resolve HYPRLAND_INSTANCE_SIGNATURE from runtime dir if empty or invalid
+for _ in $(seq 1 50); do
+	if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -S "$RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" ]; then
+		break
+	fi
+	for sig_dir in $(ls -td "$RUNTIME_DIR"/hypr/*_* 2>/dev/null); do
+		if [ -S "$sig_dir/.socket.sock" ]; then
+			export HYPRLAND_INSTANCE_SIGNATURE="$(basename "$sig_dir")"
+			break 2
+		fi
+	done
+	sleep 0.1
+done
+
 LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/asura"
 mkdir -p "$LOG_DIR"
 exec >>"$LOG_DIR/quickshell.log" 2>&1
