@@ -10,12 +10,13 @@ base:
   distribution: void-linux
   arch: x86_64
   libc: glibc
-  kernel: linux
+  kernel: linux-asura
   flavor: base-system
 
 essential:
   packages:
     - base-system
+    - linux-asura
     - runit
     - runit-void
     - dbus
@@ -112,6 +113,7 @@ session:
 applications:
   packages:
     - firefox
+    - flatpak
     - Thunar
     - thunar-volman
     - thunar-archive-plugin

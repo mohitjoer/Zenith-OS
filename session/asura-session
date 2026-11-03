@@ -16,6 +16,7 @@ LOG="${XDG_STATE_HOME:-$HOME/.local/state}/asura/session.log"
 mkdir -p "$(dirname "$LOG")"
 exec >>"$LOG" 2>&1
 
+
 echo "--- asura-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
 
 # Stop Plymouth boot splash so Hyprland has exclusive access to DRM master
@@ -154,21 +155,11 @@ fi
 
 # Make dbus-activated user services and anything the compositor spawns see the
 # desktop identity, or apps probe for GNOME and get confused.
-#
-# The environment is published twice, to two different consumers.
-# systemctl --user import-environment reaches the per-user manager, so every unit
-# started from the manager inherits it. dbus-update-activation-environment
-# --systemd reaches the bus's activation environment, so a service activated on
-# demand inherits it. A backend that is D-Bus activated rather than started as a
-# unit sees nothing without the second one.
-if command -v systemctl >/dev/null 2>&1; then
-    systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
-        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
-fi
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
-    dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
-        DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY 2>/dev/null || \
-    dbus-update-activation-environment --all 2>/dev/null || true
+    dbus-update-activation-environment --all 2>/dev/null || \
+    dbus-update-activation-environment \
+        XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+        XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
 fi
 
 # The user's own compositor configuration.
@@ -229,7 +220,6 @@ if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/de
     echo "asura-session: VM hypervisor detected, applying high-performance VM defaults"
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export AQ_NO_MODIFIERS=1
-    export AQ_NO_ATOMIC=1
     export WLR_NO_HARDWARE_CURSORS=1
     # VirtualBox graphics adapters (VMSVGA/VBoxSVGA) do not support the modern EGL/GLES extensions
     # required by Hyprland/Aquamarine, and fail hardware DRI2 when 3D acceleration is disabled in VM settings.
@@ -245,7 +235,11 @@ if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/de
 decoration:blur:enabled = false
 decoration:shadow:enabled = false
 animations:enabled = false
-misc:vfr = false
+misc:vfr = true
+render:explicit_sync = 0
+render:explicit_sync_kms = 0
+cursor:no_hardware_cursors = true
+misc:allow_session_lock_restore = true
 VMCFG
 fi
 
@@ -289,7 +283,6 @@ else
             export LIBGL_ALWAYS_SOFTWARE=1
             export WLR_RENDERER_ALLOW_SOFTWARE=1
             export AQ_NO_MODIFIERS=1
-            export AQ_NO_ATOMIC=1
             export WLR_NO_HARDWARE_CURSORS=1
             exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
         fi

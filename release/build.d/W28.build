@@ -1,9 +1,0 @@
-# W28: Void Linux control plane: asura-sysd (privileged root daemon) and asura-userd (user session daemon)
-asura-sysd -> /usr/bin/asura-sysd
-asura-userd -> /usr/bin/asura-userd
-zpm -> /usr/bin/zpm
-session/runit/asura-user-services -> /usr/bin/asura-user-services
-system/helpers/prime-run -> /usr/bin/prime-run
-system/helpers/fan-profile -> /usr/bin/fan-profile
-installation/asura-installer.sh -> /usr/bin/asura-installer
-session/applications/asura-installer.desktop -> /usr/share/applications/asura-installer.desktop

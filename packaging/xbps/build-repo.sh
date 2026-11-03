@@ -30,14 +30,14 @@ if [ ! -f "$BIN_DIR/asura" ]; then
 	mkdir -p "$BIN_DIR"
 	(
 		cd "$REPO_ROOT/desktop"
-		for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper zpm; do
+		for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper apm; do
 			CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$BIN_DIR/$cmd" "./cmd/$cmd"
 		done
 	)
 fi
 
 # Install Go control plane daemons and utilities
-for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper zpm; do
+for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper apm; do
 	install -m 755 "$BIN_DIR/$cmd" "$STAGE/usr/bin/$cmd"
 done
 
@@ -76,18 +76,18 @@ echo "build-repo: creating XBPS binary package..."
 mkdir -p "$BUILD_DIR"
 xbps-create \
 	-A x86_64 \
-	-n "asura-${VERSION}_1" \
+	-n "asura-daemon-${VERSION}_1" \
 	-s "Asura OS control plane, session daemons, and system integration" \
 	-m "Asura OS Project <dev@asuraos.dev>" \
 	-l "MIT" \
 	-H "https://asuraos.dev" \
-	-D "hyprland quickshell seatd turnstile ghostty papirus-icon-theme font-awesome" \
+	-D "hyprland quickshell-asura seatd turnstile ghostty papirus-icon-theme font-awesome" \
 	"$STAGE"
 
-mv "asura-${VERSION}_1.x86_64.xbps" "$BUILD_DIR/"
+mv "asura-daemon-${VERSION}_1.x86_64.xbps" "$BUILD_DIR/"
 
 echo "build-repo: indexing repository at $BUILD_DIR..."
-xbps-rindex -a "$BUILD_DIR"/asura-*.xbps
+xbps-rindex -a "$BUILD_DIR"/asura-daemon-*.xbps
 
 echo "build-repo: repository ready at $BUILD_DIR:"
 ls -lh "$BUILD_DIR"

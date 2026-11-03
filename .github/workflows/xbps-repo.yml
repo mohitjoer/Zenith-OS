@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p build/bin
           cd desktop
-          for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper zpm; do
+          for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper apm; do
             CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "../build/bin/$cmd" "./cmd/$cmd"
           done
 

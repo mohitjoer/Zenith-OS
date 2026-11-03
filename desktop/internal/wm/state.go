@@ -17,7 +17,7 @@ const (
 	FrameWorkspaces FrameKind = "workspaces"
 	FrameWindows    FrameKind = "windows"
 	// FrameOverview reports the compositor's native overview opening or
-	// closing. Only compositors with an overview (niri) send it; the state
+	// closing. Only compositors with an overview send it; the state
 	// rides the connect replay too, so a consumer's default of "closed" is
 	// corrected the moment the stream starts.
 	FrameOverview FrameKind = "overview"

@@ -1,3 +1,0 @@
-shell/scripts/asura-cmd-brightness -> /usr/bin/asura-cmd-brightness
-system/helpers/display/asura-hw-backlight -> /usr/bin/asura-hw-backlight
-system/helpers/input/asura-touchpad -> /usr/bin/asura-touchpad

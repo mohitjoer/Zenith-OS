@@ -1,4 +1,0 @@
-# W27: the control tool and the Hub's launcher, which every other lane assumes. They are in a list like any
-# other program so the contract checks (tests/contract) see /usr/bin/asura and /usr/bin/asura-hub as installed.
-asura -> /usr/bin/asura
-session/asura-hub -> /usr/bin/asura-hub

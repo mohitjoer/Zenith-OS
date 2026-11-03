@@ -75,7 +75,7 @@ type daemon struct {
 	wmWindows    []wm.Window
 	wmKbdLayout  string   // active xkb layout, kept warm by watchWindowManager
 	wmKbdList    []string // configured layouts, in switch order
-	wmOverview   bool     // the compositor's native overview is open (niri)
+	wmOverview   bool     // the compositor's native overview is open
 	wmReady      bool
 	wmVersions   map[string]int // frame kind -> publishes since daemon start
 	wmTopic      *stateTopic
@@ -430,7 +430,7 @@ func (d *daemon) handle(conn net.Conn) {
 var surfaceCommands = map[string]string{
 	// One bare kebab verb per shell surface, spelled to match its CustomShortcut
 	// id, so a compositor keybind reaches any surface as `asura-shell <id>` where
-	// no global-shortcuts protocol exists (niri). Flag surfaces land on ShellState
+	// no global-shortcuts protocol exists. Flag surfaces land on ShellState
 	// through the surface bus's style-independent consumer; frame-menu surfaces
 	// land on the per-monitor FrameMenuManager. Both are the same transition a
 	// CustomShortcut press runs in-process.

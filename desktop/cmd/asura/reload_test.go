@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -9,13 +10,15 @@ import (
 )
 
 // TestReload covers what the Hub's caller depends on: the shell is reloaded
-// through its unit, the daemon only when it is running, and a unit that will
-// not reload is a failure the caller can see. The fake runner is the only
-// thing that answers, so the live session is never reached.
+// through sv restart on its service directory, the daemon only when it is running,
+// and a service that will not reload is a failure the caller can see.
 func TestReload(t *testing.T) {
-	shell := "systemctl --user reload asura-shell.service"
-	active := "systemctl --user is-active --quiet asurad.service"
-	daemon := "systemctl --user try-reload-or-restart asurad.service"
+	svcDir := filepath.Join(t.TempDir(), "service")
+	t.Setenv("XDG_CONFIG_HOME", filepath.Dir(svcDir))
+
+	shell := "sv restart " + filepath.Join(svcDir, "quickshell")
+	status := "sv status " + filepath.Join(svcDir, "asurad")
+	daemon := "sv restart " + filepath.Join(svcDir, "asurad")
 
 	tests := []struct {
 		name     string
@@ -29,57 +32,59 @@ func TestReload(t *testing.T) {
 		{
 			name: "both reload",
 			setup: func(f *runnertest.Fake) {
-				f.Out(shell, "").Out(active, "").Out(daemon, "")
+				f.Out(shell, "").Out(status, "run: asurad: (pid 1234) 10s\n").Out(daemon, "")
 			},
 			wantCode: exitOK,
 			wantOut:  []string{"shell:   reloaded", "daemon:  reloaded"},
-			wantRan:  []string{shell, active, daemon},
+			wantRan:  []string{shell, status, daemon},
 		},
 		{
 			name: "no daemon to reload",
 			setup: func(f *runnertest.Fake) {
-				f.Out(shell, "").Fail(active, runnertest.Exit(3, ""))
+				f.Out(shell, "").Fail(status, runnertest.Exit(1, "fail: asurad: unable to change to service directory: file does not exist\n"))
 			},
 			wantCode: exitOK,
 			wantOut:  []string{"shell:   reloaded", "daemon:  not running"},
 			wantNot:  []string{daemon},
 		},
 		{
-			name: "the shell unit refuses",
+			name: "the shell refuses",
 			setup: func(f *runnertest.Fake) {
-				f.Fail(shell, runnertest.Exit(1, "Unit asura-shell.service is not loaded.")).
-					Fail(active, runnertest.Exit(3, ""))
+				f.Fail(shell, runnertest.Exit(1, "fail: quickshell: unable to change to service directory\n")).
+					Fail(status, runnertest.Exit(1, "fail: asurad: unable to change to service directory\n"))
 			},
 			wantCode: exitFail,
-			wantErr:  []string{"shell:   not reloaded: Unit asura-shell.service is not loaded."},
+			wantErr:  []string{"shell:   not reloaded: fail: quickshell: unable to change to service directory"},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			fake := runnertest.New()
 			tc.setup(fake)
+
 			var out, errOut bytes.Buffer
-			if code := reloadMain(nil, &out, &errOut, fake.Run); code != tc.wantCode {
-				t.Errorf("exit %d, want %d", code, tc.wantCode)
+			code := reloadMain(nil, &out, &errOut, fake.Run)
+			if code != tc.wantCode {
+				t.Fatalf("exit %d, want %d (stderr %q)", code, tc.wantCode, errOut.String())
 			}
-			for _, want := range tc.wantOut {
-				if !strings.Contains(out.String(), want) {
-					t.Errorf("stdout %q lacks %q", out.String(), want)
+			for _, w := range tc.wantOut {
+				if !strings.Contains(out.String(), w) {
+					t.Errorf("stdout lacks %q; got:\n%s", w, out.String())
 				}
 			}
-			for _, want := range tc.wantErr {
-				if !strings.Contains(errOut.String(), want) {
-					t.Errorf("stderr %q lacks %q", errOut.String(), want)
+			for _, w := range tc.wantErr {
+				if !strings.Contains(errOut.String(), w) {
+					t.Errorf("stderr lacks %q; got:\n%s", w, errOut.String())
 				}
 			}
-			for _, want := range tc.wantRan {
-				if !fake.Ran(want) {
-					t.Errorf("did not run %q; ran %v", want, fake.Calls())
+			for _, r := range tc.wantRan {
+				if !fake.Ran(r) {
+					t.Errorf("did not run %q; calls were %v", r, fake.Calls())
 				}
 			}
-			for _, not := range tc.wantNot {
-				if fake.Ran(not) {
-					t.Errorf("ran %q, which it should not have", not)
+			for _, n := range tc.wantNot {
+				if fake.Ran(n) {
+					t.Errorf("ran %q, should not have", n)
 				}
 			}
 		})

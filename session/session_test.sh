@@ -162,7 +162,7 @@ check "the session logs what it did" $?
 # should not fail over a check it cannot run.
 echo
 echo "checking the units"
-if command -v systemd-analyze >/dev/null 2>&1; then
+if command -v systemd-analyze >/dev/null 2>&1 && [ -d "$REPO_ROOT/session/units" ]; then
     for unit in "$REPO_ROOT"/session/units/*.service "$REPO_ROOT"/session/units/*.target; do
         # Errors that are about the tree rather than about this unit: hyprland
         # is not installed on a packaging machine, and the two binaries are M6's.

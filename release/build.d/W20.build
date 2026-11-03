@@ -1,9 +1,0 @@
-# W20: the store. asura-store is the command line tool and data plane (the Hub's Browse buttons and
-# the launcher entry call it); the window itself (shell/store.qml, shell/store/) ships with the shell
-# tree. The window's wrapper cannot take the /usr/bin/asura-store name, so it lands beside the
-# session scripts and `asura-store open` starts it from there.
-asura-store -> /usr/bin/asura-store
-system/helpers/pkg/asura-pkg-add -> /usr/bin/asura-pkg-add
-system/helpers/pkg/asura-pkg-remove -> /usr/bin/asura-pkg-remove
-session/asura-store -> /usr/share/asura/session/asura-store
-session/applications/asura-store.desktop -> /usr/share/applications/asura-store.desktop

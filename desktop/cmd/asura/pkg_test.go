@@ -53,65 +53,13 @@ func TestPkgArgvXbps(t *testing.T) {
 	}
 }
 
-func TestPkgArgvApt(t *testing.T) {
-	withNoSudo(t)
-	cases := []struct {
-		name     string
-		verb     string
-		packages []string
-		want     []string
-	}{
-		{"install", "install", []string{"ghostty"}, []string{"apt-get", "install", "--yes", "ghostty"}},
-		{"update", "update", nil, []string{"apt-get", "update"}},
-		{"upgrade", "upgrade", nil, []string{"apt-get", "full-upgrade", "--yes"}},
-		{"remove", "remove", []string{"ghostty"}, []string{"apt-get", "remove", "--yes", "ghostty"}},
-		{"search", "search", []string{"ghostty"}, []string{"apt", "search", "ghostty"}},
-	}
-	for _, c := range cases {
-		got, ok := pkgArgv("apt", c.verb, c.packages, "")
-		if !ok {
-			t.Errorf("%s: not composed", c.name)
-			continue
-		}
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("%s = %s, want %s", c.name, got, c.want)
-		}
-	}
-}
-
-func TestPkgArgvFlatpak(t *testing.T) {
-	withNoSudo(t)
-	cases := []struct {
-		name string
-		verb string
-		pkg  string
-		want []string
-	}{
-		{"install", "install", "org.mozilla.firefox", []string{"flatpak", "install", "-y", "org.mozilla.firefox"}},
-		{"uninstall", "remove", "org.mozilla.firefox", []string{"flatpak", "uninstall", "-y", "org.mozilla.firefox"}},
-		{"search", "search", "zen browser", []string{"flatpak", "search", "zen browser"}},
-	}
-	for _, c := range cases {
-		got, ok := pkgArgv("flatpak", c.verb, []string{c.pkg}, "")
-		if !ok {
-			t.Errorf("%s: not composed", c.name)
-			continue
-		}
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("%s = %s, want %s", c.name, got, c.want)
-		}
-	}
-}
-
-// A search runs without sudo — elevation is only ever in the way of the
-// output the person is reading.
 func TestPkgSearchNeedsNoSudo(t *testing.T) {
 	original := pkgSudoPick
 	pkgSudoPick = func() []string { return []string{"sudo"} }
 	defer func() { pkgSudoPick = original }()
 
-	want := []string{"apt", "search", "ghostty"}
-	got, ok := pkgArgv("apt", "search", []string{"ghostty"}, "")
+	want := []string{"xbps-query", "-Rs", "ghostty"}
+	got, ok := pkgArgv("xbps", "search", []string{"ghostty"}, "")
 	if !ok || !reflect.DeepEqual(got, want) {
 		t.Errorf("search argv = %v, want %v unchanged by the sudo pick", got, want)
 	}
@@ -128,7 +76,7 @@ func TestPkgArgvNeedsPackages(t *testing.T) {
 		t.Error("an unknown backend composed")
 	}
 	// update takes exactly none, and that is also what it gets.
-	if _, ok := pkgArgv("apt", "update", nil, ""); !ok {
+	if _, ok := pkgArgv("xbps", "update", nil, ""); !ok {
 		t.Error("update with no packages is the normal form")
 	}
 }
@@ -141,7 +89,7 @@ func TestPkgMainRoutesToFlatpak(t *testing.T) {
 	fake := runnertest.New()
 	fake.On("flatpak install -y org.mozilla.firefox", runnertest.Answer{Stdout: "installed\n"})
 
-	code := pkgMain([]string{"install", "org.mozilla.firefox"}, &out, &errOut, fake.Run, "apt")
+	code := pkgMain([]string{"install", "org.mozilla.firefox"}, &out, &errOut, fake.Run, "xbps")
 	if code != exitOK {
 		t.Errorf("exit %d, want %d; stderr %q", code, exitOK, errOut.String())
 	}

@@ -1,2 +1,0 @@
-depends pkexec  # asura-pkg-add and asura-pkg-remove escalate through it; the polkit agent is asura-shell's
-depends procps  # asura-pkg-add finds out with pgrep whether dpkg is running before it honours a cancel

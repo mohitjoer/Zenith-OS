@@ -48,7 +48,7 @@ Singleton {
     readonly property var outputs: root._outputs
     readonly property var configFiles: root._configFiles
 
-    // The compositor's native overview is open (niri). False on a compositor
+    // The compositor's native overview is open. False on a compositor
     // with no overview event, so a blur gated on it simply stays off there.
     readonly property bool overviewOpen: root._overviewOpen
 

@@ -4,20 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"asura/desktop/internal/runner"
 )
 
-// The live half of `asura status`: which units are up, which versions run, and
+// The live half of `asura status`: which services are up, which versions run, and
 // with --json the report the shell shows as its Updates page.
 //
 // `asura status --json` is called by the daemon, on login and then on a timer.
 // It publishes the line this prints, unread, on its "updates" topic, and the
-// bar's update glyph and the Hub's Updates page read the fields below. The
-// names are the ones Ryoku's `status --json` used, because the QML reading them
-// is the same QML. Where Ryoku asked pacman, this asks apt.
+// bar's update glyph and the Hub's Updates page read the fields below.
 
 // updateItem is one row of the Updates page: a package and the two versions
 // it would move between.
@@ -34,43 +33,44 @@ type statusReport struct {
 	// Behind counts the Asura packages with a newer version waiting.
 	Behind  int          `json:"pendingUpdates"`
 	Updates []updateItem `json:"updates"`
-	// Recent is the history a current machine shows; apt keeps none.
+	// Recent is the history a current machine shows.
 	Recent  []updateItem `json:"recent"`
 	Channel string       `json:"channel"`
-	// Packages is the other lane: what Ubuntu's archive has waiting, kernel
-	// included. `asura update` moves Asura's own packages and nothing else,
-	// so these never make Available true.
+	// Packages is what the upstream Void repository has waiting.
 	Packages      []updateItem `json:"packages"`
 	SystemPending int          `json:"systemUpdates"`
 }
 
-// upgradable matches a line of `apt list --upgradable`:
+// xbpsUpgradable matches lines from `xbps-install -un`:
 //
-//	name/suite[,suite...] new-version arch [upgradable from: old-version]
-var upgradable = regexp.MustCompile(`^([^/\s]+)/\S+\s+(\S+)\s+\S+\s+\[upgradable from:\s+(\S+)\]`)
+//	[*] <name>-<old-version> update to <new-version> ...
+var xbpsUpgradable = regexp.MustCompile(`^(\S+?)-([0-9]\S*)\s+update to\s+(\S+)`)
 
 func parseUpgradable(output string) []updateItem {
 	var items []updateItem
 	for _, line := range strings.Split(output, "\n") {
-		if match := upgradable.FindStringSubmatch(line); match != nil {
-			items = append(items, updateItem{Name: match[1], New: match[2], Old: match[3]})
+		clean := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "[*]"))
+		if match := xbpsUpgradable.FindStringSubmatch(clean); match != nil {
+			newVer := strings.TrimRight(match[3], ",)")
+			items = append(items, updateItem{Name: match[1], Old: match[2], New: newVer})
 		}
 	}
 	return items
 }
 
-// buildStatusReport never fails: a machine without apt or dpkg reports itself as
+// buildStatusReport never fails: a machine without xbps reports itself as
 // current, which is what the page shows until there is something to say.
 func buildStatusReport(root string, run runner.Func) statusReport {
 	report := statusReport{
 		Installed: version, Latest: version,
 		Updates: []updateItem{}, Recent: []updateItem{}, Packages: []updateItem{},
+		Channel: "void",
 	}
-	if out, err := run("dpkg-query", "-W", "-f=${Version}", "asura"); err == nil && strings.TrimSpace(out) != "" {
-		report.Installed = strings.TrimSpace(out)
+	if out, err := run("xbps-query", "-p", "pkgver", "asura"); err == nil && strings.TrimSpace(out) != "" {
+		report.Installed = strings.TrimPrefix(strings.TrimSpace(out), "asura-")
 		report.Latest = report.Installed
 	}
-	if out, err := run("apt", "list", "--upgradable"); err == nil {
+	if out, err := run("xbps-install", "-un"); err == nil {
 		for _, item := range parseUpgradable(out) {
 			switch {
 			case item.Name == "asura":
@@ -86,7 +86,6 @@ func buildStatusReport(root string, run runner.Func) statusReport {
 	report.Behind = len(report.Updates)
 	report.Available = report.Behind > 0
 	report.SystemPending = len(report.Packages)
-	report.Channel, _ = aptChannel(root)
 	return report
 }
 
@@ -104,8 +103,8 @@ func statusJSON(root string, out io.Writer, run runner.Func) int {
 
 // printLiveStatus adds the lines that need the running machine.
 func printLiveStatus(out io.Writer, run runner.Func) {
-	fmt.Fprintf(out, "shell:     %s\n", unitSummary(run, "asura-shell.service"))
-	fmt.Fprintf(out, "daemon:    %s\n", unitSummary(run, "asurad.service"))
+	fmt.Fprintf(out, "shell:     %s\n", unitSummary(run, "quickshell"))
+	fmt.Fprintf(out, "daemon:    %s\n", unitSummary(run, "asurad"))
 
 	versions := []string{"asura " + version}
 	// "Quickshell 0.3.2 (revision ...)".
@@ -129,24 +128,27 @@ func firstOutput(run runner.Func, name string, args ...string) string {
 	return strings.TrimSpace(out)
 }
 
-// unitSummary is one unit's state as a phrase: "active (running)".
-func unitSummary(run runner.Func, unit string) string {
-	out, err := run("systemctl", "--user", "show", unit,
-		"-p", "LoadState", "-p", "ActiveState", "-p", "SubState", "--no-pager")
+// unitSummary is one service's state as a phrase: "active (running)", "inactive", etc.
+func unitSummary(run runner.Func, service string) string {
+	svcPath := filepath.Join(userServiceDir(), service)
+	out, err := run("sv", "status", svcPath)
 	if err != nil {
+		if strings.Contains(out, "file does not exist") || strings.Contains(err.Error(), "file does not exist") {
+			return "not installed"
+		}
 		return "unknown (the user service manager is not reachable)"
 	}
-	state := map[string]string{}
-	for _, line := range strings.Split(out, "\n") {
-		if key, value, found := strings.Cut(strings.TrimSpace(line), "="); found {
-			state[key] = value
-		}
-	}
+	line := strings.TrimSpace(out)
 	switch {
-	case state["LoadState"] == "not-found":
+	case strings.HasPrefix(line, "run:"):
+		return "active (running)"
+	case strings.HasPrefix(line, "down:"):
+		return "inactive"
+	case strings.HasPrefix(line, "want:"):
+		return "active (waiting)"
+	case strings.HasPrefix(line, "fail:") && strings.Contains(line, "file does not exist"):
 		return "not installed"
-	case state["SubState"] != "" && state["SubState"] != state["ActiveState"]:
-		return state["ActiveState"] + " (" + state["SubState"] + ")"
+	default:
+		return "active"
 	}
-	return state["ActiveState"]
 }

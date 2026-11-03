@@ -815,17 +815,28 @@ func moduleKey(module string) string {
 // is not shipped with it — and a report that said "these modules are
 // missing" about a machine whose image carries them would be a lie.
 func declaredQMLModules(root string) (map[string]bool, bool) {
-	data, err := os.ReadFile(filepath.Join(root, "system", "packages.yaml"))
+	data, err := os.ReadFile(filepath.Join(root, "system", "packages-void.yaml"))
 	if err != nil {
 		return nil, false
 	}
 
 	modules := map[string]bool{}
 	for _, name := range declaredPackages(string(data)) {
-		if !strings.HasPrefix(name, "qml6-module-") {
-			continue
+		if strings.HasPrefix(name, "qml6-module-") {
+			modules[strings.TrimPrefix(name, "qml6-module-")] = true
+		} else if strings.HasPrefix(name, "qt6-") {
+			modules[name] = true
+			if name == "qt6-declarative" {
+				modules["qtquick"] = true
+				modules["qtquick-controls"] = true
+				modules["qtquick-layouts"] = true
+				modules["qtquick-templates"] = true
+				modules["qtquick-shapes"] = true
+				modules["qtquick-effects"] = true
+			} else if name == "qt6-qt5compat" {
+				modules["qt5compat-graphicaleffects"] = true
+			}
 		}
-		modules[strings.TrimPrefix(name, "qml6-module-")] = true
 	}
 	return modules, true
 }

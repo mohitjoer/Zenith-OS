@@ -9,8 +9,8 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR=${1:-"$REPO_ROOT/build/iso-void"}
 ARCH=${ASURA_ARCH:-x86_64}
 MIRROR=${ASURA_MIRROR:-https://repo-fastly.voidlinux.org/current}
-ISO_NAME=asura-os-beta-001
-ISO_TITLE="Asura OS Beta 001"
+ISO_NAME=asura-os-x86_64
+ISO_TITLE="Asura OS x86_64"
 
 for tool in python3 git curl; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -441,7 +441,7 @@ echo "build-iso-void: building Asura Go binaries..."
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-hubd" ./cmd/asura-hubd
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-shell" ./cmd/asura-shell
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-wallpaper" ./cmd/asura-wallpaper
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/zpm" ./cmd/zpm
+	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/apm" ./cmd/apm
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-store" ./cmd/asura-store
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-agent" ./cmd/asura-agent
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-mon" ./cmd/asura-vm/mon
@@ -1052,6 +1052,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 	./mklive.sh \
 		-a "$ARCH" \
 		-b base-system \
+		-k linux-asura \
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \

@@ -1,7 +1,7 @@
 // Command asura-sysd is the privileged system daemon for Asura OS.
 //
 // It runs as root under /var/service/asura-sysd and provides a Unix socket
-// at /run/asura.sock for the unprivileged user session (asura-userd) and CLI.
+// at /run/asura/sysd.sock for the unprivileged user session (asura-userd) and CLI.
 package main
 
 import (
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	socketPath = "/run/asura.sock"
+	socketPath = "/run/asura/sysd.sock"
 	version    = "0.1-beta"
 )
 
@@ -85,6 +85,10 @@ Usage:
 }
 
 func runDaemon() {
+	if err := os.MkdirAll("/run/asura", 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "asura-sysd: failed to create /run/asura: %v\n", err)
+		os.Exit(1)
+	}
 	_ = os.Remove(socketPath)
 
 	listener, err := net.Listen("unix", socketPath)

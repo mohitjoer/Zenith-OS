@@ -59,7 +59,7 @@ func compositorConfig(t *testing.T, root string) string {
 // where.
 func packaging(t *testing.T, root string) string {
 	t.Helper()
-	body, err := os.ReadFile(filepath.Join(root, "release", "build-debs.sh"))
+	body, err := os.ReadFile(filepath.Join(root, "packaging", "xbps", "build-repo.sh"))
 	if err != nil {
 		t.Fatalf("reading the packaging script: %v", err)
 	}

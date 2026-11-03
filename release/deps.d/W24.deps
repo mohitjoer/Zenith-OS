@@ -1,5 +1,0 @@
-depends wireplumber  # wpctl: asura-volume and the volume keys drive the default sink through it
-depends jq  # asura-volume reads the Boost key (qsbar.audioBoost) out of shell.json
-recommends playerctl  # the play/pause/next/previous media keys call it; it is not installed today
-suggests usbutils  # asura-restart-audio resets a wedged USB audio device with usbreset
-recommends gammastep  # night light: asura wm act nightlight.on starts it; hyprsunset is not in the archive

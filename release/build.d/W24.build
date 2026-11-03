@@ -1,4 +1,0 @@
-system/helpers/audio/asura-volume -> /usr/bin/asura-volume
-system/helpers/audio/asura-restart-audio -> /usr/bin/asura-restart-audio
-shell/scripts/asura-cmd-nightlight -> /usr/bin/asura-cmd-nightlight
-shell/scripts/asura-eq -> /usr/bin/asura-eq

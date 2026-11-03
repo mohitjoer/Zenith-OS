@@ -18,8 +18,8 @@ const productName = "agent"
 const (
 	// binName is the executable and the CLI every QML call site runs.
 	binName = "asura-" + productName
-	// unitName is the systemd user unit that keeps the daemon up.
-	unitName = binName + ".service"
+	// unitName is the service name that keeps the daemon up.
+	unitName = binName
 	// socketName lives directly in $XDG_RUNTIME_DIR.
 	socketName = binName + ".sock"
 )

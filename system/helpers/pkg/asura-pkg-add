@@ -6,7 +6,6 @@
 #
 # Run as an ordinary user it asks pkexec to run this same file as root, so the
 # shell's polkit agent shows the prompt and no terminal or sudo is involved.
-# (Ryoku's ryoku-pkg-add ran `sudo pacman -S` and needed a terminal for it.)
 #
 # --status is for asura-store: apt's machine status goes to stdout, and a line
 # reading "cancel" on stdin stops apt-get. The caller cannot signal a root

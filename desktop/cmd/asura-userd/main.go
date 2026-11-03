@@ -4,7 +4,7 @@
 //  1. State Authority: watches ~/.config/asura/shell.json and applies themes/fonts
 //     to GTK3/4, Qt6, GSettings, and Hyprland.
 //  2. IPC Bridge: streams telemetry to Quickshell and forwards privileged calls
-//     to /run/asura.sock (asura-sysd).
+//     to /run/asura/sysd.sock (asura-sysd).
 package main
 
 import (
@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	sysSocketPath = "/run/asura.sock"
+	sysSocketPath = "/run/asura/sysd.sock"
 	version       = "0.1-beta"
 )
 

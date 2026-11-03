@@ -1,3 +1,0 @@
-# W19: Asura Agent. session/units/asura-agent.service is picked up with the other units;
-# the skills under shell/agent/skills ship with the shell tree.
-asura-agent -> /usr/bin/asura-agent

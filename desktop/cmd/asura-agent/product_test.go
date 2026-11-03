@@ -12,7 +12,7 @@ import (
 const repoRoot = "../../.."
 
 func TestProductNameDerivations(t *testing.T) {
-	if binName != "asura-"+productName || unitName != binName+".service" || socketName != binName+".sock" {
+	if binName != "asura-"+productName || unitName != binName || socketName != binName+".sock" {
 		t.Fatalf("names do not derive from productName: %s %s %s", binName, unitName, socketName)
 	}
 	if displayName != "Asura Agent" {
@@ -37,12 +37,12 @@ func TestProductNameFilesFollow(t *testing.T) {
 	if wd, _ := os.Getwd(); filepath.Base(wd) != binName {
 		t.Errorf("the cmd directory is %s, want %s", filepath.Base(wd), binName)
 	}
-	unit, err := os.ReadFile(filepath.Join(repoRoot, "session/units", unitName))
+	runScript, err := os.ReadFile(filepath.Join(repoRoot, "system/runit/user-services", binName, "run"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(unit), "ExecStart=/usr/bin/"+binName+" serve --if-enabled") {
-		t.Errorf("%s does not exec /usr/bin/%s serve --if-enabled", unitName, binName)
+	if !strings.Contains(string(runScript), "exec /usr/bin/"+binName+" serve --if-enabled") {
+		t.Errorf("%s does not exec /usr/bin/%s serve --if-enabled", binName, binName)
 	}
 	for _, p := range []string{"docs/" + productName + ".md", "shell/hub/pages/" + displayNameNoSpace() + "Page.qml", "shell/" + productName + "/skills/asura/SKILL.md"} {
 		if _, err := os.Stat(filepath.Join(repoRoot, p)); err != nil {

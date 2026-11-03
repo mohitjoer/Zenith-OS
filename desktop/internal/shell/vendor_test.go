@@ -652,16 +652,16 @@ func TestTheOverlayListStaysSmall(t *testing.T) {
 // carries — and a reader that quietly answers it wrong reports a
 // dependency the image has as a gap, and hides one it does not have.
 func TestThePackageManifestReaderFindsTheQMLPackages(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "..", "system", "packages.yaml"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "system", "packages-void.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	names := declaredPackages(string(data))
 	for _, want := range []string{
-		"qml6-module-qtquick",
-		"qml6-module-qtquick-controls",
-		"qml6-module-qtquick-layouts",
+		"qt6-declarative",
+		"qt6-multimedia",
+		"qt6-wayland",
 	} {
 		if !contains(names, want) {
 			t.Errorf("%s was not found in the package manifest", want)

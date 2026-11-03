@@ -120,7 +120,7 @@ func setPowerProfile(profile string) int {
 		return exitUsage
 	}
 
-	// Try IPC via /run/asura.sock (asura-sysd) first
+	// Try IPC via /run/asura/sysd.sock (asura-sysd) first
 	if applyViaSysd(governor, epp, profile) {
 		fmt.Printf("Power profile set to %s (via asura-sysd)\n", profile)
 		return exitOK
@@ -156,7 +156,7 @@ func setPowerProfile(profile string) int {
 }
 
 func applyViaSysd(gov, epp, profile string) bool {
-	sockPath := "/run/asura.sock"
+	sockPath := "/run/asura/sysd.sock"
 	conn, err := net.DialTimeout("unix", sockPath, 200*time.Millisecond)
 	if err != nil {
 		return false

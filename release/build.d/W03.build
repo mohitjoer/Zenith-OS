@@ -1,2 +1,0 @@
-# W03: the shell daemon and its CLI. session/units/asurad.service is picked up with the other units.
-asura-shell -> /usr/bin/asura-shell

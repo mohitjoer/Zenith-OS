@@ -1,2 +1,0 @@
-# W06: the Hub's data plane. Calls asura-power (not built) and asura-gpu (W18) only when present.
-asura-hubd -> /usr/bin/asura-hubd

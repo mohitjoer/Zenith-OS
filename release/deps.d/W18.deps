@@ -1,1 +1,0 @@
-recommends libnotify-bin  # asura-touchpad shows an on/off toast; without it the pad still flips

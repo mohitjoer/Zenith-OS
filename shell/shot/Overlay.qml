@@ -50,9 +50,7 @@ Item {
     // grim renders the same output the compositor would hand screencopy, so the
     // fallback frame lines up pixel for pixel with the layer surface above it.
     readonly property bool forceFallback: CaptureBackend.shouldUseGrim(
-        Quickshell.env("ASURA_SHOT_FORCE_FALLBACK"),
-        Quickshell.env("XDG_CURRENT_DESKTOP"),
-        Quickshell.env("NIRI_SOCKET"))
+        Quickshell.env("ASURA_SHOT_FORCE_FALLBACK"))
     property bool fallbackActive: false
     readonly property string fallbackPath: "/tmp/asura-shot-fallback-" + scrName + ".png"
 

@@ -1,17 +1,16 @@
 package main
 
-// pkg.go carries `asura pkg`, the engine zpm stands on. The two names are
-// one tool split by audience: zpm is the six letters a person types on an
+// pkg.go carries `asura pkg`, the engine apm stands on. The two names are
+// one tool split by audience: apm is the six letters a person types on an
 // install line, and `asura pkg` is the same verbs inside the control tool,
 // where every other desktop action already lives.
 //
 // Routing, from the base layer out: a package name goes through the base
-// system's package manager — xbps on the Void base, apt where the development
-// machines live — and a name that carries an application id (which is a
-// Flatpak ref, org.mozilla.firefox) goes to Flatpak. The routing is a prefix
-// rule because it is the only split that survives contact with a
-// distribution's own package set; what it will not do is guess a remote for
-// one ref and not another.
+// system's package manager — xbps on the Void base — and a name that carries an
+// application id (which is a Flatpak ref, org.mozilla.firefox) goes to Flatpak.
+// The routing is a prefix rule because it is the only split that survives contact
+// with a distribution's own package set; what it will not do is guess a remote
+// for one ref and not another.
 
 import (
 	"bytes"
@@ -29,8 +28,7 @@ const pkgUsage = `Usage: asura pkg [-flatpak] [-repo URL] verb [package...]
 
 Verbs: install, remove, search, update, upgrade.
 
-The package manager is picked by what the machine runs: xbps when the native
-base is on, apt otherwise. A package name that carries an application id
+The package manager is xbps. A package name that carries an application id
 (org.mozilla.firefox) is routed to flatpak, and --flatpak forces that; the
 route must already have its remote enabled, because nothing here chooses one.
 
@@ -40,7 +38,7 @@ password is asked for in the terminal that runs the command.
 `
 
 func init() {
-	register("pkg", "install, remove, search or move packages (the verbs zpm calls)", asuraPkg)
+	register("pkg", "install, remove, search or move packages (the verbs apm calls)", asuraPkg)
 }
 
 // pkgSudoPick decides the privilege prefix a system package manager runs
@@ -58,16 +56,10 @@ var pkgSudoPick = func() []string {
 }
 
 // pkgBackend answers the system package manager this machine runs: "xbps"
-// under the Void base, "apt" under the development base, "" when neither's
-// tools are here. It reads what is installed rather than a compiled-in
-// answer, because a machine can carry both tool families without running
-// either's base.
+// under the Void base, "" when its tools are absent.
 func pkgBackend() string {
 	if _, err := exec.LookPath("xbps-install"); err == nil {
 		return "xbps"
-	}
-	if _, err := exec.LookPath("apt-get"); err == nil {
-		return "apt"
 	}
 	return ""
 }
@@ -75,8 +67,7 @@ func pkgBackend() string {
 // pkgVerbs is the verb table per backend, WITHOUT the sudo prefix and
 // without the package names. The flags are the manager's own — xbps installs
 // with -S (sync) -y (assume-yes), asks about a repo with -R, searches with
-// xbps-query -Rs; apt splits search into `apt search` because apt-get has no
-// search verb; flatpak's three mutating verbs take -y to stay out of the way.
+// xbps-query -Rs; flatpak's three mutating verbs take -y to stay out of the way.
 //
 // Verbs that carry no packages live in pkgNeedsPackages, which is how the
 // table's shape — one row per backend-verb pair, no special cases inside —
@@ -88,13 +79,6 @@ var pkgVerbs = map[string]map[string][]string{
 		"upgrade": {"xbps-install", "-Su"},
 		"remove":  {"xbps-remove", "-y"},
 		"search":  {"xbps-query", "-Rs"},
-	},
-	"apt": {
-		"install": {"apt-get", "install", "--yes"},
-		"update":  {"apt-get", "update"},
-		"upgrade": {"apt-get", "full-upgrade", "--yes"},
-		"remove":  {"apt-get", "remove", "--yes"},
-		"search":  {"apt", "search"},
 	},
 	"flatpak": {
 		"install": {"flatpak", "install", "-y"},
@@ -187,7 +171,7 @@ func pkgMain(args []string, out, errOut io.Writer, run runner.Func, backend stri
 	argv, ok := pkgArgv(chosen, verb, packages, *repoURL)
 	if !ok {
 		if chosen == "" {
-			fmt.Fprintln(errOut, "asura pkg: neither xbps nor apt is on this machine; "+
+			fmt.Fprintln(errOut, "asura pkg: xbps is not on this machine; "+
 				"install its packages from your own package manager")
 		} else {
 			fmt.Fprintf(errOut, "asura pkg: the %s backend cannot perform %s\n", chosen, verb)
@@ -212,11 +196,7 @@ func asuraPkg(args []string) int {
 }
 
 // zenFetch is the fetch inside `asura update`: one package, the control
-// tool's own, by the locked manager the base runs. The apt lane is the code
-// the update flow has carried since it was the only lane and it is imported
-// from manage.go; the xbps lane is the same promise over the same package,
-// and its own update step syncs repositories as it installs, which is what
-// apt-get needed two commands for.
+// tool's own, by xbps.
 func zenFetch() error {
 	switch pkgBackend() {
 	case "xbps":
@@ -249,10 +229,8 @@ func zenFetch() error {
 			}
 		}
 		return nil
-	case "apt":
-		return aptFetch()
 	default:
-		return fmt.Errorf("neither xbps nor apt is installed; place Asura's packages by the means your base has")
+		return fmt.Errorf("xbps is not installed; place Asura's packages by the means your base has")
 	}
 }
 

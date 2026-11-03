@@ -2,10 +2,7 @@
 // the neutral settings store it is configured from, and the hyprlang that store
 // is rendered into.
 //
-// Ported from Ryoku's wm seam (GPL-3.0). Ryoku's seam was a client speaking JSON to
-// one provider binary per compositor; Asura runs Hyprland only, so the client
-// calls the provider in-process and the compositor-switching machinery (niri, the
-// package reclaim) is gone.
+// Asura runs Hyprland only, so the client calls the provider in-process.
 //
 // Consumers ask what the compositor can do, never which one it is.
 package wm
@@ -53,7 +50,7 @@ const (
 	// CapNightLight is set when the provider can warm the screen to a colour
 	// temperature and restore it, through the nightlight.on and nightlight.off
 	// actions. The warm gamma is held by a detached backend the provider owns
-	// (hyprsunset on Hyprland, gammastep on niri); NightLightProcess below names
+	// (hyprsunset on Hyprland); NightLightProcess below names
 	// it so a consumer can tell the light is on without knowing the compositor.
 	CapNightLight Capability = "nightLight"
 	// CapTouchpadToggle is set when the provider can lock the touchpad the FN

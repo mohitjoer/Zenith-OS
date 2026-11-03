@@ -1,7 +1,0 @@
-session/scripts/asura-workspace -> /usr/bin/asura-workspace
-session/scripts/asura-monitor -> /usr/bin/asura-monitor
-session/hyprland/shaders/bone.glsl -> /usr/share/asura/hyprland/shaders/bone.glsl
-session/hyprland/shaders/grain.glsl -> /usr/share/asura/hyprland/shaders/grain.glsl
-session/hyprland/shaders/halftone.glsl -> /usr/share/asura/hyprland/shaders/halftone.glsl
-session/hyprland/shaders/onebit.glsl -> /usr/share/asura/hyprland/shaders/onebit.glsl
-session/hyprland/shaders/vignette.glsl -> /usr/share/asura/hyprland/shaders/vignette.glsl

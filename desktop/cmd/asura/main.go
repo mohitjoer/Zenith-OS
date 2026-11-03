@@ -35,7 +35,6 @@ func main() {
 // It is a map rather than a switch because the subcommand list is also the usage
 // text, and one source for it cannot drift from the other.
 var commands = map[string]func(args []string) int{
-	"adopt":       asuraAdopt,
 	"hardware":    runHardware,
 	"update":      asuraUpdate,
 	"rollback":    asuraRollback,
@@ -95,7 +94,6 @@ Usage:
   asura <command> [flags]
 
 Commands:
-  adopt         move this machine onto the Asura session
   hardware      read this machine, and the profile database
   update        snapshot, fetch packages, re-materialize
   rollback      re-materialize the previous revision

@@ -34,7 +34,8 @@ fi
 
 grep -Fq 'system/packages-void.yaml' "$SCRIPT"
 grep -Fq 'void-linux' "$SCRIPT"
-grep -Fq 'asura-os-beta-001' "$SCRIPT"
+grep -Fq 'asura-os-x86_64' "$SCRIPT"
+grep -Fq -- '-k linux-asura' "$SCRIPT"
 grep -Fq 'LIBSEAT_BACKEND=seatd' "$SCRIPT"
 grep -Fq 'void-mklive' "$SCRIPT"
 grep -Fq 'asura-user-services' "$SCRIPT"
@@ -77,6 +78,8 @@ fi
 
 # Verify packages in packages-void.yaml
 grep -Fq 'base-system' "$MANIFEST"
+grep -Fq 'linux-asura' "$MANIFEST"
+grep -Fq 'flatpak' "$MANIFEST"
 grep -Fq 'hyprland' "$MANIFEST"
 grep -Fq 'qt6-declarative' "$MANIFEST"
 grep -Fq 'ghostty' "$MANIFEST"

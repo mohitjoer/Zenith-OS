@@ -57,7 +57,9 @@ func asuraIpc(args []string) int {
 		return exitFail
 	}
 
-	cmdline := []string{"quickshell", "ipc", "--path", path,
+	ensureIpcEnv()
+
+	cmdline := []string{"quickshell", "ipc", "--path", path, "--any-display",
 		"call", rest[0], rest[1]}
 	cmdline = append(cmdline, rest[2:]...)
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
@@ -69,6 +71,35 @@ func asuraIpc(args []string) int {
 		return exitFail
 	}
 	return exitOK
+}
+
+// ensureIpcEnv guarantees WAYLAND_DISPLAY and HYPRLAND_INSTANCE_SIGNATURE are
+// populated from runtime sockets if missing from the caller environment.
+func ensureIpcEnv() {
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir == "" {
+		runtimeDir = fmt.Sprintf("/run/user/%d", os.Getuid())
+	}
+
+	if os.Getenv("WAYLAND_DISPLAY") == "" {
+		matches, _ := filepath.Glob(filepath.Join(runtimeDir, "wayland-[0-9]*"))
+		if len(matches) > 0 {
+			_ = os.Setenv("WAYLAND_DISPLAY", filepath.Base(matches[0]))
+		}
+	}
+
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
+		hyprDir := filepath.Join(runtimeDir, "hypr")
+		entries, err := os.ReadDir(hyprDir)
+		if err == nil {
+			for i := len(entries) - 1; i >= 0; i-- {
+				if entries[i].IsDir() && strings.Contains(entries[i].Name(), "_") {
+					_ = os.Setenv("HYPRLAND_INSTANCE_SIGNATURE", entries[i].Name())
+					break
+				}
+			}
+		}
+	}
 }
 
 // findShellConfig returns the configuration the running shell was started

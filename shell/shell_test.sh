@@ -89,7 +89,7 @@ check_load() {
             echo "      $module"
         done
         echo
-        echo "      The modules the shell needs are listed in system/packages.yaml."
+        echo "      The modules the shell needs are listed in system/packages-void.yaml."
         echo "      On Ubuntu the package for a module is qml6-module- followed by"
         echo "      the module's name in lower case; on an Arch development machine"
         echo "      it is qt6- followed by the module's name in lower case."

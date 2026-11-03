@@ -29,17 +29,11 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
 		XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
 fi
 
-# 1. systemd user manager path
-if command -v systemctl >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
-	systemctl --user import-environment || true
-	systemctl --user start asura-session.target
-else
-	# 2. Void Linux / runit user supervision path
-	for cmd in /usr/share/asura/session/asura-user-services \
-		/usr/bin/asura-user-services \
-		"$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/runit/asura-user-services"; do
-		if [ -x "$cmd" ]; then
-			exec "$cmd" start
-		fi
-	done
-fi
+# Start user runit supervision
+for cmd in /usr/share/asura/session/asura-user-services \
+	/usr/bin/asura-user-services \
+	"$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/runit/asura-user-services"; do
+	if [ -x "$cmd" ]; then
+		exec "$cmd" start
+	fi
+done

@@ -42,7 +42,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Seat Management | seatd (`LIBSEAT_BACKEND=seatd`) / elogind |
 | Compositor | Hyprland (Wayland) |
 | Desktop shell | Quickshell (QML) — bar, dock, launcher, popouts, widgets. The engine is built by ASURA; the surfaces are vendored open-source components, re-themed to ASURA's monochrome design language |
-| Control tools | Go — `asura`, `asura-sysd` (root daemon at `/run/asura.sock`), `asura-userd` (session daemon), `asura-shell`, `asura-hubd`, `asura-wallpaper`, and `zpm` |
+| Control tools | Go — `asura`, `asura-sysd` (root daemon at `/run/asura/sysd.sock`), `asura-userd` (session daemon), `asura-shell`, `asura-hubd`, `asura-wallpaper`, and `apm` |
 | Settings store | GSettings schemas + dconf, one writer per setting |
 | GPU & Power | `asura gpu` (PCI inspection & `prime-run` offload), `asura power` (profiles & NVIDIA RTX 3050 D3cold management) |
 | Terminal | Ghostty — strictly supported, configured by ASURA, never kitty |
@@ -52,7 +52,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Installer | `asura install` / `asura-installer.desktop` guided system installer |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
-| Package manager | XBPS, with first-party repository `asura-xbps-repo`, plus `zpm` package manager frontend |
+| Package manager | XBPS, with first-party repository `asura-xbps-repo`, plus `apm` package manager frontend |
 | Agent layer | resident OS agent with a local knowledge vault |
 
 The desktop shell is inspired by ryoku.

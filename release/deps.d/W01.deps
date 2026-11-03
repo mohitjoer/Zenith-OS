@@ -1,3 +1,0 @@
-depends jq  # asura-workspace and asura-monitor read hyprctl's JSON
-recommends xcvt  # asura-monitor forces an unadvertised resolution through a CVT modeline; without it the mode is left as asked
-recommends playerctl  # the media-key binds; without it they do nothing

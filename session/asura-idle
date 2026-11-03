@@ -5,7 +5,7 @@
 # that hypridle.conf tests with `# hyprlang if`: a timeout of 0 (never) leaves
 # its variable unset, and its listener is skipped.
 #
-#   asura-idle start    what asura-idle.service runs
+#   asura-idle start    what asura-idle service runs
 #   asura-idle apply    restart the service if the timeouts changed since it
 #                        started; asura-shell calls this when a setting is written
 set -eu
@@ -45,8 +45,15 @@ start)
     exec hypridle -c "$conf"
     ;;
 apply)
-    [ "$(timeouts)" = "$(cat "$RUN/asura-idle.args" 2>/dev/null)" ] ||
-        systemctl --user try-restart asura-idle.service
+    if [ "$(timeouts)" != "$(cat "$RUN/asura-idle.args" 2>/dev/null)" ]; then
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl --user try-restart asura-idle.service
+        elif [ -d "${XDG_CONFIG_HOME:-$HOME/.config}/service/asura-idle" ] && command -v sv >/dev/null 2>&1; then
+            sv restart "${XDG_CONFIG_HOME:-$HOME/.config}/service/asura-idle" 2>/dev/null || true
+        else
+            pkill -x hypridle 2>/dev/null || true
+        fi
+    fi
     ;;
 *)
     echo "usage: asura-idle [start|apply]" >&2
