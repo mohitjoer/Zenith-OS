@@ -1052,7 +1052,7 @@ echo "build-iso-void: generating ISO with void-mklive..."
 	./mklive.sh \
 		-a "$ARCH" \
 		-b base-system \
-		-k linux-asura \
+		-k linux \
 		-r "$MIRROR" \
 		-p "$PACKAGES" \
 		-I "$INCLUDE_DIR" \

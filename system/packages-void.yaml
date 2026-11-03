@@ -10,13 +10,12 @@ base:
   distribution: void-linux
   arch: x86_64
   libc: glibc
-  kernel: linux-asura
+  kernel: linux
   flavor: base-system
 
 essential:
   packages:
     - base-system
-    - linux-asura
     - runit
     - runit-void
     - dbus
