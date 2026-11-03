@@ -44,7 +44,7 @@ chmod +x "$WORK/compositor"
 # whose file chooser is wrong. A stub is what lets that be asserted rather than
 # assumed.
 mkdir -p "$WORK/bin"
-for tool in systemctl dbus-update-activation-environment; do
+for tool in systemctl dbus-update-activation-environment plymouth; do
     cat > "$WORK/bin/$tool" <<STUB
 #!/bin/sh
 exit 0

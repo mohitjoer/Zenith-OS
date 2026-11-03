@@ -23,7 +23,7 @@ if command -v plymouth >/dev/null 2>&1; then
     if [ "$(id -u)" -eq 0 ]; then
         plymouth --quit 2>/dev/null || killall -9 plymouthd 2>/dev/null || true
     else
-        sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || plymouth --quit 2>/dev/null || true
+        sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
     fi
     for _ in 1 2 3 4 5; do
         plymouth --ping 2>/dev/null || break
@@ -200,7 +200,7 @@ if [ ! -e "$USER_HYPRLAND_CONF" ]; then
 # source does not exist.
 USERCONF
 fi
-for user_cfg in monitors-auto.conf monitors-user.conf settings.conf rebinds.conf user.conf; do
+for user_cfg in monitors-auto.conf monitors-user.conf settings.conf rebinds.conf user.conf vm-perf.conf; do
     [ -e "$USER_HYPRLAND_DIR/$user_cfg" ] || touch "$USER_HYPRLAND_DIR/$user_cfg"
 done
 
@@ -224,13 +224,21 @@ echo "asura-session: env ok, starting Hyprland"
 # switcher nobody can drive.
 # Auto-detect virtual machine hypervisors and configure safe DRM/EGL defaults
 if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
-   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
    lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
     echo "asura-session: VM hypervisor detected, applying high-performance VM defaults"
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export AQ_NO_MODIFIERS=1
     export AQ_NO_ATOMIC=1
     export WLR_NO_HARDWARE_CURSORS=1
+    # VirtualBox graphics adapters (VMSVGA/VBoxSVGA) do not support the modern EGL/GLES extensions
+    # required by Hyprland/Aquamarine, and fail hardware DRI2 when 3D acceleration is disabled in VM settings.
+    # Mesa llvmpipe software rasterizer provides fully compliant OpenGL 4.5/ES 3.1 and rock-solid stability.
+    if grep -qa "VirtualBox" /sys/class/dmi/id/product_name 2>/dev/null || \
+       grep -qa "VirtualBox\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+       lspci 2>/dev/null | grep -qi "VirtualBox"; then
+        export LIBGL_ALWAYS_SOFTWARE=1
+    fi
     USER_HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/asura/hyprland"
     mkdir -p "$USER_HYPR_DIR"
     cat > "$USER_HYPR_DIR/vm-perf.conf" <<'VMCFG'
@@ -269,20 +277,19 @@ HYPR_CONF="${ASURA_HYPRLAND_CONFIG:-/usr/share/asura/hyprland/hyprland.conf}"
 if echo "$COMPOSITOR" | grep -q "start-hyprland"; then
     exec "$COMPOSITOR" -- -c "$HYPR_CONF" "$@"
 else
-    # Run compositor, falling back to software rasterizer if first run exits immediately
-    START_TIME=$(date +%s)
+    # Run compositor, falling back to software rasterizer if first run exits with error
     "$COMPOSITOR" -c "$HYPR_CONF" "$@" || RC=$?
     RC=${RC:-0}
-    END_TIME=$(date +%s)
     
     if [ "$RC" -ne 0 ]; then
         echo "asura-session: compositor exited ($RC)" >&2
-        if [ $((END_TIME - START_TIME)) -le 4 ] && [ -z "${ASURA_RETRY_DONE:-}" ]; then
-            echo "asura-session: compositor exited quickly; attempting software llvmpipe/pixman fallback..." >&2
+        if [ -z "${ASURA_RETRY_DONE:-}" ]; then
+            echo "asura-session: compositor exited with error; attempting software llvmpipe fallback..." >&2
             export ASURA_RETRY_DONE=1
             export LIBGL_ALWAYS_SOFTWARE=1
             export WLR_RENDERER_ALLOW_SOFTWARE=1
             export AQ_NO_MODIFIERS=1
+            export AQ_NO_ATOMIC=1
             export WLR_NO_HARDWARE_CURSORS=1
             exec "$COMPOSITOR" -c "$HYPR_CONF" "$@"
         fi

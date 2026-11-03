@@ -997,12 +997,12 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 		asura materialize 2>/dev/null || true
 	fi
 	if command -v plymouth >/dev/null 2>&1; then
-		sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || true
+		sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
 	fi
 	printf "\033[1;37m==> Starting Asura OS graphical desktop session...\033[0m\n"
 	if ! /usr/share/asura/session/asura-session; then
 		if command -v plymouth >/dev/null 2>&1; then
-			sudo plymouth --quit 2>/dev/null || sudo killall -9 plymouthd 2>/dev/null || true
+			sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
 		fi
 		echo
 		echo "================================================================"
