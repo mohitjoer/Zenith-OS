@@ -648,6 +648,7 @@ fi
 
 # Clean up void-mklive bootstrap repository flags and force-include plymouth and VM drivers in initramfs
 if [ -f "$MKLIVE_DIR/mklive.sh" ]; then
+	sed -i 's/VOID_LIVE/ASURA_LIVE/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's/--force-add "vmklive autoinstaller"/--force-add "vmklive autoinstaller plymouth"/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's/--add-drivers "ahci"/--add-drivers "ahci vboxvideo vmwgfx virtio_gpu bochs qxl simpledrm"/g' "$MKLIVE_DIR/mklive.sh"
 	sed -i 's|--repository=https://repo-default.voidlinux.org/current/musl||g' "$MKLIVE_DIR/mklive.sh"
@@ -701,13 +702,13 @@ MENU COLOR tabmsg       * #66666666 #00000000 none
 LABEL linux
 MENU LABEL Asura OS (Live Session)
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
+APPEND initrd=/boot/initrd root=live:CDLABEL=ASURA_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
 
 LABEL linuxram
 MENU LABEL Asura OS (Copy to RAM)
 
 KERNEL /boot/vmlinuz
-APPEND initrd=/boot/initrd root=live:CDLABEL=VOID_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ rd.live.ram
+APPEND initrd=/boot/initrd root=live:CDLABEL=ASURA_LIVE init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ rd.live.ram
 
 LABEL reboot
 MENU LABEL Reboot System

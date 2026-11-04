@@ -105,7 +105,7 @@ func asuraUpdate(args []string) int {
 // It first attempts to route through the privileged asura-sysd socket.
 // If the daemon is not active, it falls back to direct xbps-install.
 func voidFetch() error {
-	fmt.Println("==> Step 2/4: Updating Void Linux system packages (XBPS)...")
+	fmt.Println("==> Step 2/4: Updating system packages (XBPS)...")
 
 	// Try sysd socket first
 	if err := runSysdPkgUpdate(); err == nil {

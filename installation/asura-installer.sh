@@ -3,6 +3,13 @@
 # Installs Asura OS onto target drive.
 set -eu
 
+DUAL_BOOT=0
+for arg in "$@"; do
+	case "$arg" in
+		--dual-boot) DUAL_BOOT=1 ;;
+	esac
+done
+
 BOLD=$(printf '\033[1m')
 DIM=$(printf '\033[2m')
 WHITE=$(printf '\033[1;37m')
@@ -120,7 +127,11 @@ fi
 sleep 2
 
 printf "${WHITE}${BOLD}[2/6] Formatting partitions...${RESET}\n"
-mkfs.vfat -F 32 -n "ASURA_ESP" "$PART_EFI" >/dev/null
+if [ "$DUAL_BOOT" -eq 1 ]; then
+	printf "  Dual-boot mode: preserving existing EFI System Partition at %s\n" "$PART_EFI"
+else
+	mkfs.vfat -F 32 -n "ASURA_ESP" "$PART_EFI" >/dev/null
+fi
 
 TARGET_DIR="/mnt/asura-target"
 mkdir -p "$TARGET_DIR"
@@ -170,8 +181,26 @@ EOF
 # Ensure live marker is removed on installed system so first-boot welcome tour triggers
 rm -f "$TARGET_DIR/etc/asura-live"
 
-# Set hostname
+# Set hostname and OS identity
 printf '%s\n' "$HOSTNAME_INPUT" > "$TARGET_DIR/etc/hostname"
+
+cat >"$TARGET_DIR/etc/os-release" <<'EOF'
+NAME="Asura OS"
+PRETTY_NAME="Asura OS Beta 001"
+ID=asura
+ID_LIKE="linux"
+VERSION_ID="0.1"
+VERSION_CODENAME=beta-001
+HOME_URL="https://asuraos.dev/"
+SUPPORT_URL="https://asuraos.dev/support"
+BUG_REPORT_URL="https://github.com/mohitjoer/ASURA-OS/issues"
+EOF
+
+# Ensure installer alias
+if [ -f "$TARGET_DIR/usr/bin/void-installer" ]; then
+	rm -f "$TARGET_DIR/usr/bin/void-installer"
+	ln -sf /usr/bin/asura-installer "$TARGET_DIR/usr/bin/void-installer"
+fi
 
 # Ensure user account exists
 if ! chroot "$TARGET_DIR" id -u "$USERNAME_INPUT" >/dev/null 2>&1; then
@@ -198,6 +227,15 @@ ZRAMCONF
 if [ -f "$TARGET_DIR/usr/lib/libmimalloc.so.3" ]; then
 	echo "/usr/lib/libmimalloc.so.3" > "$TARGET_DIR/etc/ld.so.preload"
 fi
+
+# Configure GRUB bootloader identity and dual-boot detection
+mkdir -p "$TARGET_DIR/etc/default"
+cat >"$TARGET_DIR/etc/default/grub" <<'GRUBDEF'
+GRUB_DISTRIBUTOR="Asura OS"
+GRUB_TIMEOUT=3
+GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 quiet splash"
+GRUB_DISABLE_OS_PROBER=false
+GRUBDEF
 
 printf "${WHITE}${BOLD}[6/6] Installing bootloader (GRUB EFI)...${RESET}\n"
 if [ "$IS_UEFI" -eq 1 ]; then
