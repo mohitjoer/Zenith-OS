@@ -84,7 +84,7 @@ func runAppsDefaults(w io.Writer, check bool) int {
 		fmt.Fprintf(w, "%-6s %s\n", status, fmt.Sprintf(format, a...))
 	}
 	if _, err := os.Stat(defaultsGhostty); err != nil {
-		say("fail", "not available: install ghostty (apt install ghostty)")
+		say("fail", "not available: install ghostty (xbps-install -S ghostty)")
 		return exitFail
 	}
 	failed := false

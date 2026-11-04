@@ -37,3 +37,27 @@ tlp                    # TLP power management utility, gated by LookPath in asur
 xbps-install           # Void Linux package installer, gated by LookPath in asura-sysd
 xbps-query             # Void Linux package query tool, gated in pkg.go
 zed                    # code editor, gated in asura-app
+asura-vm-fetch         # fast-path VM downloader, gated by have in asura-vmd
+bsdtar                 # archive extraction fallback, gated in stash-install.sh
+cava                   # audio visualizer, gated by command -v in QML
+ddcutil                # external monitor DDC/CI control, gated in Devices.qml
+genisoimage            # ISO creation tool fallback in asura-vmd
+gtk-update-icon-cache  # icon cache updater, gated in asura-cmd-folders
+mkisofs                # ISO creation tool fallback in asura-vmd
+openrgb                # RGB lighting controller, gated by LookPath in lighting.go
+plocate                # fast file search, gated in Find.qml
+powerprofilesctl       # power profiles daemon client, gated in asura-cmd-game-mode
+qalc                   # calculator engine, gated in asura-cmd-calc
+qemu-img               # QEMU disk image utility in asura-vmd
+quickemu               # quickemu VM runtime in asura-vmd
+quickget               # quickget VM image downloader in asura-vmd
+ryomotion              # recording motion helper, gated in scripts
+secret-tool            # Secret service credential helper, gated in ssh.go
+songrec                # song recognition utility, gated in asura-cmd-songrec
+tesseract              # OCR engine in asura-cmd-ocr
+voxtype                # speech recognition engine, gated by voiceEngine
+xdg-terminal-exec      # desktop terminal execution fallback in Dock/Launcher
+xorriso                # ISO creation utility in asura-vmd
+yt-dlp                 # media downloader in stash
+zbarimg                # QR barcode reader in asura-cmd-qr-scan
+zenity                 # graphical dialog fallback in chat/shot/vm

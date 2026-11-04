@@ -8,22 +8,19 @@ import (
 )
 
 // `asura channel get` is read by the Hub's Updates page to say which channel
-// the machine follows. `set` is not here: nothing calls it, and moving a
-// machine between channels is one line in the sources file for now.
+// the machine follows. `set` is not here: moving a machine between channels
+// is one line in the repository config file.
 
-// aptSources is the deb822 file `asura adopt` writes for Asura's repository.
-// The channel is its Suites: value, because the repository publishes each
-// channel as an apt suite (release/mkrepo.sh takes the suite as an argument).
-const aptSources = "/etc/apt/sources.list.d/asura.sources"
+// xbpsRepoConf is the repository configuration file for Void Linux XBPS.
+const xbpsRepoConf = "/etc/xbps.d/asura.conf"
 
 const channelUsage = `Usage: asura channel get [--root DIR]
 
-Prints the channel this machine follows: the Suites value of Asura's apt
-source. Only "get" exists.
+Prints the channel this machine follows: the configured repository channel for Asura OS. Only "get" exists.
 `
 
 func init() {
-	register("channel", "the apt channel this machine follows", asuraChannel)
+	register("channel", "the package repository channel this machine follows", asuraChannel)
 }
 
 func asuraChannel(args []string) int {
@@ -38,7 +35,7 @@ func asuraChannel(args []string) int {
 		return exitUsage
 	}
 
-	channel, err := aptChannel(*root)
+	channel, err := xbpsChannel(*root)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "asura channel:", err)
 		return exitFail
@@ -47,24 +44,38 @@ func asuraChannel(args []string) int {
 	return exitOK
 }
 
-// aptChannel reads the first suite out of Asura's apt source.
-func aptChannel(root string) (string, error) {
-	path := filepath.Join(root, aptSources)
+// xbpsChannel reads the channel or primary repository from Asura's XBPS configuration.
+func xbpsChannel(root string) (string, error) {
+	path := filepath.Join(root, xbpsRepoConf)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("no Asura repository is configured: %s does not exist", path)
+			alt := filepath.Join(root, "/usr/share/xbps.d/asura.conf")
+			data, err = os.ReadFile(alt)
+			if err != nil {
+				return "", fmt.Errorf("no Asura repository is configured: %s does not exist", path)
+			}
+		} else {
+			return "", err
 		}
-		return "", err
 	}
 	for _, line := range strings.Split(string(data), "\n") {
-		field, value, found := strings.Cut(line, ":")
-		if !found || !strings.EqualFold(strings.TrimSpace(field), "Suites") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "#") || trimmed == "" {
 			continue
 		}
-		if suites := strings.Fields(value); len(suites) > 0 {
-			return suites[0], nil
+		if field, value, found := strings.Cut(trimmed, "="); found {
+			f := strings.ToLower(strings.TrimSpace(field))
+			if f == "channel" {
+				return strings.TrimSpace(value), nil
+			}
+			if f == "repository" {
+				repo := strings.TrimSpace(value)
+				if repo != "" {
+					return repo, nil
+				}
+			}
 		}
 	}
-	return "", fmt.Errorf("%s names no suite", path)
+	return "", fmt.Errorf("%s names no channel or repository", path)
 }

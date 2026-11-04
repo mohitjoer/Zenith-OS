@@ -79,6 +79,7 @@ Rectangle {
     }
     property bool navigated: false
     property string query: ""
+    readonly property bool hasVoiceEngine: false
 
     // progressive disclosure: one global Advanced switch (in the rail) reveals the
     // deep knobs across every schema page. persisted like `section`, restored at
@@ -117,7 +118,7 @@ Rectangle {
             { key: "windowrules", name: "Window Rules", adv: true } ] },
         { name: "SYSTEM", items: [
             { key: "performance", name: "Performance" }, { key: "session", name: "Session" },
-            { key: "recording", name: "Recording" }, { key: "dictation", name: "Dictation" }, { key: "fastfetch", name: "Fastfetch", adv: true },
+            { key: "recording", name: "Recording" }, { key: "dictation", name: "Dictation", needs: { voiceEngine: true } }, { key: "fastfetch", name: "Fastfetch", adv: true },
             { key: "import", name: "Import config", adv: true, wired: true } ] },
         { name: "ASURA", items: [ { key: "asura", name: "Asura" } ] },
         { name: "EXTEND", items: [
@@ -455,6 +456,7 @@ Rectangle {
     function needsMet(item) {
         var n = item ? item.needs : undefined;
         if (!n) return true;
+        if (n.voiceEngine === true && !hub.hasVoiceEngine) return false;
         if (n.cap !== undefined && !Settings.supports(n.cap)) return false;
         if (n.provider === true && Settings.provider === "") return false;
         if (n.rows === true && !hub.hasModeledRow(item.key)) return false;

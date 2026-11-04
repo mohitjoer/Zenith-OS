@@ -29,19 +29,21 @@ exec-once = /usr/share/asura/session/asura-activate
 
 func TestRecommendedAbsent(t *testing.T) {
 	fake := runnertest.New().
-		// asura-desktop is not installed, so dpkg-query fails after printing.
-		On("dpkg-query -W -f=${Recommends}\n asura asura-desktop", runnertest.Answer{
-			Stdout: "hyprlock, grim (>= 1.4), foot | ghostty, wl-clipboard:any\n",
-			Err:    runnertest.Exit(1, "no packages found matching asura-desktop"),
-		}).
-		Out("dpkg-query -W -f=${Package} ${db:Status-Abbrev}",
-			"hyprlock ii \ngrim rc \nghostty ii \nbash ii \n")
+		Out("xbps-query -l",
+			"ii hyprland-0.49.0_1 Dynamic tiling Wayland compositor\n"+
+				"ii quickshell-0.0.1_1 Quickshell desktop shell\n"+
+				"ii pipewire-1.0.0_1 PipeWire audio server\n"+
+				"ii wireplumber-0.5.0_1 Session manager for PipeWire\n"+
+				"ii seatd-0.8.0_1 Seat management daemon\n"+
+				"ii NetworkManager-1.44.0_1 Network management daemon\n"+
+				"ii ghostty-1.0.0_1 Fast native terminal\n")
 
 	absent, total, err := recommendedAbsent(fake.Run)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"grim", "wl-clipboard"}; !reflect.DeepEqual(absent, want) || total != 4 {
-		t.Errorf("absent %v of %d, want %v of 4", absent, total, want)
+	// xdg-desktop-portal-hyprland is the only missing one in this mock
+	if want := []string{"xdg-desktop-portal-hyprland"}; !reflect.DeepEqual(absent, want) || total != 8 {
+		t.Errorf("absent %v of %d, want %v of 8", absent, total, want)
 	}
 }

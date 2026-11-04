@@ -42,6 +42,12 @@ essential:
     - iptables
     - iproute2
     - btrfs-progs
+    - openssh
+    - pciutils
+    - usbutils
+    - xdg-utils
+    - fontconfig
+    - file
     - plymouth
     - plymouth-data
 
@@ -77,6 +83,15 @@ desktop:
     - jq
     - ImageMagick
     - librsvg
+    - hypridle
+    - hyprpicker
+    - playerctl
+    - cliphist
+    - desktop-file-utils
+    - trash-cli
+    - lm_sensors
+    - iwd
+    - iw
     # Compositor & shell runtime libraries
     - libseat
     - pixman

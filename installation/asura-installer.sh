@@ -180,7 +180,7 @@ fi
 
 # Enable core system runit services
 mkdir -p "$TARGET_DIR/etc/runit/runsvdir/default"
-for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp asura-sysd; do
+for svc in dbus seatd udevd NetworkManager acpid turnstiled tlp zramen scx-lavd ananicy-cpp asura-sysd asura-boot-guard; do
 	if [ -d "$TARGET_DIR/etc/sv/$svc" ]; then
 		ln -sf "/etc/sv/$svc" "$TARGET_DIR/etc/runit/runsvdir/default/$svc"
 	fi

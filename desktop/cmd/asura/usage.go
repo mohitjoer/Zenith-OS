@@ -56,13 +56,17 @@ and re-materializes. The user's edits survive every step.
   --no-snapshot    skip the config snapshot
 `
 
-const rollbackUsage = `Usage: asura rollback [flags]
+const rollbackUsage = `Usage: asura rollback [flags] [snapshot-name]
 
-Restores the previous base and re-materializes. The user's edits survive; files
-the newer base added are removed, because restoring over the top is not a
-rollback.
+Restores configuration overlay (--config) or restores Btrfs root snapshots (--system).
 
-  --root DIR   operate on a tree under this directory
+Modes:
+  --config             revert ~/.config overlay to previous revision (default)
+  --system             list or restore Btrfs root snapshots
+  --list               list available config revisions and system snapshots
+
+Flags:
+  --root DIR           operate on a tree under this directory
 `
 
 const materializeUsage = `Usage: asura materialize [flags]

@@ -60,9 +60,6 @@ func enableGamerRole() int {
 			fmt.Fprintf(os.Stderr, "asura role: failed to install gaming packages: %v\n", err)
 			return exitFail
 		}
-	} else if _, err := exec.LookPath("apt-get"); err == nil {
-		_ = runCmd("sudo", "apt-get", "update")
-		_ = runCmd("sudo", "apt-get", "install", "-y", "steam-installer", "gamemode", "mangohud", "gamescope")
 	}
 
 	fmt.Println("[+] Asura OS Gaming Stack enabled successfully.")
@@ -74,8 +71,6 @@ func enableHackerRole() int {
 
 	if _, err := exec.LookPath("xbps-install"); err == nil {
 		_ = runCmd("sudo", "xbps-install", "-Sy", "podman", "distrobox", "nmap", "wireshark-qt", "aircrack-ng")
-	} else if _, err := exec.LookPath("apt-get"); err == nil {
-		_ = runCmd("sudo", "apt-get", "install", "-y", "podman", "distrobox", "nmap", "wireshark", "aircrack-ng")
 	}
 
 	if _, err := exec.LookPath("distrobox"); err == nil {
@@ -93,8 +88,6 @@ func enableDevRole() int {
 
 	if _, err := exec.LookPath("xbps-install"); err == nil {
 		_ = runCmd("sudo", "xbps-install", "-Sy", "git", "base-devel", "podman", "distrobox", "nodejs", "python3", "rustup", "lazygit", "neovim")
-	} else if _, err := exec.LookPath("apt-get"); err == nil {
-		_ = runCmd("sudo", "apt-get", "install", "-y", "build-essential", "git", "podman", "distrobox", "nodejs", "python3", "rustup", "neovim")
 	}
 
 	if _, err := exec.LookPath("distrobox"); err == nil {

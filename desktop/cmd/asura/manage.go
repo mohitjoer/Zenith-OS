@@ -38,90 +38,6 @@ func overlayPaths(rootOverride string) (overlay.Paths, error) {
 	return paths, nil
 }
 
-// asuraUpdate runs the update sequence.
-//
-// The fetch step shells out to apt, which is the one thing here that needs root
-// and the one thing that cannot be tested without it. Everything around it — the
-// snapshot, the base preservation, the re-materialization — is ordinary code
-// with tests, and it is the part where a mistake destroys somebody's work.
-func asuraUpdate(args []string) int {
-	set := newFlags("update", updateUsage)
-	var (
-		root       = set.String("root", "", "operate on a tree under this directory")
-		dryRun     = set.Bool("dry-run", false, "do the snapshot and preserve steps, fetch nothing")
-		noSnapshot = set.Bool("no-snapshot", false, "skip the config snapshot")
-	)
-	if err := set.Parse(args); err != nil {
-		return exitUsage
-	}
-
-	paths, err := overlayPaths(*root)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "asura update:", err)
-		return exitFail
-	}
-
-	var snapshot func(overlay.Paths) error
-	if !*noSnapshot {
-		snapshot = gitSnapshot
-	}
-
-	var fetch func() error
-	if !*dryRun {
-		fetch = zenFetch
-	} else {
-		fetch = nil
-	}
-
-	if err := overlay.Update(paths, snapshot, fetch); err != nil {
-		fmt.Fprintln(os.Stderr, "asura update:", err)
-		return exitFail
-	}
-
-	status, err := overlay.StatusOf(paths)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "asura update:", err)
-		return exitFail
-	}
-	fmt.Printf("updated to revision %s\n", status.Revision)
-	fmt.Printf("config materialized; %d user edit(s), %d stale, %d missing\n",
-		status.Edits, status.Stale, status.Missing)
-
-	// materialize never rewrites a user's shell.json, so the one value Asura
-	// renamed is fixed here. It is reported and never fails the update: the
-	// packages are already in.
-	if msg, err := reconcileShellConfig(filepath.Join(paths.Config, "shell.json"), true); err != nil {
-		fmt.Fprintln(os.Stderr, "asura update:", err)
-	} else if msg != "" {
-		fmt.Println(msg)
-	}
-	return exitOK
-}
-
-// asuraRollback reverts to the previous revision.
-func asuraRollback(args []string) int {
-	set := newFlags("rollback", rollbackUsage)
-	var root = set.String("root", "", "operate on a tree under this directory")
-	if err := set.Parse(args); err != nil {
-		return exitUsage
-	}
-
-	paths, err := overlayPaths(*root)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "asura rollback:", err)
-		return exitFail
-	}
-
-	restored, err := overlay.Rollback(paths)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "asura rollback:", err)
-		return exitFail
-	}
-	fmt.Printf("rolled back to revision %s (recorded %s)\n",
-		restored.ID, restored.RecordedAt.Format("2006-01-02 15:04:05Z"))
-	return exitOK
-}
-
 // asuraMaterialize re-lays the base, clobbering shipped content.
 func asuraMaterialize(args []string) int {
 	set := newFlags("materialize", materializeUsage)
@@ -273,6 +189,24 @@ func reportSessionChecks(root string, paths overlay.Paths, fix bool) int {
 	}
 	if commandsCode := reportCommands(root); commandsCode != exitOK {
 		code = commandsCode
+	}
+	if repoCode := reportVoidRepo(root); repoCode != exitOK {
+		code = repoCode
+	}
+	if runitCode := reportRunitServices(root); runitCode != exitOK {
+		code = runitCode
+	}
+	if coreSvcCode := reportCoreServices(root, fix); coreSvcCode != exitOK {
+		code = coreSvcCode
+	}
+	if audioCode := reportUserAudioServices(root, fix); audioCode != exitOK {
+		code = audioCode
+	}
+	if hyprCode := reportHyprlandVersion(root, fix); hyprCode != exitOK {
+		code = hyprCode
+	}
+	if hwCode := reportHardwarePower(root, fix); hwCode != exitOK {
+		code = hwCode
 	}
 	reportDeps(root, runner.Exec(10*time.Second))
 	return code

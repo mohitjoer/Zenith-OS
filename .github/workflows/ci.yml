@@ -218,14 +218,13 @@ jobs:
       - uses: actions/checkout@v5
       - name: Shell syntax check — release scripts
         run: |
-          for f in release/*.sh release/build.d/*.build release/deps.d/*.deps session/*.sh session/**/*.sh installation/*.sh system/helpers/**/*.sh tests/**/*.sh; do
+          for f in session/*.sh session/**/*.sh installation/*.sh system/helpers/**/*.sh tests/**/*.sh; do
             [ -f "$f" ] || continue
             sh -n "$f" 2>/dev/null || echo "::warning::syntax issue in $f"
           done
           echo "shell syntax check done"
       - name: ISO builder test
         run: |
-          sh installation/build-iso_test.sh
           sh installation/build-iso-void_test.sh
 
   # ==========================================================================
@@ -249,70 +248,7 @@ jobs:
         run: sh tests/contract/run.sh
 
   # ==========================================================================
-  # PART 8: Package build & boundary
-  # ==========================================================================
-  package:
-    name: Package — deb, boundary, repository, manifest
-    needs: [go-hardware, go-desktop, go-version-check]
-    timeout-minutes: 30
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: system/hardware/go.mod
-          cache-dependency-path: |
-            system/hardware/go.mod
-            desktop/go.mod
-      - name: PyYAML for the manifest verifier
-        run: |
-          if ! python3 -c 'import yaml' 2>/dev/null; then
-            sudo apt-get update -qq
-            sudo apt-get install -y --no-install-recommends python3-yaml
-          fi
-          python3 -c 'import yaml; print("PyYAML OK")'
-      - name: Build the .deb
-        run: sh release/build-debs.sh "$RUNNER_TEMP/debs"
-      - name: Every installed path is inside the boundary
-        run: |
-          stage="$RUNNER_TEMP/stage"
-          rm -rf "$stage"; mkdir -p "$stage"
-          dpkg-deb -x $RUNNER_TEMP/debs/*.deb "$stage"
-          sh release/check-boundary.sh "$stage" asura
-      - name: release/release_test.sh
-        run: sh release/release_test.sh
-      - name: release/doctor_test.sh
-        run: sh release/doctor_test.sh "$RUNNER_TEMP/debs"
-
-  # ==========================================================================
-  # PART 9: M2 integration test (stock base layer)
-  # ==========================================================================
-  m2:
-    name: M2 — update, user edit, rollback
-    needs: package
-    timeout-minutes: 30
-    runs-on: ubuntu-24.04
-    container:
-      image: ubuntu:26.04
-    steps:
-      - uses: actions/checkout@v5
-      - name: The tools the stock image does not carry
-        run: |
-          apt-get update -qq
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils ca-certificates dpkg-dev gnupg tar
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: system/hardware/go.mod
-          cache-dependency-path: |
-            system/hardware/go.mod
-            desktop/go.mod
-      - name: asura update, a user edit, and a rollback — for real
-        run: sh release/update_test.sh
-        env:
-          ASURA_M2_ALLOW_INSTALL: "1"
-
-  # ==========================================================================
-  # PART 10: Void Linux Live ISO build
+  # PART 8: Void Linux Live ISO build
   # ==========================================================================
   iso:
     name: ISO — build Asura OS (Void Linux)

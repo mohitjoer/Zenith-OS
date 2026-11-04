@@ -75,8 +75,8 @@ func greeterMissing() []string {
 			missing = append(missing, path+" ("+fix+")")
 		}
 	}
-	need(greeterBinary, "sudo apt install sddm", true)
-	need("/usr/bin/weston", "sudo apt install weston", true)
+	need(greeterBinary, "sudo xbps-install -S sddm", true)
+	need("/usr/bin/weston", "sudo xbps-install -S weston", true)
 	need(greeterTheme+"/Main.qml", "reinstall the asura package", false)
 	need(greeterWrapper, "reinstall the asura package", true)
 	need(greeterDropIn, "reinstall the asura package", false)
@@ -114,7 +114,7 @@ func greeterDisable() int {
 
 func greeterTest() int {
 	if _, err := os.Stat(greeterRoot + greeterBinary); err != nil {
-		fmt.Fprintln(greeterErr, "asura greeter: not available: sddm-greeter-qt6 is not installed (sudo apt install sddm)")
+		fmt.Fprintln(greeterErr, "asura greeter: not available: sddm-greeter-qt6 is not installed (sudo xbps-install -S sddm)")
 		return exitFail
 	}
 	if os.Getenv("WAYLAND_DISPLAY") == "" && os.Getenv("DISPLAY") == "" {

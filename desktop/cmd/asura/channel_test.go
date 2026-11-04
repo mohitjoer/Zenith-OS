@@ -7,24 +7,24 @@ import (
 	"testing"
 )
 
-func TestAptChannel(t *testing.T) {
+func TestXbpsChannel(t *testing.T) {
 	tests := []struct {
 		name    string
 		sources string // empty: no file at all
 		want    string
 		wantErr string
 	}{
-		{"stable", "Types: deb\nURIs: https://x\nSuites: stable\nComponents: main\n", "stable", ""},
-		{"a comment, odd case and spacing", "# Asura OS\nsuites:   testing  \nComponents: main\n", "testing", ""},
-		{"several suites: the first is the channel", "Suites: stable stable-updates\n", "stable", ""},
-		{"no Suites line", "Types: deb\nURIs: https://x\n", "", "names no suite"},
+		{"channel key", "channel=stable\nrepository=https://repo.asuraos.dev/current\n", "stable", ""},
+		{"repository key", "repository=https://repo.asuraos.dev/current\n", "https://repo.asuraos.dev/current", ""},
+		{"comment and spacing", "# Asura OS\n  repository = https://repo.asuraos.dev/testing  \n", "https://repo.asuraos.dev/testing", ""},
+		{"empty file", "# Only comments\n\n", "", "names no channel or repository"},
 		{"not configured", "", "", "no Asura repository is configured"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			root := t.TempDir()
 			if tc.sources != "" {
-				path := filepath.Join(root, aptSources)
+				path := filepath.Join(root, xbpsRepoConf)
 				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 					t.Fatal(err)
 				}
@@ -32,7 +32,7 @@ func TestAptChannel(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, err := aptChannel(root)
+			got, err := xbpsChannel(root)
 			if tc.wantErr != "" {
 				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
 					t.Fatalf("got %q, %v; want an error with %q", got, err, tc.wantErr)

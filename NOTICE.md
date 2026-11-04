@@ -11,10 +11,9 @@ notice is the honest ledge for where the code came from.
   usage dashboards, and its welcome/pin/screenshot client configs.
 - Branding in the running desktop says "ASURA". The library names inside the
   tree are the ones the imports resolve through.
-- First-party audio and image assets were not copied. The fonts and wallpapers
-  in `shell/assets/` and the splash images are Ryoku's generic component assets
-  rescinded for the transitional state; please replace them with ASURA's own
-  fonts and wallpapers at the earliest packaging opportunity.
+- First-party audio and image assets were not copied. The unlicensed third-party
+  display fonts in `shell/assets/fonts/` have been replaced with open-licensed equivalents
+  under the SIL Open Font License (Space Grotesk and JetBrains Mono Nerd Font).
 
 ## The second port: Ryoku 0.75.5-beta.20
 
@@ -94,9 +93,9 @@ shapes kit are end-4's, not Ryoku's. They are recorded in `shell/vendor/manifest
   publishing, voxtype dictation, GPU mux and passthrough, QMK lighting, the store's
   remote catalogue, the VM parallel downloader, the screenshot beautify editor and
   Rashin's resident engine.
-- Image and font files from the first port that came from Ryoku's tree and are not
-  ASURA's, and whose licences this file does not establish: the fonts in
-  `shell/assets/fonts/`, the SVGs in `shell/Ui/art/`,
+- Legacy unlicensed third-party display fonts in `shell/assets/fonts/` have been removed
+  and replaced with open-licensed fonts (Space Grotesk and JetBrains Mono Nerd Font).
+  Other image files from the first port: the SVGs in `shell/Ui/art/`,
   `shell/modules/launcher/shared/art/hands-adam.png` and the symbolic icons in
   `shell/components/icons/`. Check each before redistributing.
 

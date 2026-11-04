@@ -13,7 +13,6 @@ package main
 // for one ref and not another.
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -193,45 +192,6 @@ func pkgMain(args []string, out, errOut io.Writer, run runner.Func, backend stri
 
 func asuraPkg(args []string) int {
 	return pkgMain(args, os.Stdout, os.Stderr, runner.Exec(30*time.Minute), "")
-}
-
-// zenFetch is the fetch inside `asura update`: one package, the control
-// tool's own, by xbps.
-func zenFetch() error {
-	switch pkgBackend() {
-	case "xbps":
-		sudo := "sudo"
-		if os.Geteuid() == 0 {
-			sudo = ""
-		}
-		var syncCmd *exec.Cmd
-		if sudo != "" {
-			syncCmd = exec.Command(sudo, "xbps-install", "-S")
-		} else {
-			syncCmd = exec.Command("xbps-install", "-S")
-		}
-		syncCmd.Stdout, syncCmd.Stderr = os.Stdout, os.Stderr
-		if err := syncCmd.Run(); err != nil {
-			return fmt.Errorf("xbps-install: %w (run the update command again in a terminal to enter the password)", err)
-		}
-		// If 'asura' package exists in the repository pool, upgrade it
-		checkCmd := exec.Command("xbps-query", "-Rs", "^asura$")
-		if out, err := checkCmd.Output(); err == nil && len(bytes.TrimSpace(out)) > 0 {
-			var upCmd *exec.Cmd
-			if sudo != "" {
-				upCmd = exec.Command(sudo, "xbps-install", "-y", "-u", "asura")
-			} else {
-				upCmd = exec.Command("xbps-install", "-y", "-u", "asura")
-			}
-			upCmd.Stdout, upCmd.Stderr = os.Stdout, os.Stderr
-			if err := upCmd.Run(); err != nil {
-				return fmt.Errorf("xbps-install asura: %w", err)
-			}
-		}
-		return nil
-	default:
-		return fmt.Errorf("xbps is not installed; place Asura's packages by the means your base has")
-	}
 }
 
 func isFlatpakRef(pkg string) bool {

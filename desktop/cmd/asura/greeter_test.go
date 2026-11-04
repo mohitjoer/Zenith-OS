@@ -48,7 +48,7 @@ func TestGreeterEnableChecksThenOnlyPrints(t *testing.T) {
 	if code := asuraGreeter([]string{"enable"}); code != exitFail {
 		t.Fatalf("enable without weston exited %d, want %d", code, exitFail)
 	}
-	if !strings.Contains(errOut.String(), "sudo apt install weston") || out.Len() != 0 {
+	if !strings.Contains(errOut.String(), "sudo xbps-install -S weston") || out.Len() != 0 {
 		t.Errorf("a missing weston must be named with its fix and no command printed: %q %q", errOut, out)
 	}
 

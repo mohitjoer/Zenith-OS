@@ -218,13 +218,13 @@
       "argument": "browser"
     },
     {
-      "id": "editor",
-      "category": "apps",
-      "label": "Open the editor",
+      "id": "sidebar",
+      "category": "desktop",
+      "label": "Toggle sidebar",
       "chord": "SUPER + N",
-      "kind": "app",
-      "action": "asura-app",
-      "argument": "editor"
+      "kind": "shell",
+      "action": "togglePopover",
+      "argument": "sidebar"
     },
     {
       "id": "notes",

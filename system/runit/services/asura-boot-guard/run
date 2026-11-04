@@ -1,0 +1,48 @@
+#!/bin/sh
+# asura-boot-guard: monitors core runit daemon readiness and tracks boot success.
+# Marks a boot as successful once seatd and asura-sysd are healthy.
+exec 2>&1
+
+STATUS_DIR="/var/lib/asura"
+STATUS_FILE="$STATUS_DIR/boot-status"
+
+mkdir -p "$STATUS_DIR"
+
+# Wait for seatd and asura-sysd readiness (max 30s)
+ready=0
+for i in $(seq 1 30); do
+    seatd_ok=0
+    sysd_ok=0
+
+    if [ -S /run/seatd.sock ] || sv status seatd 2>/dev/null | grep -q "^run:"; then
+        seatd_ok=1
+    fi
+
+    if [ -S /run/asura/sysd.sock ] || sv status asura-sysd 2>/dev/null | grep -q "^run:"; then
+        sysd_ok=1
+    fi
+
+    if [ "$seatd_ok" -eq 1 ] && [ "$sysd_ok" -eq 1 ]; then
+        ready=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$ready" -eq 1 ]; then
+    printf "status=success\nlast_boot=%s\nfailed_count=0\nkernel=%s\n" \
+        "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" "$(uname -r)" > "$STATUS_FILE"
+    echo "asura-boot-guard: core system services verified healthy"
+else
+    prev_fail=0
+    if [ -f "$STATUS_FILE" ]; then
+        prev_fail=$(grep '^failed_count=' "$STATUS_FILE" 2>/dev/null | cut -d= -f2 || echo 0)
+    fi
+    fail_count=$((prev_fail + 1))
+    printf "status=degraded\nlast_check=%s\nfailed_count=%d\nkernel=%s\n" \
+        "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" "$fail_count" "$(uname -r)" > "$STATUS_FILE"
+    echo "asura-boot-guard: WARNING: core services (seatd/asura-sysd) failed health check"
+fi
+
+exec pause 2>/dev/null || exec sleep infinity
+

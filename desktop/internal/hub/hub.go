@@ -57,6 +57,17 @@ var Pages = []Page{
 			"org.asura.desktop.idle-lock-seconds",
 		},
 	},
+	{
+		Slug:    "desktop",
+		Title:   "Desktop & Dock",
+		Summary: "Bar and dock placement, autohide, and pinned favorite applications",
+		Keys: []string{
+			"org.asura.shell.bar-position",
+			"org.asura.shell.dock-position",
+			"org.asura.shell.dock-autohide",
+			"org.asura.shell.favorites",
+		},
+	},
 }
 
 // Unread lists the settings that have a command and no page, because nothing in
@@ -73,12 +84,8 @@ var Unread = map[string]string{
 	"org.asura.desktop.color-scheme":      "read once by asura-wallpaper to pick a fresh account's starting wallpaper, never again",
 	"org.asura.shell.wallpaper-path":      "read once by asura-wallpaper for a fresh account's starting wallpaper, never again",
 	"org.asura.shell.wallpaper-path-dark": "read once by asura-wallpaper for a fresh account's starting wallpaper, never again",
-	"org.asura.shell.bar-position":        "no reader",
 	"org.asura.shell.bar-height":          "no reader",
 	"org.asura.shell.bar-widgets":         "read only by the legacy shell's Bar.qml",
-	"org.asura.shell.dock-position":       "no reader",
-	"org.asura.shell.dock-autohide":       "read only by the legacy shell's Dock.qml",
-	"org.asura.shell.favorites":           "read only by the legacy shell's Dock.qml",
 	"org.asura.shell.launcher-apps":       "read only by the legacy shell's Launcher.qml",
 	"org.asura.shell.launcher-columns":    "no reader",
 }
