@@ -28,14 +28,14 @@ func installedTree(t *testing.T) RegistrationEnv {
 
 	// Each unit points at its own binary, so the check has to read each rather
 	// than find the same target in both. The binaries are the base layer's, not
-	// Zenith's, and they are absent from this tree: the check saying so is the
+	// Asura's, and they are absent from this tree: the check saying so is the
 	// point.
-	writeFile(t, filepath.Join(root, "/usr/share/zenith/units/zenith-shell.service"),
-		"[Service]\nExecStart=/usr/bin/quickshell -p /usr/share/zenith/shell\n")
-	writeFile(t, filepath.Join(root, "/usr/share/zenith/units/zenith-portal.service"),
+	writeFile(t, filepath.Join(root, "/usr/share/asura/units/asura-shell.service"),
+		"[Service]\nExecStart=/usr/bin/quickshell -p /usr/share/asura/shell\n")
+	writeFile(t, filepath.Join(root, "/usr/share/asura/units/asura-portal.service"),
 		"[Service]\nExecStart=/usr/libexec/xdg-desktop-portal\n")
-	mkdirAll(t, filepath.Join(root, "/usr/share/zenith/shell"))
-	mkdirAll(t, filepath.Join(root, "/usr/share/zenith/portal"))
+	mkdirAll(t, filepath.Join(root, "/usr/share/asura/shell"))
+	mkdirAll(t, filepath.Join(root, "/usr/share/asura/portal"))
 
 	return RegistrationEnv{Root: root}
 }
@@ -47,7 +47,7 @@ Description=test
 
 [Service]
 Type=exec
-ExecStart=/usr/share/zenith/shell/zenith-shell
+ExecStart=/usr/share/asura/shell/asura-shell
 `
 
 func writeFile(t *testing.T, path, body string) {
@@ -72,14 +72,14 @@ func mkdirAll(t *testing.T, path string) {
 // someone adding one line to a packaging script.
 func TestEveryRegistrationIsSanctioned(t *testing.T) {
 	allowed := map[string]bool{
-		"/usr/share/wayland-sessions/zenith.desktop":                     true,
-		"/usr/share/xdg-desktop-portal/zenith-portals.conf":              true,
-		"/usr/lib/systemd/user/zenith-shell.service":                     true,
-		"/usr/lib/systemd/user/zenith-portal.service":                    true,
-		"/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf": true,
-		"/etc/sddm.conf.d/10-zenith.conf":                                true,
-		"/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml":       true,
-		"/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml":     true,
+		"/usr/share/wayland-sessions/asura.desktop":                 true,
+		"/usr/share/xdg-desktop-portal/asura-portals.conf":          true,
+		"/usr/lib/systemd/user/asura-shell.service":                 true,
+		"/usr/lib/systemd/user/asura-portal.service":                true,
+		"/usr/lib/systemd/user/asura-session.target":                true,
+		"/etc/sddm.conf.d/10-asura.conf":                            true,
+		"/usr/share/glib-2.0/schemas/org.asura.shell.gschema.xml":   true,
+		"/usr/share/glib-2.0/schemas/org.asura.desktop.gschema.xml": true,
 	}
 
 	for _, registration := range registrations {
@@ -91,12 +91,12 @@ func TestEveryRegistrationIsSanctioned(t *testing.T) {
 				registration.Path)
 		}
 		// An empty target is a registration whose content is not written yet.
-		// When there is one, it still has to live under /usr/share/zenith/ —
+		// When there is one, it still has to live under /usr/share/asura/ —
 		// a registration is a pointer and its content belongs there.
 		if registration.Target != "" &&
-			!strings.HasPrefix(registration.Target, "/usr/share/zenith/") {
+			!strings.HasPrefix(registration.Target, "/usr/share/asura/") {
 			t.Errorf("%s points at %s; a registration is a pointer and its content "+
-				"belongs under /usr/share/zenith/",
+				"belongs under /usr/share/asura/",
 				registration.Path, registration.Target)
 		}
 	}
@@ -115,7 +115,7 @@ func TestCheckRegistrationsPassesOnACompleteTree(t *testing.T) {
 func TestMissingRegistrationIsNamed(t *testing.T) {
 	env := installedTree(t)
 	if err := os.RemoveAll(filepath.Join(env.Root,
-		"/usr/share/wayland-sessions/zenith.desktop")); err != nil {
+		"/usr/share/wayland-sessions/asura.desktop")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,14 +137,14 @@ func TestMissingRegistrationIsNamed(t *testing.T) {
 func TestRegistrationWithMissingTargetIsNamed(t *testing.T) {
 	env := installedTree(t)
 	if err := os.RemoveAll(filepath.Join(env.Root,
-		"/usr/share/zenith/session/zenith-portals.conf")); err != nil {
+		"/usr/share/asura/session/asura-portals.conf")); err != nil {
 		t.Fatal(err)
 	}
 
 	findings := CheckRegistrations(env)
 	found := false
 	for _, finding := range findings {
-		if finding.Path == "/usr/share/xdg-desktop-portal/zenith-portals.conf" {
+		if finding.Path == "/usr/share/xdg-desktop-portal/asura-portals.conf" {
 			found = true
 			if !finding.Installed {
 				t.Error("a registration whose target is missing was reported as " +
@@ -162,13 +162,13 @@ func TestExecStartTargetIsExtracted(t *testing.T) {
 	dir := t.TempDir()
 	unit := filepath.Join(dir, "x.service")
 	body := "[Unit]\nDescription=x\n\n[Service]\nType=exec\n" +
-		"ExecStart=/usr/share/zenith/shell/zenith-shell\nRestart=on-failure\n"
+		"ExecStart=/usr/share/asura/shell/asura-shell\nRestart=on-failure\n"
 	if err := os.WriteFile(unit, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	target, ok := ExecStartTarget("", unit)
-	if !ok || target != "/usr/share/zenith/shell/zenith-shell" {
+	if !ok || target != "/usr/share/asura/shell/asura-shell" {
 		t.Errorf("ExecStartTarget = %q, %v", target, ok)
 	}
 
@@ -220,5 +220,37 @@ func TestUnitsPassWhenTheirBinariesExist(t *testing.T) {
 
 	if findings := CheckUnits(env); len(findings) != 0 {
 		t.Errorf("a complete unit tree reported findings: %v", findings)
+	}
+}
+
+// A unit another lane adds is checked without this package being edited for
+// it: it has to be registered, and what it runs has to exist. The prefix
+// systemd allows in front of the path is not part of the path.
+func TestShippedUnitsBeyondTheClosedListAreChecked(t *testing.T) {
+	env := installedTree(t)
+	writeFile(t, filepath.Join(env.Root, "/usr/share/asura/units/asurad.service"),
+		"[Service]\nExecStart=-/usr/bin/asura-shell daemon\n")
+
+	reasons := map[string]string{}
+	for _, finding := range append(CheckRegistrations(env), CheckUnits(env)...) {
+		reasons[finding.Name] += finding.Reason + ";"
+	}
+	got := reasons["asurad.service"]
+	if !strings.Contains(got, "not installed") || !strings.Contains(got, "/usr/bin/asura-shell, which does not exist") {
+		t.Fatalf("the new unit was not checked in both ways: %q", got)
+	}
+
+	writeFile(t, filepath.Join(env.Root, "/usr/lib/systemd/user/asurad.service"), "[Unit]\n")
+	mkdirAll(t, filepath.Join(env.Root, "/usr/bin"))
+	writeFile(t, filepath.Join(env.Root, "/usr/bin/asura-shell"), "#!/bin/sh\n")
+	for _, finding := range CheckRegistrations(env) {
+		if finding.Name == "asurad.service" {
+			t.Errorf("a registered unit is still reported: %+v", finding)
+		}
+	}
+	for _, finding := range CheckUnits(env) {
+		if finding.Name == "asurad.service" {
+			t.Errorf("a unit whose binary exists is still reported: %+v", finding)
+		}
 	}
 }

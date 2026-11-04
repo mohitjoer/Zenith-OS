@@ -1,5 +1,5 @@
 // Package report renders a machine's detection result into the shapes
-// `zenith hardware report` produces.
+// `asura hardware report` produces.
 //
 // Every renderer here runs the redaction sweep before returning bytes. That is
 // not a wrapper around the package — it is the package's contract: a renderer

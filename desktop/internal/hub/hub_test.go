@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zenith/desktop/internal/settings"
+	"asura/desktop/internal/settings"
 )
 
 // realCatalogue is the settings this project actually ships.
@@ -68,9 +68,9 @@ func TestPagesAreWellFormed(t *testing.T) {
 // command line: it exists, it works, and it is undiscoverable.
 func TestSettingWithNoPageIsFound(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, "org.zenith.test.gschema.xml", `<?xml version="1.0"?>
+	write(t, root, "org.asura.test.gschema.xml", `<?xml version="1.0"?>
 <schemalist>
-  <schema id="org.zenith.test" path="/org/zenith/test/">
+  <schema id="org.asura.test" path="/org/asura/test/">
     <key name="orphan" type="b"><default>false</default></key>
   </schema>
 </schemalist>`)
@@ -83,7 +83,7 @@ func TestSettingWithNoPageIsFound(t *testing.T) {
 	findings := Check(catalogue)
 	found := false
 	for _, f := range findings {
-		if f.Ref == "org.zenith.test.orphan" {
+		if f.Ref == "org.asura.test.orphan" {
 			found = true
 		}
 	}
@@ -101,9 +101,9 @@ func TestSettingWithNoPageIsFound(t *testing.T) {
 func TestPageShowingASettingThatDoesNotExist(t *testing.T) {
 	root := t.TempDir()
 	// Every setting the pages name, except one.
-	write(t, root, "org.zenith.test.gschema.xml", `<?xml version="1.0"?>
+	write(t, root, "org.asura.test.gschema.xml", `<?xml version="1.0"?>
 <schemalist>
-  <schema id="org.zenith.desktop" path="/org/zenith/desktop/">
+  <schema id="org.asura.desktop" path="/org/asura/desktop/">
     <key name="color-scheme" type="s"><default>''</default></key>
   </schema>
 </schemalist>`)
@@ -135,8 +135,8 @@ func TestTwoPagesOwningOneSettingIsFound(t *testing.T) {
 	defer func() { Pages = saved }()
 
 	Pages = []Page{
-		{Slug: "one", Title: "One", Keys: []string{"org.zenith.desktop.color-scheme"}},
-		{Slug: "two", Title: "Two", Keys: []string{"org.zenith.desktop.color-scheme"}},
+		{Slug: "one", Title: "One", Keys: []string{"org.asura.desktop.color-scheme"}},
+		{Slug: "two", Title: "Two", Keys: []string{"org.asura.desktop.color-scheme"}},
 	}
 
 	findings := Check(realCatalogue(t))
@@ -151,15 +151,44 @@ func TestTwoPagesOwningOneSettingIsFound(t *testing.T) {
 	}
 }
 
+// TestUnreadListStaysTrue keeps the exception to the invariant honest.
+//
+// A setting on the Unread list has no page on purpose. If it is also on a page
+// the list is wrong, and if no schema declares it the entry is a leftover; either
+// way the list would go on excusing settings it no longer describes.
+func TestUnreadListStaysTrue(t *testing.T) {
+	savedPages, savedUnread := Pages, Unread
+	defer func() { Pages, Unread = savedPages, savedUnread }()
+
+	Pages = []Page{{Slug: "one", Title: "One",
+		Keys: []string{"org.asura.desktop.idle-dim-seconds"}}}
+	Unread = map[string]string{
+		"org.asura.desktop.idle-dim-seconds": "on a page as well",
+		"org.asura.shell.no-such-key":        "declared by no schema",
+	}
+
+	var onBoth, leftover bool
+	for _, f := range Check(realCatalogue(t)) {
+		onBoth = onBoth || strings.Contains(f.Reason, "on the Unread list; a setting")
+		leftover = leftover || strings.Contains(f.Reason, "no schema declares it; delete")
+	}
+	if !onBoth {
+		t.Error("a setting on a page and on the Unread list was not reported")
+	}
+	if !leftover {
+		t.Error("an Unread entry that no schema declares was not reported")
+	}
+}
+
 // TestQualifiedRefSplitsOnTheLastDot covers the parse.
 //
 // Schema ids contain dots and key names cannot, so the last dot is the separator.
-// Splitting on the first produces schema "org" and key "zenith.shell.bar-height",
+// Splitting on the first produces schema "org" and key "asura.shell.bar-height",
 // and the resulting error is about a schema that does not exist rather than about
 // the typo that caused it.
 func TestQualifiedRefSplitsOnTheLastDot(t *testing.T) {
-	ref := qualifiedRef("org.zenith.shell.bar-height")
-	if ref.Schema != "org.zenith.shell" || ref.Key != "bar-height" {
+	ref := qualifiedRef("org.asura.shell.bar-height")
+	if ref.Schema != "org.asura.shell" || ref.Key != "bar-height" {
 		t.Errorf("qualifiedRef = %+v", ref)
 	}
 
@@ -214,9 +243,9 @@ func TestEverySettingTypeHasAControl(t *testing.T) {
 // new schema key of a type nothing maps.
 func TestTypeWithNoControlIsFound(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, "org.zenith.test.gschema.xml", `<?xml version="1.0"?>
+	write(t, root, "org.asura.test.gschema.xml", `<?xml version="1.0"?>
 <schemalist>
-  <schema id="org.zenith.test" path="/org/zenith/test/">
+  <schema id="org.asura.test" path="/org/asura/test/">
     <key name="opacity" type="d"><default>1.0</default></key>
   </schema>
 </schemalist>`)
@@ -267,7 +296,7 @@ func TestControlNoSettingUsesIsFound(t *testing.T) {
 // of those names. Treating it as a number gives the user a spin box that counts
 // through colours they cannot see.
 func TestEnumIsAControlChoiceNotANumber(t *testing.T) {
-	control, ok := ControlFor("i", "org.zenith.shell.Edge")
+	control, ok := ControlFor("i", "org.asura.shell.Edge")
 	if !ok || control != "choice" {
 		t.Errorf("an enum-typed key maps to %q, %v; want a choice", control, ok)
 	}

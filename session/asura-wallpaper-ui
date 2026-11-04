@@ -1,0 +1,20 @@
+#!/bin/sh
+# The wallpaper picker's window, started by hand. The asura-wallpaper daemon
+# keeps its own resident copy and flips it with `asura-wallpaper wallpaper ui`;
+# this is the same program for a development tree or a launcher entry.
+#
+# A wrapper for the reason asura-hub is one: `quickshell -p` on the entry file
+# at the shell root is the whole program, and the entry file has to be there
+# because a Quickshell configuration's root is the directory of the file it is
+# started on, and `qs.*` imports resolve only from the shell root.
+set -eu
+
+QUICKSHELL_BIN=${ASURA_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=${ASURA_WALLPAPER_QML:-/usr/share/asura/shell/wallpaper-ui.qml}
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "asura-wallpaper-ui: $QUICKSHELL_BIN is not installed." >&2
+    exit 1
+fi
+
+ASURA_WALLPAPER_START_VISIBLE=1 exec "$QUICKSHELL_BIN" -p "$ENTRY"

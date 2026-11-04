@@ -11,7 +11,7 @@ import (
 //
 // The architecture record enforces the base-layer boundary as a closed list
 // rather than an absolute, because a handful of files must live outside
-// /usr/share/zenith/ and /etc/zenith/: a systemd unit directory, a GLib schema
+// /usr/share/asura/ and /etc/asura/: a systemd unit directory, a GLib schema
 // directory, the login manager's fixed config directory. Those files are
 // registrations, and a registration is a pointer and never a place to put
 // content.
@@ -36,57 +36,57 @@ type Registration struct {
 // registrations are the pointers this milestone ships, and the fixed directory
 // each one has to live in.
 //
-// The list is the reason the check can be mechanical: "everything Zenith
+// The list is the reason the check can be mechanical: "everything Asura
 // registers outside its own two directories" is a closed set, so a registration
 // that is not on it is a finding rather than something nobody thought to look.
 var registrations = []Registration{
 	{
 		Name:       "session file",
-		Path:       "/usr/share/wayland-sessions/zenith.desktop",
-		Target:     "/usr/share/zenith/session/zenith.desktop",
+		Path:       "/usr/share/wayland-sessions/asura.desktop",
+		Target:     "/usr/share/asura/session/asura.desktop",
 		Sanctioned: true,
 	},
 	{
 		Name:       "portal preference",
-		Path:       "/usr/share/xdg-desktop-portal/zenith-portals.conf",
-		Target:     "/usr/share/zenith/session/zenith-portals.conf",
+		Path:       "/usr/share/xdg-desktop-portal/asura-portals.conf",
+		Target:     "/usr/share/asura/session/asura-portals.conf",
 		Sanctioned: true,
 	},
 	{
 		Name:       "shell unit",
-		Path:       "/usr/lib/systemd/user/zenith-shell.service",
-		Target:     "/usr/share/zenith/units/zenith-shell.service",
+		Path:       "/usr/lib/systemd/user/asura-shell.service",
+		Target:     "/usr/share/asura/units/asura-shell.service",
 		Sanctioned: true,
 	},
 	{
 		Name:       "portal unit",
-		Path:       "/usr/lib/systemd/user/zenith-portal.service",
-		Target:     "/usr/share/zenith/units/zenith-portal.service",
+		Path:       "/usr/lib/systemd/user/asura-portal.service",
+		Target:     "/usr/share/asura/units/asura-portal.service",
 		Sanctioned: true,
 	},
 	{
-		Name:       "session target drop-in",
-		Path:       "/usr/lib/systemd/user/hyprland-session.target.d/10-zenith.conf",
-		Target:     "/usr/share/zenith/units/hyprland-session.target.d-10-zenith.conf",
+		Name:       "session target",
+		Path:       "/usr/lib/systemd/user/asura-session.target",
+		Target:     "/usr/share/asura/units/asura-session.target",
 		Sanctioned: true,
 	},
 	{
 		Name:       "shell schema",
-		Path:       "/usr/share/glib-2.0/schemas/org.zenith.shell.gschema.xml",
+		Path:       "/usr/share/glib-2.0/schemas/org.asura.shell.gschema.xml",
 		Target:     "",
 		Sanctioned: true,
 	},
 	{
 		Name:       "desktop schema",
-		Path:       "/usr/share/glib-2.0/schemas/org.zenith.desktop.gschema.xml",
+		Path:       "/usr/share/glib-2.0/schemas/org.asura.desktop.gschema.xml",
 		Target:     "",
 		Sanctioned: true,
 	},
 	{
 		Name: "login manager preferences",
-		Path: "/etc/sddm.conf.d/10-zenith.conf",
+		Path: "/etc/sddm.conf.d/10-asura.conf",
 		// No target yet, because there is no greeter. The drop-in's whole
-		// purpose is DisplayServer=wayland with CompositorCommand=zenith-greeter,
+		// purpose is DisplayServer=wayland with CompositorCommand=asura-greeter,
 		// and shipping it before the greeter exists would take the login screen
 		// down rather than leave it alone: SDDM has no way to start a Wayland
 		// greeter that is not there. It is registered here so the gap is visible
@@ -135,7 +135,7 @@ func CheckRegistrations(env RegistrationEnv) []RegistrationFinding {
 			findings = append(findings, RegistrationFinding{
 				Name: registration.Name,
 				Path: registration.Path,
-				Reason: "this path is outside /usr/share/zenith/ and /etc/zenith/ " +
+				Reason: "this path is outside /usr/share/asura/ and /etc/asura/ " +
 					"and is not on the sanctioned list in docs/architecture.md",
 			})
 			continue
@@ -168,7 +168,46 @@ func CheckRegistrations(env RegistrationEnv) []RegistrationFinding {
 		}
 	}
 
+	// A unit the package ships beyond the closed list (the daemon, the wallpaper
+	// engine) is registered the same way and fails the same way when it is not.
+	for _, name := range shippedUnits(env) {
+		if _, err := os.Stat(env.path(unitRegistrationDir + name)); err != nil {
+			findings = append(findings, RegistrationFinding{
+				Name:   name,
+				Path:   unitRegistrationDir + name,
+				Reason: "not installed; the package that should write it did not",
+			})
+		}
+	}
+
 	return findings
+}
+
+// unitRegistrationDir is where systemd --user loads units from.
+const unitRegistrationDir = "/usr/lib/systemd/user/"
+
+// shippedUnits lists the unit files the package ships under
+// /usr/share/asura/units beyond the ones the closed list above names. A later
+// lane adding a unit is then checked without this file being edited for it.
+func shippedUnits(env RegistrationEnv) []string {
+	known := map[string]bool{}
+	for _, registration := range registrations {
+		if registration.Target != "" {
+			known[filepath.Base(registration.Target)] = true
+		}
+	}
+	entries, err := os.ReadDir(env.path("/usr/share/asura/units"))
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if (strings.HasSuffix(name, ".service") || strings.HasSuffix(name, ".target")) && !known[name] {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 // Registrations returns the registrations, for a report that wants to show what
@@ -196,10 +235,11 @@ func ExecStartTarget(root, unitPath string) (string, bool) {
 			continue
 		}
 		// A prefixed ExecStart= carries an argument character; the executable is
-		// still the first field.
+		// still the first field. systemd.exec(5) allows @ - : + ! in front of
+		// the path, and a unit that says -/usr/bin/x runs /usr/bin/x.
 		value = strings.TrimSpace(value)
 		if fields := strings.Fields(value); len(fields) > 0 {
-			return fields[0], true
+			return strings.TrimLeft(fields[0], "@-:+!"), true
 		}
 	}
 	return "", false
@@ -216,8 +256,13 @@ func CheckUnits(env RegistrationEnv) []RegistrationFinding {
 	var findings []RegistrationFinding
 
 	units := []struct{ name, path string }{
-		{"zenith-shell.service", "/usr/share/zenith/units/zenith-shell.service"},
-		{"zenith-portal.service", "/usr/share/zenith/units/zenith-portal.service"},
+		{"asura-shell.service", "/usr/share/asura/units/asura-shell.service"},
+		{"asura-portal.service", "/usr/share/asura/units/asura-portal.service"},
+	}
+	for _, name := range shippedUnits(env) {
+		if strings.HasSuffix(name, ".service") {
+			units = append(units, struct{ name, path string }{name, "/usr/share/asura/units/" + name})
+		}
 	}
 
 	for _, unit := range units {
@@ -241,14 +286,14 @@ func CheckUnits(env RegistrationEnv) []RegistrationFinding {
 		}
 	}
 
-	// The shell's own content. `quickshell -p /usr/share/zenith/shell` exits
+	// The shell's own content. `quickshell -p /usr/share/asura/shell` exits
 	// cleanly and immediately when that directory is empty or missing, so a
 	// missing config directory produces no error from the unit, no entry in the
 	// journal beyond a line nobody reads, and a login with no shell on it. It is
 	// checked here for the same reason the ExecStart targets are: a missing input
 	// is only visible before the login, not during it.
 	findings = append(findings, checkDirectory(env, "shell configuration",
-		"/usr/share/zenith/shell")...)
+		"/usr/share/asura/shell")...)
 
 	return findings
 }

@@ -1,0 +1,25 @@
+# Asura session registration.
+#
+# Packaged at /usr/share/asura/session/asura.desktop and materialized to
+# /usr/share/wayland-sessions/asura.desktop, which is a registration on the
+# sanctioned list: the login manager scans that fixed directory and nowhere else.
+#
+# Three lines carry the design, and each of them is load-bearing:
+#
+#   Exec=             the session entry point is Asura's own script, run from
+#                     the packaged base rather than from a copy in the user's
+#                     home, so a machine cannot be broken by editing it there
+#   DesktopNames=     Asura, not GNOME. The login manager groups by this, and
+#                     the portal dispatcher derives its per-desktop
+#                     configuration file name from it. Anything else makes a
+#                     display manager treat a Asura session as its own.
+#   wayland-sessions  the directory decides the session type: XDG_SESSION_TYPE
+#                     is wayland for a file here and x11 for one in xsessions.
+[Desktop Entry]
+Type=Application
+Name=Asura
+Comment=Asura desktop
+TryExec=/usr/share/asura/session/asura-session
+Exec=/usr/share/asura/session/asura-session
+DesktopNames=Asura
+Keywords=Hyprland;Quickshell;

@@ -1,6 +1,6 @@
-# Zenith OS — Agent Guidelines
+# ASURA OS — Agent Guidelines
 
-Zenith's master agent contract. `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` are pointers to this
+ASURA's master agent contract. `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` are pointers to this
 file. Everything below is binding unless it says otherwise.
 
 Those three are symlinks, created once per clone and deliberately untracked — which agent you run
@@ -14,21 +14,28 @@ ln -s agents/agents.md CLAUDE.md
 ln -s agents/agents.md GEMINI.md
 ```
 
-## What Zenith is
+## What ASURA is
 
-Zenith's wordmark is **天** — *zenith* — healthy, robust, strong. Use it as the logo and as the
-project's name in prose: "Zenith", never "Zenith's" as a possessive of an acronym, never anything
+ASURA's wordmark is *asura* — healthy, robust, strong. Use it as the logo and as the
+project's name in prose: "ASURA", never "ASURA's" as a possessive of an acronym, never anything
 else.
 
-Zenith is a Linux distribution. Its **base layer** is Ubuntu 26.04 LTS; everything above that
-line is Zenith's own. Hyprland is the compositor and a Quickshell-drawn shell is the desktop;
-Go binaries (`zenith`, `zenith-shell`, `zenith-hub`) own the settings; GSettings schemas and dconf are
-the store. **There is no GNOME in Zenith** — no GNOME Shell, no GNOME daemons, no
+ASURA is a Linux distribution. Its **base layer** is Void Linux x86_64 (glibc); everything above that
+line is ASURA's own. Hyprland is the compositor and a Quickshell-drawn shell is the desktop;
+Go binaries (`asura`, `asurad`, `asura-hub`) own the settings; GSettings schemas and dconf are
+the store. **There is no GNOME in ASURA** — no GNOME Shell, no GNOME daemons, no
 `xdg-desktop-portal-gnome`.
 
 Before designing or changing anything, read [`docs/architecture.md`](../docs/architecture.md).
-It maps every layer to its owner and explains why Zenith is built this way and not another way.
+It maps every layer to its owner and explains why ASURA is built this way and not another way.
 Do not re-derive decisions that are already recorded there.
+
+The shell's **surfaces** are not all ASURA's. A vendored tree of open-source Quickshell
+components lives under `shell/modules/` and `shell/services/`, kept byte-identical to a
+pinned upstream commit. ASURA owns the engine, the design system, the settings binding and
+the three overlay files that carry both into the vendored components. The rules for that
+tree are in [the one rule](#the-one-rule), and the record is in
+[the architecture](../docs/architecture.md#vendored-upstream-components).
 
 ## The one rule
 
@@ -41,30 +48,71 @@ The second rule: **never edit a shipped file in place.** Files laid into the sys
 package are replaced on update. A change to one belongs in an override, in the store the
 owning tool reads, or in the tool itself.
 
+The third rule: **a vendored third-party file is a shipped file.** The vendored tree under
+`shell/modules/` and `shell/services/` is kept byte-identical to the upstream commit it is
+pinned to, and the second rule applies to it with exactly the same force. A vendored file
+is not ASURA's to edit: a hand edit is destroyed by the next sync, cannot be re-vendored
+from upstream, and makes the manifest — which records a hash for every vendored file — lie
+about what changed.
+
+Every change to a vendored component goes in one of three places, and there is no fourth:
+
+- a **configuration value** — a setting the component reads;
+- an **overlay file** — an ASURA-owned file at the path the component expects, which is how
+  the monochrome palette and the GSettings-backed configuration reach it;
+- a **patch** in `shell/vendor/patches/` — the path the vendoring script names for them.
+  There is no patch there today, because no change has needed one yet.
+
+`sh shell/vendor/vendor.sh verify` is the check, and it is not advisory: it compares every
+vendored file against the hash the manifest records, and a file edited by hand fails it.
+
 ## Ownership model
 
 | Path | Owner | A change goes |
 |---|---|---|
-| `/usr/share/zenith/` | the package | an override or a new package version |
-| `/etc/zenith/` | the package | an override |
-| `~/.config/zenith/` | the user, materialized by `zenith` | `zenith-shell` / `zenith-hub` |
-| `~/.config/zenith/user_edits/` | the user overlay | wins at the mirrored path |
-| `~/.local/share/zenith/plugins/` | the plugin | the plugin's own manifest |
-| `~/.local/state/zenith/` | `zenith` | the tool that wrote it; holds rollback revisions and snapshots |
-| GSettings / dconf | `zenith-shell`, `zenith-hub` | `gsettings`, through the tool |
+| `/usr/share/asura/` | the package | an override or a new package version |
+| `/etc/asura/` | the package | an override |
+| `/usr/share/asura/shell/modules/`, `/usr/share/asura/shell/services/` | upstream, at the pinned commit | a configuration value, an overlay, or a patch — never a hand edit |
+| `~/.config/asura/` | the user, materialized by `asura` | `asurad` / `asura-hub` |
+| `~/.config/asura/user_edits/` | the user overlay | wins at the mirrored path |
+| `~/.local/share/asura/plugins/` | the plugin | the plugin's own manifest |
+| `~/.local/state/asura/` | `asura` | the tool that wrote it; holds rollback revisions and snapshots |
+| GSettings / dconf | `asurad`, `asura-hub` | `gsettings`, through the tool |
 
-Zenith's packages write **only** to `/usr/share/zenith/` and `/etc/zenith/`, never to `~`. That is
-what makes `zenith update` able to roll back: the base can be replaced freely because the
+ASURA's packages write **only** to `/usr/share/asura/` and `/etc/asura/`, never to `~`. That is
+what makes `asura update` able to roll back: the base can be replaced freely because the
 user's state lives somewhere the package cannot reach.
+
+## Naming
+
+ASURA's shell was inspired by another project, and the README says so in one line. That
+line is the whole of the attribution. The name appears nowhere else in this repository —
+not in an identifier, not in a comment, not in a path, not in a licence notice, not in a
+design document.
+
+The reason is not secrecy. A name in an identifier becomes an identifier in every fork,
+every downstream package and every issue that quotes it, and a name that stands for a
+decision rather than for a thing stops being a name at all. Where a document would
+naturally credit a project by name, it credits the project that is actually being used:
+the vendored upstream, with its URL, its licence and its pinned commit. That is the
+attribution the licence requires, and it is the correct attribution anyway.
+
+ASURA's own names are ASURA's own: `asura`, `asurad`, `asura-hub`, `asura-shell`,
+`org.asura.*`, `/usr/share/asura/`.
 
 ## Design system
 
-Zenith's visual language is monochrome by construction. These rules are the reason Zenith looks
-like Zenith; they are not suggestions.
+ASURA's visual language is monochrome by construction. These rules are the reason ASURA looks
+like ASURA; they are not suggestions.
 
 - **Strict monochrome.** Black, grey and white only, no coloured accents. Traffic lights and
   destructive/warning/error states are the sole exceptions, because they carry meaning a
   grey cannot.
+- **Strict monochrome covers the whole desktop, vendored components included.** A vendored
+  surface is monochrome by configuration or by patch — never by exception, and never by
+  asking the component to keep its own palette. A component that cannot be made monochrome
+  without being patched is a finding against vendoring it, not a reason to let a second
+  palette onto the desktop.
 - **Two-stop elevation.** Every raised surface gets a 1px contact border plus a soft ambient
   shadow. One shadow reads as a flat sticker. Use the radius scale (6/7/8/10/12/14/18/22px)
   and the 4px spacing grid everywhere; do not invent values between them.
@@ -92,7 +140,11 @@ These are the traps. The linter will not catch them.
 
 ## Definition of Done
 
-- [ ] Lints pass (if configured)
+- [ ] Lints pass (if configured) — over **ASURA's own sources**. The vendored tree is
+      exempt by declaration in `shell/vendor/manifest.yaml`: a vendored file is upstream's,
+      and upstream's style is not ASURA's to fail a lint over. Every file ASURA has
+      changed in the vendored tree — an overlay, or a patched file — is ASURA's own code
+      and is lint-clean, and the manifest is where that exemption is declared.
 - [ ] Tests pass (if present)
 - [ ] Change maps back to a goal in [`docs/roadmap.md`](../docs/roadmap.md)
 - [ ] Any new rule or style pattern discovered this session was recorded in this file
@@ -101,24 +153,61 @@ These are the traps. The linter will not catch them.
 ## Verification commands
 
 ```bash
-# GSettings schemas — must compile clean before anything reads them
-glib-compile-schemas --strict --dry-run desktop/**/schemas/
+# GSettings schemas — must compile clean before anything reads them.
+# The schemas live in the shell's own directory: the shell reads them, and the
+# shell is the shell. There is no schemas/ directory to glob.
+glib-compile-schemas --strict --dry-run shell/
 
-# QML — the shell is QML, so lint it
-qmllint desktop/shell/**/*.qml
+# The shell's configuration, loaded by the engine that will run it.
+# This is the check that catches what reading the QML cannot: a property that
+# does not exist, a type from a module that is not imported, a name another
+# library already has. It skips itself, and says so, on a machine with no
+# quickshell or no Wayland display.
+sh shell/shell_test.sh
 
-# gofmt / vet — the control tools are Go
+# The session, the greeter, the package and the repository
+sh session/session_test.sh
+sh session/greeter_test.sh
+sh release/release_test.sh
+
+# gofmt / vet — the control tools are Go. There is no go.mod at the
+# repository root: `desktop/` is one module and `system/hardware/` is
+# another, so `go vet ./...` is run from inside a module and not from the
+# root, where it would find nothing to vet and say so.
 gofmt -l desktop/
-go vet ./...
+(cd desktop/ && go vet ./...)
+
+# The vendored tree — every vendored file byte-identical to its pinned
+# upstream commit. A file edited by hand fails this and nothing else would.
+sh shell/vendor/vendor.sh verify
 
 # Every licence file must match the root LICENSE
 for f in $(find . -name LICENSE -not -path './.git/*'); do cmp -s LICENSE "$f" || echo "MISMATCH: $f"; done
 ```
 
-These paths are aspirational until `desktop/` exists. They document the shape the tree is
-meant to take, so a contributor adding the first file knows where it belongs. The source
-tree is `desktop/`, never a directory named after a control tool — a `zenith/` directory
-collides with the built binary and silently defeats the repository's own ignore rules.
+`asura doctor` is the check that runs on a machine rather than in a checkout: it
+reports what differs between the base and the user's tree, whether the session
+can actually reach the shell, and whether the portal configuration is being
+read. It is the first thing to run when a session comes up wrong, and it answers
+questions the other checks cannot — they read the repository, and the failure
+is always in what was installed.
+
+These paths are the shape the tree has taken: `desktop/` is the control tools' module and
+`system/hardware/` is a module of its own, so a Go command has to be run from inside one of
+them rather than from the repository root, which has no `go.mod` and would find nothing.
+The source tree is `desktop/`, never a directory named after a control tool — a `asura/`
+directory collides with the built binary and silently defeats the repository's own ignore
+rules.
+
+## Rules
+
+- [2026-11-01] Zed is the default code editor for ASURA OS.
+- [2026-11-01] The user-facing name of the operating system is ASURA OS (or ASURA). All user-visible branding across bootloader, Plymouth, os-release, motd, issue, Welcome tour, Fastfetch, settings headers, and installer must use ASURA OS.
+- [2026-10-29] The OS must not mention anything about Void Linux/Void OS; completely hide all upstream base branding across boot sequences, motd, issue, os-release, hostnames, and greetings.
+- [2026-10-29] ASURA OS uses Void Linux x86_64 (glibc) as its base operating system.
+- [2026-10-27] Never use or ship kitty in this OS; Ghostty is the sole supported terminal emulator.
+
+
 
 ## Branches
 
@@ -136,6 +225,11 @@ Read [`docs/architecture.md`](../docs/architecture.md) for the layer map. Read
 [`system/hardware/README.md`](../system/hardware/README.md) before touching hardware
 detection or adding a machine profile.
 
+The tree under `shell/modules/` and `shell/services/` is upstream's, not ASURA's. Read
+[`docs/architecture.md`](../docs/architecture.md#vendored-upstream-components) before
+touching it, and run `sh shell/vendor/vendor.sh verify` afterwards: a hand edit does not
+fail a review, it fails that.
+
 ## When something breaks
 
 Gather before changing anything. A failure right after an update is usually the update.
@@ -145,7 +239,7 @@ dated note under `docs/journal/`.
 ## Historical reference
 
 [`gnome-shell-notes.md`](gnome-shell-notes.md) records GNOME Shell internals learned while
-this repository was the Zeo GNOME Extensions project. Zenith replaces GNOME Shell, so none of
-it applies to Zenith's own shell. It is kept because it explains *why* the project moved, and
+this repository was the Zeo GNOME Extensions project. ASURA replaces GNOME Shell, so none of
+it applies to ASURA's own shell. It is kept because it explains *why* the project moved, and
 because it is the kind of knowledge that is expensive to rediscover if the decision is ever
 revisited.

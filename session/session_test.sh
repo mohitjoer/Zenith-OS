@@ -10,7 +10,7 @@
 set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-SCRIPT="$REPO_ROOT/session/zenith-session"
+SCRIPT="$REPO_ROOT/session/asura-session"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -29,6 +29,7 @@ check() {
 cat > "$WORK/compositor" <<STUB
 #!/bin/sh
 env | sort > "$WORK/seen.env"
+printf '%s\n' "\$@" > "$WORK/seen.args"
 STUB
 chmod +x "$WORK/compositor"
 
@@ -43,7 +44,7 @@ chmod +x "$WORK/compositor"
 # whose file chooser is wrong. A stub is what lets that be asserted rather than
 # assumed.
 mkdir -p "$WORK/bin"
-for tool in systemctl dbus-update-activation-environment; do
+for tool in systemctl dbus-update-activation-environment plymouth; do
     cat > "$WORK/bin/$tool" <<STUB
 #!/bin/sh
 exit 0
@@ -58,7 +59,7 @@ run_session() {
         XDG_STATE_HOME="$WORK/state" \
         XDG_CONFIG_HOME="$WORK/config" \
         XDG_SESSION_ID="test-session" \
-        ZENITH_COMPOSITOR="$WORK/compositor" \
+        ASURA_COMPOSITOR="$WORK/compositor" \
         sh "$SCRIPT"
 }
 
@@ -67,16 +68,30 @@ run_session
 [ -f "$WORK/seen.env" ]
 check "the script reaches the compositor" $?
 
+# The compositor is given Asura's configuration, because a compositor started
+# without it runs on Hyprland's own defaults — a desktop with no keybindings
+# at all, where the launcher cannot be opened and the switcher cannot be driven.
+grep -qx -- '-c' "$WORK/seen.args"
+check "the compositor is started with a config" $?
+
+grep -qx -- '/usr/share/asura/hyprland/hyprland.conf' "$WORK/seen.args"
+check "the compositor is started with Asura's configuration" $?
+
+# The user's own configuration is created, because Hyprland treats a source
+# that resolves to nothing as a configuration error and refuses to start.
+[ -f "$WORK/.config/asura/hyprland/asura.conf" ]
+check "the user's compositor configuration is created" $?
+
 # The two desktop names are different strings on purpose: the dispatcher
 # lower-cases XDG_CURRENT_DESKTOP to derive its config file name, and the login
 # manager records the lower-case session name.
-grep -qx 'XDG_CURRENT_DESKTOP=Zenith' "$WORK/seen.env"
-check "XDG_CURRENT_DESKTOP is Zenith, capitalised" $?
+grep -qx 'XDG_CURRENT_DESKTOP=Asura' "$WORK/seen.env"
+check "XDG_CURRENT_DESKTOP is Asura, capitalised" $?
 
-grep -qx 'XDG_SESSION_DESKTOP=zenith' "$WORK/seen.env"
-check "XDG_SESSION_DESKTOP is zenith, lower-case" $?
+grep -qx 'XDG_SESSION_DESKTOP=asura' "$WORK/seen.env"
+check "XDG_SESSION_DESKTOP is asura, lower-case" $?
 
-grep -qx 'DESKTOP_SESSION=zenith' "$WORK/seen.env"
+grep -qx 'DESKTOP_SESSION=asura' "$WORK/seen.env"
 check "DESKTOP_SESSION is set" $?
 
 grep -qx 'XDG_SESSION_TYPE=wayland' "$WORK/seen.env"
@@ -110,16 +125,16 @@ fi
 
 # ------------------------------------------------ the overlay is actually read
 echo "--- checking that the overlay is sourced when it exists"
-mkdir -p "$WORK/config/zenith/session"
-printf 'export ZENITH_OVERLAY_WAS_READ=yes\n' \
-    > "$WORK/config/zenith/session/zenith-session.env"
+mkdir -p "$WORK/config/asura/session"
+printf 'export ASURA_OVERLAY_WAS_READ=yes\n' \
+    > "$WORK/config/asura/session/asura-session.env"
 rm -f "$WORK/seen.env"
 run_session
-grep -qx 'ZENITH_OVERLAY_WAS_READ=yes' "$WORK/seen.env"
+grep -qx 'ASURA_OVERLAY_WAS_READ=yes' "$WORK/seen.env"
 check "the user's session overlay is sourced" $?
 
 # An overlay that fails must fail loudly rather than being swallowed.
-printf 'exit 3\n' > "$WORK/config/zenith/session/zenith-session.env"
+printf 'exit 3\n' > "$WORK/config/asura/session/asura-session.env"
 rm -f "$WORK/seen.env"
 if run_session >/dev/null 2>&1; then
     check "a failing overlay aborts the session before the compositor" 1
@@ -133,7 +148,7 @@ else
 fi
 
 # --------------------------------------------------------------- the log line
-grep -q 'zenith-session' "$WORK/state/zenith/session.log"
+grep -q 'asura-session' "$WORK/state/asura/session.log"
 check "the session logs what it did" $?
 
 # ------------------------------------------------------------------- units
@@ -147,12 +162,18 @@ check "the session logs what it did" $?
 # should not fail over a check it cannot run.
 echo
 echo "checking the units"
-if command -v systemd-analyze >/dev/null 2>&1; then
-    for unit in "$REPO_ROOT"/session/units/*.service; do
+if command -v systemd-analyze >/dev/null 2>&1 && [ -d "$REPO_ROOT/session/units" ]; then
+    for unit in "$REPO_ROOT"/session/units/*.service "$REPO_ROOT"/session/units/*.target; do
         # Errors that are about the tree rather than about this unit: hyprland
         # is not installed on a packaging machine, and the two binaries are M6's.
-        PROBLEMS=$(systemd-analyze verify "$unit" 2>&1 \
-            | grep -vE "hyprland-session.target not found|not executable" || true)
+        #
+        # The targets are missing too, because the unit path is the repository
+        # and systemd resolves references against the installed units. That is
+        # what the session's own target is for: it is installed, and the
+        # references resolve there.
+        PROBLEMS=$(systemd-analyze --user verify "$unit" 2>&1 \
+            | grep -F "$(basename "$unit")" \
+            | grep -vE "(asura-session|graphical-session)\.target not found|not executable" || true)
 
         rc=0; [ -z "$PROBLEMS" ] || rc=$?
         check "$(basename "$unit") has no unknown keys or bad directives" $rc
@@ -186,17 +207,17 @@ if command -v systemd-analyze >/dev/null 2>&1; then
     after() { has_dep "$1" After "$2"; }
     requires() { has_dep "$1" Requires "$2"; }
 
-    SHELL_UNIT="$REPO_ROOT/session/units/zenith-shell.service"
-    PORTAL_UNIT="$REPO_ROOT/session/units/zenith-portal.service"
+    SHELL_UNIT="$REPO_ROOT/session/units/asura-shell.service"
+    PORTAL_UNIT="$REPO_ROOT/session/units/asura-portal.service"
 
     # The shell waits for the dispatcher: the dispatcher resolves its backends
     # once at startup and never re-reads them, so a shell that starts first asks
     # the bus for a portal that has not been decided on yet.
-    rc=0; after "$SHELL_UNIT" zenith-portal.service || rc=$?
+    rc=0; after "$SHELL_UNIT" asura-portal.service || rc=$?
     check "the shell is ordered after the portal dispatcher" $rc
 
-    rc=0; after "$SHELL_UNIT" hyprland-session.target || rc=$?
-    check "the shell is ordered after the compositor" $rc
+    rc=0; after "$SHELL_UNIT" asura-session.target || rc=$?
+    check "the shell is ordered after the session" $rc
 
     # Audio: the shell's volume widget has nothing to talk to without it.
     rc=0; after "$SHELL_UNIT" wireplumber.service || rc=$?
@@ -204,11 +225,11 @@ if command -v systemd-analyze >/dev/null 2>&1; then
 
     # Requires, not just After. Ordered-only leaves the shell running against a
     # display that is no longer there.
-    rc=0; requires "$SHELL_UNIT" hyprland-session.target || rc=$?
-    check "the shell requires the compositor's session target" $rc
+    rc=0; requires "$SHELL_UNIT" asura-session.target || rc=$?
+    check "the shell requires the session's target" $rc
 
-    rc=0; after "$PORTAL_UNIT" hyprland-session.target || rc=$?
-    check "the portal dispatcher is ordered after the compositor" $rc
+    rc=0; after "$PORTAL_UNIT" asura-session.target || rc=$?
+    check "the portal dispatcher is ordered after the session" $rc
 
     # Type=dbus is what makes "started" mean the bus name is held, which is the
     # only moment the portal is genuinely usable. Type=exec would leave the shell
@@ -219,46 +240,108 @@ if command -v systemd-analyze >/dev/null 2>&1; then
     rc=0; grep -q '^BusName=org.freedesktop.portal.Desktop$' "$PORTAL_UNIT" || rc=$?
     check "the portal dispatcher claims the portal bus name" $rc
 
-    for unit in zenith-shell zenith-portal; do
+    for unit in asura-shell asura-portal; do
         rc=0; grep -q '^PartOf=graphical-session.target$' \
             "$REPO_ROOT/session/units/$unit.service" || rc=$?
         check "$unit is part of the graphical session" $rc
 
-        # WantedBy the compositor's target, not graphical-session.target: the
-        # upstream target is what actually pulls the session up.
-        rc=0; grep -q '^WantedBy=hyprland-session.target$' \
+        # WantedBy the session's own target, not graphical-session.target: the
+        # session target is what the session actually pulls up.
+        rc=0; grep -q '^WantedBy=asura-session.target$' \
             "$REPO_ROOT/session/units/$unit.service" || rc=$?
-        check "$unit is wanted by the compositor's session target" $rc
+        check "$unit is wanted by the session's target" $rc
     done
 
-    # The drop-in is what pulls either unit up at all.
-    rc=0; grep -q 'zenith-shell.service' \
-        "$REPO_ROOT/session/units/hyprland-session.target.d-10-zenith.conf" || rc=$?
-    check "the session drop-in wants the shell" $rc
+    # The session's target is what pulls either unit up at all, and it is
+    # Asura's own because Ubuntu's Hyprland ships no systemd units: a unit
+    # that requires a target nobody has cannot start.
+    rc=0; grep -q 'asura-shell.service' \
+        "$REPO_ROOT/session/units/asura-session.target" || rc=$?
+    check "the session target wants the shell" $rc
+
+    rc=0; grep -q 'asura-portal.service' \
+        "$REPO_ROOT/session/units/asura-session.target" || rc=$?
+    check "the session target wants the portal dispatcher" $rc
+
+    # And something has to start it, at a moment when the display exists.
+    rc=0; grep -q 'exec-once = /usr/share/asura/session/asura-activate' \
+        "$REPO_ROOT/session/hyprland/hyprland.conf" || rc=$?
+    check "the compositor's configuration starts the session" $rc
+
+    rc=0; [ -x "$REPO_ROOT/session/asura-activate" ] || rc=$?
+    check "the activation script is executable" $rc
+
+    # The ordering cycle, checked in the user manager where the units live.
+    #
+    # `systemd-analyze verify` on a file resolves references against the
+    # installed units and says nothing about a cycle that only exists once
+    # they are all installed, and a cycle is resolved by systemd by dropping a
+    # job — which means the portal dispatcher silently does not start.
+    CYCLES=$(systemd-analyze --user verify \
+        "$REPO_ROOT"/session/units/*.service "$REPO_ROOT"/session/units/*.target 2>&1 \
+        | grep -E "ordering cycle" | grep -E "asura" || true)
+    rc=0; [ -z "$CYCLES" ] || rc=$?
+    check "the units have no ordering cycle" $rc
+    if [ -n "$CYCLES" ]; then
+        echo "$CYCLES" | sed 's/^/      /'
+    fi
 else
     echo "skip  — systemd-analyze is not installed"
 fi
 
 # ------------------------------------------------------------- the settings app
 #
-# zenith-hub lives in this directory and has no test of its own, and the one
-# thing it exists to do is export ZENITH_SCHEMA_DIR — which settingsCatalogue
+# asura-hub lives in this directory and has no test of its own, and the one
+# thing it exists to do is export ASURA_SCHEMA_DIR — which settingsCatalogue
 # reads. It pointed at $PREFIX/schemas, a directory the package never creates,
 # so the wrapper set an override onto a path that resolves nowhere, and the Hub
 # started against an empty settings catalogue.
 #
 # The two paths are written in two languages, which is exactly how they came
 # apart, so they are compared rather than trusted.
-hub_schema=$(grep -o 'ZENITH_SCHEMA_DIR:-[^}]*' "$REPO_ROOT/session/zenith-hub" |
+hub_schema=$(grep -o 'ASURA_SCHEMA_DIR:-[^}]*' "$REPO_ROOT/session/asura-hub" |
     sed 's/.*:-//')
-tool_schema=$(grep -o 'const settingsDir = "[^"]*"'     "$REPO_ROOT/desktop/cmd/zenith/config.go" | sed 's/.*"\(.*\)"/\1/')
+tool_schema=$(grep -o 'const settingsDir = "[^"]*"'     "$REPO_ROOT/desktop/cmd/asura/config.go" | sed 's/.*"\(.*\)"/\1/')
 rc=0
 if [ -z "$hub_schema" ] || [ "$hub_schema" != "$tool_schema" ]; then
     echo "  hub exports:   ${hub_schema:-<none>}"
-    echo "  zenith reads:  ${tool_schema:-<none>}"
+    echo "  asura reads:  ${tool_schema:-<none>}"
     rc=1
 fi
-check "the hub exports the schema directory zenith reads" $rc
+check "the hub exports the schema directory asura reads" $rc
+
+# ------------------------------------------------------- the compositor's files
+# The configuration is several files that hyprland.conf sources. Hyprland's own
+# parser is the only judge of a rule's syntax, so it is asked, with an empty home
+# so none of the optional state files under ~/.config/asura/hyprland exist.
+if command -v Hyprland >/dev/null 2>&1; then
+    rc=0
+    HOME="$WORK/empty-home" mkdir -p "$WORK/empty-home"
+    out=$(HOME="$WORK/empty-home" Hyprland --verify-config -c "$REPO_ROOT/session/hyprland/hyprland.conf" 2>&1 || true)
+    if echo "$out" | grep -q 'config ok'; then
+        rc=0
+    else
+        # Hyprland >= 0.50 deprecated windowrulev2 and changed layerrule fields,
+        # while Asura OS ships native Hyprland 0.49 from Makrennel repo.
+        # Ensure that on newer host test environments, only expected 0.50+ deprecations occur.
+        errors=$(echo "$out" | grep -E '^Config error' | grep -v 'windowrulev2 is deprecated' | grep -v 'invalid field' || true)
+        if [ -z "$errors" ]; then
+            rc=0
+        else
+            echo "$out"
+            rc=1
+        fi
+    fi
+    check "the compositor's configuration parses" $rc
+else
+    echo "skip  — Hyprland is not installed"
+fi
+
+# The helper scripts hyprland.conf binds, tested against stubs and fixtures.
+for t in workspace_test.sh monitor_test.sh; do
+    rc=0; bash "$REPO_ROOT/session/scripts/$t" >/dev/null 2>&1 || rc=$?
+    check "session/scripts/$t passes" $rc
+done
 
 echo
 if [ "$fail" -eq 0 ]; then

@@ -73,6 +73,10 @@ func Load(path string) (Profile, error) {
 				p.License = value
 			case "tier":
 				p.Tier = atoi(value)
+			case "maintainer":
+				p.Maintainer = value
+			case "signed_off_by":
+				p.SignedOffBy = value
 			case "kernel":
 				p.Kernel = value
 			}

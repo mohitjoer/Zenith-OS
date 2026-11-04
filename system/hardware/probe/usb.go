@@ -123,7 +123,7 @@ func readUSBDevice(fs *FS, name string) (USBDevice, error) {
 
 // ParseUSBName reconstructs topology from a sysfs USB device directory name.
 //
-// The encoding is the kernel's, not Zenith's:
+// The encoding is the kernel's, not Asura's:
 //
 //	usb1           root hub on bus 1
 //	1-0:1.0        device 1 on port 0 of bus 1, interface 1.0

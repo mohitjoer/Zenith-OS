@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Summon a single-instance window to the current workspace and focus it; launch
+# it if it isn't running yet. Single-instance apps (flock + quickshell) otherwise
+# strand their window on whatever workspace they first opened on, so re-pressing
+# the keybind from another workspace appears to do nothing.
+#   asura-summon <window-title> <launch command...>
+#
+# The raise path matches by title: every Quickshell window shares one app id
+# (org.quickshell), so a title is the only thing that tells them apart. Hyprland
+# is asked directly, since it is the only compositor Asura runs on. A window
+# that matches is always focused, so a partial raise never falls through to the
+# launch and opens a duplicate; when nothing matches (or hyprctl or jq is not
+# there to ask) the launch command runs instead, and the flock in that command
+# keeps a second press from opening another.
+set -uo pipefail
+
+title="${1:?window title required}"; shift
+[ "$#" -gt 0 ] || { echo "asura-summon: launch command required" >&2; exit 2; }
+
+summon() {
+	local clients addr ws
+	command -v hyprctl >/dev/null 2>&1 || return 1
+	command -v jq >/dev/null 2>&1 || return 1
+	clients="$(hyprctl clients -j 2>/dev/null)" || return 1
+	# The live title first and the initial title second, so a window that
+	# retitles itself is still found.
+	addr="$(jq -r --arg t "$title" '
+		(first(.[] | select(.title == $t)) // first(.[] | select(.initialTitle == $t)) // empty)
+		| .address' <<<"$clients" 2>/dev/null)" || return 1
+	[ -n "$addr" ] || return 1
+
+	# The active workspace is best effort: the window is only moved when it reads,
+	# then always focused.
+	ws="$(hyprctl activeworkspace -j 2>/dev/null | jq -r '.id // empty' 2>/dev/null)"
+	if [ -n "$ws" ]; then
+		hyprctl dispatch movetoworkspacesilent "$ws,address:$addr" >/dev/null 2>&1
+	fi
+	hyprctl dispatch focuswindow "address:$addr" >/dev/null 2>&1
+	return 0
+}
+
+summon && exit 0
+
+exec "$@"

@@ -19,10 +19,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -131,12 +133,21 @@ type Palette struct {
 	Accent Colour `json:"accent"`
 	// OnAccent is the only colour permitted on top of Accent.
 	OnAccent Colour `json:"on_accent"`
+	// Ranked is every candidate seed, best first, one per hue. Accent is
+	// Ranked[0]; a scheme seeded from the nth wallpaper colour uses Ranked[n].
+	Ranked []Colour `json:"-"`
 
 	// Luminance is the image's mean relative luminance, kept because it decides
 	// whether the palette is a dark one or a light one, and re-deriving it from
 	// the emitted colours would not give the same answer.
 	Luminance float64 `json:"luminance"`
 }
+
+// darkBelow is the mean relative luminance under which an image is a dark one.
+const darkBelow = 0.35
+
+// Dark reports whether the image is dark enough for a dark scheme.
+func (p Palette) Dark() bool { return p.Luminance < darkBelow }
 
 // Minimum contrast for any pair the palette emits.
 //
@@ -155,21 +166,47 @@ const MinimumContrast = 4.5
 // away by a stride computed for a 4K one.
 const maxSamples = 24000
 
+// decode reads what the standard library can, and hands anything else (webp,
+// avif) to ffmpeg when it is installed: a wallpaper whose palette cannot be read
+// leaves the desktop in the last wallpaper's colours without saying so.
+func decode(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err == nil {
+		return img, nil
+	}
+	name := filepath.Base(path)
+	ffmpeg, lookErr := exec.LookPath("ffmpeg")
+	if lookErr != nil {
+		return nil, fmt.Errorf("%s: %w (install ffmpeg to read this format)", name, err)
+	}
+	// Width capped so a 8K wallpaper does not become a 100 MB pipe; 2048 is
+	// far more than the sampler below ever reads.
+	frame, runErr := exec.Command(ffmpeg, "-v", "error", "-i", path, "-frames:v", "1",
+		"-vf", `scale=min(iw\,2048):-2`, "-f", "image2pipe", "-c:v", "png", "-").Output()
+	if runErr != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	if img, _, err = image.Decode(bytes.NewReader(frame)); err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	return img, nil
+}
+
 // Extract derives a palette from an image file.
 //
 // PNG and JPEG are the two formats that matter; both are in the standard
 // library, so this needs no image dependency on a base layer that has no reason
 // to carry one.
 func Extract(path string) (Palette, error) {
-	file, err := os.Open(path)
+	image, err := decode(path)
 	if err != nil {
 		return Palette{}, err
-	}
-	defer file.Close()
-
-	image, _, err := image.Decode(file)
-	if err != nil {
-		return Palette{}, fmt.Errorf("%s: %w", filepath.Base(path), err)
 	}
 
 	bounds := image.Bounds()
@@ -214,10 +251,11 @@ func Extract(path string) (Palette, error) {
 		Luminance: round(mean, 4),
 	}
 
-	palette.Accent = pickAccent(histogram, mean)
+	palette.Ranked = rankAccents(histogram, mean)
+	palette.Accent = palette.Ranked[0]
 	palette.OnAccent = onColour(palette.Accent)
 
-	dark := mean < 0.35
+	dark := palette.Dark()
 	palette.Background = backgroundFor(mean, palette.Accent, dark)
 	palette.Surface = surfaceFor(palette.Background, dark)
 
@@ -243,7 +281,8 @@ func quantise(r, g, b float64) uint32 {
 	return (ri << 10) | (gi << 5) | bi
 }
 
-// pickAccent chooses the one colour the palette takes from the image.
+// rankAccents ranks the colours the palette could take from the image, best
+// first, one per hue. The first is the accent.
 //
 // Three things are weighed, and each rules out a whole class of bad accent:
 //
@@ -255,10 +294,11 @@ func quantise(r, g, b float64) uint32 {
 //   - Population, as a tiebreak rather than as the primary term. The most common
 //     colour in a photograph is its background, and an accent that matches the
 //     background is not an accent.
-func pickAccent(histogram map[uint32]int, meanLuminance float64) Colour {
+func rankAccents(histogram map[uint32]int, meanLuminance float64) []Colour {
 	type candidate struct {
 		colour Colour
 		score  float64
+		key    uint32
 	}
 
 	var candidates []candidate
@@ -298,24 +338,49 @@ func pickAccent(histogram map[uint32]int, meanLuminance float64) Colour {
 		candidates = append(candidates, candidate{
 			colour: Colour{red, green, blue},
 			score:  score,
+			key:    key,
 		})
 	}
 
 	if len(candidates) == 0 {
 		// A photograph with no mid-tone at all — a black frame, a white one.
 		// The answer has to be stated rather than left empty: the shell would
-		// otherwise read a missing accent and draw nothing.
+		// otherwise read a missing accent and draw nothing. Grey, not an
+		// invented blue: the picture has no hue to take.
 		if meanLuminance >= 0.5 {
-			return Colour{0.15, 0.15, 0.18}
+			return []Colour{{0.15, 0.15, 0.18}}
 		}
-		return Colour{0.55, 0.65, 0.95}
+		return []Colour{{0.62, 0.62, 0.62}}
 	}
 
+	// The histogram is a map, so equal scores arrive in a different order on
+	// every run; the key makes the order total and the output reproducible.
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].score > candidates[j].score
+		if candidates[i].score != candidates[j].score {
+			return candidates[i].score > candidates[j].score
+		}
+		return candidates[i].key < candidates[j].key
 	})
 
-	return candidates[0].colour
+	// Neighbouring buckets of one hue are one colour to the eye, so the list
+	// keeps the best of each hue and `--source-color-index` walks distinct ones.
+	var ranked []Colour
+	var hues []float64
+pick:
+	for _, c := range candidates {
+		_, _, hue := lch(c.colour)
+		for _, h := range hues {
+			if d := math.Abs(hue - h); math.Min(d, 360-d) < 30 {
+				continue pick
+			}
+		}
+		ranked = append(ranked, c.colour)
+		hues = append(hues, hue)
+		if len(ranked) == 5 {
+			break
+		}
+	}
+	return ranked
 }
 
 // backgroundFor derives the window background from the image's brightness.
@@ -519,39 +584,39 @@ func linearise(c float64) float64 {
 	return math.Pow((c+0.055)/1.055, 2.4)
 }
 
-// DefaultPath is where the shell looks for the generated palette.
-func DefaultPath() string {
-	return filepath.Join(os.Getenv("XDG_CACHE_HOME"), "zenith", "colors.json")
-}
-
-// Write saves the palette where the shell will find it.
+// Write saves a JSON document where the shell will find it.
 //
 // Written even when the file already says the same thing, because the shell
 // watches the path rather than the content, and a shell that has to be restarted
-// to see its own theme is a shell whose theming looks broken.
-func Write(path string, palette Palette) error {
+// to see its own theme is a shell whose theming looks broken. Renamed into place
+// for the same reason: a half-written file is a palette that fails to parse.
+func Write(path string, document any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 
-	body, err := json.MarshalIndent(palette, "", "  ")
+	body, err := json.MarshalIndent(document, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(body, '\n'), 0o644)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, append(body, '\n'), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
-// Load reads a palette.
-func Load(path string) (Palette, error) {
+// Load reads the shell's palette: role name to colour.
+func Load(path string) (map[string]Colour, error) {
 	body, err := os.ReadFile(path)
 	if err != nil {
-		return Palette{}, err
+		return nil, err
 	}
-	var palette Palette
-	if err := json.Unmarshal(body, &palette); err != nil {
-		return Palette{}, fmt.Errorf("%s: %w", path, err)
+	var roles map[string]Colour
+	if err := json.Unmarshal(body, &roles); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	return palette, nil
+	return roles, nil
 }
 
 // Check reports every pair in the palette that does not meet the threshold.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"zenith/hardware/probe"
+	"asura/hardware/probe"
 )
 
 // Inference is what a report can honestly derive from a detection result.

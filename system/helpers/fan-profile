@@ -1,0 +1,55 @@
+#!/bin/sh
+# Cycle through ASUS / ACPI thermal & fan profiles (0: Balanced, 1: Turbo/Performance, 2: Silent)
+POLICY_FILE="/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy"
+PLATFORM_FILE="/sys/firmware/acpi/platform_profile"
+
+if [ -f "$POLICY_FILE" ]; then
+	CURRENT=$(cat "$POLICY_FILE" 2>/dev/null || echo 0)
+	NEXT=$(( (CURRENT + 1) % 3 ))
+	if [ -w "$POLICY_FILE" ]; then
+		echo "$NEXT" > "$POLICY_FILE"
+	else
+		echo "$NEXT" | sudo tee "$POLICY_FILE" >/dev/null 2>&1 || true
+	fi
+
+	case "$NEXT" in
+	0)
+		[ -w "$PLATFORM_FILE" ] && echo "balanced" > "$PLATFORM_FILE" 2>/dev/null || true
+		notify-send -i preferences-system "Thermal Profile" "Balanced Mode (Default fan curve)" 2>/dev/null || true
+		echo "Thermal Profile: Balanced (0)"
+		;;
+	1)
+		[ -w "$PLATFORM_FILE" ] && echo "performance" > "$PLATFORM_FILE" 2>/dev/null || true
+		notify-send -i preferences-system "Thermal Profile" "Turbo / Performance Mode (Aggressive fan curve)" 2>/dev/null || true
+		echo "Thermal Profile: Turbo / Performance (1)"
+		;;
+	2)
+		[ -w "$PLATFORM_FILE" ] && echo "low-power" > "$PLATFORM_FILE" 2>/dev/null || true
+		notify-send -i preferences-system "Thermal Profile" "Silent Mode (Quiet fan curve)" 2>/dev/null || true
+		echo "Thermal Profile: Silent (2)"
+		;;
+	esac
+elif [ -f "$PLATFORM_FILE" ]; then
+	CURRENT=$(cat "$PLATFORM_FILE" 2>/dev/null || echo "balanced")
+	case "$CURRENT" in
+	"balanced")
+		NEXT="performance"
+		;;
+	"performance")
+		NEXT="low-power"
+		;;
+	*)
+		NEXT="balanced"
+		;;
+	esac
+	if [ -w "$PLATFORM_FILE" ]; then
+		echo "$NEXT" > "$PLATFORM_FILE"
+	else
+		echo "$NEXT" | sudo tee "$PLATFORM_FILE" >/dev/null 2>&1 || true
+	fi
+	notify-send -i preferences-system "Thermal Profile" "$NEXT Mode" 2>/dev/null || true
+	echo "Platform Profile: $NEXT"
+else
+	echo "fan-profile: no supported ACPI / asus-nb-wmi thermal policy interface found" >&2
+	exit 1
+fi

@@ -10,7 +10,7 @@ It checks three ways, because each catches a different mistake:
 
   install entries      must exist in a declared component, or the image cannot
                        be built. A missing name is an error.
-  `zenith_built:`      the inverse: must NOT exist in the archive, or the base
+  `asura_built:`      the inverse: must NOT exist in the archive, or the base
                        layer already carries it and rebuilding it would be the
                        fork that rule 2 exists to prevent. Its build
                        dependencies must resolve, because those do come from
@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import gzip
+import os
 import sys
 from pathlib import Path
 import urllib.error
@@ -97,7 +98,9 @@ def read_url(url: str) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
-def resolve_codename(release: str, meta_url: str, cache_dir: str | None) -> str:
+def resolve_codename(
+    release: str, meta_url: str, cache_dir: str | None, fallback: str | None = None
+) -> str:
     """Resolve a version to its suite codename, the way the manifest requires.
 
     The manifest stores `release: "26.04"` and leaves `codename: null`, because
@@ -113,33 +116,47 @@ def resolve_codename(release: str, meta_url: str, cache_dir: str | None) -> str:
     `-proposed`: an image is built from the base suite, and its updates are a
     separate source.
     """
-    body = fetch(meta_url, cache_dir)
+    urls_to_try = [meta_url]
+    if "-development" not in meta_url:
+        urls_to_try.append(meta_url + "-development")
 
-    best: str | None = None
-    for stanza in body.split("\n\n"):
-        version = dist = None
-        for line in stanza.splitlines():
-            if line.startswith("Version: "):
-                version = line.split(": ", 1)[1].strip()
-            elif line.startswith("Dist: "):
-                dist = line.split(": ", 1)[1].strip()
-
-        if not version or not dist:
+    for url in urls_to_try:
+        try:
+            body = fetch(url, cache_dir)
+        except SystemExit:
             continue
-        if version != release and not version.startswith(release + "."):
+        except Exception:
             continue
 
-        if "-" not in dist:
-            return dist
-        best = best or dist
+        best: str | None = None
+        for stanza in body.split("\n\n"):
+            version = dist = None
+            for line in stanza.splitlines():
+                if line.startswith("Version: "):
+                    version = line.split(": ", 1)[1].strip()
+                elif line.startswith("Dist: "):
+                    dist = line.split(": ", 1)[1].strip()
 
-    if best is None:
-        sys.exit(
-            f"no suite in {meta_url} matches release {release!r}. Either the "
-            "release does not exist or this is a development release, which "
-            "meta-release does not list."
-        )
-    return best
+            if not version or not dist:
+                continue
+            if version != release and not version.startswith(release + "."):
+                continue
+
+            if "-" not in dist:
+                return dist
+            best = best or dist
+
+        if best is not None:
+            return best
+
+    if fallback:
+        return fallback
+
+    sys.exit(
+        f"no suite in {meta_url} matches release {release!r}. Either the "
+        "release does not exist or this is a development release, which "
+        "meta-release does not list."
+    )
 
 
 def load_release_components(
@@ -238,7 +255,7 @@ def looks_like_a_pattern(text: str) -> bool:
 
 
 def iter_built_entries(manifest: dict):
-    """Yield (group, name) for every package Zenith builds for itself.
+    """Yield (group, name) for every package Asura builds for itself.
 
     These are the manifest's one deliberate departure from rule 2, and they are
     under their own key so that departure is visible rather than implied.
@@ -247,7 +264,7 @@ def iter_built_entries(manifest: dict):
         if group in ("version", "base") or not isinstance(body, dict):
             continue
 
-        for name in body.get("zenith_built") or []:
+        for name in body.get("asura_built") or []:
             yield group, name
 
 
@@ -271,7 +288,7 @@ def iter_build_dependencies(manifest: dict):
 
 # The packages that make a desktop GNOME.
 #
-# This is not a style preference and it is not about naming. Zenith's shell owns
+# This is not a style preference and it is not about naming. Asura's shell owns
 # Notifications, the Secret portal is served by the lxqt backend, and the session
 # is Hyprland. A GNOME session installed anywhere on the machine is a second
 # session that will appear at the login screen, win a race for a bus name, and
@@ -312,7 +329,7 @@ GNOME_ALLOWED = {
 #
 # These are the ones that matter, and the distinction is the whole reason this
 # check is not simply "is any GNOME package installed". The `packages:` list is
-# closed — Zenith installs exactly the names written there — so a GNOME package
+# closed — Asura installs exactly the names written there — so a GNOME package
 # that nobody wrote down is not installed and needs no exclusion. What can still
 # happen is that something on the list depends on one, and the only way that
 # happens is a metapackage.
@@ -332,7 +349,7 @@ GNOME_PULLERS = (
 
 
 def audit_gnome(manifest: dict) -> list[str]:
-    """Report any way a GNOME desktop can arrive on a Zenith machine.
+    """Report any way a GNOME desktop can arrive on a Asura machine.
 
     Three checks, and only three, because they are the three that can actually
     happen.
@@ -362,7 +379,7 @@ def audit_gnome(manifest: dict) -> list[str]:
         if name in GNOME_DESKTOP:
             problems.append(
                 f"{group}: installs {name}, which is a GNOME desktop "
-                f"component. Zenith's session is Hyprland with a Quickshell "
+                f"component. Asura's session is Hyprland with a Quickshell "
                 f"shell; a GNOME session here is a second desktop at the login "
                 f"screen that races the shell for org.freedesktop.Notifications."
             )
@@ -424,7 +441,7 @@ def audit_gnome_tools(root) -> list[str]:
                 continue
             problems.append(
                 f"{path.relative_to(root)}: invokes {match.group(1)}, which is "
-                f"{GNOME_TOOLS[match.group(1)]}. A Zenith machine must be able to "
+                f"{GNOME_TOOLS[match.group(1)]}. A Asura machine must be able to "
                 f"do everything the shell does without GNOME installed."
             )
 
@@ -448,7 +465,13 @@ def main() -> int:
     release = base["release"]
     declared = list(base["components"])
 
-    codename = resolve_codename(release, args.meta_release, args.cache_dir)
+    fallback = base.get("codename") or os.environ.get("ASURA_SUITE")
+    if not fallback and release == "26.04":
+        fallback = "resolute"
+
+    codename = resolve_codename(
+        release, args.meta_release, args.cache_dir, fallback=fallback
+    )
 
     if base.get("codename"):
         print(
@@ -486,11 +509,11 @@ def main() -> int:
             continue
         errors.append(
             f"{group}: installs {name!r}, which is in no component of {codename}. "
-            "It either ships from Zenith's own repository and must be declared "
+            "It either ships from Asura's own repository and must be declared "
             "as such, or it is a name that was never verified."
         )
 
-    # `zenith_built` entries are the inverse check: they must be absent from the
+    # `asura_built` entries are the inverse check: they must be absent from the
     # archive, because the entire reason they are under their own key is that
     # the base layer carries nothing. If one turns up upstream later, rebuilding
     # it becomes a fork of a package the base layer maintains, and the entry
@@ -543,7 +566,7 @@ def main() -> int:
             )
 
     print(
-        f"\n{installed} install entries resolve, {built} Zenith-built packages "
+        f"\n{installed} install entries resolve, {built} Asura-built packages "
         f"confirmed absent upstream, {deps} build dependencies resolve, "
         f"{protected} exclusions verified, no GNOME desktop component installed"
     )

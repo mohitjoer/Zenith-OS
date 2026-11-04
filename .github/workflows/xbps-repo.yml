@@ -1,0 +1,67 @@
+name: xbps-repo
+
+on:
+  push:
+    branches: [main, dev-unstable]
+    paths:
+      - 'packaging/xbps/**'
+      - 'desktop/**'
+      - 'session/**'
+      - 'system/**'
+  pull_request:
+    branches: [main, dev-unstable]
+    paths:
+      - 'packaging/xbps/**'
+      - 'desktop/**'
+      - 'session/**'
+      - 'system/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xbps-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build-packages:
+    name: XBPS — package pipeline
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            system/hardware/go.mod
+            desktop/go.mod
+
+      - name: Build Go binaries
+        run: |
+          mkdir -p build/bin
+          cd desktop
+          for cmd in asura asura-sysd asura-userd asura-hubd asura-shell asura-wallpaper apm; do
+            CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "../build/bin/$cmd" "./cmd/$cmd"
+          done
+
+      - name: Build Asura XBPS repository in Void container
+        run: |
+          docker run --rm \
+            -v "$PWD":/workspace \
+            -w /workspace \
+            ghcr.io/void-linux/void-linux:latest-full-x86_64 \
+            /workspace/packaging/xbps/build-repo.sh /workspace/build/xbps-repo /workspace/build/bin
+          sudo chmod -R a+rwX build/xbps-repo
+
+      - name: Upload XBPS repository artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: asura-xbps-repo
+          path: build/xbps-repo/
+          if-no-files-found: error
+          retention-days: 7

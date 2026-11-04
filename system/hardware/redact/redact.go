@@ -29,14 +29,14 @@ import (
 	"regexp"
 	"strings"
 
-	"zenith/hardware/probe"
+	"asura/hardware/probe"
 )
 
 // tokenDomain is the fixed prefix in every MAC input. It exists so that a token
 // computed here cannot collide with a hash computed for some other purpose on
 // the same machine, and so that rotating the format later is a one-line change
 // rather than a migration.
-const tokenDomain = "zenith/hardware-report/v1\x00"
+const tokenDomain = "asura/hardware-report/v1\x00"
 
 // Salt holds the key that makes tokens stable per machine and unresolvable by
 // anyone who does not hold it.
@@ -44,10 +44,10 @@ type Salt [32]byte
 
 // LoadOrCreateSalt reads the report salt, creating it if absent.
 //
-// The two locations are both ones Zenith already owns: a user-state path under
-// XDG_STATE_HOME, and /etc/zenith/ for the installer running as root. Nothing is
+// The two locations are both ones Asura already owns: a user-state path under
+// XDG_STATE_HOME, and /etc/asura/ for the installer running as root. Nothing is
 // written to a home directory by a package and nothing is written outside
-// /usr/share/zenith/ and /etc/zenith/ by anything shipped.
+// /usr/share/asura/ and /etc/asura/ by anything shipped.
 func LoadOrCreateSalt(path string) (Salt, error) {
 	var salt Salt
 
@@ -83,7 +83,7 @@ func LoadOrCreateSalt(path string) (Salt, error) {
 
 // Token produces the stable per-machine token for one field.
 //
-//	input = "zenith/hardware-report/v1\0" || field_name || "\0" || raw_value
+//	input = "asura/hardware-report/v1\0" || field_name || "\0" || raw_value
 //	token = "sha256:" || lowercase hex of the first 8 bytes of HMAC-SHA256(key, input)
 //
 // Including the field name means a token cannot be lifted from one field into
@@ -213,8 +213,32 @@ func Verify(rendered []byte, context Context) []Findings {
 	// Rule 1: a raw DMI value that is not on the keep-list, appearing verbatim.
 	// An empty value cannot be searched for, so it is skipped; absence is not a
 	// leak.
+	//
+	// A field of the duplicate class is skipped when a kept field carries the
+	// same string, and only then. It is the same string twice: once under a
+	// name the report carries, and once under a name it does not. Chassis
+	// vendor and board vendor are the same manufacturer on most machines;
+	// chassis version and product version are often the same string. The
+	// report contains the kept one legitimately, and the sweep cannot tell
+	// the two apart by looking at the text.
+	//
+	// The exemption is narrow on purpose. It applies to the duplicate class
+	// alone, and only when a kept field carries the value. A serial number is
+	// not in that class, and it is not exempted: if its value reaches the
+	// report, this rule fires on it, which is the case that matters.
+	policy := probe.DMIPolicy()
+	keptValues := map[string]bool{}
+	for field, value := range context.RawDMI {
+		if dmiKeptFields[field] && value != "" {
+			keptValues[value] = true
+		}
+	}
+
 	for field, value := range context.RawDMI {
 		if dmiKeptFields[field] || value == "" {
+			continue
+		}
+		if policy[field] == probe.DMIClassDuplicate && keptValues[value] {
 			continue
 		}
 		if strings.Contains(text, value) {

@@ -1,0 +1,5 @@
+#!/bin/sh
+mkdir -p /var/log
+exec >>/var/log/asura-sysd.log 2>&1
+# Start the Asura privileged system daemon
+exec /usr/bin/asura-sysd run

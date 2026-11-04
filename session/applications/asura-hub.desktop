@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Asura Settings
+GenericName=Settings
+Comment=Configure the Asura desktop: appearance, bar, inputs, keybinds and more
+Exec=asura-shell hub open
+Terminal=false
+Icon=preferences-system
+Categories=Settings;DesktopSettings;
+Keywords=hub;settings;preferences;asura;configure;appearance;keybinds;bar;input;

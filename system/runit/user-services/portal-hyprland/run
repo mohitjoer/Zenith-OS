@@ -1,0 +1,39 @@
+#!/bin/sh
+exec 2>&1
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+if [ -S "$RUNTIME_DIR/bus" ]; then
+	export DBUS_SESSION_BUS_ADDRESS="unix:path=$RUNTIME_DIR/bus"
+fi
+
+# Resolve WAYLAND_DISPLAY from runtime socket if empty
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+	for sock in "$RUNTIME_DIR"/wayland-[0-9]*; do
+		if [ -S "$sock" ]; then
+			export WAYLAND_DISPLAY="$(basename "$sock")"
+			break
+		fi
+	done
+fi
+
+# Resolve HYPRLAND_INSTANCE_SIGNATURE from runtime dir if empty
+if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -d "$RUNTIME_DIR/hypr" ]; then
+	for sig_dir in $(ls -td "$RUNTIME_DIR"/hypr/*_* 2>/dev/null); do
+		if [ -S "$sig_dir/.socket.sock" ]; then
+			export HYPRLAND_INSTANCE_SIGNATURE="$(basename "$sig_dir")"
+			break
+		fi
+	done
+fi
+EXE=""
+for p in /usr/libexec/xdg-desktop-portal-hyprland /usr/lib/xdg-desktop-portal-hyprland; do
+	if [ -x "$p" ]; then
+		EXE="$p"
+		break
+	fi
+done
+if [ -z "$EXE" ]; then
+	echo "xdg-desktop-portal-hyprland not found" >&2
+	exit 1
+fi
+exec "$EXE"

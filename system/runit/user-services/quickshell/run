@@ -1,0 +1,59 @@
+#!/bin/sh
+
+exec 2>&1
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+export QT_QPA_PLATFORM=wayland
+export XDG_CURRENT_DESKTOP=Asura
+export XDG_SESSION_DESKTOP=asura
+export DESKTOP_SESSION=asura
+export GDK_BACKEND=wayland
+
+# Resolve WAYLAND_DISPLAY from runtime socket if empty or invalid
+for _ in $(seq 1 50); do
+	if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -S "$RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+		break
+	fi
+	for sock in "$RUNTIME_DIR"/wayland-[0-9]*; do
+		if [ -S "$sock" ]; then
+			export WAYLAND_DISPLAY="$(basename "$sock")"
+			break 2
+		fi
+	done
+	sleep 0.1
+done
+
+# Resolve HYPRLAND_INSTANCE_SIGNATURE from runtime dir if empty or invalid
+for _ in $(seq 1 50); do
+	if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -S "$RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" ]; then
+		break
+	fi
+	for sig_dir in $(ls -td "$RUNTIME_DIR"/hypr/*_* 2>/dev/null); do
+		if [ -S "$sig_dir/.socket.sock" ]; then
+			export HYPRLAND_INSTANCE_SIGNATURE="$(basename "$sig_dir")"
+			break 2
+		fi
+	done
+	sleep 0.1
+done
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/asura"
+mkdir -p "$LOG_DIR"
+exec >>"$LOG_DIR/quickshell.log" 2>&1
+
+SHELL_DIR="${ASURA_SHELL_DIR:-/usr/share/asura/shell}"
+if [ ! -d "$SHELL_DIR" ] && [ -d "$HOME/code/Asura-OS/shell" ]; then
+	SHELL_DIR="$HOME/code/Asura-OS/shell"
+fi
+
+if ! command -v quickshell >/dev/null 2>&1 && [ ! -x /usr/bin/quickshell ]; then
+	echo "quickshell: binary not found; desktop shell unavailable" >&2
+	sleep 10
+	exit 1
+fi
+
+# Ensure desktop shell runs from user home so child processes (terminals, apps) start in $HOME
+cd "$HOME" 2>/dev/null || true
+
+exec quickshell -p "$SHELL_DIR"

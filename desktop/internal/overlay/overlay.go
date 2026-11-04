@@ -1,4 +1,4 @@
-// Package overlay implements Zenith's materialization model.
+// Package overlay implements Asura's materialization model.
 //
 // The whole model is one rule: a user's override always wins at its mirrored
 // path, and no update can ever clobber it. Everything else here exists to make
@@ -6,10 +6,10 @@
 //
 // The paths are the ones the architecture record fixes:
 //
-//	/usr/share/zenith/            the packaged base, replaced on update
-//	/etc/zenith/                  machine-level config, replaced on update
-//	~/.config/zenith/             the materialized base, the user's copy
-//	~/.config/zenith/user_edits/  the user's overlay; wins at the mirrored path
+//	/usr/share/asura/            the packaged base, replaced on update
+//	/etc/asura/                  machine-level config, replaced on update
+//	~/.config/asura/             the materialized base, the user's copy
+//	~/.config/asura/user_edits/  the user's overlay; wins at the mirrored path
 //
 // Every path this package touches is taken from a struct rather than read from
 // the process environment, so a test can run the real code against a temporary
@@ -27,15 +27,15 @@ import (
 
 // Paths is the set of roots the model is built on.
 type Paths struct {
-	// Base is the packaged base, /usr/share/zenith by default.
+	// Base is the packaged base, /usr/share/asura by default.
 	Base string
-	// Etc is machine-level config, /etc/zenith.
+	// Etc is machine-level config, /etc/asura.
 	Etc string
-	// Config is the materialized copy the user reads, ~/.config/zenith.
+	// Config is the materialized copy the user reads, ~/.config/asura.
 	Config string
 	// Edits is the user's overlay inside Config.
 	Edits string
-	// State holds revisions and snapshots, ~/.local/state/zenith.
+	// State holds revisions and snapshots, ~/.local/state/asura.
 	State string
 }
 
@@ -45,11 +45,11 @@ type Paths struct {
 // caller — a test, or a root invocation with a different home — controls it.
 func DefaultPaths(home string) Paths {
 	return Paths{
-		Base:   "/usr/share/zenith",
-		Etc:    "/etc/zenith",
-		Config: filepath.Join(home, ".config", "zenith"),
-		Edits:  filepath.Join(home, ".config", "zenith", "user_edits"),
-		State:  filepath.Join(home, ".local", "state", "zenith"),
+		Base:   "/usr/share/asura",
+		Etc:    "/etc/asura",
+		Config: filepath.Join(home, ".config", "asura"),
+		Edits:  filepath.Join(home, ".config", "asura", "user_edits"),
+		State:  filepath.Join(home, ".local", "state", "asura"),
 	}
 }
 
@@ -129,7 +129,7 @@ func materializeInto(sourceRoot, destRoot, editsRoot string) error {
 
 		// A user edit wins *at the mirrored path*, which means its content is
 		// written there — not that the path is left alone. Applications read
-		// ~/.config/zenith/<path>; they do not know user_edits/ exists, so a
+		// ~/.config/asura/<path>; they do not know user_edits/ exists, so a
 		// model that left the mirrored path absent would resolve the user's edit
 		// in the one place nothing reads. user_edits/ is the record of who
 		// changed it and when, and it is what `reset` and `doctor` consult.
@@ -172,6 +172,33 @@ func Materialize(paths Paths) error {
 	if err := materializeInto(paths.Base, paths.Config, paths.Edits); err != nil {
 		return fmt.Errorf("overlay: materializing %s into %s: %w",
 			paths.Base, paths.Config, err)
+	}
+	if err := pruneOrphans(paths); err != nil {
+		return fmt.Errorf("overlay: pruning orphans: %w", err)
+	}
+	return nil
+}
+
+// pruneOrphans removes materialized files that the base no longer ships.
+func pruneOrphans(paths Paths) error {
+	findings, err := Doctor(paths)
+	if err != nil {
+		return err
+	}
+	for _, finding := range findings {
+		if finding.Reason == DriftOrphan {
+			target := filepath.Join(paths.Config, finding.Path)
+			if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			parent := filepath.Dir(target)
+			for parent != paths.Config && parent != "." && parent != "/" {
+				if err := os.Remove(parent); err != nil {
+					break
+				}
+				parent = filepath.Dir(parent)
+			}
+		}
 	}
 	return nil
 }
@@ -303,14 +330,21 @@ func Doctor(paths Paths) ([]Drift, error) {
 		if walkErr != nil {
 			return nil
 		}
-		if entry.IsDir() || !entry.Type().IsRegular() {
+		if entry.IsDir() {
+			if strings.HasPrefix(entry.Name(), ".") || entry.Name() == EditsDir ||
+				entry.Name() == "current" || entry.Name() == "agent" {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !entry.Type().IsRegular() {
 			return nil
 		}
 		relative, err := filepath.Rel(paths.Config, path)
 		if err != nil {
 			return err
 		}
-		if isEditPath(relative, paths.Edits, paths.Config) {
+		if isEditPath(relative, paths.Edits, paths.Config) || isUserConfig(relative) {
 			return nil
 		}
 		if seen[relative] {
@@ -366,4 +400,30 @@ func cleanRelative(path string) (string, error) {
 		return "", fmt.Errorf("overlay: %q names the overlay itself", path)
 	}
 	return cleaned, nil
+}
+
+// isUserConfig reports whether a path in paths.Config is user state / config rather than a materialized base file.
+func isUserConfig(relative string) bool {
+	parts := strings.Split(relative, string(filepath.Separator))
+	for _, part := range parts {
+		if strings.HasPrefix(part, ".") {
+			return true
+		}
+	}
+	if parts[0] == "current" || parts[0] == "agent" {
+		return true
+	}
+	if parts[0] == "hyprland" && len(parts) == 2 {
+		switch parts[1] {
+		case "monitors-auto.conf", "monitors-user.conf", "settings.conf", "rebinds.conf", "asura.conf", "user.conf":
+			return true
+		}
+	}
+	if len(parts) == 1 {
+		ext := filepath.Ext(relative)
+		if ext == ".json" || ext == ".toml" || ext == ".lock" {
+			return true
+		}
+	}
+	return false
 }

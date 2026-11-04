@@ -14,6 +14,9 @@
 //
 // The second is the worse one, because the first at least leaves a trace in the
 // tool's help.
+//
+// The one exception is a setting nothing reads (Unread): it has no page on
+// purpose, because a page for it would be the second fault.
 package hub
 
 import (
@@ -21,7 +24,7 @@ import (
 	"sort"
 	"strings"
 
-	"zenith/desktop/internal/settings"
+	"asura/desktop/internal/settings"
 )
 
 // Page is one screen in the Hub.
@@ -45,54 +48,46 @@ type Page struct {
 // shell's widget catalogue, and it is listed explicitly for the same reason.
 var Pages = []Page{
 	{
-		Slug:    "appearance",
-		Title:   "Appearance",
-		Summary: "Colour scheme and wallpaper",
-		Keys: []string{
-			"org.zenith.desktop.color-scheme",
-			"org.zenith.shell.wallpaper-path",
-			"org.zenith.shell.wallpaper-path-dark",
-		},
-	},
-	{
-		Slug:    "bar",
-		Title:   "Bar",
-		Summary: "Position, height and which widgets are on it",
-		Keys: []string{
-			"org.zenith.shell.bar-position",
-			"org.zenith.shell.bar-height",
-			"org.zenith.shell.bar-widgets",
-		},
-	},
-	{
-		Slug:    "dock",
-		Title:   "Dock",
-		Summary: "Position, auto-hide and pinned applications",
-		Keys: []string{
-			"org.zenith.shell.dock-position",
-			"org.zenith.shell.dock-autohide",
-			"org.zenith.shell.favorites",
-		},
-	},
-	{
-		Slug:    "launcher",
-		Title:   "Launcher",
-		Summary: "Which applications it offers and how it lays out",
-		Keys: []string{
-			"org.zenith.shell.launcher-apps",
-			"org.zenith.shell.launcher-columns",
-		},
-	},
-	{
 		Slug:    "idle",
 		Title:   "Idle and Locking",
 		Summary: "When the screen dims, blanks and locks",
 		Keys: []string{
-			"org.zenith.desktop.idle-dim-seconds",
-			"org.zenith.desktop.idle-blank-seconds",
-			"org.zenith.desktop.idle-lock-seconds",
+			"org.asura.desktop.idle-dim-seconds",
+			"org.asura.desktop.idle-blank-seconds",
+			"org.asura.desktop.idle-lock-seconds",
 		},
 	},
+	{
+		Slug:    "desktop",
+		Title:   "Desktop & Dock",
+		Summary: "Bar and dock placement, autohide, and pinned favorite applications",
+		Keys: []string{
+			"org.asura.shell.bar-position",
+			"org.asura.shell.dock-position",
+			"org.asura.shell.dock-autohide",
+			"org.asura.shell.favorites",
+		},
+	},
+}
+
+// Unread lists the settings that have a command and no page, because nothing in
+// the running desktop reads them. A control for one is a control wired to
+// nothing, which is the second fault above in another form: the user changes it
+// and the desktop stays as it was. Each reason is what was found when the key was
+// put here. The day something reads the key it comes off this list and onto a
+// page, and Check reports a key that is on both.
+//
+// The schemas still declare them: the legacy shell (legacy-shell.qml and the
+// files at the shell's root) reads them, and the importer in internal/adopt
+// writes some of them.
+var Unread = map[string]string{
+	"org.asura.desktop.color-scheme":      "read once by asura-wallpaper to pick a fresh account's starting wallpaper, never again",
+	"org.asura.shell.wallpaper-path":      "read once by asura-wallpaper for a fresh account's starting wallpaper, never again",
+	"org.asura.shell.wallpaper-path-dark": "read once by asura-wallpaper for a fresh account's starting wallpaper, never again",
+	"org.asura.shell.bar-height":          "no reader",
+	"org.asura.shell.bar-widgets":         "read only by the legacy shell's Bar.qml",
+	"org.asura.shell.launcher-apps":       "read only by the legacy shell's Launcher.qml",
+	"org.asura.shell.launcher-columns":    "no reader",
 }
 
 // Control is the widget a setting is edited with.
@@ -245,12 +240,32 @@ func Check(catalogue *settings.Catalogue) []Finding {
 	// Direction one: a setting with a command and no page.
 	for _, ref := range catalogue.Refs() {
 		qualified := ref.Schema + "." + ref.Key
-		if _, ok := owned[qualified]; !ok {
+		_, unread := Unread[qualified]
+		if _, ok := owned[qualified]; !ok && !unread {
 			findings = append(findings, Finding{
 				Ref: qualified,
-				Reason: "can be changed with `zenith config set` but no Hub " +
+				Reason: "can be changed with `asura config set` but no Hub " +
 					"page shows it, so the only way to change it is to " +
 					"remember a command line",
+			})
+		}
+	}
+
+	for qualified := range Unread {
+		if page, ok := owned[qualified]; ok {
+			findings = append(findings, Finding{
+				Page: page,
+				Ref:  qualified,
+				Reason: "is on this page and on the Unread list; a setting " +
+					"with a reader belongs on a page, one without belongs on " +
+					"the list",
+			})
+		}
+		if !catalogue.Has(qualifiedRef(qualified)) {
+			findings = append(findings, Finding{
+				Ref: qualified,
+				Reason: "is on the Unread list and no schema declares it; " +
+					"delete the entry",
 			})
 		}
 	}
@@ -265,7 +280,7 @@ func Check(catalogue *settings.Catalogue) []Finding {
 					Page: page.Slug,
 					Ref:  key,
 					Reason: "shows a setting that no schema declares, so " +
-						"`zenith config` cannot reach it; the control would " +
+						"`asura config` cannot reach it; the control would " +
 						"be inert",
 				})
 			}
@@ -332,7 +347,7 @@ type DocumentPage struct {
 //
 // Everything the window needs to draw a control and to describe it, including
 // the current value — so the window never has to read dconf itself, and the only
-// writer stays `zenith config`.
+// writer stays `asura config`.
 type DocumentKey struct {
 	Schema   string   `json:"schema"`
 	Name     string   `json:"name"`
@@ -397,11 +412,11 @@ func Export(catalogue *settings.Catalogue) Document {
 	return document
 }
 
-// qualifiedRef turns "org.zenith.shell.bar-height" back into a Ref.
+// qualifiedRef turns "org.asura.shell.bar-height" back into a Ref.
 //
 // Split on the *last* dot rather than the first: schema ids contain dots and key
 // names cannot, so the last one is the separator. Splitting on the first would
-// produce schema "org" and key "zenith.shell.bar-height", and the error would be
+// produce schema "org" and key "asura.shell.bar-height", and the error would be
 // about a schema that does not exist rather than about a typo.
 func qualifiedRef(qualified string) settings.Ref {
 	i := strings.LastIndex(qualified, ".")

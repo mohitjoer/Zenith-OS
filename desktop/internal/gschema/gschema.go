@@ -1,4 +1,4 @@
-// Package gschema reads the GSettings schemas Zenith ships.
+// Package gschema reads the GSettings schemas Asura ships.
 //
 // One parser, because the shell's source check and the control tool's settings
 // catalogue need to read the same files and must not disagree about what is in
@@ -41,7 +41,7 @@ type Key struct {
 
 // Schema is one schema file's contents.
 type Schema struct {
-	// ID is the schema id, e.g. org.zenith.shell.
+	// ID is the schema id, e.g. org.asura.shell.
 	ID string
 	// Path is the dconf path the schema's keys live at.
 	Path string

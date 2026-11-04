@@ -1,0 +1,5 @@
+#!/bin/sh
+exec 2>&1
+# Give pipewire a brief instant if starting concurrently
+sleep 0.1
+exec wireplumber

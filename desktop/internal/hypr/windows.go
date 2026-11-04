@@ -151,7 +151,7 @@ func run(name string, args ...string) ([]byte, error) {
 // The argument is `address:0x...` and is passed as a single argv element, so no
 // quoting rule applies. This is the hyprlang form; Hyprland 0.55 and later wrap
 // dispatch in `hl.dispatch(...)` under a Lua config, which is a different
-// argument entirely. Zenith ships 0.53.3, where this is correct — see
+// argument entirely. Asura ships 0.53.3, where this is correct — see
 // system/packages.yaml.
 func Focus(address string) error {
 	_, err := run("hyprctl", "dispatch", "focuswindow", "address:"+address)

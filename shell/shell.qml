@@ -1,97 +1,878 @@
+//@ pragma UseQApplication
+// Threaded render loop: the frame's blob melt is a per-frame spring plus live
+// scene-graph MultiEffects (menu glass blur, blobs); threaded is vsync-locked and
+// frees the GUI thread so those effects get regular frame deltas and never ghost
+// or stutter. `basic` idled a touch cheaper on NVIDIA but smeared the live effects
+// when switching menu pages, so this matches the pill's proven render setup.
+//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
+//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
+//@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 pragma ComponentBehavior: Bound
 
-// The shell's entry point.
-//
-// `quickshell -p /usr/share/zenith/shell` runs this file. Nothing else names it,
-// which is why the packaging check can assert it exists: a missing entry point
-// is a shell that starts and immediately exits, with nothing in the journal that
-// says why.
-//
-// Everything below is loaded once, here, rather than on demand. A bar that
-// assembles itself from a Loader per widget means the bar is absent until every
-// widget has constructed, and a widget that fails to construct leaves a hole in
-// it with no indication which one.
-
 import Quickshell
-import Quickshell.Io
-import Quickshell.Widgets
+import qs.Services
+import "modules/stage/Singletons" as StageCfg
+import "modules/overview/Singletons" as OverviewCfg
+import "components"
+import "modules/wallpaper"
+import "modules/wallpaper/Singletons" as WallCfg
+import "modules/desktop"
+import "modules/bar"
+import "modules/dock"
+import "modules/launcher"
+import "modules/overview"
+import "modules/clipboard"
 import QtQuick
+import Quickshell.Io
+import Quickshell.Wayland
+import "modules/osd"
+import "modules/notifications"
+import "modules/capture"
+import "modules/confirm"
+import qs.Ui.Singletons
 
+/**
+ * The single resident Asura shell instance.
+ *
+ * One ShellRoot for the whole desktop. It brings the shared service singletons
+ * online, holds the per-monitor ShellState every surface binds its visibility
+ * to, and registers the shell's in-QML global shortcuts. Each monitor
+ * gets one Scope carrying that screen's ShellState slice (st); every migrated
+ * surface is instantiated once inside it and binds its screen and its visibility
+ * to the slice, so a keybind that flips a flag on the active monitor reveals or
+ * hides exactly this monitor's copy in-process, where the old shell spawned a
+ * asura-shell client per press across separate surface processes.
+ *
+ * The asura-shell daemon launches this instance as `qs -c shell`, the live
+ * desktop. Where the compositor offers a global-shortcuts protocol its binds
+ * dispatch straight to the shortcuts registered here.
+ *
+ * UseQApplication is declared once for the whole shell (the tray needs Qt
+ * Widgets), replacing the six per-surface copies the old multi-process shell paid.
+ */
 ShellRoot {
     id: root
+    // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
+    // the notification column), armed 1.5 s into boot so a keypress or an
+    // arriving toast never waits on a component build. Everything heavier is
+    // built on its own first open and torn down a grace period after every
+    // close, so nothing parses, instantiates or commits for a surface nobody
+    // asked for. The grace is what protects the animations: a surface is only
+    // ever destroyed while it sits closed.
+    property int warm: 0
+    Timer { interval: 1500; running: true; repeat: false; onTriggered: root.warm = 1 }
 
-    // The session's colour scheme is read once and bound, not polled. A shell
-    // that re-reads settings on a timer is a shell that redraws on a clock
-    // rather than on a change. The value itself lives on the wrapper, because
-    // that is what every widget asks for it through.
-    readonly property bool dark: config.dark
-
-    // Popovers are children of the root rather than of the surface that opened
-    // them, so closing a popover is closing one object instead of tracking which
-    // surface owns it. Two popovers open at once is two independent objects.
-    //
-    // Exactly one is open at a time, and that is the point of `currentPopover`
-    // rather than three separate booleans: with three booleans, opening the
-    // third leaves the first two open and the user gets two orphaned surfaces
-    // with no keybinding that closes them.
-    property string currentPopover: ""
-
-    function togglePopover(name) {
-        currentPopover = currentPopover === name ? "" : name
-        launcherPopover.opened = currentPopover === "launcher"
-        quickSettingsPopover.opened = currentPopover === "quick"
+    // Construct the shared services (ShellState's per-monitor state now, heavier
+    // providers as surfaces migrate) at load rather than on the first keybind.
+    ServiceLoader {
+        services: [ShellState, ScreenTime, Keypresses, KeyboardLayout]
     }
 
-    Popover {
-        id: launcherPopover
-        width: 640
-        height: 480
-        Launcher {}
-    }
-
-    Popover {
-        id: quickSettingsPopover
-        width: 360
-        height: 320
-        QuickSettings {}
-    }
-
-    // The two always-present surfaces. The bar and the dock are siblings of the
-    // popovers rather than children of them: a popover that closes must not take
-    // the bar with it.
-    // The wallpaper first, because QML draws siblings in declaration order and
-    // nothing else. A wallpaper declared after the bar is a wallpaper the bar
-    // is drawn over.
-    Wallpaper {}
-
-    Bar {}
-    Dock {}
-
-    // The sidebar is a sibling of the bar and the dock rather than a popover
-    // child, for the same reason: a panel that opens must not take the surfaces
-    // it was opened from down with it when it closes.
-    Sidebar {
-        id: sidebar
-        visible: root.currentPopover === "sidebar"
-    }
-
-    // The switcher is independent of the popovers. It is driven by a keybind
-    // rather than by togglePopover, and it closes itself, so keeping it out of
-    // currentPopover is what stops a Super+Tab from also closing an open
-    // launcher.
-    //
-    // Nothing calls advance() yet — see the keybind note in Switcher.qml.
-    Switcher {}
-
-    // Idle owns the timers and the overlay draws what they mean. The overlay is
-    // declared last so it is on top of everything, which is the whole point of
-    // it.
+    // The dim scrim; hypridle owns the idle clock (session/hyprland/hypridle.conf).
     Idle {}
-    IdleOverlay {}
 
-    // The notification popup. It is a child of the root and not of the popovers,
-    // for the reason the popovers are: a notification that arrives while the
-    // quick settings are open must not be dismissed by them closing, and a
-    // popup that owns its own lifetime cannot be taken down by someone else's.
-    Notifications {}
+    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/asura-reload-cover.json"
+    readonly property string reloadCoverBin: Quickshell.env("ASURA_SHELL_DIR")
+        ? Quickshell.env("ASURA_SHELL_DIR") + "/scripts/asura-reload-cover"
+        : "asura-reload-cover"
+    property string reloadToken: ""
+    property bool reloadFinishSent: false
+    property bool reloadReleaseArmed: false
+    property var reloadScreens: ({})
+    function setReloadScreenReady(name: string, ready: bool): void {
+        var next = ({});
+        for (var key in reloadScreens)
+            next[key] = reloadScreens[key];
+        next[name] = ready;
+        reloadScreens = next;
+        finishReloadCover();
+    }
+    function finishReloadCover(): void {
+        if (!reloadToken || reloadFinishSent)
+            return;
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            var screen = Quickshell.screens[i];
+            if (!screen || !reloadScreens[screen.name])
+                return;
+        }
+        if (!reloadReleaseArmed) {
+            reloadReleaseArmed = true;
+            reloadHold.restart();
+        }
+    }
+
+    FileView {
+        id: reloadState
+        path: root.reloadStatePath
+        blockLoading: true
+        printErrors: false
+        onLoaded: {
+            try {
+                const token = JSON.parse(text() || "{}").token;
+                root.reloadToken = typeof token === "string" && /^[0-9a-f]{32}$/.test(token) ? token : "";
+            } catch (error) {
+                root.reloadToken = "";
+            }
+            root.finishReloadCover();
+        }
+    }
+    Timer {
+        id: reloadHold
+        interval: 1500
+        onTriggered: {
+            if (!root.reloadToken || root.reloadFinishSent)
+                return;
+            root.reloadFinishSent = true;
+            reloadFinish.command = [root.reloadCoverBin, "finish", root.reloadToken];
+            reloadFinish.running = true;
+        }
+    }
+
+    Process {
+        id: reloadFinish
+    }
+
+    // Power Saver strips compositor blur and shadow too (the heaviest present-time
+    // GPU cost), reusing the decoration.lua path lowPowerMode already takes. Perf
+    // folds the active power profile into its switches; mirror the profile-driven
+    // "saver" flag to a cache the compositor reads, and reload it when it flips
+    // so it re-reads the value live. Seeded once at load with no reload
+    // (login already parsed the right value); only a later profile change reloads.
+    FileView {
+        id: hyprPerf
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/asura/hypr-perf.json"
+        printErrors: false
+        property bool armed: false
+        onSaved: if (hyprPerf.armed) Wm.reloadConfig("")
+        JsonAdapter { id: hyprPerfA; property bool saver: false }
+        Component.onCompleted: {
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
+        }
+    }
+    Connections {
+        target: Perf
+        function onSaverChanged() {
+            hyprPerf.armed = true;
+            hyprPerfA.saver = Perf.saver;
+            hyprPerf.writeAdapter();
+        }
+    }
+
+    // One per-monitor surface stack. Each screen gets a Scope carrying its
+    // ShellState slice (st); every resident surface binds its screen and its
+    // visibility to that slice, so flipping a flag on the active monitor reveals
+    // or hides this monitor's copy. The order here reads top-to-bottom only; the
+    // Wayland layer each surface maps on decides the real stacking.
+    Variants {
+        model: ShellState.screens
+
+        Scope {
+            id: perScreen
+            required property var modelData
+            readonly property var st: ShellState.forScreen(modelData)
+            readonly property bool reloadReady: wallpaper.reloadReady && desktop.reloadReady
+            onReloadReadyChanged: root.setReloadScreenReady(modelData.name, reloadReady)
+            Component.onCompleted: root.setReloadScreenReady(modelData.name, reloadReady)
+
+            // Always-on backdrop and desktop widget layer.
+            Wallpaper {
+                id: wallpaper
+                screen: perScreen.modelData
+            }
+            Desktop {
+                id: desktop
+                screen: perScreen.modelData
+                active: true
+                widgetsEnabled: Tokens.widgetsEnabledFor(perScreen.modelData.name)
+                wallpaperUrl: wallpaper.wallpaperUrl
+                wallpaperPath: wallpaper.wallpaperPath
+                wallpaperFit: wallpaper.fit
+                wallpaperTransition: wallpaper.transition
+                videoUrl: wallpaper.videoUrl
+                wallpaperLive: wallpaper.live
+                videoMuted: wallpaper.videoMuted
+                videoVolume: wallpaper.videoVolume
+            }
+
+            // A blurred copy of the wallpaper for the compositor's overview
+            // backdrop, mapped below the desktop so it shows only in the
+            // overview. Built only where the capability and the user's setting
+            // both ask for it; a box with the backdrop off never pays for it.
+            LazyLoader {
+                id: backdropLoader
+                activeAsync: Wm.caps.overviewBackdrop === true && WallCfg.OverviewBackdropConfig.enabled
+                OverviewBackdrop {
+                    screen: perScreen.modelData
+                    available: Wm.caps.overviewBackdrop === true
+                    overviewOpen: Wm.overviewOpen
+                    wallpaperUrl: wallpaper.wallpaperUrl
+                }
+            }
+
+            // Stage now renders entirely inside the desktop surface (one stack:
+            // backdrop, layers, widgets), so there is no separate Background
+            // The frame bar (Phase 2): reads its own reveal from this slice.
+            Frame {
+                modelData: perScreen.modelData
+                // park the record island flush beside this monitor's dock band
+                dockLaneEdge: dockLoader.item ? dockLoader.item.edge : ""
+                dockLaneSize: dockLoader.item ? dockLoader.item.bandSize : 0
+                dockLaneCenter: dockLoader.item ? dockLoader.item.bandCenter : 0
+            }
+
+            // The dock: a resident per-monitor surface on the edge opposite the
+            // bar. Style-agnostic, so it lives here rather than inside a bar style;
+            // it is not built until the user turns it on (Hub -> Bar Studio -> Dock).
+            LazyLoader {
+                id: dockLoader
+                activeAsync: Dock.cfg("enabled", false)
+                DockSurface {
+                    id: perScreenDock
+                    screen: perScreen.modelData
+                    // Edit widgets steps the dock back so the whole desktop is the canvas.
+                    visible: Dock.cfg("enabled", false)
+                        && !(StageCfg.StageSession.widgets && StageCfg.StageSession.monitor === perScreen.modelData.name)
+                }
+            }
+
+            // The dock's right-click context menu: a full-screen overlay on the
+            // monitor that owns the open menu (the thin dock strip cannot host it).
+            LazyLoader {
+                id: dockMenuLoader
+                property bool open: Dock.menuOpen && Dock.menuScreen === perScreen.modelData.name
+                activeAsync: open || dockMenuHold.running
+                onOpenChanged: if (!open && active) dockMenuHold.restart()
+                DockMenuOverlay {
+                    screen: perScreen.modelData
+                }
+            }
+            Timer { id: dockMenuHold; interval: 2000 }
+
+            // Toggle-driven overlays: built on first open (async, so the key
+            // press never blocks on a component build) and destroyed 15 s after
+            // every close, once the slide-out has long finished.
+            // The inner surface must be BORN closed and opened one tick later:
+            // its reveal is driven by an active-change, and an item created with
+            // the flag already true would never animate (or show) at all.
+            LazyLoader {
+                id: launcherLoader
+                property bool open: perScreen.st ? perScreen.st.launcherOpen : false
+                property bool showNow: false
+                activeAsync: open || launcherHold.running
+                onItemChanged: if (launcherLoader.item) Qt.callLater(function() { launcherLoader.showNow = launcherLoader.open; })
+                onOpenChanged: {
+                    if (launcherLoader.open) {
+                        if (launcherLoader.item) launcherLoader.showNow = true;
+                        return;
+                    }
+                    launcherLoader.showNow = false;
+                    if (launcherLoader.active) launcherHold.restart();
+                }
+                Launcher {
+                    screen: perScreen.modelData
+                    active: launcherLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.launcherOpen = false
+                }
+            }
+            Timer { id: launcherHold; interval: 15000 }
+            LazyLoader {
+                id: overviewLoader
+                property bool open: perScreen.st ? perScreen.st.overviewOpen : false
+                property bool showNow: false
+                activeAsync: open || overviewHold.running
+                onItemChanged: if (overviewLoader.item) Qt.callLater(function() { overviewLoader.showNow = overviewLoader.open; })
+                onOpenChanged: {
+                    if (overviewLoader.open) {
+                        if (overviewLoader.item) overviewLoader.showNow = true;
+                        return;
+                    }
+                    overviewLoader.showNow = false;
+                    if (overviewLoader.active) overviewHold.restart();
+                }
+                OverviewSurface {
+                    screen: perScreen.modelData
+                    active: overviewLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.overviewOpen = false
+                }
+            }
+            Timer { id: overviewHold; interval: 15000 }
+            LazyLoader {
+                id: clipboardLoader
+                property bool open: perScreen.st ? perScreen.st.clipboardOpen : false
+                property bool showNow: false
+                activeAsync: open || clipboardHold.running
+                onItemChanged: if (clipboardLoader.item) Qt.callLater(function() { clipboardLoader.showNow = clipboardLoader.open; })
+                onOpenChanged: {
+                    if (clipboardLoader.open) {
+                        if (clipboardLoader.item) clipboardLoader.showNow = true;
+                        return;
+                    }
+                    clipboardLoader.showNow = false;
+                    if (clipboardLoader.active) clipboardHold.restart();
+                }
+                ClipboardSurface {
+                    screen: perScreen.modelData
+                    active: clipboardLoader.showNow
+                    onRequestClose: if (perScreen.st) perScreen.st.clipboardOpen = false
+                }
+            }
+            Timer { id: clipboardHold; interval: 15000 }
+            // Shell-wide per-monitor surfaces. The OSDs and the popup column are
+            // small and event-driven (a keypress or an arriving toast must never
+            // wait on a build), so they join the first wave and stay resident.
+            // The capture overlays are per-flow: built on the flow's first
+            // signal, kept across the flow's pauses, dropped 20 s after it ends.
+            LazyLoader {
+                id: osdVolumeLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "volume"
+                }
+            }
+            LazyLoader {
+                id: osdMicLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "mic"
+                }
+            }
+            LazyLoader {
+                id: osdBrightnessLoader
+                activeAsync: root.warm >= 1
+                OsdWindow {
+                    modelData: perScreen.modelData
+                    kind: "brightness"
+                }
+            }
+            LazyLoader {
+                id: osdKeyboardLoader
+                activeAsync: root.warm >= 1
+                KeyboardOsdWindow {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: notifsLoader
+                activeAsync: root.warm >= 1 || Notifs.popups.length > 0
+                NotificationPopups {
+                    modelData: perScreen.modelData
+                }
+            }
+            LazyLoader {
+                id: regionLoader
+                property bool open: Recorder.anyActive || Recorder.chooserOpen
+                activeAsync: open || regionHold.running
+                onOpenChanged: if (!open && active) regionHold.restart()
+                RegionOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: regionHold; interval: 20000 }
+            LazyLoader {
+                id: captureLoader
+                property bool open: Capture.selecting !== ""
+                activeAsync: open || captureHold.running
+                onOpenChanged: if (!open && active) captureHold.restart()
+                CaptureOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: captureHold; interval: 20000 }
+            LazyLoader {
+                id: cameraLoader
+                property bool open: Camera.active
+                activeAsync: open || cameraHold.running
+                onOpenChanged: if (!open && active) cameraHold.restart()
+                CameraOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: cameraHold; interval: 20000 }
+            LazyLoader {
+                id: keypressLoader
+                property bool open: Keypresses.active
+                activeAsync: open || keypressHold.running
+                onOpenChanged: if (!open && active) keypressHold.restart()
+                KeypressOverlay {
+                    modelData: perScreen.modelData
+                }
+            }
+            Timer { id: keypressHold; interval: 20000 }
+            // Shown only on the monitor whose frame bar raised it; the positive
+            // button runs the power action through the daemon, then clears.
+            LazyLoader {
+                id: confirmLoader
+                property bool open: ShellState.sessionAction !== ""
+                activeAsync: open || confirmHold.running
+                onOpenChanged: if (!open && active) confirmHold.restart()
+                AsuraConfirmationDialog {
+                    modelData: perScreen.modelData
+                    action: ShellState.sessionActionMonitor === perScreen.modelData.name ? ShellState.sessionAction : ""
+                    message: ShellState.sessionMessage
+                    positiveLabel: ShellState.sessionPositive
+                    negativeLabel: I18n.tr("Cancel")
+                    onConfirmed: a => { SessionActions.run(a); ShellState.clearSessionAction(); }
+                    onCancelled: ShellState.clearSessionAction()
+                }
+            }
+            Timer { id: confirmHold; interval: 5000 }
+        }
+    }
+
+    // The single surface-toggle mapping. Every shell surface id resolves to one
+    // transition here: a per-monitor ShellState flip, a global config toggle, or
+    // a request onto the frame menu bus. Both routes to a surface end in this one
+    // call -- a CustomShortcut press where the compositor bridges global
+    // shortcuts, and the surfaceRequested bus a `asura-shell <id>` spawn drives
+    // where that protocol is absent (niri) -- so a toggle is defined once.
+    function toggleSurface(id) {
+        const st = ShellState.forActive();
+        switch (id) {
+        case "barToggle":
+            if (st)
+                st.barRevealed = !st.barRevealed;
+            break;
+        case "launcher":
+            if (st)
+                st.launcherOpen = !st.launcherOpen;
+            break;
+        case "overview":
+            if (Wm.caps.nativeOverview)
+                Wm.toggleOverview();
+            else if (st)
+                st.overviewOpen = !st.overviewOpen;
+            break;
+
+
+
+        case "quicksettings":
+            ShellState.requestSurfaceActive("quick-settings", undefined);
+            break;
+        case "wallpaper-menu":
+            ShellState.requestSurfaceActive("wallpaper", undefined);
+            break;
+        case "clipboard":
+            if (st)
+                st.clipboardOpen = !st.clipboardOpen;
+            break;
+        case "stash":
+            ShellState.requestSurfaceActive("stash", undefined);
+            break;
+        case "screenshot":
+            ShellState.requestSurfaceActive("quick-settings#capture", undefined);
+            break;
+        case "compress":
+            ShellState.requestSurfaceActive("stash#compress", undefined);
+            break;
+        case "install":
+            ShellState.requestSurfaceActive("stash#install", undefined);
+            break;
+        }
+    }
+
+    // The style-independent half of the surface bus. With no global-shortcuts
+    // protocol a keybind reaches a surface only by spawning `asura-shell <id>`,
+    // which arrives here as a surfaceRequested. Frame-menu surfaces are opened by
+    // the per-monitor FrameMenuManager (Frame.qml), which maps in every bar
+    // style; the shell-wide flag surfaces have no such host, so this routes them
+    // through the same toggleSurface a shortcut press uses. Frame-menu ids never
+    // match here, so a surface still opens exactly once.
+    Connections {
+        target: ShellState
+        function onSurfaceRequested(id, mon, ctx) {
+            switch (id) {
+            case "barToggle":
+            case "launcher":
+            case "overview":
+            case "clipboard":
+
+            }
+        }
+    }
+
+    // In-process global shortcuts. Each dispatches to the one toggleSurface
+    // mapping above, so the compositor's global-shortcut bind and a `asura-shell`
+    // spawn drive the identical transition. Names match the compositor binds.
+    CustomShortcut {
+        name: "barToggle"
+        description: I18n.tr("Toggle the Asura frame bar on the active monitor")
+        onPressed: root.toggleSurface("barToggle")
+    }
+    CustomShortcut {
+        name: "launcher"
+        description: I18n.tr("Toggle the app launcher on the active monitor")
+        onPressed: root.toggleSurface("launcher")
+    }
+    CustomShortcut {
+        name: "overview"
+        description: I18n.tr("Toggle the workspace overview on the active monitor")
+        onPressed: root.toggleSurface("overview")
+    }
+
+    // --- Root machinery (ported from the reference pill root) --------------
+
+    // Bring the durable services online and prewarm the slow scans so the first
+    // open of each surface is instant. Ported from pill/shell.qml 170-194:
+    // device restore + ddc prewarm and re-arming the persisted Keep-Awake /
+    // Game Mode external inhibitors.
+    Component.onCompleted: {
+        Devices.restore();
+        root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        if (Flags.gameMode)
+            root.syncGameMode("start");
+        Devices.probeDisplays();
+    }
+
+    // Keep-Awake's durable inhibitor lives outside the shell so it survives a
+    // reload/restart: asura-cmd-caffeine runs systemd-inhibit independent of our
+    // lifetime, while the Wayland IdleInhibitor below only gives compositor-level
+    // effect. Every surface toggle just flips Flags.keepAwake. (pill 246-257)
+    function syncCaffeine(action) {
+        Quickshell.execDetached(["asura-cmd-caffeine", action]);
+    }
+    Connections {
+        target: Flags
+        function onKeepAwakeChanged() {
+            root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        }
+    }
+
+    // Game mode's compositor and WiFi tuning lives outside the shell, same shape
+    // as Keep-Awake: asura-cmd-game-mode (on PATH) drives it so the tuning
+    // survives a reload. The deck toggle just flips Flags.gameMode. It is
+    // compositor tuning though (Hyprland live config eval), so it only fires
+    // where the window manager can run it -- the deck tile and the launcher
+    // action hide it there, and this stands down to match instead of running a
+    // script that would no-op.
+    function syncGameMode(action) {
+        if (Wm.caps.liveConfigEval !== true)
+            return;
+        Quickshell.execDetached(["asura-cmd-game-mode", action]);
+    }
+    Connections {
+        target: Flags
+        function onGameModeChanged() {
+            root.syncGameMode(Flags.gameMode ? "start" : "stop");
+        }
+    }
+
+    // Do-not-disturb: the notification server suppresses popups while the flag is
+    // set (the deck toggle owns the flag). (pill 196-200)
+    Binding {
+        target: Notifs
+        property: "dnd"
+        value: Flags.dnd
+    }
+
+    // Compositor-level idle inhibitor, mapped only while Keep-Awake is on. It
+    // dies with the shell; the external caffeine bridge above keeps the durable
+    // one. (pill 202-214)
+    PanelWindow {
+        id: inhibitWin
+        visible: Flags.keepAwake
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Background
+        WlrLayershell.namespace: "asura-frame-inhibit"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        anchors { top: true; left: true }
+        IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
+    }
+
+    // keyboard-return bounce. The frame overlay never unmaps, and dropping an
+    // Exclusive grab on a mapped layer strands the keyboard (the window looks
+    // active but cannot type). This 1x1 helper takes the grab and unmaps, which
+    // makes Hyprland hand the keyboard back. A per-monitor FrameSurfaceLifecycle
+    // pulses it through ShellState.focusRestoreRequested when a keyboard surface
+    // is dismissed, since the lifecycle is per-monitor but this window is single.
+    // (pill 216-237, 304-308)
+    property bool kbBounce: false
+    Timer {
+        id: kbBounceTimer
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    PanelWindow {
+        id: kbBounceWin
+        visible: root.kbBounce
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "asura-frame-kbfocus"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        anchors { top: true; left: true }
+    }
+    Connections {
+        target: ShellState
+        function onFocusRestoreRequested() {
+            root.kbBounce = true;
+            kbBounceTimer.restart();
+        }
+    }
+
+    // the self-view is a recording companion: when the last capture stops, clear
+    // it so it does not linger. (pill 872-878)
+    Connections {
+        target: Recorder
+        function onAnyActiveChanged() {
+            if (!Recorder.anyActive)
+                Camera.active = false;
+        }
+    }
+
+    // The polkit agent streams its prompt on a topic rather than pushing a
+    // surface, so raise and drop the island from the state itself. (pill 321-329)
+    Connections {
+        target: Polkit
+        function onActiveChanged() {
+            if (Polkit.active)
+                ShellState.requestSurface("polkit", "", undefined);
+            else
+                ShellState.closeSurface("polkit", "");
+        }
+    }
+
+    // Daemon-facing surface channel (Phase 10 points the daemon here). Target
+    // "shell" avoids the live pill's "pill" target; each call maps onto the
+    // ShellState surface bus. Ported from pill/shell.qml 341-364; the SocketServer
+    // fast path (pill 402-411) is deliberately omitted so this instance owns no
+    // runtime socket and produces zero live side effects alongside the daemon.
+    IpcHandler {
+        target: "shell"
+        // An empty monitor means "wherever focus is": the daemon sends "" when
+        // its focused-output cache is cold.
+        function openSurface(mon: string, id: string): void {
+            if (mon && mon.length > 0)
+                ShellState.requestSurface(id, mon, undefined);
+            else
+                ShellState.requestSurfaceActive(id, undefined);
+        }
+        function closeSurface(mon: string, id: string): void { ShellState.closeSurface(id, mon); }
+        function keyringPrompt(payload: string): void {
+            Keyring.apply(payload);
+            ShellState.keyringPromptChanged(Keyring.promptId);
+            ShellState.requestSurface("keyring", Keyring.mon !== "" ? Keyring.mon
+                : (ShellState.screens.length > 0 ? ShellState.screens[0].name : ""),
+                { promptId: Keyring.promptId });
+        }
+        function keyringHide(): void {
+            Keyring.clear();
+            ShellState.closeSurface("keyring", "");
+        }
+        function voiceShow(mon: string): void { ShellState.requestSurface("voice", mon, undefined); }
+        function voiceOff(mon: string): void { ShellState.requestSurface("voice-off", mon, undefined); }
+        function voiceHide(): void { ShellState.closeSurface("voice", ""); }
+        function pluginPopout(mon: string, id: string): void { ShellState.requestSurface("plugin:" + id, mon, undefined); }
+        function bar(mon: string, id: string): void { ShellState.requestSurface(id, mon, undefined); }
+        function closeAllMenus(mon: string): void { ShellState.closeSurface("", mon); }
+        function sessionConfirm(mon: string, action: string): void { ShellState.askSessionAction(action, mon); }
+    }
+
+    // The Hub's "Place on the desktop" button lands here: a slider cannot let a
+    // user drop a ring where they want it, so the shell hands them the shape.
+
+
+    IpcHandler {
+        target: "keypresses"
+        // Read-outs are functions, not properties. A property on an IpcHandler
+        // brings a change signal with it, and Quickshell warns once per signal it
+        // finds on a handler; `ipc call keypresses <name>` returns the same value.
+        function active(): bool { return Keypresses.active; }
+        function status(): string { return Keypresses.backendStatus; }
+        function lastEvent(): string { return Keypresses.lastEventSignature; }
+        function theme(): string { return Keypresses.theme; }
+        function mode(): string { return Keypresses.mode; }
+        function revision(): real { return Keypresses.previewRevision; }
+        function activate(theme: string, mode: string, revision: string): void {
+            Keypresses.activatePreview(theme, mode, revision);
+        }
+        function deactivate(revision: string): void {
+            Keypresses.deactivatePreview(revision);
+        }
+        function toggle(): void { Keypresses.toggle(); }
+    }
+    // Menu global shortcuts: open a bar surface on the focused monitor. Each
+    // dispatches to the one toggleSurface mapping so the compositor bind and the
+    // `asura-shell <id>` spawn open the identical surface.
+    CustomShortcut {
+        name: "quicksettings"
+        description: I18n.tr("Open quick settings on the active monitor")
+        onPressed: root.toggleSurface("quicksettings")
+    }
+    CustomShortcut {
+        name: "wallpaper-menu"
+        description: I18n.tr("Open the wallpaper and theme menu on the active monitor")
+        onPressed: root.toggleSurface("wallpaper-menu")
+    }
+    CustomShortcut {
+        name: "clipboard"
+        description: I18n.tr("Open the clipboard history on the active monitor")
+        onPressed: root.toggleSurface("clipboard")
+    }
+    CustomShortcut {
+        name: "stash"
+        description: I18n.tr("Open the feature sidebar on the active monitor")
+        onPressed: root.toggleSurface("stash")
+    }
+    CustomShortcut {
+        name: "screenshot"
+        description: I18n.tr("Open the capture tab in quick settings on the active monitor")
+        onPressed: root.toggleSurface("screenshot")
+    }
+    CustomShortcut {
+        name: "compress"
+        description: I18n.tr("Open the feature sidebar's file picker to compress media")
+        onPressed: root.toggleSurface("compress")
+    }
+    CustomShortcut {
+        name: "install"
+        description: I18n.tr("Open the feature sidebar's file picker to install a package")
+        onPressed: root.toggleSurface("install")
+    }
+
+    // --- Asura keybind bridge --------------------------------------------
+    // The compositor's configuration (session/hyprland/hyprland.conf) still
+    // speaks the homegrown contract -- target "asura" and the functions the
+    // `kind: "shell"` entries of session/binds.json name -- because the
+    // catalogue and the configuration are one list written down twice, and
+    // `asura doctor` (internal/shell/binds.go) compares them in both
+    // directions. Neither side may rename alone, so this root hosts the old
+    // IpcHandler. Every function is a one-line route onto a surface the
+    // ported shell already owns, ending in the same toggleSurface mapping
+    // the CustomShortcuts above dispatch through.
+    //
+    // Global-shortcut collision: the conf's chords reach the shell only
+    // through its exec binds, and they own the dispatch. The CustomShortcuts
+    // here are left in place but cannot double-fire the same chord: the
+    // shipped hyprland.conf declares no `global,` dispatch binds at all, and
+    // the quickshell bridge module CustomShortcut loads
+    // (Asura.Wm.Hyprland GlobalShortcutBridge) was not carried over by the
+    // port, so nothing in this file registers those chords with the
+    // global-shortcut protocol. The exec binds are the dispatcher for these
+    // surface -keybinds, exactly as the conf's own comments say.
+    IpcHandler {
+        target: "asura"
+
+        function togglePopover(name: string): void {
+            switch (name) {
+            case "launcher":
+                root.toggleSurface("launcher");
+                break;
+            case "quick":
+                root.toggleSurface("quicksettings");
+                break;
+            case "sidebar":
+                root.toggleSurface("stash");
+                break;
+            case "cheatsheet":
+                root.showCheatsheet(asuraSheetWindow.visible !== true);
+                break;
+            }
+        }
+
+        // The switcher: advance (reverse, with Shift) while the key is down, close
+        // when it comes up. The release is `bindr`; `bindl` is the lock-screen
+        // flag and fires on the press, which is what hid the card at once.
+        function advanceSwitcher(): void { root.advanceSwitcher(); }
+        function reverseSwitcher(): void { root.reverseSwitcher(); }
+        function closeSwitcher(): void { root.closeSwitcher(); }
+        function toggleCheatsheet(): void { root.toggleCheatsheet(); }
+
+        // Super+Tab, Super+Alt+Tab, and any surface by its toggleSurface name.
+        function toggleOverview(): void { root.toggleSurface("overview"); }
+        function overviewDesktop(delta: int): void { root.overviewDesktop(delta); }
+        function toggleSurface(name: string): void { root.toggleSurface(name); }
+
+        // The print key arrives here as a compositor bind (Print / XF86Print)
+        // and opens the capture tab in quick settings, where the shell takes
+        // the screenshot itself with the compositor's screencopy.
+        function toggleScreenshot(): void { root.toggleSurface("screenshot"); }
+
+        // A Hub write to the idle keys lands here: hypridle reads its timeouts
+        // when it starts, so `asura-idle apply` restarts it only if they changed.
+        // Every other setting is read reactively by the shell itself.
+        function reloadSettings(): void { Quickshell.execDetached(["asura-idle", "apply"]); }
+    }
+
+    function toggleCheatsheet() {
+        root.showCheatsheet(asuraSheetWindow.visible !== true);
+    }
+
+    function showCheatsheet(on) {
+        if (on)
+            asuraSheetLoader.active = true; // the sheet builds on first open
+        asuraSheetWindow.visible = on;
+    }
+
+    function advanceSwitcher() {
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.advance();
+    }
+
+    function closeSwitcher() {
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.close();
+    }
+
+    function reverseSwitcher() {
+        if (asuraSwitcher.item)
+            asuraSwitcher.item.reverse();
+    }
+
+    // Super+Alt+Tab: step the desktop strip of an open overview, or open the
+    // overview already stepped (the overview applies the step once it has seeded).
+    function overviewDesktop(delta) {
+        const st = ShellState.forActive();
+        if (!st)
+            return;
+        if (st.overviewOpen) {
+            OverviewCfg.Hy.desktopStep(delta);
+        } else {
+            OverviewCfg.Hy.pendingStep = delta;
+            st.overviewOpen = true;
+        }
+    }
+
+    // The switcher and the cheat sheet are Asura's own parked surfaces from
+    // the homegrown shell (Switcher.qml, Shell.qml), hosted here so the conf's
+    // exec binds drive them in-process. The Loader confines a component that
+    // fails to load to a log line: a sheet that will not load is a sheet that
+    // does not open, not a desktop that does not boot. The switcher is
+    // resident (its window is born hidden), the sheet builds on first open
+    // like the port's own toggle surfaces.
+    Loader {
+        id: asuraSwitcher
+        source: "Switcher.qml"
+    }
+
+    PanelWindow {
+        id: asuraSheetWindow
+        visible: false
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        // Click-away and Escape close, because a sheet dismissed only by
+        // pressing its key again is a sheet the user is stuck in when the
+        // catalogue is not what they were looking for.
+        TapHandler { onTapped: root.showCheatsheet(false) }
+        Shortcut { sequence: "Escape"; onActivated: root.showCheatsheet(false) }
+
+        Loader {
+            id: asuraSheetLoader
+            active: false
+            anchors.centerIn: parent
+            source: "Shell.qml"
+        }
+    }
+
 }

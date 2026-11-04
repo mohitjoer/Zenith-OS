@@ -1,0 +1,206 @@
+# Asura package manifest for Void Linux base layer.
+#
+# Base layer: Void Linux x86_64 (glibc).
+# Package manager: XBPS.
+# Init system: runit.
+
+version: 1
+
+base:
+  distribution: void-linux
+  arch: x86_64
+  libc: glibc
+  kernel: linux
+  flavor: base-system
+
+essential:
+  packages:
+    - base-system
+    - runit
+    - runit-void
+    - dbus
+    - polkit
+    - elogind
+    - seatd
+    - libseat
+    - eudev
+    - util-linux
+    - coreutils
+    - findutils
+    - grep
+    - sed
+    - gawk
+    - tar
+    - gzip
+    - xz
+    - zstd
+    - curl
+    - ca-certificates
+    - sudo
+    - psmisc
+    - procps-ng
+    - iptables
+    - iproute2
+    - btrfs-progs
+    - openssh
+    - pciutils
+    - usbutils
+    - xdg-utils
+    - fontconfig
+    - file
+    - plymouth
+    - plymouth-data
+
+desktop:
+  packages:
+    # Wayland Compositor & helpers
+    - hyprland
+    - quickshell
+    - xdg-desktop-portal
+    - xdg-desktop-portal-hyprland
+    - xdg-desktop-portal-gtk
+    - xdg-desktop-portal-lxqt
+    - wl-clipboard
+    - wlr-randr
+    - grim
+    - slurp
+    - swaybg
+    - xorg-server-xwayland
+    # Qt6 & QML runtime for Quickshell
+    - qt6-base
+    - qt6-declarative
+    - qt6-svg
+    - qt6-multimedia
+    - qt6-wayland
+    - qt6-imageformats
+    - qt6-qt5compat
+    - qt6-position
+    - qt6-shadertools
+    # Core utilities
+    - dconf
+    - glib
+    - libnotify
+    - jq
+    - ImageMagick
+    - librsvg
+    - hyprpicker
+    - playerctl
+    - cliphist
+    - desktop-file-utils
+    - trash-cli
+    - lm_sensors
+    - iwd
+    - iw
+    # Compositor & shell runtime libraries
+    - libseat
+    - pixman
+    - cairo
+    - pango
+    - re2
+    - libinput
+    - libxkbcommon
+    - xcb-util-wm
+    - xcb-util-errors
+    - libdisplay-info
+    - libjxl
+    - libmagic
+    - libzip
+    - jemalloc
+    - libunwind
+  exclude:
+    # No GNOME components per project rules
+    - gnome-shell: GNOME Shell is forbidden in Asura
+    - gnome-control-center: Asura uses Asura Hub and Hyprland
+    - xdg-desktop-portal-gnome: Asura uses xdg-desktop-portal-hyprland
+    - mutter: Asura uses Hyprland
+
+session:
+  packages:
+    - pam
+    - turnstile
+    - greetd
+    - wlogout
+    - swayidle
+    - swaylock
+
+applications:
+  packages:
+    - firefox
+    - flatpak
+    - Thunar
+    - thunar-volman
+    - thunar-archive-plugin
+    - gvfs
+    - tumbler
+    - neovim
+    - nano
+    - btop
+    - xdg-user-dirs
+
+terminal-and-shell:
+  packages:
+    - ghostty
+    - zsh
+    - starship
+    - fastfetch
+  exclude:
+    - kitty: Kitty is strictly forbidden in Asura per agent rules
+
+languages:
+  packages:
+    - go
+    - python3
+    - python3-yaml
+    - git
+
+graphics-and-media:
+  packages:
+    - mesa-dri
+    - mesa-vulkan-intel
+    - mesa-vulkan-radeon
+    - vulkan-loader
+    - pipewire
+    - wireplumber
+    - pavucontrol
+    - alsa-utils
+    - alsa-plugins
+    - mpv
+    - imv
+    - ffmpeg
+
+power-and-hardware-services:
+  packages:
+    - upower
+    - tlp
+    - acpid
+    - brightnessctl
+    - bluez
+    - NetworkManager
+    - network-manager-applet
+    - wpa_supplicant
+    - gamemode
+    - zramen
+    - scx
+    - scx-loader
+    - mimalloc
+    - podman
+
+fonts-and-icons:
+  packages:
+    - dejavu-fonts-ttf
+    - font-awesome
+    - font-awesome6
+    - font-material-design-icons-ttf
+    - nerd-fonts-symbols-ttf
+    - noto-fonts-ttf
+    - noto-fonts-cjk
+    - noto-fonts-emoji
+    - papirus-icon-theme
+    - hicolor-icon-theme
+
+firmware:
+  packages:
+    - linux-firmware-amd
+    - linux-firmware-intel
+    - linux-firmware-network
+    - sof-firmware

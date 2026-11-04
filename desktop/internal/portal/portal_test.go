@@ -101,7 +101,7 @@ func (m *machine) writeUser(body string) {
 }
 
 // writeUserNamed writes a configuration under a specific file name, which is how
-// the silent failure is staged: adoption writes zenith-portals.conf, and the
+// the silent failure is staged: adoption writes asura-portals.conf, and the
 // session identity is then wrong, so the dispatcher never looks at that file.
 func (m *machine) writeUserNamed(name, body string) {
 	m.t.Helper()
@@ -130,15 +130,15 @@ func (m *machine) writeAt(relative, body string) {
 // TestConfigFileDerivation pins the case-folding the dispatcher does.
 //
 // It lower-cases XDG_CURRENT_DESKTOP. That is why the session exports
-// "Zenith" for the current desktop and "zenith" for the session name: getting
+// "Asura" for the current desktop and "asura" for the session name: getting
 // them the other way round still resolves a filename, just the wrong one, and
 // nothing complains.
 func TestConfigFileDerivation(t *testing.T) {
 	tests := []struct{ desktop, want string }{
-		{"Zenith", "zenith-portals.conf"},
-		{"zenith", "zenith-portals.conf"},
-		{"ZENITH", "zenith-portals.conf"},
-		{" Zenith ", "zenith-portals.conf"},
+		{"Asura", "asura-portals.conf"},
+		{"asura", "asura-portals.conf"},
+		{"ASURA", "asura-portals.conf"},
+		{" Asura ", "asura-portals.conf"},
 		{"GNOME", "gnome-portals.conf"},
 		{"", "-portals.conf"},
 	}
@@ -204,15 +204,15 @@ func TestWrongDesktopIdentityIsTheRootCause(t *testing.T) {
 // TestLowercaseIdentityFindsTheFileButIsStillWrong covers the case that looks
 // like it should pass and must not be counted as passing.
 //
-// The dispatcher lower-cases the desktop name, so XDG_CURRENT_DESKTOP=zenith
-// resolves exactly the same configuration file as Zenith does. The file is
+// The dispatcher lower-cases the desktop name, so XDG_CURRENT_DESKTOP=asura
+// resolves exactly the same configuration file as Asura does. The file is
 // found. The session is still wrong, and the identity assertion still fires —
 // because everything else in the stack branches on the exact string, and a
 // session that reports the wrong one is a session that has not declared itself.
 func TestLowercaseIdentityFindsTheFileButIsStillWrong(t *testing.T) {
 	m := newMachine(t)
 	m.writeUser(goodConfig)
-	m.desktop = "zenith"
+	m.desktop = "asura"
 
 	resolution := Resolve(m.env())
 
@@ -424,9 +424,9 @@ func TestBackendTrimsTheListSemicolon(t *testing.T) {
 // the two files this project actually ships.
 //
 // They are two different files with two different authors. The package installs
-// /usr/share/xdg-desktop-portal/zenith-portals.conf, which is the location and
+// /usr/share/xdg-desktop-portal/asura-portals.conf, which is the location and
 // name portals.conf(5) prescribes for a desktop's default — the same directory
-// gnome-portals.conf sits in. `zenith adopt` writes the user's generic
+// gnome-portals.conf sits in. `asura adopt` writes the user's generic
 // portals.conf, because it needs no root. Resolve only ever looked for the
 // per-desktop name in config home, so both a fresh install and a freshly adopted
 // machine reported "no portal configuration was found at all", and the file the
@@ -440,7 +440,7 @@ func TestConfigurationLocations(t *testing.T) {
 		{
 			name: "the file the package ships",
 			write: func(m *machine) {
-				m.writeAt("root/usr/share/xdg-desktop-portal/zenith-portals.conf", goodConfig)
+				m.writeAt("root/usr/share/xdg-desktop-portal/asura-portals.conf", goodConfig)
 			},
 			wantSource: SourceSystem,
 		},

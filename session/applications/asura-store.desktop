@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Asura Store
+GenericName=Software
+Comment=Find and install software
+Exec=asura-store open discover
+Terminal=false
+Icon=system-software-install
+Categories=System;PackageManager;
+Keywords=store;software;apps;install;apt;packages;plugins;asura;

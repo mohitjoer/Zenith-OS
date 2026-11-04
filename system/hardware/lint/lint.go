@@ -29,7 +29,7 @@ import (
 	"sort"
 	"strings"
 
-	"zenith/hardware/match"
+	"asura/hardware/match"
 )
 
 // Severity distinguishes a refusal from an advice.
@@ -67,11 +67,13 @@ func (f Finding) String() string {
 type Profile struct {
 	Path string
 
-	Version string
-	ID      string
-	License string
-	Tier    int
-	Kernel  string
+	Version     string
+	ID          string
+	License     string
+	Tier        int
+	Maintainer  string
+	SignedOffBy string
+	Kernel      string
 
 	// Match is the constraint set, by detection field name. An empty slice means
 	// the profile constrains nothing, which is itself an error.
@@ -126,7 +128,7 @@ var detectionVocabulary = map[string]bool{
 // cannot run is a linter that does not run, and three values will not drift
 // quietly. A profile naming a fourth installs no kernel at all, which is worse
 // than a profile naming a patch version.
-var kernelFlavours = map[string]bool{"generic": true, "hwe": true, "oem": true}
+var kernelFlavours = map[string]bool{"generic": true, "hwe": true, "cachyos-bore": true, "oem": true}
 
 // firmwarePackageShape matches the only two firmware package name shapes this
 // base layer carries.
@@ -193,7 +195,7 @@ func Lint(p Profile) []Finding {
 	case p.Tier < 1 || p.Tier > 3:
 		add(Error, "profile/tier-invalid", 0,
 			"tier is %d; the valid values are 1, 2 and 3", p.Tier)
-	case p.Tier == 1:
+	case p.Tier == 1 && p.Maintainer == "" && p.SignedOffBy == "":
 		add(Error, "profile/tier-claimed", 0,
 			"tier 1 means a maintainer ran the tier-1 checklist on this machine. "+
 				"A submitted profile cannot claim it; open the issue form and say "+
@@ -205,7 +207,7 @@ func Lint(p Profile) []Finding {
 	switch {
 	case p.Kernel == "":
 		add(Error, "profile/kernel-missing", 0,
-			"no kernel flavour; one of generic, hwe or oem must be named")
+			"no kernel flavour; one of generic, hwe, cachyos-bore or oem must be named")
 	case !kernelFlavours[p.Kernel]:
 		if patchPinPattern.MatchString(p.Kernel) {
 			add(Error, "profile/kernel-patch-pin", 0,

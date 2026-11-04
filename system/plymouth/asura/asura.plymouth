@@ -1,0 +1,12 @@
+[Plymouth Theme]
+Name=Asura OS
+Description=Asura OS Monochrome Boot Splash with Logo and Progress Bar Animation
+
+ModuleName=script
+Font=DejaVu Sans 10
+TitleFont=DejaVu Sans Bold 10
+MonospaceFont=DejaVu Sans Mono 10
+
+[script]
+ImageDir=/usr/share/plymouth/themes/asura
+ScriptFile=/usr/share/plymouth/themes/asura/asura.script

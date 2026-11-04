@@ -1,0 +1,11 @@
+module qs.Blobs
+
+# A QML counterpart to the compiled blob plugin. The plugin meshes its members
+# into one liquid field with shadows; this shim keeps the shell's API intact
+# and gives an honest first render of the same geometry: each BlobRect is
+# painted at its own geometry and color, so popouts, the frame island, and the
+# camera overlay all appear. The melt and the deform matrix join when the
+# compiled module replaces this directory, which is why the same properties,
+# names, and defaults live here.
+BlobGroup BlobGroup.qml
+BlobRect BlobRect.qml

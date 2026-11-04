@@ -1,0 +1,20 @@
+#!/bin/sh
+# Pinned screenshots: floating, always-on-top cards.
+#
+# asura-shot drops a PNG in $XDG_RUNTIME_DIR/asura/pins, touches .poke there,
+# and runs this. The host is one process for all pins, so the lock is here and
+# not in the caller: a second run while the host is up exits 0 (the host already
+# saw the poke), and the host quits by itself when the last pin is closed.
+# A wrapper for the same reason asura-hub is one.
+set -eu
+
+QUICKSHELL_BIN=${ASURA_QUICKSHELL:-/usr/bin/quickshell}
+ENTRY=/usr/share/asura/shell/pin.qml
+
+if [ ! -x "$QUICKSHELL_BIN" ]; then
+    echo "asura-pin: $QUICKSHELL_BIN is not installed." >&2
+    echo "asura-pin: pins are drawn by Quickshell, which Asura builds." >&2
+    exit 1
+fi
+
+exec flock -n -E 0 -o "${XDG_RUNTIME_DIR:-/tmp}/asura-pin.lock" "$QUICKSHELL_BIN" -p "$ENTRY"

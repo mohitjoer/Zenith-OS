@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 // The sidebar.
 //
 // A slide-in panel for audio, network, bluetooth, display and media. It is a
-// renderer and nothing else: it runs `zenith state` and draws the JSON it gets
+// renderer and nothing else: it runs `asura state` and draws the JSON it gets
 // back. Every decision about what a tool's output means is in Go, where there
 // are tests for it — wpctl reporting a volume of 1.53, nmcli escaping the
 // colons in a MAC address, bluetoothctl exiting 0 while printing an error. Those
@@ -16,65 +16,74 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
-
-// Four small pieces, inline rather than in four files. Each is a few lines and
-// each is used by more than one section; promoting one to a file is a small
-// change later, not a refactor now.
-component SectionTitle: Text {
-    color: Palette.textDim
-    font.pixelSize: 11
-    font.capitalization: Font.AllUppercase
-    font.letterSpacing: 1.2
-}
-
-component Dim: Text {
-    color: Palette.textDim
-    font.pixelSize: 12
-    width: parent ? parent.width : 0
-    elide: Text.ElideRight
-}
-
-component Glyph: Text {
-    font.family: Icons.iconFamily
-    font.pixelSize: 13
-    color: Palette.text
-}
-
-// A hidden section collapses rather than showing an empty header. A sidebar that
-// says "no audio" on a machine that has audio, because one probe timed out, is a
-// sidebar people stop trusting.
-component Section: Column {
-    property string title: ""
-    property bool shown: true
-
-    spacing: 6
-    width: parent ? parent.width : 0
-    leftPadding: 16
-    rightPadding: 16
-    visible: shown
-    height: shown ? implicitHeight : 0
-
-    SectionTitle { text: parent.title }
-}
-
-// An icon and a value, which is what two of the sections are made of.
-component Stat: Row {
-    property string icon: ""
-    property string value: ""
-
-    spacing: 8
-
-    Glyph { text: parent.icon }
-    Text {
-        anchors.verticalCenter: parent.verticalCenter
-        text: parent.value
-        color: Palette.text
-        font.pixelSize: 13
-    }
-}
+// The vendored component kit. The sidebar's surface, its text and its layers
+// are the kit's, so a change to how a surface step looks reaches this panel
+// without this panel being edited.
+import qs.modules.common as Kit
+import qs.modules.common.widgets
 
 PanelWindow {
     id: sidebar
+
+    // Four small pieces, inline rather than in four files. Each is a few lines
+    // and each is used by more than one section; promoting one to a file is a
+    // small change later, not a refactor now.
+    //
+    // They are members of this object because `component` is a member keyword:
+    // an inline component declared at file scope is a syntax error, which is
+    // what this was before the shell had ever been run by an engine.
+    component SectionTitle: StyledText {
+        color: Kit.Appearance.colors.colOnSurfaceVariant
+        font.pixelSize: Theme.typeCaptionSize
+        font.capitalization: Font.AllUppercase
+        font.letterSpacing: 1.2
+    }
+
+    component Dim: StyledText {
+        color: Kit.Appearance.colors.colOnSurfaceVariant
+        font.pixelSize: 12
+        width: parent ? parent.width : 0
+        elide: Text.ElideRight
+    }
+
+    component Glyph: StyledText {
+        font.family: Icons.iconFamily
+        font.pixelSize: 13
+        color: Kit.Appearance.m3colors.m3onBackground
+    }
+
+    // A hidden section collapses rather than showing an empty header. A sidebar
+    // that says "no audio" on a machine that has audio, because one probe timed
+    // out, is a sidebar people stop trusting.
+    component Section: Column {
+        property string title: ""
+        property bool shown: true
+
+        spacing: 6
+        width: parent ? parent.width : 0
+        leftPadding: 16
+        rightPadding: 16
+        visible: shown
+        height: shown ? implicitHeight : 0
+
+        SectionTitle { text: parent.title }
+    }
+
+    // An icon and a value, which is what two of the sections are made of.
+    component Stat: Row {
+        property string icon: ""
+        property string value: ""
+
+        spacing: 8
+
+        Glyph { text: parent.icon }
+        StyledText {
+            anchors.verticalCenter: parent.verticalCenter
+            text: parent.value
+            color: Kit.Appearance.m3colors.m3onBackground
+            font.pixelSize: 13
+        }
+    }
 
     // The panel is always this wide. One that resized to its contents would
     // reflow the desktop every time a bluetooth device appeared, which is a
@@ -84,7 +93,7 @@ PanelWindow {
 
     anchors { top: true; right: true }
 
-    color: Palette.background
+    color: Theme.canvas
     exclusionMode: ExclusionMode.Ignore
 
     // Polled, not watched, because there is nothing to watch: none of these five
@@ -100,15 +109,19 @@ PanelWindow {
 
     Process {
         id: probe
-        command: ["zenith", "state"]
+        command: ["asura", "state"]
         running: sidebar.refreshToken !== ""
 
         stdout: StdioCollector {
             onStreamFinished: {
+                // Exit codes are not settled when the stream closes (the exit
+                // signal lands after this collector), so the guard is content,
+                // not exit code: `exitedWithCode` is still undefined here.
                 // A failed probe leaves the previous document in place rather
                 // than blanking the panel. And it does not fail on absent
                 // hardware anyway — it reports it as absent, which is the point.
-                if (probe.exitedWithCode !== 0) return
+                if (text.trim() === "")
+                    return
                 try {
                     sidebar.document = JSON.parse(text)
                 } catch (error) {
@@ -119,7 +132,7 @@ PanelWindow {
         }
     }
 
-    // The token restarts a finished Process, and is the idiom Palette.qml
+    // The token restarts a finished Process, and is the idiom Theme.qml
     // already uses for the same reason.
     property string refreshToken: ""
 
@@ -132,14 +145,14 @@ PanelWindow {
 
     onVisibleChanged: sidebar.refreshToken = Date.now()
 
-    Rectangle {
+    StyledRectangle {
         anchors.fill: parent
-        color: Palette.surface
+        contentLayer: StyledRectangle.ContentLayer.Pane
 
         Rectangle {
             anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
             width: 1
-            color: Palette.border
+            color: Theme.lineDivider
         }
 
         Flickable {
@@ -193,16 +206,17 @@ PanelWindow {
                             width: parent.width
                             spacing: 8
 
-                            Text {
+                            StyledText {
                                 width: 92
                                 text: modelData.name
-                                color: Palette.textDim
+                                color: Kit.Appearance.colors.colOnSurfaceVariant
                                 font.pixelSize: 12
                             }
-                            Text {
+                            StyledText {
                                 text: modelData.state
                                 color: modelData.state.indexOf("connected") === 0
-                                    ? Palette.text : Palette.textDim
+                                    ? Kit.Appearance.m3colors.m3onBackground
+                                    : Kit.Appearance.colors.colOnSurfaceVariant
                                 font.pixelSize: 12
                             }
                         }

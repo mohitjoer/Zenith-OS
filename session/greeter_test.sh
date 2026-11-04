@@ -7,7 +7,7 @@
 # it is "does it come up anyway". Every branch that fails has to fall back to
 # plain Weston rather than exit.
 #
-# It is run rather than unit-tested, for the same reason zenith-session is: the
+# It is run rather than unit-tested, for the same reason asura-session is: the
 # properties are about how /bin/sh behaves, and the only way to know that is to
 # run it.
 #
@@ -15,7 +15,7 @@
 set -eu
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-GREETER="$REPO_ROOT/session/zenith-greeter"
+GREETER="$REPO_ROOT/session/asura-greeter"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -53,7 +53,8 @@ STUB
 
 run_greeter() {
     WESTON_ARGS="$WORK/args" WESTON_CONFIG="$WORK/weston.ini" \
-    ZENITH_WESTON="$WORK/weston" ZENITH_MODETEST="$WORK/modetest" \
+    ASURA_WESTON="$WORK/weston" ASURA_MODETEST="$WORK/modetest" \
+    ASURA_KEYBOARD="${KEYBOARD_CONF:-$WORK/no-keyboard-file}" \
         "$GREETER" >"$WORK/out" 2>&1 || echo "exit=$?" >> "$WORK/out"
     cat "$WORK/out"
 }
@@ -75,7 +76,7 @@ check "it runs when modetest output cannot be parsed" $rc
 
 # The one that matters most: the tool is missing entirely.
 rc=0; WESTON_ARGS="$WORK/args" WESTON_CONFIG="$WORK/weston.ini" \
-    ZENITH_WESTON="$WORK/weston" ZENITH_MODETEST="$WORK/does-not-exist" \
+    ASURA_WESTON="$WORK/weston" ASURA_MODETEST="$WORK/does-not-exist" \
     "$GREETER" >/dev/null 2>&1 || rc=$?
 check "it runs when modetest is not installed" $rc
 
@@ -122,7 +123,7 @@ run_greeter >/dev/null
 rc=0; grep -q '^locker=false$' "$WORK/weston.ini" || rc=$?
 check "the session locker is off" $rc
 
-rc=0; grep -q 'command=.*/usr/bin/quickshell -p /usr/share/zenith/greeter$' \
+rc=0; grep -q 'command=.*/usr/bin/quickshell -p /usr/share/asura/greeter$' \
     "$WORK/weston.ini" || rc=$?
 check "the login surface is named" $rc
 
@@ -130,6 +131,57 @@ check "the login surface is named" $rc
 # is a window manager with no windows.
 rc=0; grep -q 'locker=true' "$WORK/weston.ini" && rc=1 || rc=0
 check "the locker is not turned on by anything" $rc
+
+# ----------------------------------------------------------------- the keymap
+echo
+echo "checking the keymap"
+
+printf 'XKBLAYOUT="de"\nXKBVARIANT="nodeadkeys"\nXKBOPTIONS=""\n' > "$WORK/keyboard"
+KEYBOARD_CONF="$WORK/keyboard" run_greeter >/dev/null
+
+rc=0
+grep -q '^keymap_layout=de$' "$WORK/weston.ini" &&
+    grep -q '^keymap_variant=nodeadkeys$' "$WORK/weston.ini" || rc=1
+check "the layout in /etc/default/keyboard reaches weston" $rc
+
+rc=0; ! grep -q '^keymap_options=' "$WORK/weston.ini" || rc=$?
+check "an empty option is not written" $rc
+
+run_greeter >/dev/null
+rc=0; ! grep -q '^keymap_' "$WORK/weston.ini" || rc=$?
+check "without a keyboard file weston keeps its default and still starts" $rc
+
+# --------------------------------------------------------------- the SDDM theme
+echo
+echo "checking the SDDM theme"
+THEME="$REPO_ROOT/session/sddm/themes/asura"
+
+# Without this line SDDM looks for the Qt5 greeter, which 26.04 does not ship,
+# and quietly shows its built-in theme instead.
+rc=0; grep -q '^QtVersion=6$' "$THEME/metadata.desktop" || rc=$?
+check "the theme asks for the Qt6 greeter" $rc
+
+# qmllint cannot see the names SDDM injects (sddm, userModel, sessionModel), so
+# it warns about them; only a real error fails.
+QMLLINT=$(command -v qmllint6 || ( [ -x /usr/lib/qt6/bin/qmllint ] && echo /usr/lib/qt6/bin/qmllint ) || command -v qmllint || echo /usr/lib/qt6/bin/qmllint)
+if [ -x "$QMLLINT" ]; then
+    rc=0; lint=$("$QMLLINT" "$THEME/Main.qml" "$THEME/Chip.qml" 2>&1) || { rc=1; echo "$lint"; }
+    check "the theme's QML parses" $rc
+else
+    echo "skip  — qmllint is not installed, so the theme's QML was not parsed"
+fi
+
+# The theme cannot run without a display manager, so it runs here against
+# stand-ins for what SDDM injects, on Qt's offscreen platform.
+QMLTEST=$(command -v qmltestrunner6 || ( [ -x /usr/lib/qt6/bin/qmltestrunner ] && echo /usr/lib/qt6/bin/qmltestrunner ) || command -v qmltestrunner || echo /usr/lib/qt6/bin/qmltestrunner)
+if [ -x "$QMLTEST" ]; then
+    rc=0
+    lint=$(QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$QMLTEST" \
+        -input "$REPO_ROOT/session/sddm/theme_test.qml" 2>&1) || { rc=1; echo "$lint"; }
+    check "the theme logs in, reports a failure and orders sessions (mock SDDM)" $rc
+else
+    echo "skip  — qmltestrunner is not installed, so the theme was not run"
+fi
 
 echo
 if [ "$fail" -eq 0 ]; then

@@ -1,11 +1,14 @@
 package shell
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"asura/desktop/internal/settings"
 )
 
 // treeEnv is tree with the shell's own settings, so a fixture is checked the way
@@ -43,10 +46,141 @@ func tree(t *testing.T, files map[string]string) Env {
 	return Env{Root: root, Dir: "shell"}
 }
 
+// TestIPCTargetMustBeRegistered keeps a keybind and the surface it names from
+// drifting apart.
+//
+// A keybind is a string in the compositor's configuration and the surface it
+// names is a string in the shell's QML, and nothing in either file checks the
+// other. The failure is the quietest one in the desktop: the compositor runs
+// the command, the command succeeds, and no launcher opens.
+func TestIPCTargetMustBeRegistered(t *testing.T) {
+	const handler = `import Quickshell.Io
+IpcHandler {
+    target: "asura"
+    function togglePopover(name: string): void { root.togglePopover(name) }
+}
+`
+	const config = `bind = SUPER, Space, exec, quickshell ipc call %s togglePopover launcher
+`
+
+	// The two agreeing: no finding.
+	env := tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "asura"))
+	if findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: the compositor and the shell name "+
+			"the same target", findings)
+	}
+
+	// The compositor naming a target the shell does not register: a finding,
+	// because that keybind runs and does nothing.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "zenit"))
+	findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler}))
+	if len(findings) != 1 {
+		t.Fatalf("findings = %v, want exactly one", findings)
+	}
+	if findings[0].Rule != "ipc target" {
+		t.Errorf("rule = %q, want %q", findings[0].Rule, "ipc target")
+	}
+
+	// A tree with no compositor configuration is not a fault: there is
+	// nothing to disagree with.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	if findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: there is no compositor configuration "+
+			"to disagree with", findings)
+	}
+}
+
+// writeConfig writes the compositor's configuration into the tree.
+func writeConfig(t *testing.T, env Env, name, body string) {
+	t.Helper()
+	dir := filepath.Join(env.Root, filepath.Dir(env.HyprlandConfig))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(env.Root, env.HyprlandConfig)
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestTheIPCCallMustNameAFunctionTheShellHas covers the other half of a call.
+//
+// The target is who is being called and the function is what is being asked
+// for. A call to a target the shell does not register reaches nothing at all,
+// and a call to a function the shell does not define reaches the shell and
+// asks it for something it has not got — which is the quieter of the two
+// faults, because the command succeeds and nothing anywhere says why.
+func TestTheIPCCallMustNameAFunctionTheShellHas(t *testing.T) {
+	const handler = `import Quickshell.Io
+IpcHandler {
+    target: "asura"
+    function togglePopover(name: string): void { root.togglePopover(name) }
+}
+`
+	// The command as the compositor writes it, with the path between "ipc"
+	// and "call" that the first version of this rule did not allow for.
+	const config = `bind = SUPER, Space, exec, quickshell ipc --path /usr/share/asura/shell call asura togglePopover launcher
+`
+
+	env := tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", config)
+	if findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
+		t.Errorf("findings = %v, want none: the compositor names a "+
+			"function the shell defines", findings)
+	}
+
+	// A function the shell does not have: a renamed function, which is how
+	// this is reached in practice.
+	env = tree(t, map[string]string{"shell.qml": handler})
+	env.HyprlandConfig = "hyprland/hyprland.conf"
+	writeConfig(t, env, "hyprland.conf", strings.Replace(config,
+		"togglePopover launcher", "toggleLauncher launcher", 1))
+
+	findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler}))
+	if len(findings) != 1 {
+		t.Fatalf("findings = %v, want exactly one", findings)
+	}
+	if findings[0].Rule != "ipc function" {
+		t.Errorf("rule = %q, want %q", findings[0].Rule, "ipc function")
+	}
+	if !strings.Contains(findings[0].Detail, "toggleLauncher") {
+		t.Errorf("the finding does not name the function: %s", findings[0].Detail)
+	}
+}
+
+// TestTheRepositorysKeybindsCallFunctionsTheShellHas runs the rule against the
+// repository's own files rather than a fixture.
+//
+// The compositor's configuration and the shell's QML are two files that name
+// each other, and the check that compares them is worth nothing if it is
+// never run against the two it is about.
+func TestTheRepositorysKeybindsCallFunctionsTheShellHas(t *testing.T) {
+	env := Env{
+		Root:           "../../..",
+		Dir:            "shell",
+		EntryPoint:     "shell.qml",
+		OwnsSettings:   true,
+		HyprlandConfig: "session/hyprland/hyprland.conf",
+	}
+
+	files, err := qmlFiles(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range checkIPCFunctions(env, files) {
+		t.Errorf("%s %s: %s", finding.Rule, finding.Path, finding.Detail)
+	}
+}
+
 const goodSchema = `<?xml version="1.0"?>
 <schemalist>
-  <schema id="org.zenith.shell" path="/org/zenith/shell/">
-    <key name="bar-position" enum="org.zenith.shell.Edge">
+  <schema id="org.asura.shell" path="/org/asura/shell/">
+    <key name="bar-position" enum="org.asura.shell.Edge">
       <default>'top'</default>
     </key>
     <key name="bar-height" type="i"><default>32</default></key>
@@ -58,15 +192,15 @@ const goodSchema = `<?xml version="1.0"?>
 // makes every other test meaningless.
 func goodShell() map[string]string {
 	return map[string]string{
-		"org.zenith.shell.gschema.xml": goodSchema,
-		"shell.qml":                    "import Quickshell\nShellRoot {}\n",
+		"org.asura.shell.gschema.xml": goodSchema,
+		"shell.qml":                   "import Quickshell\nShellRoot {}\n",
 		"Config.qml": "import Quickshell\nSingleton {\n" +
 			"  readonly property int barHeight: shell.barHeight\n" +
 			"  readonly property int barPosition: shell.barPosition\n" +
 			"}\n",
 		"Bar.qml": "import Quickshell\nPanelWindow {\n" +
-			"  readonly property int edge: config.barPosition\n" +
-			"  implicitHeight: config.barHeight\n" +
+			"  readonly property int edge: Config.barPosition\n" +
+			"  implicitHeight: Config.barHeight\n" +
 			"  readonly property var catalogue: ({ \"clock\": \"Clock\" })\n" +
 			"  source: \"Widgets/\" + catalogue[name] + \".qml\"\n}\n",
 		"Widgets/Clock.qml": "import Quickshell\nItem {}\n",
@@ -160,7 +294,7 @@ func TestCatalogueEntryWithNoFileIsFound(t *testing.T) {
 // the schema would have had — so the value is silently wrong.
 func TestUnknownSettingsKeyIsFound(t *testing.T) {
 	files := goodShell()
-	files["Widgets/Clock.qml"] = "import Quickshell\nItem { color: config.barrHieght }\n"
+	files["Widgets/Clock.qml"] = "import Quickshell\nItem { color: Config.barrHieght }\n"
 
 	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "settings read") {
@@ -180,7 +314,7 @@ func TestUnknownSettingsKeyIsFound(t *testing.T) {
 
 // TestWrapperPropertiesAreNotSchemaKeys is the false-positive guard.
 //
-// Every property on Config.qml is read as config.<name> from every surface. If
+// Every property on Config.qml is read as Config.<name> from every surface. If
 // those were treated as schema keys, every correctly-written widget would be
 // reported.
 func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
@@ -189,7 +323,7 @@ func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
 		"readonly property int barPosition: shell.barPosition",
 		"readonly property int barPosition: shell.barPosition\n"+
 			"  readonly property int edgeLeft: 2", 1)
-	files["Widgets/Clock.qml"] = "import Quickshell\nItem { w: config.edgeLeft }\n"
+	files["Widgets/Clock.qml"] = "import Quickshell\nItem { w: Config.edgeLeft }\n"
 
 	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
@@ -207,8 +341,8 @@ func TestWrapperPropertiesAreNotSchemaKeys(t *testing.T) {
 func TestCommentsAreNotSource(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
-		"// Do not read config.nonsense, it does not exist.\n" +
-		"/* config.alsoNonsense */\nItem {}\n"
+		"// Do not read Config.nonsense, it does not exist.\n" +
+		"/* Config.alsoNonsense */\nItem {}\n"
 
 	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "settings read") {
@@ -231,11 +365,11 @@ func TestCommentStrippingKeepsURLs(t *testing.T) {
 }
 
 // TestPathOutsideTheBoundaryIsFound covers a QML file naming a file outside
-// /usr/share/zenith/, which is the boundary the rest of the project enforces.
+// /usr/share/asura/, which is the boundary the rest of the project enforces.
 func TestPathOutsideTheBoundaryIsFound(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
-		"Item { source: \"/etc/sddm.conf.d/10-zenith.conf\" }\n"
+		"Item { source: \"/etc/sddm.conf.d/10-asura.conf\" }\n"
 
 	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "boundary") {
@@ -246,7 +380,7 @@ func TestPathOutsideTheBoundaryIsFound(t *testing.T) {
 func TestPathsInsideTheBoundaryAreAllowed(t *testing.T) {
 	files := goodShell()
 	files["Widgets/Clock.qml"] = "import Quickshell\n" +
-		"Item { source: \"/usr/share/zenith/shell/shell.qml\" }\n"
+		"Item { source: \"/usr/share/asura/shell/shell.qml\" }\n"
 
 	findings := Check(treeEnv(t, files))
 	if hasRule(findings, "boundary") {
@@ -269,13 +403,51 @@ func TestUnknownImportIsFound(t *testing.T) {
 	}
 }
 
+// TestAnAliasedImportIsFound covers the form of an import the rule used to
+// be blind to.
+//
+// An import can be given a name — `import SomeUserModule as Whatever` — and
+// the rule used to match only the lines that ended after the module. So the
+// one spelling of an import that brought in a module the machine happened
+// to have was the one the rule could not see.
+func TestAnAliasedImportIsFound(t *testing.T) {
+	files := goodShell()
+	files["Widgets/Clock.qml"] = "import Quickshell\nimport SomeUserModule as Whatever\nItem {}\n"
+
+	findings := Check(treeEnv(t, files))
+	if !hasRule(findings, "import") {
+		t.Errorf("an aliased import outside the closed list was not found: %v",
+			rules(findings))
+	}
+}
+
+// TestTheShellsOwnNamespaceIsAllowed covers the one namespace the closed
+// list does not have to name.
+//
+// The shell's root is importable as `qs`, and the vendored component kit
+// lives inside it. Those are this project's own modules, pinned to a
+// commit and shipped by this project, so nothing a user installed provides
+// them — which is the thing the closed list is for.
+func TestTheShellsOwnNamespaceIsAllowed(t *testing.T) {
+	files := goodShell()
+	files["Widgets/Clock.qml"] = "import Quickshell\nimport qs\n" +
+		"import qs.modules.common as Kit\nimport qs.modules.common.widgets\nItem {}\n"
+
+	for _, f := range Check(treeEnv(t, files)) {
+		if f.Rule == "import" {
+			t.Errorf("the shell's own namespace was reported against the "+
+				"closed list: %s", f)
+		}
+	}
+}
+
 // TestMalformedSchemaIsReported covers a schema that will not compile.
 //
 // glib-compile-schemas is the real check, and it is not available here. A parse
 // error at least says so here rather than at login.
 func TestMalformedSchemaIsReported(t *testing.T) {
 	files := goodShell()
-	files["org.zenith.shell.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
+	files["org.asura.shell.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
 
 	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "schema") {
@@ -287,7 +459,7 @@ func TestMalformedSchemaIsReported(t *testing.T) {
 // as fatal at compile time.
 func TestDuplicateSchemaKeyIsFound(t *testing.T) {
 	files := goodShell()
-	files["org.zenith.shell.gschema.xml"] = strings.Replace(goodSchema,
+	files["org.asura.shell.gschema.xml"] = strings.Replace(goodSchema,
 		`</schema>`,
 		`  <key name="bar-height" type="i"><default>8</default></key>`+"\n  </schema>", 1)
 
@@ -303,7 +475,7 @@ func TestParseSchemaReadsTypesAndEnums(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if schema.ID != "org.zenith.shell" {
+	if schema.ID != "org.asura.shell" {
 		t.Errorf("ID = %q", schema.ID)
 	}
 	if len(schema.Keys) != 2 {
@@ -312,14 +484,14 @@ func TestParseSchemaReadsTypesAndEnums(t *testing.T) {
 	if schema.KeyTypes["bar-height"] != "i" {
 		t.Errorf("bar-height type = %q", schema.KeyTypes["bar-height"])
 	}
-	if schema.KeyTypes["bar-position"] != "org.zenith.shell.Edge" {
+	if schema.KeyTypes["bar-position"] != "org.asura.shell.Edge" {
 		t.Errorf("bar-position type = %q", schema.KeyTypes["bar-position"])
 	}
 }
 
 // TestSchemaIdWithNoSchemaFileIsFound covers the fault of the moment.
 //
-// `Settings { schemaId: "org.zenith.desktop" }` against a schema that was never
+// `Settings { schemaId: "org.asura.desktop" }` against a schema that was never
 // shipped is not a build error and not a startup error: the object comes back
 // invalid, every property read off it is undefined, and a colour binding quietly
 // evaluates to nothing. The shell then renders with no text on it and nothing
@@ -330,7 +502,7 @@ func TestSchemaIdWithNoSchemaFileIsFound(t *testing.T) {
 		"import Quickshell", "import Quickshell\nreadonly property int s: 1", 1)
 	files["Widgets/Clock.qml"] = "import Quickshell\nItem {}\n"
 	files["Bar.qml"] = strings.Replace(files["Bar.qml"],
-		"import Quickshell", "import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.zenith.desktop\" }", 1)
+		"import Quickshell", "import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.asura.desktop\" }", 1)
 
 	findings := Check(treeEnv(t, files))
 	if !hasRule(findings, "schema id") {
@@ -338,7 +510,7 @@ func TestSchemaIdWithNoSchemaFileIsFound(t *testing.T) {
 	}
 	found := false
 	for _, f := range findings {
-		if strings.Contains(f.Detail, "org.zenith.desktop") {
+		if strings.Contains(f.Detail, "org.asura.desktop") {
 			found = true
 		}
 	}
@@ -353,7 +525,7 @@ func TestSchemaIdWithNoSchemaFileIsFound(t *testing.T) {
 // working, and disagreeing.
 func TestSchemaKeyNoSurfaceCanReachIsFound(t *testing.T) {
 	files := goodShell()
-	files["org.zenith.shell.gschema.xml"] = strings.Replace(goodSchema,
+	files["org.asura.shell.gschema.xml"] = strings.Replace(goodSchema,
 		"</key>", "</key>\n    <key name=\"unread-key\" type=\"s\"><default>''</default></key>", 1)
 
 	findings := Check(treeEnv(t, files))
@@ -419,8 +591,8 @@ func TestSchemaIdCheckNamesTheMalformedSchema(t *testing.T) {
 	files["Widgets/Clock.qml"] = "import Quickshell\nItem {}\n"
 	files["Bar.qml"] = strings.Replace(files["Bar.qml"],
 		"import Quickshell",
-		"import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.zenith.desktop\" }", 1)
-	files["org.zenith.desktop.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
+		"import Quickshell\nreadonly property Settings d: Settings { schemaId: \"org.asura.desktop\" }", 1)
+	files["org.asura.desktop.gschema.xml"] = `<?xml version="1.0"?><schemalist><schema`
 
 	findings := Check(treeEnv(t, files))
 	found := false
@@ -439,7 +611,7 @@ func TestSchemaIdCheckNamesTheMalformedSchema(t *testing.T) {
 //
 // Config.qml is the bridge between GSettings and the shell, so a property there
 // with no use site is a key the Hub writes and the shell never reads. Both are
-// working. Nothing says so. `zenith doctor` reporting "the idle timeout is 0" is
+// working. Nothing says so. `asura doctor` reporting "the idle timeout is 0" is
 // not useful if nothing reads the idle timeout.
 func TestUnusedWrapperPropertyIsFound(t *testing.T) {
 	files := goodShell()
@@ -559,16 +731,23 @@ func TestEscapeCodepointsAreInRange(t *testing.T) {
 	}
 }
 
-// TestTheHubsOwnTreePasses runs the same checks over the Hub's window.
+// TestTheHubsEntryPointIsInTheTree covers the one claim the shell's pass cannot.
 //
-// It is a separate test rather than an extra case in the shell's, because the
-// two windows are checked differently on purpose. The desktop shell owns the
-// schemas and is checked against them; the Hub renders what `zenith config
-// export` hands it and reads no schema, so the shell's settings checks over it
-// would report every property only the shell uses as an unused setting — a true
-// statement about the wrong tree, which is the most expensive kind of finding.
-func TestTheHubsOwnTreePasses(t *testing.T) {
-	env := Env{Root: "../../..", Dir: "shell/hub", EntryPoint: "hub.qml"}
+// Both windows live in one directory. The Hub is drawn with the same component
+// kit as the desktop, and the kit's files reach each other through `qs.modules.*`
+// — imports that only resolve when the configuration's root is the directory
+// both entry files are in. So there is no second tree, the shell's pass already
+// covers every file the Hub draws, and the reason the windows used to be checked
+// apart is gone: the Hub reads no schema, and the shell's settings checks are
+// about `Config.qml`, which no Hub file is.
+//
+// What the shell's pass cannot see is that `hub.qml` is still the file at the top
+// of the tree. The entry point it looks for is `shell.qml`, and `asura-hub`
+// names the Hub's path rather than the tree's — a rename would leave the settings
+// window starting a file that is not there, with nothing in this package naming
+// the path it used to have.
+func TestTheHubsEntryPointIsInTheTree(t *testing.T) {
+	env := Env{Root: "../../..", Dir: "shell", EntryPoint: "hub.qml"}
 
 	findings := Check(env)
 	if len(findings) != 0 {
@@ -581,8 +760,9 @@ func TestTheHubsOwnTreePasses(t *testing.T) {
 // TestTheEntryPointIsNotDefaulted covers the reason EntryPoint is not optional.
 //
 // A default would let one window silently pass another's check: with "shell.qml"
-// as a default, the Hub tree would be checked for a file it does not have and
-// every run would report the same missing entry point.
+// as a default, a tree whose own entry file is named something else is checked
+// against a file that may well be there — the desktop's — and passes as if the
+// window it was asked about had been checked.
 func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 	files := goodShell()
 	delete(files, "shell.qml")
@@ -601,7 +781,7 @@ func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 	}
 }
 
-// checkCommands resolves cmd/zenith/main.go relative to Env.Root, so a fixture
+// checkCommands resolves cmd/asura/main.go relative to Env.Root, so a fixture
 // tree has to carry one. The tests below write the table themselves rather than
 // reaching for the real file, because the test is about the rule matching and
 // not about which commands the CLI happens to have this week.
@@ -614,7 +794,7 @@ func TestTheEntryPointIsNotDefaulted(t *testing.T) {
 // and no test anywhere fails and nothing in the journal says why.
 func TestUnknownCommandIsFound(t *testing.T) {
 	files := goodShell()
-	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"winodws\"] }\n"
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"asura\", \"winodws\"] }\n"
 	env := treeEnv(t, files)
 	writeCommands(t, env.Root, "state", "windows")
 
@@ -634,8 +814,8 @@ func TestUnknownCommandIsFound(t *testing.T) {
 // every real call, or it is noise and gets ignored.
 func TestKnownCommandIsAccepted(t *testing.T) {
 	files := goodShell()
-	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"state\"] }\n"
-	files["Switcher.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"windows\"] }\n"
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"asura\", \"state\"] }\n"
+	files["Switcher.qml"] = "import Quickshell\nProcess { command: [\"asura\", \"windows\"] }\n"
 	env := treeEnv(t, files)
 	writeCommands(t, env.Root, "state", "windows")
 
@@ -647,11 +827,11 @@ func TestKnownCommandIsAccepted(t *testing.T) {
 }
 
 // TestCommandRuleIgnoresAMissingEntryPoint keeps the rule from being the thing
-// that breaks when the file moves. A fixture root with no cmd/zenith/main.go
+// that breaks when the file moves. A fixture root with no cmd/asura/main.go
 // simply has nothing to check against.
 func TestCommandRuleIgnoresAMissingEntryPoint(t *testing.T) {
 	files := goodShell()
-	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"zenith\", \"anything\"] }\n"
+	files["Sidebar.qml"] = "import Quickshell\nProcess { command: [\"asura\", \"anything\"] }\n"
 
 	for _, f := range Check(treeEnv(t, files)) {
 		if f.Rule == "unknown command" {
@@ -663,13 +843,13 @@ func TestCommandRuleIgnoresAMissingEntryPoint(t *testing.T) {
 // writeCommands puts a commands table in the fixture root.
 func writeCommands(t *testing.T, root string, names ...string) {
 	t.Helper()
-	path := filepath.Join(root, "desktop", "cmd", "zenith", "main.go")
+	path := filepath.Join(root, "desktop", "cmd", "asura", "main.go")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	body := "package main\n\nvar commands = map[string]func(args []string) int{\n"
 	for _, name := range names {
-		body += "\t\"" + name + "\":       zenith" + name + ",\n"
+		body += "\t\"" + name + "\":       asura" + name + ",\n"
 	}
 	body += "}\n"
 	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
@@ -719,21 +899,21 @@ func TestTheScrimIsAllowedToBeBlack(t *testing.T) {
 // the only layout doctor runs against.
 //
 // GLib installs schemas under /usr/share/glib-2.0/schemas and nothing under
-// /usr/share/zenith/shell. The schema check used to read env.Dir, so an
+// /usr/share/asura/shell. The schema check used to read env.Dir, so an
 // installed tree reported "declares no schema id" for every schemaId the QML
 // names and then "no surface can reach it" for every key — a clean machine
 // described as broken. The two paths are separate because they are separate on
 // disk, not because the tool feels like splitting them.
 func TestSchemaDirectoryIsNotTheShellDirectory(t *testing.T) {
 	good := goodShell()
-	schema, ok := good["org.zenith.shell.gschema.xml"]
+	schema, ok := good["org.asura.shell.gschema.xml"]
 	if !ok {
 		t.Fatal("fixture lost its schema")
 	}
-	delete(good, "org.zenith.shell.gschema.xml")
+	delete(good, "org.asura.shell.gschema.xml")
 
 	root := t.TempDir()
-	shellDir := filepath.Join(root, "usr", "share", "zenith", "shell")
+	shellDir := filepath.Join(root, "usr", "share", "asura", "shell")
 	schemaDir := filepath.Join(root, "usr", "share", "glib-2.0", "schemas")
 	for name, body := range good {
 		path := filepath.Join(shellDir, name)
@@ -747,12 +927,12 @@ func TestSchemaDirectoryIsNotTheShellDirectory(t *testing.T) {
 	if err := os.MkdirAll(schemaDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(schemaDir, "org.zenith.shell.gschema.xml"),
+	if err := os.WriteFile(filepath.Join(schemaDir, "org.asura.shell.gschema.xml"),
 		[]byte(schema), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	env := Env{Root: root, Dir: "/usr/share/zenith/shell", EntryPoint: "shell.qml",
+	env := Env{Root: root, Dir: "/usr/share/asura/shell", EntryPoint: "shell.qml",
 		OwnsSettings: true, SchemaDir: "/usr/share/glib-2.0/schemas"}
 
 	findings := Check(env)
@@ -779,6 +959,115 @@ func TestSchemaDirectoryMissingIsReported(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("a tree with no schema directory passed the schema check: %v", findings)
+	}
+}
+
+// TestThirdPartySchemasAreNotReported is `asura doctor` on a machine that has
+// a desktop on it, which is the machine the tool ships to.
+//
+// The schema directory is shared. /usr/share/glib-2.0/schemas holds every
+// schema the base layer has — GTK, dconf, gsettings-desktop-schemas, whatever
+// the user installed — and Asura's two files are a rounding error in it. The
+// check used to read all of them, and on a live Ubuntu install doctor reported
+// thousands of findings: a "settings unreachable" line for every key of every
+// third-party schema, which is a true statement about files this project does
+// not own, and "declared twice" for base-layer files that repeat a key name
+// across two schema elements in one file, which GLib accepts and this parser
+// flattens into one id.
+//
+// The staged tree in CI holds only Asura's schemas, which is why no test saw
+// it: the fault only exists on a machine with other people's schemas on it.
+func TestThirdPartySchemasAreNotReported(t *testing.T) {
+	good := goodShell()
+	schema, ok := good["org.asura.shell.gschema.xml"]
+	if !ok {
+		t.Fatal("fixture lost its schema")
+	}
+	delete(good, "org.asura.shell.gschema.xml")
+
+	root := t.TempDir()
+	shellDir := filepath.Join(root, "usr", "share", "asura", "shell")
+	schemaDir := filepath.Join(root, "usr", "share", "glib-2.0", "schemas")
+	for name, body := range good {
+		path := filepath.Join(shellDir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, dir := range []string{shellDir, schemaDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(schemaDir, "org.asura.shell.gschema.xml"),
+		[]byte(schema), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	thirdParty := map[string]string{
+		// The shape shotwell ships: one file, two schema elements declaring the
+		// same key name under different paths. Legal to GLib, and reported as a
+		// duplicate declaration by a parser that flattens the file.
+		"org.gnome.shotwell.gschema.xml": `<?xml version="1.0"?>
+<schemalist>
+  <schema id="org.gnome.shotwell" path="/org/gnome/shotwell/">
+    <key name="strip-metadata" type="b"><default>false</default></key>
+  </schema>
+  <schema id="org.gnome.shotwell.imports" path="/org/gnome/shotwell/imports/">
+    <key name="strip-metadata" type="b"><default>false</default></key>
+  </schema>
+</schemalist>
+`,
+		// Malformed, and somebody else's to repair. A parse error in a file
+		// Asura does not ship is not a Asura finding.
+		"org.example.broken.gschema.xml": `<?xml version="1.0"?><schemalist><schema`,
+		// Well-formed and declaring nothing at all.
+		"org.example.empty.gschema.xml": `<?xml version="1.0"?><schemalist/>`,
+		// An ordinary schema whose key no Asura surface reads, which describes
+		// every schema the desktop has and is not a fault in any of them.
+		"org.gnome.desktop.interface.gschema.xml": `<?xml version="1.0"?>
+<schemalist>
+  <schema id="org.gnome.desktop.interface" path="/org/gnome/desktop/interface/">
+    <key name="color-scheme" type="s"><default>'prefer-light'</default></key>
+  </schema>
+</schemalist>
+`,
+	}
+	for name, body := range thirdParty {
+		if err := os.WriteFile(filepath.Join(schemaDir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	env := Env{Root: root, Dir: "/usr/share/asura/shell", EntryPoint: "shell.qml",
+		OwnsSettings: true, SchemaDir: "/usr/share/glib-2.0/schemas"}
+
+	findings := Check(env)
+	if len(findings) != 0 {
+		for _, finding := range findings {
+			t.Errorf("%s %s: %s", finding.Rule, finding.Path, finding.Detail)
+		}
+		t.Fatal("the base layer's schemas were reported as Asura's own findings")
+	}
+}
+
+// TestAsuraSchemaPrefixAgreesWithSettings keeps the shell's source check and
+// the settings catalogue filtering on the same prefix.
+//
+// They are two readers of one shared directory with one owner: `asura config`
+// and the Hub's pages come from the catalogue, and what doctor checks for
+// reachability comes from here. A prefix that changed in one place and not the
+// other splits them silently — settings the catalogue lists and the shell never
+// checks, or the reverse — and neither tool's output would show the split.
+func TestAsuraSchemaPrefixAgreesWithSettings(t *testing.T) {
+	if asuraSchemaPrefix != settings.AsuraSchemaPrefix {
+		t.Errorf("the shell filter is %q and the settings catalogue is %q; "+
+			"the two readers of the schema directory must agree on which "+
+			"schemas are Asura's", asuraSchemaPrefix,
+			settings.AsuraSchemaPrefix)
 	}
 }
 
@@ -843,12 +1132,48 @@ func TestPropertyAssignmentCheck(t *testing.T) {
 			want: 0,
 		},
 		{
+			// A property declared inside a nested object belongs to that
+			// object, and the rule used to read it as the outer object's: a
+			// write to the window's own `currentPage` looked like a write
+			// to a readonly property, because a page view inside the window
+			// declared a readonly property of the same name.
+			name: "a property declared in a nested object",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: window\n" +
+					"property int currentPage: 0\n" +
+					"PageView {\n" +
+					"  id: page\n" +
+					"  readonly property var currentPage: window.currentPage\n" +
+					"}\n" +
+					"function go(index) { window.currentPage = index }\n" +
+					"}\n",
+			},
+			want: 0,
+		},
+		{
 			name: "assigning to a writable property of this file",
 			files: map[string]string{
 				"shell.qml": "import Quickshell\nSingleton {\n" +
 					"id: palette\n" +
 					"property string background: \"#15171a\"\n" +
 					"function apply(doc) { palette.background = doc.background }\n" +
+					"}\n",
+			},
+			want: 0,
+		},
+		{
+			// A name bound inside a function is not a write to the property
+			// that happens to have the same name, and the rule used to
+			// report it: `const items = control.items` was read as an
+			// assignment to a readonly property, and the reader was sent
+			// looking for a write that was not there.
+			name: "declaring a local that shares a name with a readonly property",
+			files: map[string]string{
+				"shell.qml": "import Quickshell\nSingleton {\n" +
+					"id: palette\n" +
+					"readonly property var items: []\n" +
+					"function apply(doc) { const items = doc.items }\n" +
 					"}\n",
 			},
 			want: 0,
@@ -897,7 +1222,7 @@ func TestShellTreeHasNoPropertyAssignments(t *testing.T) {
 	}
 
 	env := Env{Root: root, Dir: "shell", EntryPoint: "shell.qml", OwnsSettings: true}
-	if _, err := source(env, "Palette.qml"); err != nil {
+	if _, err := source(env, "Theme.qml"); err != nil {
 		t.Fatalf("the check would silently read nothing: %v", err)
 	}
 	for _, finding := range checkPropertyAssignments(env, files) {

@@ -1,0 +1,62 @@
+import QtQuick
+import QtQuick.Shapes
+import "Singletons"
+
+Item {
+    id: icon
+
+    property string name: ""
+    property color tint: Theme.inkDim
+    property real size: 18
+
+    readonly property real vb: 24
+
+    readonly property var defs: ({
+        "select":  "M4 3l7 17 2-7 7-2z",
+        "rect":    "M5 6h14a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1H5a1 1 0 0 1 -1 -1V7a1 1 0 0 1 1 -1z",
+        "ellipse": "M20 12a8 6 0 0 1 -16 0a8 6 0 0 1 16 0z",
+        "line":    "M5 19L19 5",
+        "arrow":   "M5 19L19 5M19 5h-7M19 5v7",
+        "pen":     "M4 18c3-1 4-6 8-9s6-4 8-5c-1 2-2 5-5 8s-8 5-9 8z",
+        "text":    "M5 6h14M12 6v13",
+        "marker":  "M4 15l10-10 4 4-10 10H4z",
+        "blur":    "M11 9a2 2 0 0 1 -4 0a2 2 0 0 1 4 0z M17 13a2 2 0 0 1 -4 0a2 2 0 0 1 4 0z M10.5 16a1.5 1.5 0 0 1 -3 0a1.5 1.5 0 0 1 3 0z",
+        "undo":    "M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10",
+        "redo":    "M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10",
+        "copy":    "M11 9h9a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-9a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2z M5 15V5a2 2 0 0 1 2 -2h10",
+        "save":    "M5 3h12l4 4v14H5zM8 3v6h8M8 21v-7h8v7",
+        "upload":  "M12 16V4M7 9l5-5 5 5M5 20h14",
+        "cancel":  "M6 6l12 12M18 6L6 18",
+        "gear":    "M12 8.5a3.5 3.5 0 0 1 0 7a3.5 3.5 0 0 1 0 -7z M12 2.5l1.4 2.2 2.6-.5.4 2.6 2.3 1.3-1.1 2.4 1.1 2.4-2.3 1.3-.4 2.6-2.6-.5L12 21.5l-1.4-2.2-2.6.5-.4-2.6-2.3-1.3 1.1-2.4-1.1-2.4 2.3-1.3.4-2.6 2.6.5z",
+        "counter": "M12 3.6a8.4 8.4 0 1 1 -0.1 0z M11 9.2l1.7 -1.1V16",
+        "pixelate": "M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z",
+        "sketch":  "M4 16c1.6 -3.4 3.2 3.4 4.8 0s3.2 3.4 4.8 0 3.2 3.4 4.4 1",
+        "magnify": "M10 4a6 6 0 1 0 0.01 0z M14.4 14.4L21 21",
+        "redact":    "M4 7h16v4H4z M4 14h3v3H4z M10 14h3v3h-3z M16 14h3v3h-3z",
+        "spotlight": "M12 6a6 6 0 1 0 0.01 0z M3 7l2.5 1 M7 3l1 2.5",
+        "ocr":       "M3 6V3h3 M18 3h3v3 M3 18v3h3 M21 18v3h-3 M9 17l3 -8 3 8 M10.2 14h3.6",
+        "pin":       "M12 7.5a3.5 3.5 0 1 0 -7 0a3.5 3.5 0 0 0 7 0z M11 10L18 18",
+        "fill":      "M4 4h16v16H4z M4 4L20 20 M4 8L16 20 M4 12L12 20 M4 16L8 20",
+        "check":     "M5 13l4 4L19 6"
+    })
+
+    readonly property string d: defs[name] !== undefined ? defs[name] : ""
+
+    Shape {
+        anchors.centerIn: parent
+        width: icon.vb
+        height: icon.vb
+        scale: icon.size / icon.vb
+        preferredRendererType: Shape.CurveRenderer
+        antialiasing: true
+
+        ShapePath {
+            strokeColor: icon.tint
+            strokeWidth: 1.7
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            PathSvg { path: icon.d }
+        }
+    }
+}

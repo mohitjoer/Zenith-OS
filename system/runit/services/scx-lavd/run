@@ -1,0 +1,27 @@
+#!/bin/sh
+exec 2>&1
+# Layer 3 Tuning: scx_lavd (Latency-Aware Virtual Deadline eBPF scheduler)
+# Pins games and interactive UI threads to Performance Cores (P-Cores)
+# and steers background workers to Efficiency Cores (E-Cores).
+
+if [ ! -x /usr/bin/scx_lavd ]; then
+	echo "scx-lavd: /usr/bin/scx_lavd not found, pausing service"
+	pause
+fi
+
+# sched_ext requires kernel support (CONFIG_SCHED_CLASS_EXT=y)
+# Available on Asura CachyOS/BORE custom kernel; absent on generic stock kernels
+if [ ! -d /sys/kernel/sched_ext ]; then
+	pause
+fi
+
+# Ensure eBPF filesystem is mounted
+if ! mountpoint -q /sys/fs/bpf; then
+	mount -t bpf bpffs /sys/fs/bpf 2>/dev/null || true
+fi
+
+# Run scx_lavd; if it exits (e.g. unsupported BTF or emulation), pause instead of crash-looping
+if ! /usr/bin/scx_lavd --autopower; then
+	echo "scx-lavd: scx_lavd exited with error, pausing service"
+	pause
+fi
