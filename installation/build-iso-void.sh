@@ -999,11 +999,15 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/asura-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	# Suppress text console cursor and clear screen to eliminate terminal flicker before GUI
+	setterm -cursor off 2>/dev/null || true
+	clear 2>/dev/null || true
 	command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update 2>/dev/null || true
 	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
 		asura materialize 2>/dev/null || true
 	fi
 	if ! /usr/share/asura/session/asura-session; then
+		setterm -cursor on 2>/dev/null || true
 		if command -v plymouth >/dev/null 2>&1; then
 			sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
 		fi
@@ -1025,18 +1029,10 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 			echo "  Log available at: ~/.local/state/asura/session.log"
 			echo
 		fi
-		if [ -f /etc/asura-live ] || grep -qE "boot=live|live" /proc/cmdline 2>/dev/null; then
-			echo "  Launching Asura OS Guided System Installer..."
-			echo "================================================================"
-			echo
-			sleep 2
-			sudo /usr/bin/asura-installer || true
-		else
-			echo "  To launch the installer directly, run: sudo asura install"
-			echo "  To retry launching the desktop, run: asura-session"
-			echo "================================================================"
-			echo
-		fi
+		echo "  To launch the installer directly, run: sudo asura install"
+		echo "  To retry launching the desktop, run: asura-session"
+		echo "================================================================"
+		echo
 	fi
 fi
 PROFILE
