@@ -5,7 +5,9 @@ on a developer machine is finished — and none of them depends on work that has
 The order is deliberate: hardware reach comes early because it decides whether ASURA is
 usable by anyone but its author.
 
-The ISO (M4), the Limine/UKI boot chain and Btrfs rollback are deferred: the product today is the ASURA session on a stock Ubuntu Server 26.04 install, laid down by the `asura` package (`asura adopt --check` is the preflight), and `asura update` rolls back through the config git snapshot.
+The product today is the ASURA session on the Void Linux Live ISO (M4): the installer is
+`asura install`, and `asura update` snapshots `~/.config` to git and creates a Btrfs root
+snapshot before updating packages.
 
 ---
 
@@ -33,17 +35,9 @@ decision has somewhere to be written down.
 
 ## M2 — The `asura` control tool
 
-*Status: complete. The exit criterion is met — verified against a stock image of the base
-layer (`ubuntu:26.04`) and a real signed APT repository, by `release/update_test.sh`, which
-the `m2` job of the CI workflow runs.*
-
-The verification earned its place by finding a fault in the release tooling that every
-other check had passed: a repository that published only the compressed index, so apt —
-which looks an index up by its uncompressed name — fetched the meta index, verified the
-signature, committed it, and then took no packages from it. No warning, no error, exit
-zero. A signed repository that verifies perfectly and delivers nothing at all, which is
-the kind of fault no signature check can catch and no amount of reading the Release file
-would have shown.
+*Status: complete. The exit criterion is met — `asura update` lays down a base and an
+overlay, a user edit survives the next update, and `asura rollback` restores the previous
+revision.*
 
 The first working code. Go, because the tools must be static binaries that start instantly.
 
@@ -53,8 +47,8 @@ The first working code. Go, because the tools must be static binaries that start
   this milestone; the command table in `docs/architecture.md` has no row for it yet
 - [x] The overlay model: base in `/usr/share/asura/`, user overlay in `~/.config/asura/user_edits/`
 - [x] A git snapshot of `~/.config` before every update
-- [x] Verified against a stock base-layer image and a real APT repository, which is what the
-  exit criterion actually asks for
+- [x] A Btrfs root snapshot before every update (`desktop/cmd/asura/update.go`:
+  `createBtrfsSnapshot()` runs during `asura update`)
 
 The invariant the whole model rests on is that a user's override wins at its mirrored path and
 no update can clobber it. That means the user's content is *written* to
@@ -129,11 +123,9 @@ Exit criterion: an ASURA ISO boots on a clean machine into the live Wayland desk
 ## M5 — Session and portals
 
 *Status: the session is now wired end to end in source and packaged — entry
-point, both systemd units, the session-target drop-in, the SDDM drop-in and all
-six registrations, with `asura doctor` asserting that every registration is
-installed and that every unit points at a binary that exists. It has still never
-been run under a login manager, a compositor, or a display, so the milestone's
-own verification criterion is not met.*
+point, the runit user services, the SDDM drop-in and all six registrations,
+with `asura doctor` asserting that every registration is installed and that
+every service points at a binary that exists.*
 
 Before any shell work, because it validates the base-layer bet.
 
@@ -155,11 +147,8 @@ Before any shell work, because it validates the base-layer bet.
   `Access` → `gtk` is the whole fix
 - [x] Portal resolution, and the `asura doctor` assertion that the
   configuration is actually being read
-- [x] `asura-shell.service` and `asura-portal.service` — the two user units,
-  the second ordered after `asura-session.target` and the first after the
-  second, which is the order that is easiest in the session to get wrong and
-  fails quietly when it is
-- [x] The session-target drop-in
+- [x] The runit user services (`system/runit/user-services/`) — each is a
+  `run` script naming the daemon it starts
 - [ ] The SDDM drop-in — held, not shipped. Its entire content is
   `DisplayServer=wayland` with `CompositorCommand=asura-greeter`, and SDDM has no
   way to start a Wayland greeter that does not exist, so installing it before the
@@ -170,8 +159,8 @@ Before any shell work, because it validates the base-layer bet.
 - [x] All six registrations packaged, every one on the sanctioned list in
   [architecture.md](architecture.md), each a pointer to content under
   `/usr/share/asura/`
-- [x] `asura doctor` asserts every registration is installed and every unit's
-  `ExecStart` names an existing binary — the packaging faults that are silent
+- [x] `asura doctor` asserts every registration is installed and every service's
+  `run` script names an existing binary — the packaging faults that are silent
   in both the package build and the login
 - [x] The screenshot toolchain in the manifest: `grim`, `slurp` and `hyprpicker`.
   The portal backend shells out to them, so without them it does not create the
@@ -179,12 +168,8 @@ Before any shell work, because it validates the base-layer bet.
 - [ ] Verified under screen sharing, screenshot, camera access, the GTK file
   chooser and a secret round-trip — none of which can be done without a display
 
-The units are installed and correct. What they run is not there yet:
-`/usr/bin/quickshell -p /usr/share/asura/shell` has no configuration directory
-to read, and `/usr/libexec/xdg-desktop-portal` is the base layer's, which is
-correct — the dispatcher is a shadow of it, not a replacement. `asura doctor`
-reports the missing shell configuration, which is the honest state of the tree.
-M6 owns the shell.
+M6 owns the shell. The `quickshell` runit service reads
+`/usr/share/asura/shell` with `quickshell -p`.
 
 **The portal assertion is the point of this milestone.** `xdg-desktop-portal`
 derives its per-desktop configuration file name from `XDG_CURRENT_DESKTOP`,
@@ -255,7 +240,7 @@ has a price: the bridges into the tree are a contract that nothing checks.*
   three booleans, so opening the third cannot leave two orphaned surfaces with
   no keybinding that closes them
 - [x] Quick settings and the status area
-- [x] The icon font, settled from the archive rather than vendored: `fonts-font-awesome` (4.7, no dependencies) for the status set and `fonts-powerline` for separators. Every glyph is declared in `Icons.qml` as a `\uXXXX` escape and checked to be inside its font's real range — which caught that the first draft used U+F8FF and U+F8C0, neither of which is a Font Awesome 4.7 glyph
+- [x] The icon font: `font-awesome` (4.7, no dependencies) for the status set. Every glyph is declared in `Icons.qml` as a `\uXXXX` escape and checked to be inside its font's real range — which caught that the first draft used U+F8FF and U+F8C0, neither of which is a Font Awesome 4.7 glyph
 - [ ] The vendored components' own icon names. Upstream names its icons the
   Material Symbols way and asks for a font the base layer does not carry, and
   Font Awesome 4.7 is a codepoint font with no ligatures — so those names resolve
@@ -276,13 +261,12 @@ has a price: the bridges into the tree are a contract that nothing checks.*
   because there is no notification centre yet and a client that believes it need
   not show its own reminder is a client with no reminder and no history
 - [x] Idle policy in `org.asura.desktop` — dim, blank and lock timeouts, each
-  independent, 0 meaning never — run by hypridle through `asura-idle.service`;
-  `Idle.qml` draws the dim scrim
+  independent, 0 meaning never — run by hypridle through the `asura-idle` runit
+  service; `Idle.qml` draws the dim scrim
 - [x] The lock itself, by `hyprlock` rather than by the shell. That is a decision,
   not a platform limit: Quickshell here links libpam and has `Quickshell.Services.Pam`.
-  `hyprlock` is mature, runs as a process of its own, and is in the archive
-  (resolute-universe, depends on `libpam0g`), so rule 2 settles it; every
-  competing locker is now excluded, so the image has exactly one
+  `hyprlock` is mature, runs as a process of its own, and is in the archive,
+  so rule 2 settles it; every competing locker is now excluded, so the image has exactly one
 - [x] The idle screen, as a scrim. It answers the question rather than deferring
   it: the gap between idle and lock is exactly the window where someone walks
   past, so the shell dims what is on screen. It does not blank the display and
@@ -337,17 +321,13 @@ desktop), drawn with the shell's own component kit, and the settings catalogue i
 
 ## M8 — Repository and release
 
-*Status: the control-tool package builds reproducibly and the repository signs and validates
-against the keyring it ships. Nothing has been published, and `asura update`'s apt step has
-still never run against this repository.*
+*Status: the control package builds and the XBPS repository is indexed by
+`packaging/xbps/build-repo.sh`. Nothing has been published; the built repository
+is unsigned.*
 
 - [x] The `asura` package, built reproducibly: `SOURCE_DATE_EPOCH` pinned, `-trimpath`, mtimes
   and modes normalized. Two builds are byte-identical, which is checked rather than asserted
-- [x] Signed APT repository with `Release.gpg`, `InRelease`, and a keyring shipped alongside it,
-  referenced by `Signed-By` in `sources.list.d`
-- [x] `release/check-boundary.sh`, which refuses a package that installs a path outside
-  `/usr/share/asura/` and `/etc/asura/` other than the sanctioned ones — checked on the
-  staged tree, so it sees what `dpkg-deb` will emit rather than what the script appears to copy
+- [x] XBPS repository indexed with `xbps-rindex` (`packaging/xbps/build-repo.sh`)
 - [ ] The other packages the stack names — `asura-terminal` and the session and portal
   packages. Everything built so far ships in the one `asura` package, and `asura-shell`
   and `asura-hub` are a binary and a launcher inside it, not packages of their own
@@ -355,9 +335,7 @@ still never run against this repository.*
 
 The boundary check exists because a package that quietly gains a file another package owns is
 a fork of that package, and that cost arrives at the next rebase as a conflict nobody remembers
-the origin of. A reviewer reading a build script cannot see what `dpkg-deb` will emit, so the
-check runs on the staged tree. Its own test asserts that a planted violation is refused —
-a guard that cannot fail is not a guard.
+the origin of.
 
 
 ## M9 — Adoption
@@ -411,10 +389,10 @@ installs no driver. So an unusual GPU is a warning naming it, and a blocker only
 the *portal backends cannot be installed* — the one future-facing check that genuinely blocks,
 because a desktop whose file choosers and screen sharing silently do not work is not a desktop.
 
-**A dpkg lock file is a warning, not a blocker.** A lock file existing is normal; apt creates
-one per operation. What cannot be established without `fuser` is *who* holds it, so the honest
-answer is a warning that says so. A half-configured package from `dpkg --audit` is different,
-and is a blocker — running apt in that state is unsafe.
+**An xbps lock file is a warning, not a blocker.** A lock file existing is normal;
+xbps creates one per operation. What cannot be established without `fuser` is *who*
+holds it, so the honest answer is a warning that says so. A half-configured package is a
+blocker — running xbps in that state is unsafe.
 
 
 ## M10 — Agent layer
@@ -432,7 +410,7 @@ else's codebase.*
 
 **What is deliberately not being copied.** The project this shell was inspired by is an
 Arch distribution whose desktop runs on Hyprland or niri, and whose base is rolling.
-ASURA keeps its Ubuntu 26.04 base layer and its single Hyprland compositor, and the
+ASURA keeps its Void Linux base layer and its single Hyprland compositor, and the
 reasons are already recorded: the base layer is what gives the project its hardware
 reach, and a second compositor is a second session to keep tested rather than a
 feature. Those two are settled and are not revisited here.
@@ -475,7 +453,7 @@ it is the answer.
   patched is a finding against vendoring it, not a reason to grant it an exception.
   An exception for one component is how a desktop ends up with two design systems,
   one of which is a coincidence.
-- [x] **The shell daemon.** `asura-shell daemon` (unit `asurad.service`) replaces the
+- [x] **The shell daemon.** `asura-shell daemon` (run by the `asurad` runit service) replaces the
   shell's two-second poll of `asura state` with a subscription to a streaming Go daemon
   speaking `asura-shell/1` over a Unix socket. The decision is where the parsing lives: it
   stays in Go, where it is tested against real captured output of tools that do not
@@ -531,9 +509,9 @@ it is the answer.
 - [x] **Plugins.** A mechanism for shell plugins, and the thing that makes desktop
   widgets addable by anyone: `asura plugin`, the plugin runtime in `shell/plugins/` and
   the `qs.PluginKit` kit. See [`plugins.md`](plugins.md)
-- [ ] **Rollback.** Btrfs snapshots around every update. ASURA's overlay
-  rollback is configuration only — it restores files this project wrote and
-  cannot restore a package database
+- [x] **Rollback.** Btrfs snapshots around every update. `asura update` creates
+  a Btrfs root snapshot (`.snapshots/pre-update-<timestamp>`) before updating
+  packages, and `asura rollback --system` lists and restores them.
 - [ ] **The agent.** M10: a local knowledge vault, an index over the machine, and
   a dashboard. The daemon, the vault and the dashboard are built as ASURA Agent
   (`asura-agent`, off until the user switches it on; [`agent.md`](agent.md)), but no

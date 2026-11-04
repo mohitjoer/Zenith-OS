@@ -16,7 +16,7 @@ ln -s agents/agents.md GEMINI.md
 
 ## What ASURA is
 
-ASURA's wordmark is **天** — *asura* — healthy, robust, strong. Use it as the logo and as the
+ASURA's wordmark is *asura* — healthy, robust, strong. Use it as the logo and as the
 project's name in prose: "ASURA", never "ASURA's" as a possessive of an acronym, never anything
 else.
 

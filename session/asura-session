@@ -19,17 +19,14 @@ exec >>"$LOG" 2>&1
 
 echo "--- asura-session $(date -Is) ${XDG_SESSION_ID:-no-session-id}"
 
-# Stop Plymouth boot splash so Hyprland has exclusive access to DRM master
-if command -v plymouth >/dev/null 2>&1; then
+# Deactivate Plymouth boot splash so Hyprland has exclusive access to DRM master
+# while retaining splash on screen until Hyprland renders its first frame.
+if command -v plymouth >/dev/null 2>&1 && plymouth --ping 2>/dev/null; then
     if [ "$(id -u)" -eq 0 ]; then
-        plymouth --quit 2>/dev/null || killall -9 plymouthd 2>/dev/null || true
+        plymouth deactivate 2>/dev/null || true
     else
-        sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
+        sudo -n plymouth deactivate 2>/dev/null || plymouth deactivate 2>/dev/null || true
     fi
-    for _ in 1 2 3 4 5; do
-        plymouth --ping 2>/dev/null || break
-        sleep 0.1
-    done
 fi
 
 # The two desktop names are different strings and both are deliberate.
@@ -228,14 +225,19 @@ if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/de
        grep -qa "VirtualBox\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
        lspci 2>/dev/null | grep -qi "VirtualBox"; then
         export LIBGL_ALWAYS_SOFTWARE=1
+        export LP_NUM_THREADS=2
+        export LP_PERF=no_mipmap
     fi
     USER_HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/asura/hyprland"
     mkdir -p "$USER_HYPR_DIR"
     cat > "$USER_HYPR_DIR/vm-perf.conf" <<'VMCFG'
 decoration:blur:enabled = false
 decoration:shadow:enabled = false
+decoration:drop_shadow = false
 animations:enabled = false
 misc:vfr = true
+misc:disable_hyprland_logo = true
+misc:disable_splash_rendering = true
 cursor:no_hardware_cursors = true
 misc:allow_session_lock_restore = true
 VMCFG

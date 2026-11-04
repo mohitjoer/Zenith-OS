@@ -30,13 +30,12 @@ a boundary that is not written down gets crossed by accident.
 | Path | What it is | Why it cannot live under `/usr/share/asura/` |
 |---|---|---|
 | `/usr/share/wayland-sessions/asura.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
-| `/usr/lib/systemd/user/asura-shell.service`, `asura-portal.service`, `asurad.service`, `asura-wallpaper.service`, `asura-idle.service`, `asura-agent.service`, `asura-ai-usage.service`, `asura-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/asura-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/etc/sv/asura-sysd`, `/etc/sv/scx-lavd`, `/etc/sv/ananicy-cpp` and `~/.config/service/` user services | runit service registration | runit supervises services from `/etc/sv/` (system) and `~/.config/service/` (user) |
 | `/usr/share/glib-2.0/schemas/org.asura.*.gschema.xml` | GSettings schema | GLib compiles schemas from the fixed schema directory |
 | `/usr/share/xdg-desktop-portal/asura-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory. On the sanctioned list in [`architecture.md`](architecture.md#the-sanctioned-list-outside-the-boundary) |
 | `/usr/bin/asura`, `/usr/bin/asura-*` and the bare-name helpers | The executables, and the scripts the shell and the compositor call by name | `PATH` resolution looks nowhere else, and the user manager's `PATH` has no `~/.local/bin`. Same list |
 | `/usr/share/applications/asura-*.desktop`, `asura-mimeapps.list` | Desktop entries, and the default applications for ASURA sessions | The desktop-entry and mime-apps lookups scan `XDG_DATA_DIRS/applications` and nowhere else. Same list |
-| `/boot/limine.conf` | Boot configuration, deferred with the boot chain | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+| `/boot/grub/grub.cfg` | Boot configuration | The boot loader reads its configuration from the boot volume, which the installer writes via `grub-mkconfig` |
 
 These are registrations — pointers a third-party binary must find — not ASURA-owned content.
 The content stays at `/usr/share/asura/session/`, `/usr/share/asura/shell/`,
@@ -57,8 +56,8 @@ And the list of things ASURA deliberately does **not** touch:
   writes it; the opt-in `10-asura.conf` drop-in is installed by the user, with the command
   `asura greeter enable` prints.
 - `/etc/pam.d/` — the PAM stack. The keyring is unlocked by the base layer's own PAM module.
-- `/etc/initramfs-tools/` — the initramfs configuration. ASURA's copy lives in
-  `/etc/asura/initramfs/` and is passed to `mkinitramfs` with `-d`.
+- `/etc/dracut.conf` — the initramfs configuration. ASURA's copy lives in
+  `/etc/asura/initramfs/`.
 - `/usr/share/xdg-desktop-portal/portals/` — the dispatcher's backend directory.
 - `/usr/lib/udev/rules.d/`, `/etc/NetworkManager/`, and every other package's configuration.
 
@@ -66,363 +65,93 @@ And the list of things ASURA deliberately does **not** touch:
 
 ## Boot chain
 
-*Deferred with the ISO: this boot chain is the design, not what ships. Today the session starts
-from a login manager on a stock Ubuntu install, and the document picks up at
-[the systemd target chain](#the-systemd-target-chain).*
+The shipped boot chain is **GRUB EFI**. The installer (`installation/asura-installer.sh`)
+writes `/boot/grub/grub.cfg` via `grub-mkconfig`, and the ISO boots through GRUB on both
+BIOS and UEFI firmware. Secure Boot rides the Void-shipped GRUB shim.
 
 ### Stages and owners
 
 | Stage | Owner | What it owns | ASURA's part |
 |---|---|---|---|
 | Firmware | The machine | Secure Boot verification, the EFI variable store, the boot order | Nothing |
-| Secure Boot shim | Base layer | First-stage verification, the MOK manager, the chainloader slot | Nothing |
-| Limine | `asura-boot` | The boot menu, loading the kernel and the initramfs, the boot parameters | The config, the volume layout, the hashes |
+| Secure Boot shim | Base layer (Void-shipped GRUB shim) | First-stage verification, the MOK manager, the chainloader slot | Nothing |
+| GRUB | Base layer | The boot menu, loading the kernel and the initramfs, the boot parameters | The installer writes `/boot/grub/grub.cfg` |
 | Kernel | Base layer, pinned by `system/kernel/` | Drivers, the initramfs unpacker, early microcode | The fleet, the initramfs contents |
-| initramfs | Base layer's initramfs-tools, tuned by ASURA | Root discovery, the microcode blob, zram | The config directory, the module list |
-| systemd | Base layer | The system manager, logind, the per-user manager | The unit files, the session units |
-
-### The four Limine stages
-
-| Stage | What it does | What it owns |
-|---|---|---|
-| 1 | The boot sector, or the EFI entry point | Finding and loading stage 2, passing on the firmware's boot context |
-| 2 | The loader proper | The filesystem drivers (FAT12/16/32, ISO9660), the config parser, the menu, loading stage 3 |
-| 3 | The protocol stage | Building the boot structures that describe the machine — memory map, framebuffer, module list, command line |
-| 4 | `limine-exec`, the final stage | Loading the kernel and the initramfs into memory, setting the video mode and the kernel boot parameters, handing over |
-
-Limine reads **FAT12/16/32 and ISO9660 and nothing else**. It cannot open an ext4
-partition. Two designs follow from that, and ASURA takes the first:
-
-1. The kernel and the initramfs live on the FAT volume and Limine loads them directly. No
-   second bootloader is involved, so the Secure Boot chain is one link shorter and there is
-   no second boot configuration to keep in sync with the kernel fleet.
-2. Limine chainloads a second bootloader that can read ext4, and that bootloader loads the
-   kernel. The chain grows by one link, that bootloader becomes part of the trust chain, and
-   it becomes part of the update path.
+| initramfs | Base layer's dracut integration, tuned by ASURA | Root discovery, the microcode blob, zram | The config directory, the module list |
+| runit | Base layer | The system manager and the user-level service supervisor | The service files (`/etc/sv/`, `~/.config/service/`) |
 
 ### The boot volume
 
-The `ASURABOOT` volume is FAT32 and is mounted at `/boot`. It is the ESP, and it carries
-the whole boot chain.
-
-| Path on `ASURABOOT` | Contents |
-|---|---|
-| `limine.sys` | The Limine configuration search target on the boot volume |
-| `limine-bios.sys` | The BIOS boot record payload |
-| `EFI/BOOT/BOOTX64.EFI` | Limine's EFI binary, and the fallback boot path |
-| `EFI/asura/shimx64.efi` | The Secure Boot first stage |
-| `EFI/asura/mmX64.efi` | The MOK manager |
-| `EFI/asura/grubx64.efi` | Shim's chainloader slot, holding Limine's EFI binary |
-| `vmlinuz-<version>` | The kernel |
-| `initrd.img-<version>` | The initramfs |
-| `limine.conf` | The boot configuration |
-
-FAT constrains what can live here, and the design works with the constraints rather than
-against them:
-
-- **No symbolic links.** `/boot/initrd.img` and `/boot/vmlinuz` do not exist. Limine is
-  pointed at versioned file names.
-- **No execute bit.** Every helper script lives under `/usr/share/asura/`, never under
-  `/boot`.
-- **Case-insensitive names.** Every kernel and initramfs file name is lower case.
-- **No ownership.** Nothing on `/boot` is trusted to be root-owned; Limine verifies the
-  files by hash instead, which is the only integrity claim the volume can support.
-
-### The Limine configuration
-
-`/boot/limine.conf`, regenerated by `asura-boot` on every kernel change:
-
-```ini
-timeout: 5
-default_entry: 1
-quiet: yes
-interface_branding: ASURA OS
-interface_branding_colour: 000000
-
-/ASURA OS
-protocol: linux
-path: boot():/vmlinuz-6.14.0-33-generic#9f86d081884c7d659a2feaa0c55ad015
-module_path: boot():/initrd.img-6.14.0-33-generic#ca6914d2a3b8c1f0e5d6473ab19e5c0
-cmdline: quiet loglevel=4 systemd.show_status=true root=UUID=6a1f9c40-2b7e-4d55-9a11-3c8e0f7b2d64 rw
-```
-
-Four things in that file are load-bearing:
-
-- **The config lives at the volume root.** Limine searches, in order, the directory of its
-  own EFI application, then `/boot/limine/limine.conf`, `/boot/limine.conf`,
-  `/limine/limine.conf`, `/limine.conf`; the first match wins and the rest are ignored. One
-  canonical path means one file, and the installer must make sure no other volume on the
-  disk carries a `limine.conf` that would shadow it.
-- **The hash suffix is not optional once the config hash is enrolled.** Limine refuses to
-  load any file whose path does not carry its BLAKE2B digest, and panics on a mismatch.
-  `asura-boot` computes the digests when it writes the file.
-- **Limine verifies by hash, not by signature.** It does not use a UKS. What enforces an
-  unmodified configuration is the **BLAKE2B hash of `limine.conf` enrolled inside the EFI
-  binary** with `limine enroll-config`, which is why every path in the file needs a digest
-  once that hash is enrolled. Separately, on a Windows-initialised firmware only Microsoft
-  keys are enrolled, so shim must present a MOK for ASURA's own key before it can chainload
-  Limine at all. Two separate problems, two separate answers.
-- **The kernel command line carries the root device.** The initramfs resolves the root
-  filesystem from it; the installer writes the UUID from the machine's partition table and
-  `asura-boot` rewrites the line on every kernel change.
+The ESP is a FAT32 volume mounted at `/boot`, carrying the kernel, the initramfs and
+`grub.cfg`.
 
 ### Microcode has to load early
 
 The CPU runs the wrong microcode until something loads the right one, and a machine that
 needs an update for stability is unstable during exactly the window that matters. The base
-layer's `intel-ucode` and `amd64-microcode` packages ship initramfs-tools hooks that call
-`prepend_earlyinitramfs`, and `mkinitramfs` writes that blob as a **separate cpio archive in
-front of** the main initramfs. The kernel's built-in early-microcode loader applies the
-first archive before it unpacks the real one, so the CPU is correct from the first
-instruction rather than from the moment the root filesystem is mounted.
-
-Two consequences for ASURA:
-
-- The microcode has to be **inside the initramfs**, not only in `/lib/firmware`. An image
-  built without those packages boots on fallback microcode for the whole initramfs phase.
-- `asura-boot` rebuilds the initramfs whenever a kernel **or a microcode package** changes,
-  so the blob is never stale relative to the kernel.
+layer's microcode packages include the early microcode blob in the initramfs, so the kernel
+applies it before unpacking the real initramfs.
 
 ### The initramfs
 
-The base layer uses initramfs-tools, and ASURA keeps it. What ASURA changes is the
-configuration directory and the module set.
+The base layer's dracut integration builds the initramfs. ASURA customises it through
+`/etc/asura/initramfs/`.
 
-```
-mkinitramfs -d /etc/asura/initramfs -o /boot/initrd.img-6.14.0-33-generic 6.14.0-33-generic
-```
-
-| Setting | Value | Why |
-|---|---|---|
-| `MODULES` | `most` | A laptop may boot from NVMe, USB or a RAID array. The module set has to cover all of them, because a missing storage driver is an unbootable machine. |
-| `COMPRESS` | `zstd` | Decompresses faster than gzip on the same size, which is the part of the boot that is on the critical path. |
-| `BOOTSIZE` | `20%` | Enough for the storage drivers, small enough to stay in memory. |
-| `KEYMAP` | from the installer | The keyboard has to work at the login prompt, which is a VT, not a compositor. |
-
-Tier-1 machine profiles may drop `MODULES` to `dep` and ship a smaller initramfs, but only
-after the profile has proved the machine boots from that set. A profile that guesses wrong
-produces an unbootable machine that no amount of debugging can reach.
-
-zram is configured in the initramfs, not by the systemd generator: `systemd-zram-generator`
-is a systemd generator that runs at boot and writes the units that create and swap on a
-zram device, and it does not by itself place zram in the initramfs. The initramfs
-configuration is what does that.
-
-### systemd takes over
-
-The initramfs mounts the root filesystem and executes `/sbin/init`, which is systemd. From
-that point the boot is a dependency graph, and the rest of this document is that graph.
+zram is configured by `zramen` in `/etc/sv/zramen/conf`.
 
 ---
 
-## The systemd target chain
+## The runit service graph
 
 The system side first, then the user side.
 
 ### The system instance
 
-```ini
-default.target
-└── graphical.target                                 Wants=display-manager.service
-    │                                                Requires=multi-user.target
-    │                                                After=multi-user.target rescue.service
-    │                                                rescue.target display-manager.service
-    ├── display-manager.service                      [Install] Alias= of sddm.service
-    │   └── sddm.service                             After=systemd-user-sessions.service
-    │                                                getty@tty1.service plymouth-quit.service
-    │                                                systemd-logind.service
-    │                                                Conflicts=getty@tty1.service
-    │                                                Restart=always
-    └── multi-user.target                            Requires=basic.target
-        │                                            After=basic.target
-        └── basic.target                             Wants=sockets.target timers.target paths.target
-                                                     slices.target tmp.mount
-                                                     After=sysinit.target sockets.target paths.target
-                                                     slices.target tmp.mount
-            └── sysinit.target                       Wants=local-fs.target swap.target
-                                                     After=local-fs.target swap.target
-```
+runit (system services in `/etc/sv/`) starts the base layer. ASURA adds：
 
-`default.target` is a symlink to `graphical.target`, and `graphical.target` wants
-`display-manager.service` — an alias created by the `[Install]` section of `sddm.service`.
-ASURA never edits `sddm.service`; the only command that puts a login manager on the image
-is `systemctl enable display-manager.service`.
+- `asura-sysd` (`system/runit/services/asura-sysd/run`) — root daemon at `/run/asura/sysd.sock`
+- `scx-lavd` (`system/runit/services/scx-lavd/run`) — sched_ext LAVD scheduler
+- `ananicy-cpp` (`system/runit/services/ananicy-cpp/run`) — gaming/desktop priority rules
+- `asura-boot-guard` (`system/runit/services/asura-boot-guard/run`) — boot health marker
+
+runit services are enabled by creating a symlink in `/etc/runit/runsvdir/default/`.
 
 ### The user instance
 
-The session is not a system service. It is a set of user units, and the root of it is
-`graphical-session.target`, which systemd defines as "active whenever any graphical session
-is running".
+The session is not a system service. It is a set of user-level runit services supervised by
+`asura-user-services` (`session/runit/asura-user-services`, installed at
+`~/.config/service/asura-user-services` via the user runit supervisor):
 
-```ini
-user@1000.service                                  started by systemd-logind for the seat session
-│                                                   PAMName=systemd-user, Slice=user-1000.slice
-└── systemd --user
-    └── default.target
-        ├── graphical-session-pre.target             environment setup, agents, autostart
-        └── asura-session.target                   started by the session, once the
-            │                                        compositor is up
-            │                                        BindsTo=graphical-session.target
-            ├── wireplumber.service                 audio policy
-            ├── asura-portal.service                the portal dispatcher
-            │   │                                    After=asura-session.target
-            │   │                                    ConditionEnvironment=WAYLAND_DISPLAY
-            │   └── xdg-desktop-portal-hyprland      activated on demand by the dispatcher
-            │       xdg-desktop-portal-gtk          activated on demand by the dispatcher
-            ├── asurad.service                     the shell daemon
-            │                                        After=asura-session.target
-            ├── asura-wallpaper.service            the wallpaper daemon
-            │                                        After=asura-session.target
-            │                                        ConditionEnvironment=WAYLAND_DISPLAY
-            ├── asura-idle.service                 hypridle, with the idle timeouts
-            │                                        After=asura-session.target
-            │                                        ConditionEnvironment=WAYLAND_DISPLAY
-            └── asura-shell.service                the shell
-                │                                    After=asura-session.target
-                │                                    After=asura-portal.service
-                │                                    After=asurad.service
-                │                                    After=wireplumber.service
-                │                                    ConditionEnvironment=WAYLAND_DISPLAY
-                └── the shell's own children         quick settings,
-                                                     notification server — inside the shell
-```
-
-`asura-ai-usage.timer`, which refreshes the AI-usage caches the bar's pill reads, is wanted by
-the target as well. `asura-agent.service` is installed beside these and is not wanted by the
-target: the agent stays off until the user switches it on in Settings.
-
-Two systemd mechanisms carry the weight here.
-
-- **`BindsTo=graphical-session.target` on the session target** starts the target when the
-  session starts and stops it when the session ends.
-- **`PartOf=graphical-session.target` on every session service** stops that service when
-  the session ends. A unit that is only `Wants=`-ed by the session target would survive
-  logout and be adopted by the next session, which is how a second copy of the shell ends up
-  running after a fast login cycle.
-
-**The session target is ASURA's own.** Upstream Hyprland ships a session target and
-ASURA's units used to attach to it with a drop-in. Ubuntu's build of Hyprland ships no
-systemd units at all — no unit, no target, nothing that starts them — and a unit that
-requires a target which does not exist is a unit that cannot start. A shell that cannot
-start is a session with no shell in it: a grey screen, and keybindings that call a shell
-nobody is running.
+- `asura-userd` (`system/runit/user-services/asura-userd/run`)
+- `asura-agent` (`system/runit/user-services/asura-agent/run`) — opt-in, off until the user
+  switches it on in Settings
+- `asurad` (`system/runit/user-services/asurad/run`) — shell state daemon
+- `asura-wallpaper` (`system/runit/user-services/asura-wallpaper/run`) — wallpaper daemon
+- `quickshell` (`system/runit/user-services/quickshell/run`) — the shell
+- `portal` (`system/runit/user-services/portal/run`) — xdg-desktop-portal dispatcher
+- `portal-hyprland` (`system/runit/user-services/portal-hyprland/run`) — Hyprland backend
+- `asura-idle` (`system/runit/user-services/asura-idle/run`) — hypridle with the idle timeouts
+- `pipewire` (`system/runit/user-services/pipewire/run`) — audio
+- `wireplumber` (`system/runit/user-services/wireplumber/run`) — audio policy
 
 So the session owns its anchor, and starts it once the compositor is up:
 
-```ini
-# /usr/lib/systemd/user/asura-session.target
-[Unit]
-Description=ASURA session
-BindsTo=graphical-session.target
-After=graphical-session.target
-Wants=asura-portal.service asura-shell.service asurad.service asura-wallpaper.service asura-idle.service asura-ai-usage.timer
-```
+### The services ASURA ships
 
-The target is started by the compositor's own configuration, at the one moment the
-display exists:
-
-```ini
-# /usr/share/asura/hyprland/hyprland.conf
-exec-once = /usr/share/asura/session/asura-activate
-```
-
-`asura-activate` puts the compositor's environment into the user manager before it starts
-the target. The units are started by the user manager, and a unit inherits the manager's
-environment rather than the shell's — the compositor knows which display it made, and the
-manager does not, unless it is told. A unit that starts without the display in its
-environment believes it is on a machine with no screen, and the shell's condition on the
-display says exactly that and refuses to start.
-
-### The units ASURA ships
-
-```ini
-# /usr/lib/systemd/user/asura-portal.service
-[Unit]
-Description=ASURA portal dispatcher
-PartOf=graphical-session.target
-After=asura-session.target
-ConditionEnvironment=WAYLAND_DISPLAY
-
-[Service]
-Type=dbus
-BusName=org.freedesktop.portal.Desktop
-ExecStart=/usr/libexec/xdg-desktop-portal
-Restart=on-failure
-RestartSec=1
-
-[Install]
-WantedBy=asura-session.target
-
-# /usr/lib/systemd/user/asurad.service
-[Unit]
-Description=ASURA shell daemon
-PartOf=graphical-session.target
-After=asura-session.target
-Requires=asura-session.target
-Conflicts=hyprpolkitagent.service
-
-[Service]
-Type=exec
-ExecStart=/usr/bin/asura-shell daemon
-ExecStartPost=/usr/bin/timeout 10 /bin/sh -c 'until [ -S %t/asura-shell.sock ]; do sleep 0.05; done'
-Environment=ASURA_POLKIT_AGENT=1
-Restart=on-failure
-RestartSec=1
-
-[Install]
-WantedBy=asura-session.target
-
-# /usr/lib/systemd/user/asura-shell.service
-[Unit]
-Description=ASURA shell (Quickshell)
-Documentation=man:asura-shell(1)
-PartOf=graphical-session.target
-After=asura-session.target asura-portal.service asurad.service wireplumber.service
-Wants=asurad.service
-Requires=asura-session.target
-ConditionEnvironment=WAYLAND_DISPLAY
-
-[Service]
-Type=exec
-ExecStart=/usr/bin/quickshell -p /usr/share/asura/shell
-ExecReload=/bin/kill -SIGUSR1 $MAINPID
-Restart=on-failure
-RestartSec=1
-Slice=app.slice
-
-[Install]
-WantedBy=asura-session.target
-```
-
-`asurad.service` carries no `ConditionEnvironment=WAYLAND_DISPLAY`, and that is deliberate:
-the daemon probes audio, network, bluetooth, display and media, and none of those is a
-Wayland client. It can therefore be up before the compositor's display exists, and it is
-wanted by the session target rather than ordered after it. It also holds the session's
-polkit agent slot, which only one agent can have, so it conflicts with
-`hyprpolkitagent.service`, and the unit sets `ASURA_POLKIT_AGENT=1`, which the daemon needs
-before it registers one.
+The runit service scripts (`system/runit/user-services/*/run`) are the units. Whichever
+daemon each one runs is fixed by its `run` script. The shell's QML is read by
+`quickshell -p /usr/share/asura/shell` from the `quickshell` runit service.
 
 The daemon listens on a Unix socket at `$XDG_RUNTIME_DIR/asura-shell.sock` and speaks
 `asura-shell/1` over it — line-framed, one JSON document per line. The socket lives in the
 per-user runtime directory rather than under `/usr/share/asura/`, because it is created at
 run time by a process, and a path a process creates is not a file a package installs.
 
-The shell is ordered after the daemon for a reason the QML forces. In this Quickshell build a
-first `Socket` connect that fails fires no signal, so a service that connected before the
-daemon had bound its socket never retries. `asura-shell.service` is therefore
-`After=asurad.service` (with `Wants=`), and the daemon has to have its socket before
-`asurad.service` counts as started: the `ExecStartPost` above waits up to ten seconds for the
-socket file, and a daemon that never makes it fails the unit, which is louder than a shell
-that starts against nothing.
-
-`asura-portal.service` is a shadow of the base layer's `xdg-desktop-portal.service` under
-a `asura-` name, which is the pattern the base-layer boundary prescribes for a component
-that needs different configuration: never an edit in place, always a drop-in of your own.
-
-The base layer's unit must not also be enabled. Two dispatchers on one bus is one
-dispatcher that wins the name and one that loses it, and the loser exits — the name is
-taken from the bus, not from the unit, so the second instance terminates with "dbus name
-was lost" and takes the session's portal with it.
+The base layer's portal dispatcher and ASURA's cannot both run. Two dispatchers on one bus
+is one dispatcher that wins the name and one that loses it, and the loser exits — the name
+is taken from the bus, not from the service, so the second instance terminates with "dbus
+name was lost" and takes the session's portal with it. Only one portal service directory
+should be supervised.
 
 ---
 
@@ -531,9 +260,8 @@ fi
 
 # Make dbus-activated user services and anything the compositor spawns see the
 # desktop identity, or apps probe for GNOME and get confused.
-systemctl --user import-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
-    DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR
-dbus-update-activation-environment --systemd XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
+export XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
+dbus-update-activation-environment XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP \
     DESKTOP_SESSION XDG_SESSION_TYPE WAYLAND_DISPLAY
 
 echo "asura-session: env ok, starting Hyprland"
@@ -561,48 +289,33 @@ which is why the overlay files are guarded with `if` rather than with `&&`.
 
 Two details in the script are load-bearing beyond the obvious:
 
-- **`XDG_CURRENT_DESKTOP=ASURA` and `XDG_SESSION_DESKTOP=asura` are different strings,
+- **`XDG_CURRENT_DESKTOP=Asura` and `XDG_SESSION_DESKTOP=asura` are different strings,
   and both are deliberate.** The dispatcher lower-cases the current desktop to derive its
-  per-desktop configuration file name, so `ASURA` finds `asura-portals.conf`. The session
+  per-desktop configuration file name, so `Asura` finds `asura-portals.conf`. The session
   desktop is the lower-case name the login manager records in `loginctl show-session`.
-- **The environment is published twice, to two different consumers.** `systemctl --user
-  import-environment` reaches the per-user manager, so every unit started from the manager
-  inherits it. `dbus-update-activation-environment --systemd` reaches the bus's activation
-  environment, so a service activated on demand inherits it. A backend that is D-Bus
-  activated rather than started as a unit sees nothing without the second one.
-
 ### How this differs from a stock desktop session
 
 | | A stock desktop session | The ASURA session |
 |---|---|---|
 | Session file | `/usr/share/wayland-sessions/<desktop>.desktop` | The same mechanism, `asura.desktop` |
 | `Exec=` | A session manager that owns a private list of what a session is | A shell script that sets the environment and hands over to the compositor |
-| Root of the session | The session manager's own idea of a session | `asura-session.target` and `graphical-session.target`; there is no second session manager |
-| Services | Started by the session manager from a private list | systemd user units with `PartOf=graphical-session.target` |
-| Environment | The session manager's exports plus a desktop-specific `environment.d` | One environment, published to the user manager and to bus activation |
-| The display | The session manager talks to the compositor | The compositor is the session's anchor, and ASURA's units attach to its target |
+| Services | Started by the session manager from a private list | runit user services with the user-level supervisor |
+| The display | The session manager talks to the compositor | The compositor is the session's anchor |
 | The display name | The stock desktop's own name | `ASURA`, which is what every library branches on |
 
 ---
 
 ## What starts, in order
 
-| Order | Unit | Started by | What it is |
+| Order | Service | Started by | What it is |
 |---|---|---|---|
 | 0 | `asura-session` | The display manager | Environment, bus activation, `exec Hyprland` |
-| 1 | `asura-session.target` | The session | The anchor for everything that needs a live compositor |
-| 2 | `wireplumber.service` | The session target | Audio policy, so the shell's volume widget has something to talk to |
-| 3 | `asura-portal.service` | The session target | The portal dispatcher, which activates the backends on demand |
-| 4 | `asurad.service` | The session target | The shell daemon, which the shell subscribes to over its socket |
-| 5 | `asura-wallpaper.service`, `asura-idle.service` | The session target | The wallpaper daemon, and hypridle with the idle timeouts. Neither is ordered against the shell |
-| 5 | `asura-shell.service` | The session target, ordered after the portals and the daemon | The shell |
-| 6 | The shell's children | The shell | Quick settings, notification server — inside the shell, not separate units |
-
-The daemon is ordered before the shell rather than beside it, and the reason is the same
-one that puts the portal dispatcher first: the shell subscribes to the daemon at start-up,
-and a shell that starts before the thing it subscribes to is a shell whose first state
-arrives late or not at all. The daemon does not need the shell, so the ordering is one-way
-and there is no cycle.
+| 1 | `wireplumber` | runit user supervisor | Audio policy, so the shell's volume widget has something to talk to |
+| 2 | `portal` | runit user supervisor | The portal dispatcher, which activates the backends on demand |
+| 3 | `asurad` | runit user supervisor | The shell daemon, which the shell subscribes to over its socket |
+| 4 | `asura-wallpaper`, `asura-idle` | runit user supervisor | The wallpaper daemon, and hypridle with the idle timeouts |
+| 5 | `quickshell` | runit user supervisor | The shell |
+| 6 | The shell's children | The shell | Quick settings, notification server — inside the shell, not separate services |
 
 ### Why the compositor comes before the portal dispatcher
 
@@ -617,10 +330,9 @@ if (!m_sWaylandConnection.display) {
 }
 ```
 
-Its unit also carries `ConditionEnvironment=WAYLAND_DISPLAY`, so the backend is not even
-started unless the environment carries that variable. Both facts point the same way: the
-portal stack has to come after the compositor, and the compositor's environment has to be
-in place before the backend is activated.
+The backend runs only once the compositor's `WAYLAND_DISPLAY` is in place. Both facts point
+the same way: the portal stack has to come after the compositor, and the compositor's
+environment has to be in place before the backend is activated.
 
 Three more dependencies hide in the same backend:
 
@@ -837,22 +549,12 @@ lock would accept any password; neither was right.
 
 So the division is the one recorded in
 [`architecture.md`](architecture.md#the-shell): `hypridle` decides **when** —
-`asura-idle.service` runs it with the timeouts of `org.asura.desktop`'s `idle-*` keys — and
+`asura-idle` runs it with the timeouts of `org.asura.desktop`'s `idle-*` keys — and
 `asura-shell lock` is the one command every trigger runs (the bind, hypridle's lock stage,
 `loginctl lock-session`, before sleep). That command runs `hyprlock`, and the shell only draws
 the dim scrim (`Idle.qml`). The base layer carries hyprlock, so under the base-layer rule
 ASURA does not repackage it. Every competing locker is excluded, so the image has exactly one
 and which one is in front never depends on start order. [`lock.md`](lock.md) has the details.
-
-The verified path is unchanged:
-
-```bash
-systemctl --user lock-session
-```
-
-That command reaches logind, and logind does not call a lock interface on anyone's behalf: it
-emits the `org.freedesktop.login1.Session.Lock` signal on the system bus, and hypridle answers
-it by running its `lock_cmd`, which is `asura-shell lock`.
 
 The `org.freedesktop.ScreenSaver` interface on the session bus is no longer the shell's. Its
 `Inhibit` and `UnInhibit` methods are what the base layer's portal Inhibit backend calls,
@@ -873,15 +575,14 @@ unlocked.
 
 - **Detection is the compositor's, and hypridle is the one idle clock.** The compositor knows
   when the user last did something; no Wayland client can find that out for itself, so
-  hypridle asks it through the compositor's idle-notify protocol. `asura-idle.service` runs
-  hypridle with the three timeouts of `org.asura.desktop` (`idle-dim-seconds`,
+  hypridle asks it through the compositor's idle-notify protocol. The `asura-idle` runit
+  service runs hypridle with the three timeouts of `org.asura.desktop` (`idle-dim-seconds`,
   `idle-blank-seconds`, `idle-lock-seconds`; 0 means never). hypridle also honours D-Bus and
-  systemd inhibitors, so a video or Keep Awake holds every stage.
+  elogind inhibitors, so a video or Keep Awake holds every stage.
 - **The shell draws the dim scrim** (`Idle.qml`) when hypridle says so, and locks nothing
   itself. Screen-off is `hyprctl dispatch dpms off`, and there is no suspend stage.
 - **The actions go through logind**, so the standard inhibitors apply. Locking is
-  `asura-shell lock`, which `loginctl lock-session` reaches too; suspending is
-  `systemctl suspend`.
+  `asura-shell lock`, which `loginctl lock-session` reaches too.
 
 Idle is also the thing that makes the suspend path safe: `asura-shell`, the daemon, holds
 delay inhibitors across the sleep request, so a machine that suspends while unlocked is a
@@ -893,17 +594,8 @@ machine that was asked to suspend with the screen already locked, not one that r
 
 ### Logout
 
-1. The user asks to log out. The shell asks the user manager to stop the session:
-   `systemctl --user stop asura-session.target`.
-2. Stopping the session target stops `graphical-session.target`, because the session target
-   is bound to it.
-3. Every session service stops, because each one carries `PartOf=graphical-session.target`.
-4. The compositor exits, the session leader exits with it, and the display manager returns
-   to the greeter.
-
-A second session on the same machine is independent: it has its own user manager instance,
-its own session target, and its own compositor. The virtual terminal switch is the display
-manager's.
+1. The user asks to log out. The compositor exits, the session leader exits with it, and
+   the display manager returns to the greeter.
 
 ### Suspend and resume
 
@@ -914,15 +606,13 @@ manager's.
 3. `asura-shell` answers the `true` half of the signal by running the lock while it holds
    its own delay inhibitors, so the machine does not sleep with an unlocked screen. The
    locker does the locking; the daemon decides that it should happen.
-4. logind releases the inhibitor, `systemd-suspend.service` runs, and the machine sleeps.
+4. logind releases the inhibitor and the machine sleeps.
 5. On resume, `PrepareForSleep(false)` arrives and the locker releases the session.
 
 ### Shutdown and reboot
 
 The greeter's power buttons call the display manager's own halt and reboot commands, which
-are `systemctl poweroff` and `systemctl reboot`. They go through logind, which runs the
-shutdown inhibitors, and then the system stops. The session is torn down by the same path as
-a logout, because the session's units stop when the manager stops.
+go through logind, which runs the shutdown inhibitors, and then the system stops.
 
 Nothing in the display manager's configuration has to change for this, which is the reason
 it is worth checking: a change there would mean writing outside the two directories ASURA
@@ -938,8 +628,7 @@ owns.
 | Idle policy | `org.asura.desktop`, handed to hypridle by `asura-idle` | The timeouts live in GSettings, and `asura config set` is their only writer |
 | Inhibitors | logind | Delay inhibitors are held by the shell daemon and by logind itself |
 | Live desktop state | `asurad` | The `asura-shell/1` socket at `$XDG_RUNTIME_DIR/asura-shell.sock` |
-| Suspend, poweroff, reboot | logind | `systemctl`, the display manager's halt and reboot commands |
-| Session teardown | systemd | `graphical-session.target` and `PartOf=` |
+| Suspend, poweroff, reboot | logind | the display manager's halt and reboot commands |
 
 ---
 
@@ -952,34 +641,30 @@ bar, no dock, no launcher, no popouts. The window switcher does nothing. Notific
 not answered, so they are lost rather than shown. The dim scrim never appears, because the
 shell draws it; hypridle still locks and blanks the screen on schedule.
 
-**Why.** `asura-shell.service` failed, or was never reached. In order of likelihood: the
-shell's QML failed to load and the process exited; a GSettings schema did not compile, so
-the shell aborted while reading it; or the compositor's environment never reached the user
-manager, so the unit's `ConditionEnvironment=WAYLAND_DISPLAY` was never satisfied.
+**Why.** The `quickshell` runit service failed, or was never reached. In order of
+likelihood: the shell's QML failed to load and the process exited; or a GSettings schema
+did not compile, so the shell aborted while reading it.
 
 **What to run.**
 
 ```bash
-systemctl --user status asura-shell.service
-journalctl --user -b -u asura-shell.service
-systemctl --user show-environment | grep WAYLAND_DISPLAY
+sv status ~/.config/service/quickshell
+cat ~/.local/state/asura/quickshell.log
 hyprctl clients
 ```
 
-The second command is the one that matters: the shell's own error is in its journal, not in
-the display manager's. To see it in the foreground:
+To see it in the foreground:
 
 ```bash
-systemctl --user stop asura-shell.service
 quickshell -p /usr/share/asura/shell
 ```
 
-**Recovery.** `systemctl --user restart asura-shell.service` restarts it in place. If the
+**Recovery.** `sv restart ~/.config/service/quickshell` restarts it in place. If the
 user's overlay is what broke, move it aside and restart:
 
 ```bash
 mv ~/.config/asura/shell/shell.qml ~/.config/asura/shell/shell.qml.bak
-systemctl --user restart asura-shell.service
+sv restart ~/.config/service/quickshell
 ```
 
 `asura doctor` reports drift between the base and the overlay.
@@ -991,16 +676,16 @@ things that read live state are wrong. The status area shows the last volume it 
 The sidebar's sections do not update, or they show the last thing they saw and never change.
 The volume slider moves the sink and the number does not follow.
 
-**Why.** `asurad.service` failed, or was never reached. The shell starts regardless: it
-can draw a surface with nothing to subscribe to, and it does, because a shell that refuses
-to start because a state daemon is down is a session with no desktop in it at all. The
-daemon is the thing that fails quietly.
+**Why.** The `asurad` runit service failed, or was never reached. The shell starts
+regardless: it can draw a surface with nothing to subscribe to, and it does, because a
+shell that refuses to start because a state daemon is down is a session with no desktop in
+it at all. The daemon is the thing that fails quietly.
 
 **What to run.**
 
 ```bash
-systemctl --user status asurad.service
-journalctl --user -b -u asurad.service
+sv status ~/.config/service/asurad
+cat ~/.local/state/asura/asurad.log
 ls -l "$XDG_RUNTIME_DIR/asura-shell.sock"
 ```
 
@@ -1009,8 +694,8 @@ under `/usr/share/asura/` — it is created at run time and it is not a file a p
 installs. A missing socket with a healthy unit is a daemon that has not bound it yet; a
 missing socket with a failed unit is the failure itself.
 
-**Recovery.** `systemctl --user restart asurad.service`. If the daemon was down when the
-shell started, restart the shell as well, `systemctl --user restart asura-shell.service`: in
+**Recovery.** `sv restart ~/.config/service/asurad`. If the daemon was down when the
+shell started, restart the shell as well, `sv restart ~/.config/service/quickshell`: in
 this Quickshell build a first `Socket` connect that fails fires no signal, so the services
 that connected once never retry. If the shell is showing nothing at all rather than something
 stale, the daemon is not the fault and the
@@ -1030,18 +715,8 @@ well-formed "no implementation" error.
 **What to run.**
 
 ```bash
-systemctl --user status asura-portal.service
-journalctl --user -b -u asura-portal.service
+sv status ~/.config/service/portal
 busctl --user list | grep -i portal
-```
-
-To see which backend the dispatcher resolved for each interface, turn on its debug output
-and restart it:
-
-```bash
-systemctl --user set-property asura-portal.service Environment=G_MESSAGES_DEBUG=all
-systemctl --user restart asura-portal.service
-journalctl --user -b -u asura-portal.service | grep 'Preferred portals'
 ```
 
 To see who implements what on the image, and to check that ASURA's own preference file is
@@ -1058,7 +733,7 @@ To check the file chooser itself:
 zenity --file-selection --title "portal probe"
 ```
 
-**Recovery.** `systemctl --user restart asura-portal.service` is enough for a dispatcher
+**Recovery.** `sv restart ~/.config/service/portal` is enough for a dispatcher
 that is running with the wrong configuration, because the configuration is re-read at
 startup. A backend that is missing entirely is a packaging problem:
 `xdg-desktop-portal-gtk` for FileChooser and Print, `xdg-desktop-portal-hyprland` for
@@ -1093,10 +768,10 @@ gdbus call --session --dest org.freedesktop.portal.Desktop \
 The absence of `org.freedesktop.portal.Secret` in the dispatcher's object tree is the
 finding.
 
-**Recovery.** Install `xdg-desktop-portal-lxqt` and make sure `asura-portals.conf` is the
-file in use (`asura doctor` reads each named backend's `.portal` file and reports an
-interface pointed at a backend that cannot serve it), then
-`systemctl --user restart asura-portal.service`. The image's own `libpam-gnome-keyring`
+**Recovery.** Install `xdg-desktop-portal-lxqt` (`sudo xbps-install -S xdg-desktop-portal-lxqt`)
+and make sure `asura-portals.conf` is the file in use (`asura doctor` reads each named
+backend's `.portal` file and reports an interface pointed at a backend that cannot serve
+it), then `sv restart ~/.config/service/portal`. The image's own `gnome-keyring` PAM
 module, which unlocks the keyring at login so a prompt does not ask for a second password,
 is the other half of the problem and is already solved.
 
@@ -1123,8 +798,6 @@ of this — or from another session:
 
 ```bash
 journalctl -b -u sddm.service
-journalctl -b _UID=1000
-loginctl session-status
 cat ~/.local/state/asura/session.log
 ```
 
@@ -1132,13 +805,12 @@ The last one is ASURA's own session log, written by `asura-session` before it ex
 anything. It is the first thing to read, because it records the session's environment
 hand-off and the moment the compositor was started.
 
-To see the session units from outside the session, as the user, with the right runtime
+To see the session services from outside the session, as the user, with the right runtime
 directory:
 
 ```bash
-runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status asura-shell.service
-runuser -u <user> -- env XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -b -u asura-portal.service
-loginctl user-status <user>
+sudo -u <user> env XDG_RUNTIME_DIR=/run/user/1000 sv status ~/.config/service/quickshell
+sudo -u <user> env XDG_RUNTIME_DIR=/run/user/1000 sv status ~/.config/service/portal
 ```
 
 To check the session registration itself:
@@ -1151,17 +823,11 @@ grep -E '^(Exec|TryExec|DesktopNames)=' /usr/share/wayland-sessions/asura.deskto
 **Recovery.** Most hangs at login are a stale session rather than a broken image. Killing
 the session's leader and starting a new one from the greeter is enough:
 
-```bash
-loginctl terminate-session <session-id>
-```
-
-If the session cannot be reached at all, the same commands work from the virtual terminal.
-
 **The black screen.** A hang that reaches the compositor but not the shell leaves the user
-at a black screen with no way to find out why. Two things narrow that window: the shell's
-unit carries `Restart=on-failure` with a one second delay, so a crash in the shell's QML is
-a one second gap rather than a session's end; and the shell's own journal is the only place
-the error is, which is why the failure mode has to name the command.
+at a black screen with no way to find out why. The runit supervisor restarts the shell,
+so a crash in the shell's QML is a short gap rather than a session's end; and the shell's
+own log is the only place the error is, which is why the failure mode has to name the
+command.
 
 ---
 

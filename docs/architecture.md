@@ -25,11 +25,11 @@ ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service
 | Terminal | Ghostty, strictly supported and configured by ASURA, never kitty | GPU-accelerated and client-side rendered. Zero kitty policy. See [terminal: Ghostty](#terminal-ghostty). |
 | User shell | zsh + starship | fish ships alongside as an alternative. |
 | Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
-| Boot chain | GRUB EFI / Limine | Reliable UEFI boot chain across NVMe/SATA drives. |
+| Boot chain | GRUB EFI | Reliable UEFI boot chain across NVMe/SATA drives. |
 | Login manager | `sddm` / tty1 autologin in Live ISO | Automated Wayland autologin on live boot and clean display manager integration. |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd | Modern Wayland audio/video routing, power tuning, and network management. |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, `-lxqt` for Secret interface | Hyprland-native portal backend with GTK fallback. |
-| Package manager | XBPS with first-party repository (`asura-xbps-repo`), plus `apm` package manager frontend (APT supported on Ubuntu) | Ultra-fast native packaging via `xbps-create` and `xbps-rindex`. |
+| Package manager | XBPS with first-party repository (`asura-xbps-repo`), plus `apm` package manager frontend | Ultra-fast native packaging via `xbps-create` and `xbps-rindex`. |
 | Agent layer | Resident OS agent with a local knowledge vault | Provides durable knowledge, self-diagnosis, and contextual assistance. |
 | Support model | Tiered, not universal | No distro supports every laptop; claiming otherwise is dishonest. |
 | Scope | Open source, all laptops | Hardware reach is the product. |
@@ -44,8 +44,8 @@ ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service
   owns its own shell and its own surfaces. What that costs, and what it simplifies, is
   written up in [the portal seam](#the-portal-seam). The extensions that motivated this repo
   are archived in [`../agents/gnome-shell-notes.md`](../agents/gnome-shell-notes.md).
-- **Multi-release ISO matrix.** 26.04 only, for now. Revisit when hardware profiles exist for
-  machines still running 22.04 or 24.04.
+- **Multi-release ISO matrix.** Void rolling is the only base, for now. There is no
+  second base release.
 - **snap.** The overlay model gives better rollback, and dropping snapd off the boot path is
   free performance.
 - **Building the terminal.** ASURA used to build and pin Ghostty from source, and no longer
@@ -108,7 +108,7 @@ slowly becomes an unmaintainable fork of it.
 ### The sanctioned list outside the boundary
 
 Two rules cannot both be absolute. A handful of files have to sit outside `/usr/share/asura/`
-and `/etc/asura/`, because the binaries that read them look nowhere else — a systemd unit
+and `/etc/asura/`, because the binaries that read them look nowhere else — a runit service
 directory, a GLib schema directory, the login manager's fixed config directory. Those files are
 **registrations**: pointers a third-party binary must be able to find.
 
@@ -119,14 +119,13 @@ violation until it is added:
 | Path | What it is | Why it cannot live under `/usr/share/asura/` |
 |---|---|---|
 | `/usr/share/wayland-sessions/asura.desktop` | Session registration | The login manager scans the fixed `wayland-sessions` directory and nowhere else |
-| `/usr/share/doc/asura/` | The copyright file and the licence texts | Debian policy: a package's copyright file is read from `/usr/share/doc/<package>/` and nowhere else |
+| `/usr/share/doc/asura/` | The copyright file and the licence texts | XBPS installs package documentation under `/usr/share/doc/<package>/`, and the copyright file is read from there |
 | `/usr/share/glib-2.0/schemas/org.asura.*.gschema.xml` | GSettings schemas | GLib compiles schemas from the fixed schema directory |
-| `/usr/lib/systemd/user/asura-shell.service`, `asura-portal.service`, `asurad.service`, `asura-wallpaper.service`, `asura-idle.service`, `asura-agent.service`, `asura-ai-usage.service`, `asura-ai-usage.timer` | User unit registration | `systemd --user` loads units from the fixed unit directory |
-| `/usr/lib/systemd/user/asura-session.target` | User unit registration | `systemd --user` loads units from the fixed unit directory |
+| `/etc/sv/asura-sysd`, `/etc/sv/scx-lavd`, `/etc/sv/ananicy-cpp` (and user services under `~/.config/service/`) | runit service registration | runit supervises services from `/etc/sv/` (system) and `~/.config/service/` (user), and nowhere else |
 | `/usr/share/xdg-desktop-portal/asura-portals.conf` | Portal backend preference | The dispatcher reads it from a fixed directory |
 | `/etc/sddm.conf.d/10-asura.conf` | Login manager preferences, opt-in: no package installs it, and `asura greeter enable` prints the command that does | SDDM reads its drop-ins from a fixed directory beside `/etc/sddm.conf` |
-| `/boot/limine.conf` | Boot configuration, deferred with the boot chain | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
-| `/usr/bin/asura`, `/usr/bin/asura-*`, `/usr/bin/apm`, `/usr/bin/prime-run`, `/usr/bin/fan-profile`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`asura`, `asura-shell`, `asura-hubd`, `asura-wallpaper`, `asura-agent`, `asura-store`, `asura-vm`, `apm`, `prime-run`, `fan-profile`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under `systemd --user`, whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `asura` package. |
+| `/boot/grub/grub.cfg` | Boot configuration | The boot loader reads its configuration from the boot volume, which the base layer's kernel packages already write to |
+| `/usr/bin/asura`, `/usr/bin/asura-*`, `/usr/bin/apm`, `/usr/bin/prime-run`, `/usr/bin/fan-profile`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`asura`, `asura-shell`, `asura-hubd`, `asura-wallpaper`, `asura-agent`, `asura-store`, `asura-vm`, `apm`, `prime-run`, `fan-profile`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under a user-level runit supervisor whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `asura` package. |
 | `/usr/share/applications/asura-hub.desktop`, `asura-store.desktop`, `asura-vm.desktop` | Desktop entries for the windows ASURA adds | The launcher and every other desktop-entry reader scan `XDG_DATA_DIRS/applications` and nowhere else |
 | `/usr/share/applications/asura-mimeapps.list` | Default applications for ASURA sessions | The XDG mime-apps lookup reads `<desktop>-mimeapps.list` from the data directories. Named for the desktop, it applies to ASURA sessions only, and the user's own `mimeapps.list` still wins |
 
@@ -138,8 +137,8 @@ directory. A registration is a pointer, never a place to put content — a file 
 few lines of pointer belongs under `/usr/share/asura/` with a registration pointing at it.
 
 The list used to carry `/usr/bin/asura-shell` and dropped it, because no such executable
-existed: the shell is a QML configuration read by Quickshell, started by
-`asura-shell.service` as `quickshell -p /usr/share/asura/shell`, and the binary that runs
+existed: the shell is a QML configuration read by Quickshell, started by the user-level
+runit supervisor as `quickshell -p /usr/share/asura/shell`, and the binary that runs
 it is Quickshell's. The name has since been given to something real. `/usr/bin/asura-shell` is
 the shell's Go daemon and its command line, covered by the `asura-*` entry above; it is not
 the executable that runs the QML. See [the shell](#the-shell).
@@ -362,17 +361,18 @@ same way. The separator is the compositor's constraint and not a style choice.
 > and has `Quickshell.Services.Pam` — so an earlier version of this box, which said there is
 > no QML PAM API and that a shell-drawn lock would accept any password, was wrong.
 >
-> So the division is: **when** locking happens is `hypridle`'s, run by `asura-idle.service`
-> from `org.asura.desktop`'s `idle-*` keys, and `asura-shell lock` is the one command every
-> trigger runs; `hyprlock` does the locking; the shell only draws the dim scrim (`Idle.qml`).
+> So the division is: **when** locking happens is `hypridle`'s, run by the user-level
+> `asura-idle` runit service from `org.asura.desktop`'s `idle-*` keys, and `asura-shell lock`
+> is the one command every trigger runs; `hyprlock` does the locking; the shell only draws
+> the dim scrim (`Idle.qml`).
 > hyprlock is in the archive, which under the base-layer rule settles it — the base layer
 > carries it, so ASURA does not repackage it. Every competing locker is excluded, so the
 > image has exactly one and which one is in front never depends on start order.
 
 Quickshell, and ASURA builds it. The base layer carries no compositor-agnostic
 shell toolkit at all — verified rather than assumed: `quickshell`, `ags`, `eww` and
-`ironbar` are in no component of 26.04. What the archive does carry is *panels* —
-`waybar`, `yambar`, `tint2`, `polybar`, `xfce4-panel` — and a panel is not a
+`ironbar` are not in the package archive under those names. What the archive does carry is
+*panels* — `waybar`, `yambar`, `tint2`, `polybar`, `xfce4-panel` — and a panel is not a
 substitute. A panel draws a bar. ASURA's shell hosts the bar, dock, launcher,
 popouts, widget catalogue, notification server, idle screen, quick settings
 and status icons, and the Hub window as well, in one compositor-agnostic toolkit,
@@ -392,11 +392,11 @@ companion: the terminal, which ASURA also used to build. The terminal is not bui
 see [terminal: Ghostty](#terminal-ghostty) — so this exception is now the only one, and the
 shell is the only thing in the stack ASURA compiles for itself. It is a comfortable one:
 Quickshell is **LGPL-3.0-only**, and the build needs nothing the archive does not already
-carry — `qt6-declarative-dev`, `qt6-declarative-private-dev`, `qt6-base-private-dev`,
-`qt6-base-dev`, `qt6-wayland`, `ninja-build`, `cmake` and `pkgconf` are all archive
-packages. Redistribution under LGPL-3 is a matter of shipping the licence and the copyright
-with the binary, which the package does; there is no question of deriving from it, because
-ASURA ships the binary unmodified and links nothing of its own into it. The rule the
+carry — `qt6-declarative-tools`, `qt6-declarative-private-devel`,
+`qt6-base-private-devel`, `qt6-base-devel`, `qt6-wayland`, `cmake` and `pkgconf` are all
+archive packages. Redistribution under LGPL-3 is a matter of shipping the licence and the
+copyright with the binary, which the package does; there is no question of deriving from it,
+because ASURA ships the binary unmodified and links nothing of its own into it. The rule the
 exception sits against is the one in the manifest's header: never repackage what the base
 layer carries. Quickshell is not in the base layer, so building it is not a fork.
 
@@ -409,21 +409,19 @@ taken rather than a fork ASURA has made. The two departures from the base-layer 
 now of different kinds and are recorded separately: one is a binary ASURA compiles, the
 other is source ASURA adopts.
 
-**`asura-shell` is the daemon, and `asurad` is the unit that runs it.** Two things in this
-project were called `asura-shell`, and they were not the same thing, which is the kind of
-collision that produces a bug report rather than a fix. The name was once the package that
-builds Quickshell; it now belongs to the shell's Go daemon. `/usr/bin/asura-shell` is that
-binary: `asura-shell daemon` is what `asurad.service` runs, and every other
-`asura-shell <verb>` (`lock`, `hub open`, `reload`, `icons`) is a client that sends one line
-to it. The unit that runs the QML keeps its name, `asura-shell.service`, and the shell's own
-configuration is `/usr/share/asura/shell/`, read by `quickshell -p /usr/share/asura/shell`
-from that unit. So `asura-shell` serves the shell's state and Quickshell is the engine that
-draws it; where this document says `asurad`, it means the daemon. The manifest's
-`asura_built:` key exists so the departure from its own rule is
-visible in one place rather than implied by a comment, and
-`system/verify-packages.py` checks it in the inverse direction: a `asura_built:`
-entry that turns up in the archive is a warning, because rebuilding a package the
-base layer now maintains is exactly the fork the rule prevents.
+**`asura-shell` is the daemon; the user-level runit supervisor starts it as `asura-shell
+daemon`.** Two things in this project were called `asura-shell`, and they were not the same
+thing, which is the kind of collision that produces a bug report rather than a fix. The name
+was once the package that builds Quickshell; it now belongs to the shell's Go daemon.
+`/usr/bin/asura-shell` is that binary: `asura-shell daemon` is what the runit supervisor
+runs, and every other `asura-shell <verb>` (`lock`, `hub open`, `reload`, `icons`) is a
+client that sends one line to it. The shell's own configuration is `/usr/share/asura/shell/`,
+read by `quickshell -p /usr/share/asura/shell` from the runit service. So `asura-shell`
+serves the shell's state and Quickshell is the engine that draws it. The manifest's
+`asura_built:` key exists so the departure from its own rule is visible in one place rather
+than implied by a comment, and `system/verify-packages.py` checks it in the inverse
+direction: an `asura_built:` entry that turns up in the archive is a warning, because
+rebuilding a package the base layer now maintains is exactly the fork the rule prevents.
 
 The wire protocol the daemon speaks keeps the name `asura-shell/1`, after the shell it
 serves rather than after the process that implements it. A protocol name that changed with
@@ -488,22 +486,10 @@ it, so it does not adopt that policy, and the floor belongs to the archive. `bas
 chosen for hardware reach and nothing else constrains it.
 
 **No build dependencies, because there is no build.** ASURA used to carry Ghostty's build
-requirements explicitly — `gtk4-layer-shell`, `glslang-dev`, `libhwy-dev`, `libsimdutf-dev`,
-`libonig-dev` and ten more, every one a name that had to be verified against the 26.04 indexes
-because every one of them is spelled differently on this archive than in Ghostty's upstream
-docs. That list is gone, and its absence is the record of the decision rather than an omission.
-This is also why the terminal is no longer an entry in the manifest's `asura_built:` key: a
-package the base layer carries is installed, not rebuilt. See
-[the rejected options](#rejected-and-why).
-
-**One archive entry, not three.** Arch splits Ghostty's shell integration and terminfo into
-`ghostty-shell-integration` and `ghostty-terminfo`. The base layer does not: Ubuntu's single
-`ghostty` package ships `/usr/share/ghostty/shell-integration/zsh/ghostty-integration` and
-`/usr/share/terminfo/x/xterm-ghostty` inside itself, verified against the 26.04 Contents index.
-Naming the split packages would fail the build on packages that do not exist here. That same
-index confirms the `x-terminal-emulator` alternative is *not* registered by the package, which is
-why the third declaration above is entirely ASURA's work — and why that declaration is
-configuration rather than packaging.
+requirements explicitly. That list is gone, and its absence is the record of the decision
+rather than an omission. This is also why the terminal is no longer an entry in the
+manifest's `asura_built:` key: a package the base layer carries is installed, not rebuilt.
+See [the rejected options](#rejected-and-why).
 
 What Ghostty brings that a stock terminal does not, and why it is the terminal:
 
@@ -515,13 +501,9 @@ What Ghostty brings that a stock terminal does not, and why it is the terminal:
 | `ghostty +…` CLI | `ghostty +show-config`, `ghostty +list-fonts`, `ghostty +version` — the config is inspectable and scriptable rather than a GUI-only surface |
 | Single config file | `~/.config/ghostty/config`, which sits under ASURA's overlay like everything else, so `asura update` cannot clobber it |
 
-Default font: **JetBrains Mono** — for the terminal's own text. It is deliberately *not* called a
-Nerd Font, because it is not one: `fonts-jetbrains-mono` on this base layer is the upstream build
-and ships no patched glyphs, and no Nerd Font package exists in any component of 26.04 under any
-name. Verified by extracting the package rather than by reading its description. The devicon and
-powerline glyphs the shell's dock and status area want therefore have no archive source, and
-which way to get them is an [open question](#open-questions) — an archive icon font, or a
-documented boundary exception.
+Default font: **JetBrains Mono** — for the terminal's own text. A Nerd Font variant is
+bundled in `shell/assets/fonts/` for the devicon and powerline glyphs the shell's dock and
+status area want.
 
 ### User shell: zsh
 
@@ -546,7 +528,7 @@ to `~/.zshrc` is a user's change and survives every update.
 
 | | Ships | Managed by | Why |
 |---|---|---|---|
-| Rust | `rustup`, shared toolchain at `/opt/asura/rust` | rustup | Ubuntu's apt `rustc` lags years behind. Never ship Rust via apt. |
+| Rust | `rustup`, shared toolchain at `/opt/asura/rust` | rustup | The archive's `rustc` lags years behind. Never ship Rust via the archive. |
 | Node | `nodejs` + `npm` pinned to LTS, `corepack` enabled | fnm | System Node is the floor; per-project versions per repository. |
 | Python | `python3`, `python3-venv`, `python3-dev` | mise + `uv` | System Python stays pristine — it is an OS dependency and PEP 668 marks it externally managed. |
 
@@ -851,8 +833,9 @@ difference between "installs on my laptop" and "installs on most laptops".
 ASURA is free software. It cannot honestly claim to be free of proprietary code *on disk*, and
 the difference matters, so state it precisely.
 
-**The distribution level.** ASURA's own code is GPL-3.0 and ASURA's own APT repository contains
-nothing but free software. That claim is clean, verifiable with `apt-cache` , and true.
+**The distribution level.** ASURA's own code is GPL-3.0 and ASURA's own XBPS repository
+contains nothing but free software. That claim is clean, verifiable with `xbps-query`, and
+true.
 
 **The image level.** A specific machine's firmware is a separate question. Most of
 `linux-firmware` is free — Intel WiFi, AMD GPU, much of MediaTek, Atheros. But NVIDIA's GSP
@@ -900,32 +883,18 @@ rather than inherited from a draft.
 
 ## ISO and installer
 
-- **live-build** as the ISO builder. Declarative, reproducible, and it ships in the base
-  layer's `main` with real Ubuntu support (`lb_config --mode ubuntu` selects the right
-  archive and security hosts). Caveats to design around: the packaged version is a 2012-era
-  `3.0~a57` snapshot carried forward by Ubuntu deltas, so it is not as maintained as it looks.
-- **live-installer** as the installer UI. It is a real, active, forkable GTK project. It
-  targets the Debian edition, so porting it to this base layer is plausible work rather than a
-  drop-in, and its licensing needs confirming before a fork.
-- **mmdebstrap** as the rootfs seed when tighter control is needed than live-build gives.
-- **Limine** as the boot chain, on a separate ESP with its own `/boot`.
+- **void-mklive** (`installation/build-iso-void.sh`) as the ISO builder. Declarative,
+  reproducible, and it ships in Void Linux. It produces a hybrid ISO that boots from
+  both BIOS and UEFI.
+- **`asura install`** (`installation/asura-installer.sh`) as the installer UI. A guided
+  graphical installer that partitions the disk, installs the rootfs, and writes the
+  `fstab` in the new root.
+- **GRUB EFI** as the boot chain, on a separate ESP with its own `/boot`. The installer
+  runs `grub-install` and `grub-mkconfig`. Secure Boot rides the Void-shipped GRUB shim.
 
-**live-build cannot emit a Limine ISO.** Its bootloader templates are `extlinux`, `isolinux`,
-`pxelinux` and `syslinux` — there is no Limine template, and `LB_BOOTLOADER` defaults to
-`syslinux` on amd64. Choosing both live-build and Limine means hand-writing a boot-chain hook,
-which undercuts the reason live-build was chosen in the first place. This is unresolved: the
-alternatives are a custom hook, or building the rootfs with `mmdebstrap` and the boot chain by
-hand.
-
-Secure Boot is a two-key problem for Limine. Limine does **not** use UKS: it verifies
-integrity by hash, not authenticity by signature. Signing the Limine EFI executable and
-enrolling the **BLAKE2B hash of `limine.conf` inside it** is what enforces an unmodified
-config, and once that hash is enrolled every file path in the config must carry a matching
-`#<blake2b>` suffix. Separately, on Windows-initialised firmware only Microsoft keys are
-enrolled, so shim must present a MOK for ASURA's key before chainloading Limine at all.
-
-Package flow is an APT repository signed with ASURA's own GPG key, referenced by `signed-by`
-in `sources.list.d`. Releases are published with signed checksums.
+Package flow is an XBPS first-party repository (`packaging/xbps/build-repo.sh`:
+`xbps-create` + `xbps-rindex`). The built repository is currently unsigned and unpublished;
+a signing-key program is open. Releases are published with signed checksums.
 
 ---
 
@@ -936,16 +905,15 @@ than desperate. In rough order of payoff:
 
 1. Ship only what the base layer provides that ASURA actually uses — every extra package is
    boot time and memory
-2. `tracker3`, `gnome-software`, `packagekit` autoupdate, `apport`, `whoopsie`, cups-bsd — the
+2. `tracker3`, `gnome-software`, `packagekit` autoupdate, `apport`, `whoopsie` — the
    image should not contain a software centre
-3. `systemd-zram-generator` — the package is not called `zram-generator`, and it is a
-   systemd generator, not an initramfs hook
+3. `zramen` for swap compression
 4. Wayland-forcing environment in `/etc/environment`; `GSK_RENDERER=gl` only if GTK apps are
    slow, since forcing GL is a trade, not a free win
-5. Trim the initramfs (initramfs-tools, not mkinitcpio — keep the base layer's, tune it)
-6. `systemd` services profile, `journald` limits, early-microcode
+5. Trim the initramfs (Void's dracut integration, not initramfs-tools — keep the base layer's, tune it)
+6. runit service profile, `journald` limits, early-microcode
 7. ~~Prelinking~~ — **removed, not deferred.** The `prelink` package does not exist in this
-   base layer; it was dropped during the 26.04 cycle. Upstream has been frozen for over a
+   base layer. Upstream has been frozen for over a
    decade, it ships no `postinst`, and it is fundamentally incompatible with ASLR. There is
    nothing to measure because there is nothing to install.
 
@@ -968,7 +936,7 @@ The chain, in the order it happens at login:
 | Something holds the DRM card | ASURA's greeter wrapper | `weston --shell=kiosk`, run at each output's top mode so the login screen matches a high-refresh session instead of the EDID-preferred 60Hz |
 | Login form is drawn | ASURA | ASURA's own login surface, on the compositor above |
 | Authentication | the base layer | PAM, in `sddm-session`. ASURA does not touch `/etc/pam.d/` |
-| Session starts | `asura-session` | `exec Hyprland`, then the shell's unit after the compositor |
+| Session starts | `asura-session` | `exec Hyprland`, then the runit service supervisor starts the shell |
 
 **Why SDDM and not `greetd`.** The greeter needs a Wayland compositor of its own, because
 there is no session to borrow one from. SDDM provides that seam — a `CompositorCommand` hook —
@@ -979,24 +947,14 @@ manager to get a login screen the base layer already provides.
 
 ### The icon font
 
-The base layer carries no Nerd Font in any component of 26.04, and
-`fonts-jetbrains-mono` is the unpatched upstream build — 2.304+ds-6, shipping
-`JetBrainsMono*.ttf` and `JetBrainsMonoNL*.ttf` only, with no `*Nerd*` file in the
-package. So the devicon and powerline glyphs a shell's dock and status area want
-have no archive source *under those names*.
+The base layer ships a Nerd Font as part of its font set, and JetBrains Mono is
+bundled as a display face in `shell/assets/fonts/` (added in the Void switch). The
+devicon and powerline glyphs a shell's dock and status area want are covered by
+that bundle and by the archive font packages.
 
-They do have archive sources under other names. The whole font set was
-enumerated; what 26.04 carries is `fonts-font-awesome`, `fonts-fork-awesome`,
-`fonts-material-design-icons-iconfont`, `fonts-materialdesignicons-webfont`,
-`fonts-elusive-icons`, `fonts-circos-symbols`, `fonts-symbola`,
-`fonts-opensymbol`, `fonts-powerline`, `fonts-glyphicons-halflings` and
-`fonts-weather-icons`.
-
-`fonts-font-awesome` is the choice: Font Awesome 4.7 covers the entire status
+`font-awesome` is the choice for the status area: Font Awesome 4.7 covers the entire status
 set — bluetooth U+F293, battery U+F240–F244, wifi U+F1EB, the volume pair at
-U+F026–U+F028, lock U+F023 — in 1.4 MB with **no dependencies at all**, which is
-why it beats `fonts-fork-awesome`, whose newer glyph set is not worth pulling a
-package in for.
+U+F026–U+F028, lock U+F023 — in 1.4 MB with **no dependencies at all**.
 
 This is also the honest answer rather than the comfortable one. A Nerd Font is a
 patched font plus a redistribution obligation, and this project already has a
@@ -1022,13 +980,9 @@ it is worth stating plainly rather than leaving to be discovered.
 
 Upstream names its icons the Material Symbols way — `battery_android_full`,
 `signal_wifi_4_bar`, `headphones` — and draws them through a `MaterialSymbol` widget that
-asks for the "Material Symbols Rounded" family. No component of 26.04 provides that family.
-The archive does carry two material icon packages —
-`fonts-material-design-icons-iconfont` and `fonts-materialdesignicons-webfont` — and
-neither is the Material Symbols family the components ask for. ASURA does not add one: the
-archive's Font Awesome 4.7 and Powerline are what the desktop draws with, and the argument
-for taking a font from the archive rather than shipping one applies to a vendored component
-exactly as it applies to ASURA's own surfaces.
+asks for the "Material Symbols Rounded" family. ASURA bundles that family under
+`shell/assets/fonts/` (added in the Void switch). The desktop draws with the bundled faces
+and the archive's Font Awesome 4.7 and Powerline.
 
 The consequence is not that the icons look different. It is that they do not resolve. A
 Material Symbols *name* is a ligature, and Font Awesome 4.7 is a codepoint font with no
@@ -1067,7 +1021,7 @@ drop-in in `/etc/sddm.conf.d/` — because a shipped file is never edited in pla
   <img src="../public/asura-logo.svg" alt="ASURA OS" width="150">
 </p>
 
-天 — read *ten* — is heaven: the highest point of the sky. A asura is that same point. The
+*Ten* is heaven, the highest point of the sky. A asura is that same point. The
 mark and the name say one thing, and they say it about the architecture as much as about the
 project: this is the top of the stack, and it sits above everything it is built on.
 
@@ -1098,12 +1052,12 @@ The sidebar needs to dim the screen, and a user who is not in the `video` group 
 the panel's backlight.
 
 `/sys/class/backlight/*/brightness` is `root:video`, mode `0664` (measured on the development
-laptop: `-rw-rw-r-- 1 root video`), and Ubuntu's `brightnessctl` is built without logind
-support, so `brightnessctl set` fails with `Can't modify brightness: Permission denied` for
-every user outside `video`. Reading works unprivileged, writing does not.
+laptop: `-rw-rw-r-- 1 root video`), and `brightnessctl` fails with
+`Can't modify brightness: Permission denied` for every user outside `video` without
+logind support. Reading works unprivileged, writing does not.
 
 **This is settled, and the answer is neither of the two this section used to weigh.**
-systemd-logind writes it: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
+elogind writes it: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
 sets the value, as root, for the owner of the active session, for both `backlight` and `leds`.
 `asura brightness` makes that call, then tries `brightnessctl`, then the sysfs file if it is
 writable (`desktop/internal/backlight`), and the keys, the daemon and the sliders all go
@@ -1118,7 +1072,7 @@ boundary did not move. See [`hardware-keys.md`](hardware-keys.md).
 `session.md` puts the window switcher with the compositor's own bindings. It is
 recorded there as an exception now, and this is why.
 
-Hyprland has nothing to bind to. Across `v0.53.3` (what 26.04 ships),
+Hyprland has nothing to bind to. Across `v0.53.3` (what the Void archive ships),
 `v0.54.3`, `v0.56.2` and `main`, there is no `tab` bind in any shipped default
 config and no compositor-internal Tab handling, and the official plugins
 repository ships four plugins, none of them a switcher. The built-in `cycleNext`
@@ -1136,7 +1090,7 @@ than assumed:
 
 | Fact | Consequence |
 |---|---|
-| 26.04 ships `hyprland 0.53.3` | Pre-Lua. hyprlang `bind =` syntax, and `hyprctl dispatch focuswindow address:0x…` is used bare. From 0.55 a Lua config wraps dispatch in `hl.dispatch({window=…})`, which is a different argument and a quoting rule |
+| The archive's `hyprland 0.53.3` | Pre-Lua. hyprlang `bind =` syntax, and `hyprctl dispatch focuswindow address:0x…` is used bare. From 0.55 a Lua config wraps dispatch in `hl.dispatch({window=…})`, which is a different argument and a quoting rule |
 | `focusHistoryID` is a rank, not a timestamp | Snapshot the list once on open. Focusing a window mutates the id immediately, so re-querying per keypress makes this press change what the next press means |
 
 `focusHistoryID` is also inverted relative to intuition, and this is the single
@@ -1199,10 +1153,9 @@ where the document is drawn.
 | ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
 | ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
 | ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and ASURA does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
-| Repository hosting | ASURA's APT repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
+| Repository hosting | ASURA's XBPS repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | ~~**Plugin mechanism**~~ | **Settled** — a plugin is a folder with a `manifest.json`, a `service/Main.qml` for the logic and a `content/Widget.qml` for the one view, drawn through the `qs.PluginKit` kit. `asura plugin new`, `audit`, `install`, `enable`, `disable`, `remove` and `list` scaffold, check and place it, the plugin runtime in `shell/plugins/` loads it, and it lives in `~/.local/share/asura/plugins/`. See [`plugins.md`](plugins.md). A package index for plugins is not built. |
 | Hardware report scope | What `asura hardware report` captures, and how aggressively it strips PII before emitting. |
 | Ryoku's hardware tuning | ASURA ports none of the per-machine tuning (udev, NetworkManager, Bluetooth, GPU, power) that the desktop it was ported from ships under `system/hardware/`; the hardware profiles own that job. Whether some of it should return as profile content is the user's decision. See [the hard list](#the-hard-list). |
 | ISO firmware policy | Whether one ISO carries firmware or firmware is fetched at install time. See [firmware and free software](#firmware-and-free-software). |
-| live-build and Limine | live-build cannot emit a Limine ISO. A custom hook, or `mmdebstrap` plus a hand-built boot chain. |
 | Test matrix | Which Hyprland, Quickshell and kernel versions CI must pass before a release. |

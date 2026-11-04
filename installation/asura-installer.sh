@@ -219,7 +219,7 @@ done
 mkdir -p "$TARGET_DIR/etc/sv/zramen"
 cat >"$TARGET_DIR/etc/sv/zramen/conf" <<'ZRAMCONF'
 export ZRAM_COMP_ALGORITHM=zstd
-export ZRAM_SIZE=100
+export ZRAM_SIZE=50
 export ZRAM_PRIORITY=32767
 ZRAMCONF
 

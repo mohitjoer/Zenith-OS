@@ -2,7 +2,7 @@
   <img src="public/asura-logo.svg" alt="ASURA OS" width="180">
 </p>
 
-# 天 ASURA OS
+# ASURA OS
 
 <p align="center">
   <img src="public/asura-logo-on-dark.svg" alt="" width="96">
@@ -10,7 +10,7 @@
 
 **untouchable · dominating**
 
-天 — read *ten* — is heaven: the highest point of the sky. A asura is that same point. The
+*Ten* is heaven, the highest point of the sky. A asura is that same point. The
 mark and the name say one thing, and they say it about the architecture as much as the
 project: this is the top of the stack, and it sits above everything it is built on.
 

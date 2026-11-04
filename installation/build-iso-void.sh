@@ -590,7 +590,7 @@ done
 mkdir -p "$INCLUDE_DIR/etc/sv/zramen"
 cat >"$INCLUDE_DIR/etc/sv/zramen/conf" <<'EOF'
 export ZRAM_COMP_ALGORITHM=zstd
-export ZRAM_SIZE=100
+export ZRAM_SIZE=50
 export ZRAM_PRIORITY=32767
 EOF
 
@@ -813,16 +813,24 @@ if command -v glib-compile-schemas >/dev/null 2>&1; then
 	glib-compile-schemas "$ROOTFS/usr/share/glib-2.0/schemas" 2>/dev/null || true
 fi
 
-# Enable automatic console login on tty1 with Asura OS greeting banner
+# Enable automatic silent console login on tty1 for seamless graphical boot
 mkdir -p "$ROOTFS/etc/sv/agetty-tty1" "$ROOTFS/home/asura"
-echo 'GETTY_ARGS="--autologin asura --noclear"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
-rm -f "$ROOTFS/home/asura/.hushlogin"
+echo 'GETTY_ARGS="--autologin asura --skip-login --nonewline --noissue"' > "$ROOTFS/etc/sv/agetty-tty1/conf"
+touch "$ROOTFS/home/asura/.hushlogin"
+touch "$INCLUDE_DIR/etc/skel/.hushlogin"
 # Pre-materialize user configuration for asura user, skeleton, and XDG directories
 mkdir -p "$ROOTFS/home/asura/.config/asura" "$ROOTFS/etc/skel/.config/asura" \
          "$ROOTFS/home/asura/.config/ghostty" "$ROOTFS/home/asura/.config/fastfetch" \
          "$ROOTFS/home/asura/Desktop" "$ROOTFS/home/asura/Documents" \
          "$ROOTFS/home/asura/Downloads" "$ROOTFS/home/asura/Music" \
-         "$ROOTFS/home/asura/Pictures" "$ROOTFS/home/asura/Videos"
+         "$ROOTFS/home/asura/Pictures" "$ROOTFS/home/asura/Videos" \
+         "$INCLUDE_DIR/etc/skel/Desktop"
+if [ -f "$REPO_ROOT/session/applications/asura-installer.desktop" ]; then
+	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$ROOTFS/home/asura/Desktop/"
+	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
+	chmod 755 "$ROOTFS/home/asura/Desktop/asura-installer.desktop" 2>/dev/null || true
+	chmod 755 "$INCLUDE_DIR/etc/skel/Desktop/asura-installer.desktop" 2>/dev/null || true
+fi
 if [ -d "$ROOTFS/usr/share/asura" ]; then
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/home/asura/.config/asura/"
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/etc/skel/.config/asura/"
@@ -895,13 +903,10 @@ for runit_file in "$ROOTFS/etc/runit/1" "$ROOTFS/etc/runit/2" "$ROOTFS/etc/runit
 	fi
 done
 
-# Release Plymouth boot splash cleanly in /etc/rc.local before login gettys start
+# Configure fontconfig cache permissions and hardware battery threshold in /etc/rc.local
 mkdir -p "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig"
 chmod 1777 "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig" 2>/dev/null || true
 if [ -f "$ROOTFS/etc/rc.local" ]; then
-	if ! grep -q 'plymouth --quit' "$ROOTFS/etc/rc.local"; then
-		echo 'command -v plymouth >/dev/null 2>&1 && { plymouth --quit 2>/dev/null || killall -9 plymouthd 2>/dev/null || true; }' >> "$ROOTFS/etc/rc.local"
-	fi
 	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
 		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"
 	fi
@@ -998,10 +1003,6 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
 		asura materialize 2>/dev/null || true
 	fi
-	if command -v plymouth >/dev/null 2>&1; then
-		sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
-	fi
-	printf "\033[1;37m==> Starting Asura OS graphical desktop session...\033[0m\n"
 	if ! /usr/share/asura/session/asura-session; then
 		if command -v plymouth >/dev/null 2>&1; then
 			sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true

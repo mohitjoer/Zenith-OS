@@ -98,7 +98,10 @@ fast() {
 }
 
 if [[ -o interactive ]] && command -v fastfetch >/dev/null 2>&1; then
-  fastfetch
+  # Suppress fastfetch on bare console login (tty1) before graphical session starts
+  if [[ -n "$WAYLAND_DISPLAY" || -n "$DISPLAY" || "$(tty 2>/dev/null)" != "/dev/tty1" ]]; then
+    fastfetch
+  fi
 fi
 
 # Ghostty injects its integration into the shell it starts itself; this covers

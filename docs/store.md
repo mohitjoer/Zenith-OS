@@ -7,7 +7,7 @@ comes from apt, and the privilege comes from polkit.
 | Piece | Where | What it does |
 |---|---|---|
 | `asura-store` | `desktop/cmd/asura-store` | The data plane: catalogue, search, install, remove, open. |
-| The window | `shell/store.qml`, `shell/store/` | RyoStore's window, ported as it was, with the 天 mark in place of the 力 seal. |
+| The window | `shell/store.qml`, `shell/store/` | RyoStore's window, ported as it was. |
 | `asura-pkg-add`, `asura-pkg-remove` | `system/helpers/pkg` | Run apt-get as root through `pkexec`. |
 | `session/asura-store` | `/usr/share/asura/session/asura-store` | Starts the window under a lock. It is not on `PATH`, because `/usr/bin/asura-store` is the command. |
 
