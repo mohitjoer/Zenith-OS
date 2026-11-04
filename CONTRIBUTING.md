@@ -58,7 +58,7 @@ in the same pull request, or it does not land.
 on update. A change to one belongs in an override, in the store the owning tool reads, or in
 the tool itself. ASURA's packages write only to `/usr/share/asura/` and `/etc/asura/` — never to
 another package's files, and never to `~`. A patch against `/etc/NetworkManager/` is not a
-contribution, it is a fork, and it is what stops the next rebase onto a newer Ubuntu.
+contribution, it is a fork, and it is what stops the next clean base system update.
 
 Read [`agents/agents.md`](agents/agents.md) in full before your first change. It records
 constraints that are expensive to rediscover and it is the contract any agent working in this

@@ -6,7 +6,7 @@ This document records **decisions, not aspirations**. Where a decision is settle
 and gives the reason. Where a question is open it says that too, so nobody re-litigates a
 closed question or assumes an open one is closed.
 
-ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service supervision and seatd seat management, paired with a bootable Live ISO (`build-iso-void.sh`), automated installer (`asura install`), and dual-stack compatibility for Ubuntu/Debian hosts.
+ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service supervision and seatd seat management, paired with a bootable Live ISO (`build-iso-void.sh`) and automated installer (`asura install`).
 
 ---
 
@@ -84,7 +84,7 @@ ASURA's packages follow from that rule:
 - A base-layer package that is merely missing something gets a `asura-` package that depends on
   it and supplements it.
 - The only two directories ASURA owns outright are `/usr/share/asura/` and `/etc/asura/`. Anything
-  ASURA needs outside them is a systemd drop-in, a GSettings schema, or an overlay the user
+  ASURA needs outside them is a runit service directory (`/etc/sv/` or `~/.config/service/`), a GSettings schema, or an overlay the user
   controls.
 - **Third-party content is content.** A vendored upstream tree, the patches on top of it and
   its licence texts are content, and they live under `/usr/share/asura/` like every other
@@ -128,6 +128,11 @@ violation until it is added:
 | `/usr/bin/asura`, `/usr/bin/asura-*`, `/usr/bin/apm`, `/usr/bin/prime-run`, `/usr/bin/fan-profile`, and the helpers `/usr/bin/cliphist-thumbs.sh`, `localsend.sh`, `stash-cobalt-server.sh`, `stash-cobalt.sh`, `stash-compress.sh`, `stash-download.sh`, `stash-install.sh` | The executables: the control tools (`asura`, `asura-shell`, `asura-hubd`, `asura-wallpaper`, `asura-agent`, `asura-store`, `asura-vm`, `apm`, `prime-run`, `fan-profile`), the window launchers, and the helper scripts the shell and the compositor call by bare name | `PATH` resolution looks nowhere else, and the shell runs under a user-level runit supervisor whose `PATH` has no `~/.local/bin`. This is the same constraint the rest of this list describes — a fixed location some other thing looks in — reached from the other direction: the others are files a binary *reads*, these are files the loader *runs*. Nothing about it makes the binary a registration, and nothing about it makes it acceptable for the binaries to be owned by anything but a `asura` package. |
 | `/usr/share/applications/asura-hub.desktop`, `asura-store.desktop`, `asura-vm.desktop` | Desktop entries for the windows ASURA adds | The launcher and every other desktop-entry reader scan `XDG_DATA_DIRS/applications` and nowhere else |
 | `/usr/share/applications/asura-mimeapps.list` | Default applications for ASURA sessions | The XDG mime-apps lookup reads `<desktop>-mimeapps.list` from the data directories. Named for the desktop, it applies to ASURA sessions only, and the user's own `mimeapps.list` still wins |
+| `/etc/xbps.d/asura.conf` | First-party XBPS repo registration | XBPS reads repository declarations from `/etc/xbps.d/` and nowhere else |
+| `/etc/udev/rules.d/80-nvidia-pm.rules`, `/etc/udev/rules.d/99-battery-threshold.rules` | Hardware power management and battery udev rules | `udevd` reads hardware event and power management rules from `/etc/udev/rules.d/` |
+| `/etc/modprobe.d/nvidia-optimus.conf` | Kernel module options for NVIDIA power management | `modprobe` / `kmod` parses module configuration parameters from `/etc/modprobe.d/` |
+| `/etc/sysctl.d/99-asura-power.rules` | Kernel sysctl runtime power and responsiveness parameters | `sysctl` reads system tuning directives from `/etc/sysctl.d/` |
+| `/etc/ananicy.d/00-asura-rules.rules` | Process nice/scheduling autogroup rules for ananicy-cpp | `ananicy-cpp` reads process priority rules from `/etc/ananicy.d/` |
 
 Content stays inside the two directories: the login surface's own files belong at
 `/usr/share/asura/session/`, and everything SDDM needs to point at belongs there too. The
@@ -167,9 +172,10 @@ ASURA's layers, from bottom up.
 | Desktop services | ASURA + non-GNOME system services | power-profiles-daemon, pipewire, wireplumber, iwd |
 | Display | Hyprland | Behind a `asura wm` seam so it can be swapped |
 | Shell surfaces | Quickshell, over a ported shell tree and a vendored upstream component | Bar, dock, launcher, popouts, widgets, notifications, global shortcuts. The ported components are Ryoku's ([`NOTICE.md`](../NOTICE.md)); the vendored ones are upstream's, at a pinned commit; the theme and the settings binding are ASURA's. See [vendored upstream components](#vendored-upstream-components) |
-| Shell state | `asura-shell daemon` (`asurad.service`) | The state daemon. One socket, one protocol, one writer of `shell.json` |
-| Settings store | GSettings / dconf, and `shell.json` | One writer per setting |
-| Control tools | `asura`, `asura-shell`, `asura-hubd` | The only writers |
+| Shell state & session daemons | `asura-userd` (`~/.config/service/asura-userd`), `asura-shell daemon` (`~/.config/service/asura-shell`) | The user session daemons. `asura-userd` acts as the unprivileged state authority, watching `shell.json` to synchronize GTK/Qt/GSettings/Hyprland themes and bridging calls to root; `asura-shell` provides streaming shell telemetry |
+| System daemon & root control | `asura-sysd` (`/etc/sv/asura-sysd`, socket at `/run/asura/sysd.sock`) | The privileged root daemon. One Unix socket, line-framed JSON: handles hardware profiles, power states, battery charging thresholds, backlight fallback, and XBPS package transactions without sudo |
+| Settings store | GSettings / dconf, and `shell.json` | One writer per setting (`asura config set`, `asura-userd`, `asura-shell`) |
+| Control tools | `asura`, `asura-shell`, `asura-hubd`, `asura-userd`, `asura-sysd` | The only writers |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk` | See below |
 | Updates | `asura update` · `rollback` · `doctor` | Overlay model |
 
@@ -249,16 +255,9 @@ It must also assert that each interface named in `portals.conf` is one the named
 configuration that looked correct: `Secret` named `gtk`, which does not implement it, and
 `Access` was never named at all. Both files read as though the interfaces were handled.
 
-Interfaces ASURA still owns itself, because no backend provides them:
+Interfaces and portal capabilities:
 
-- **Camera.** No portal backend implements it; capture is Pipewire's job. **This one is currently
-  unassigned** — Notifications has an owner in the shell (M6), Camera has none. `pipewire` and
-  `wireplumber` are in the manifest, so the capture side of the stack is installed, but nothing
-  exports `org.freedesktop.portal.Camera` to an application that asks for it. A Flatpak with a
-  camera permission is refused rather than prompted. Until a backend exports it, either ASURA
-  ships a small Camera backend over Pipewire, or ASURA ships none and this interface is
-  documented as unsupported rather than silently failing. That choice is not made yet — see
-  [open questions](#open-questions).
+- **Camera.** Settled: Camera capture is PipeWire's job. Camera is not an independent backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary itself, which implements camera streaming over PipeWire and requests consent through an **Access** backend. Because `asura-portals.conf` maps `Access=gtk`, `xdg-desktop-portal` asks GTK for user camera consent and streams camera feeds directly via PipeWire. Flatpaks and sandboxed apps prompt for camera access and work out of the box.
 - **Notifications.** With no notification daemon in the image, the shell hosts the
   notification server.
 
@@ -283,7 +282,7 @@ rule is what makes rollback possible.
 
 | Command | Does |
 |---|---|
-| `asura update` | snapshot `~/.config` to git, fetch debs, re-materialize base, repaint |
+| `asura update` | snapshot `~/.config` to git, update xbps packages, re-materialize base, repaint |
 | `asura rollback` | re-materialize the previous revision |
 | `asura materialize <path>` | re-lay the base file, clobbering shipped content |
 | `asura reset <path>` | drop one overlay file back to the base |
@@ -313,10 +312,28 @@ catalogue needs.
 range and enum before it reaches dconf. Hand-editing dconf directly causes drift and
 `asura doctor` reports it.
 
-**`~/.config/asura/shell.json`** is the ported shell's look: the bar style, the dock, the
-interface scale, the language and the wallpaper options. The `asura-shell` daemon owns it, and
-the Hub's pages and the welcome tour change it by asking the daemon (`settings.patch`) rather
-than by writing the file.
+**`~/.config/asura/shell.json`** is the shell's look and desktop styling: the theme, icon theme,
+font and size, dark mode flag, corner radius, gaps, bar style, dock position, interface scale,
+and power mode.
+
+The session and system daemons form a clear division of responsibility:
+
+- **`asura-userd`** runs as the unprivileged user session daemon under `~/.config/service/asura-userd`.
+  It acts as the single state authority for desktop appearance: it watches `shell.json` for changes
+  and propagates styling synchronously to GTK3 (`~/.config/gtk-3.0/settings.ini`), GTK4
+  (`~/.config/gtk-4.0/settings.ini`), Qt6 (`~/.config/kdeglobals`), GSettings schemas, and Hyprland
+  appearance variables. It also serves as the IPC bridge between unprivileged shell components and
+  the root system daemon.
+- **`asura-sysd`** runs as the privileged root daemon under `/etc/sv/asura-sysd`, supervised by runit.
+  It listens on the root Unix domain socket at `/run/asura/sysd.sock`. Whenever the user session
+  or the `asura` CLI requests privileged hardware operations (such as switching power profiles via
+  sysfs/TLP/EPP, setting battery charge thresholds, driving backlight adjustments, or triggering
+  package queries/transactions), the request is forwarded to `asura-sysd`. This allows secure,
+  deterministic root operations without invoking `sudo` or triggering interactive polkit prompts.
+- **`asura-shell daemon`** runs under `~/.config/service/asura-shell` and streams real-time desktop
+  telemetry (volume, network status, battery, Bluetooth, workspaces) to Quickshell over
+  `$XDG_RUNTIME_DIR/asura-shell.sock`. The Hub and settings surfaces apply styling updates by
+  patching `shell.json`, which `asura-userd` immediately picks up and manifests across all toolkits.
 
 ---
 
@@ -455,18 +472,16 @@ Four places declare it the default, and all four must be set or the desktop is i
 1. **ASURA's shell** — the terminal-launcher setting the bar button calls
 2. **`gsettings set org.gnome.desktop.default-applications.terminal exec ghostty`** — so the
    file manager's "Open in Terminal" and GTK dialogs use it
-3. **`update-alternatives`** on `/usr/bin/x-terminal-emulator`, registered under an explicit
-   alternatives name — for applications that hardcode the VTE path. No `--slave` is needed or
-   wanted: Ghostty is not itself a registered alternative here, and registering it as a slave of
-   something it does not implement would give the user a second way to be wrong. Ghostty's own
-   package registers no alternative at all, so `asura-terminal` owns registering the only one.
+3. **`xbps-alternatives`** on `/usr/bin/x-terminal-emulator`, registered under the standard
+   `x-terminal-emulator` alternative group — for applications that hardcode the default terminal path.
+   Ghostty is registered cleanly as the terminal emulator alternative so any tool querying the system
+   default launches Ghostty.
 4. **Ghostty's zsh shell integration**, sourced from `~/.zshrc` — prompt marking via OSC 133,
    which is what the pager integration and starship's own status reporting depend on
 
-**Packaging consequence, stated plainly:** Ghostty is carried by the base layer's archive, at a
-version behind upstream, in `universe` — the component the base layer does not treat as part of
-a release. ASURA installs that package as-is. It does not build Ghostty, does not pin a source
-tag, and does not own a rebuild. `asura-terminal` is a configuration package, not a build.
+**Packaging consequence, stated plainly:** Ghostty is carried by Void's official XBPS package
+repository. ASURA installs that package as-is. It does not build Ghostty, does not pin an out-of-tree
+source tag, and does not own a rebuild. `asura-terminal` is a configuration package, not a custom binary build.
 
 This is the decision that most distinguishes ASURA from a typical "I compile my dotfiles" setup,
 and it is worth stating as a trade rather than a virtue. ASURA gives up a current terminal. It
@@ -530,7 +545,7 @@ to `~/.zshrc` is a user's change and survives every update.
 |---|---|---|---|
 | Rust | `rustup`, shared toolchain at `/opt/asura/rust` | rustup | The archive's `rustc` lags years behind. Never ship Rust via the archive. |
 | Node | `nodejs` + `npm` pinned to LTS, `corepack` enabled | fnm | System Node is the floor; per-project versions per repository. |
-| Python | `python3`, `python3-venv`, `python3-dev` | mise + `uv` | System Python stays pristine — it is an OS dependency and PEP 668 marks it externally managed. |
+| Python | `python3`, `python3-venv`, `python3-devel` | mise + `uv` | System Python stays pristine — it is an OS dependency and PEP 668 marks it externally managed. |
 
 Preinstalled Rust tooling, because they are near-universal wins:
 `stable` toolchain, `cargo-edit`, `just`, `sccache`, `mold`, `cargo-nextest`, `ripgrep`, `fd`.
@@ -739,8 +754,8 @@ against.
 | Capability | Owner | Why |
 |---|---|---|
 | The notification server | **ASURA** | `org.freedesktop.Notifications` is a session-scoped bus name and no daemon in the image holds it, so the shell draws it and hosts the server |
-| The lock screen | **ASURA** owns when; `hyprlock` does the locking | `hypridle`, run by `asura-idle.service` from the `org.asura.desktop` `idle-*` keys, decides *when*, and `asura-shell lock` is the one command every trigger runs; the locker owns the surface and the PAM conversation. `hyprlock` is a decision (mature, in the archive, a process of its own), not a platform limit: Quickshell here has `Quickshell.Services.Pam` |
-| The idle policy | **ASURA** | The timeouts live in `org.asura.desktop`, `asura config set` is their only writer, and `asura-idle.service` hands them to hypridle |
+| The lock screen | **ASURA** owns when; `hyprlock` does the locking | `hypridle`, run by the user-level runit service `~/.config/service/asura-idle` from the `org.asura.desktop` `idle-*` keys, decides *when*, and `asura-shell lock` is the one command every trigger runs; the locker owns the surface and the PAM conversation. `hyprlock` is a decision (mature, in the archive, a process of its own), not a platform limit: Quickshell here has `Quickshell.Services.Pam` |
+| The idle policy | **ASURA** | The timeouts live in `org.asura.desktop`, `asura config set` is their only writer, and `~/.config/service/asura-idle` hands them to hypridle |
 | The keybind catalogue | **ASURA** | `session/binds.json`, installed at `/usr/share/asura/session/binds.json`, checked in both directions against the compositor's configuration by `asura doctor` |
 | The Hub | **ASURA** | The settings application: Ryoku's Hub, ported (`shell/hub/`) — a grouped navigation rail, a global search and a page per area of the desktop. The look pages change `shell.json` by asking the `asura-shell` daemon, the compositor and machine pages go through `asura-hubd`, and the **ASURA** group draws what `asura config export` hands it (the pages, the keys, their types, their permitted values, their ranges and their current values) and writes only through `asura config set`, never through GSettings. Its chrome is the shell's own component kit, so both windows are one design system |
 | The wallpaper | **ASURA** | `asura-wallpaper` chooses it (the catalogue, the choice per output, playlists, the day/night schedule) and the shell's own surface draws what the daemon publishes. `org.asura.shell`'s `wallpaper-path` and `wallpaper-path-dark` only seed a fresh account's first wallpaper |
@@ -803,8 +818,8 @@ Every item here is a real support ticket someone will file:
 |---|---|
 | GPU | `nvidia-open` vs proprietary vs nouveau, pinned per kernel; Intel `xe`/`i915`; AMD `amdgpu`; PRIME hybrid mux; vendor mux tools (`supergfxctl`, `envy`, `asusctl`) |
 | WiFi | `iwlwifi`, broadcom `brcmfmac` with non-free fallback, Realtek `rtl8xx8` → DKMS `rtl8821ce`, `mt76`, `ath10k`/`ath11k` |
-| Firmware | `linux-firmware` plus per-vendor `linux-firmware-<vendor>` packages, and `firmware-sof-signed`. There is no `non-free-firmware` component on this base layer, and neither `firmware-nonfree` nor `linux-firmware-nonfree` exists. |
-| Microcode | `intel-microcode`, `amd64-microcode`. Both already hook into the initramfs, so no extra work is needed — only the correct names. |
+| Firmware | `linux-firmware` plus per-vendor `linux-firmware-<vendor>` packages, and `sof-firmware`. There is no `non-free-firmware` component on this base layer, and neither `firmware-nonfree` nor `linux-firmware-nonfree` exists. |
+| Microcode | `intel-ucode`, `linux-firmware-amd`. Both already hook into the initramfs, so no extra work is needed — only the correct names. |
 | Audio | pipewire + wireplumber, SOF firmware, Realtek codec quirks |
 | Suspend/resume | the most-reported laptop bug class; hybrid graphics makes it worse |
 | Fingerprint | `fprintd` + libfprint, with goodix quirks |
@@ -852,7 +867,7 @@ So the honest formulation is:
 Note what the base layer actually offers: there is **no `non-free-firmware` component**, and
 neither `firmware-nonfree` nor `linux-firmware-nonfree` exists. Firmware arrives as the
 `linux-firmware` metapackage, per-vendor `linux-firmware-<vendor>` packages, and
-`firmware-sof-signed`. Most of that is free software — Intel WiFi, AMD GPU, much of MediaTek,
+`sof-firmware`. Most of that is free software — Intel WiFi, AMD GPU, much of MediaTek,
 Atheros — and some of it is not.
 
 Three consequences, all deliberate:
@@ -911,7 +926,7 @@ than desperate. In rough order of payoff:
 4. Wayland-forcing environment in `/etc/environment`; `GSK_RENDERER=gl` only if GTK apps are
    slow, since forcing GL is a trade, not a free win
 5. Trim the initramfs (Void's dracut integration, not initramfs-tools — keep the base layer's, tune it)
-6. runit service profile, `journald` limits, early-microcode
+6. runit service profile, `socklog` / `svlogd` limits, early-microcode
 7. ~~Prelinking~~ — **removed, not deferred.** The `prelink` package does not exist in this
    base layer. Upstream has been frozen for over a
    decade, it ships no `postinst`, and it is fundamentally incompatible with ASLR. There is
@@ -1056,16 +1071,14 @@ laptop: `-rw-rw-r-- 1 root video`), and `brightnessctl` fails with
 `Can't modify brightness: Permission denied` for every user outside `video` without
 logind support. Reading works unprivileged, writing does not.
 
-**This is settled, and the answer is neither of the two this section used to weigh.**
-elogind writes it: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
+**This is settled, and the answer is multi-tiered:**
+When `elogind` is active, it writes it directly: `org.freedesktop.login1.Session.SetBrightness(subsystem, name, value)`
 sets the value, as root, for the owner of the active session, for both `backlight` and `leds`.
-`asura brightness` makes that call, then tries `brightnessctl`, then the sysfs file if it is
-writable (`desktop/internal/backlight`), and the keys, the daemon and the sliders all go
-through it as `asura-cmd-brightness`. It needs no group, no udev rule and no authentication
-prompt. A udev rule would have been a registration outside `/usr/share/asura/` and
-`/etc/asura/`, which is a change to the boundary rather than a change inside it, and polkit
-elevation would have put a prompt on every brightness change. Neither is needed, and the
-boundary did not move. See [`hardware-keys.md`](hardware-keys.md).
+When running under pure `seatd` (without `elogind`), `asura brightness` probes `brightnessctl`, then direct sysfs
+writes if writable, and falls back seamlessly to `asura-sysd` via `/run/asura/sysd.sock`. `asura-sysd` runs as root
+under runit and writes to the appropriate `/sys/class/backlight/<device>/brightness` file on behalf of the user session.
+The keys, the daemon, and the sliders all go through it as `asura-cmd-brightness`. It needs no group membership,
+no fragile desktop udev hacks, and no interactive authentication prompts on every brightness change. See [`hardware-keys.md`](hardware-keys.md).
 
 ## Window switching is the shell's job here, not Hyprland's
 
@@ -1118,7 +1131,7 @@ Every other widget in the shell reads a Quickshell service singleton instead —
 event-driven and they push changes; this pulled and re-ran five subprocesses every
 two seconds.
 
-It does not any more. The daemon is `asura-shell daemon`, run as `asurad.service`: a streaming
+It does not any more. The daemon is `asura-shell daemon`, run under `~/.config/service/asura-shell`: a streaming
 Go daemon that speaks `asura-shell/1` — line-framed JSON over a Unix socket at
 `$XDG_RUNTIME_DIR/asura-shell.sock` — and the shell subscribes to the topics it publishes.
 The daemon runs its collectors on a schedule it owns and pushes a frame when something
@@ -1152,7 +1165,7 @@ where the document is drawn.
 | ~~**What draws the login screen**~~ | **Settled** — SDDM's Wayland greeter mode, with a Weston kiosk compositor hosted by ASURA. Written up in [what draws the login screen](#what-draws-the-login-screen). |
 | ~~**The Secret portal**~~ | **Settled** — `xdg-desktop-portal-lxqt`, named for Secret only. Password storage works in Flatpaks. The KDE backend also implements it but drags in a second notification daemon. See [the portal seam](#the-portal-seam). |
 | ~~**The Camera portal**~~ | **Settled** — and not the way it looked. No backend implements `org.freedesktop.portal.Camera`, which reads as "nobody wrote one". But Camera is not a backend interface: `desktop-portal/camera.c` is part of the `xdg-desktop-portal` binary, which implements it over PipeWire and asks an **Access** backend for consent first. Access was falling to `[default] use=hyprland`, and Hyprland does not implement Access, so the dispatcher's own Camera portal could never obtain consent. Naming `Access` → `gtk` is the whole fix. See [the portal seam](#the-portal-seam). |
-| ~~**The icon font**~~ | **Settled** — `fonts-font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and ASURA does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages.yaml`](../system/packages.yaml). |
+| ~~**The icon font**~~ | **Settled** — `font-awesome` (4.7, 1.4 MB, no dependencies) for the status area and settings surfaces, and `fonts-powerline` for bar separators. Both from the archive, so the boundary holds and ASURA does not become the distributor of a font blob. No Nerd Font is involved. See the `fonts-and-icons` group in [`system/packages-void.yaml`](../system/packages-void.yaml). |
 | Repository hosting | ASURA's XBPS repository and ISO hosting need a home. GitHub Pages serves static files; a package repo wants object storage. |
 | ~~**Plugin mechanism**~~ | **Settled** — a plugin is a folder with a `manifest.json`, a `service/Main.qml` for the logic and a `content/Widget.qml` for the one view, drawn through the `qs.PluginKit` kit. `asura plugin new`, `audit`, `install`, `enable`, `disable`, `remove` and `list` scaffold, check and place it, the plugin runtime in `shell/plugins/` loads it, and it lives in `~/.local/share/asura/plugins/`. See [`plugins.md`](plugins.md). A package index for plugins is not built. |
 | Hardware report scope | What `asura hardware report` captures, and how aggressively it strips PII before emitting. |

@@ -1,8 +1,7 @@
 # The store
 
-ASURA Store is the window and command that install software on an ASURA machine. It
-is a port of Ryoku's RyoStore cut down to what Ubuntu and ASURA have: the software
-comes from apt, and the privilege comes from polkit.
+ASURA Store is the package store window and command. It is a port of Ryoku's
+RyoStore: the software installs through package helpers, and the privilege comes from polkit.
 
 | Piece | Where | What it does |
 |---|---|---|
@@ -71,7 +70,7 @@ first. The window runs it after a typed query pauses and shows the hits with the
 - **No PackageKit.** It is installed on the development laptop and bus-activatable, but
   `pkexec apt-get` does the job without a second daemon, and the architecture plan does not
   ship PackageKit.
-- **No CachyOS, multilib or AUR.** They are Arch.
+- **No Arch repos, multilib or AUR.** ASURA runs on Void Linux with a custom CachyOS-BORE kernel, not Arch Linux.
 
 ## Checks
 

@@ -100,8 +100,8 @@ File these as normal issues, using the hardware support form where it applies:
 - A crash, a wrong value, a broken layout, a lost setting.
 - A build that is unreproducible or a package that is missing — these matter, but report them
   as bugs and they will be triaged.
-- A vulnerability in Ubuntu's own packages. Those are fixed upstream; report them to Ubuntu
-  unless the fix is present in Ubuntu and missing from ASURA after ASURA's repository is current.
+- A vulnerability in Void Linux's own packages. Those are fixed upstream; report them to Void
+  Linux unless the fix is present in Void Linux and missing from ASURA after ASURA's repository is current.
 
 ## Supported versions
 
@@ -114,6 +114,6 @@ No release has shipped. There is nothing installable yet, so there is nothing to
 fix to. This table becomes the record of what receives fixes once the first release exists,
 and the previous line moves to security-fixes-only.
 
-**Base layer: Ubuntu 26.04 LTS.** Security updates for the substrate arrive through Ubuntu's
-own archive and reach users through `asura update`. When a fix is present in Ubuntu's archive
+**Base layer: Void Linux (rolling).** Security updates for the substrate arrive through Void Linux's
+own repository and reach users through `xbps-install -Su` or `asura update`. When a fix is present in Void Linux's repository
 and absent from an up-to-date ASURA installation, that is an ASURA bug — report it here.

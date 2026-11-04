@@ -23,7 +23,7 @@ that line is ASURA's own — its compositor configuration, its shell drawn in Qu
 control tools, its hardware matrix, its updater, and its supervised session daemons.
 
 ASURA is not a Void spin. Void supplies the minimalist, lightning-fast substrate and nothing else. ASURA is the
-distribution; Void Linux is what ASURA is built on top of (with dual-stack support for Debian/Ubuntu environments).
+distribution; Void Linux is what ASURA is built on top of.
 
 > **Status: Beta.** Live bootable ISO images (`asura-os-void-beta-001.iso`) build cleanly in CI and run a fully functional live environment with automated Wayland desktop login. The guided desktop installer (`asura install` / `asura-installer.desktop`) partitions disks, installs rootfs, and configures GRUB EFI.
 
@@ -48,7 +48,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Terminal | Ghostty — strictly supported, configured by ASURA, never kitty |
 | User shell | zsh + starship |
 | Editor | Neovim |
-| Boot chain | GRUB / Limine EFI |
+| Boot chain | GRUB EFI |
 | Installer | `asura install` / `asura-installer.desktop` guided system installer |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
@@ -129,7 +129,7 @@ The four design documents, and what each one decides:
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | The stack and the reasoning behind it — settled decisions, rejected options, the base-layer boundary, the portal seam |
 | [`docs/hardware-detection.md`](docs/hardware-detection.md) | The subsystem that decides whether ASURA works on someone else's laptop — probes, matching, PII stripping, tier assignment |
-| [`docs/session.md`](docs/session.md) | The boot and login chain — Limine through systemd to Hyprland, the session entry point, what starts in what order, and who owns logout, suspend and shutdown |
+| [`docs/session.md`](docs/session.md) | The boot and login chain — GRUB through runit to Hyprland, the session entry point, what starts in what order, and who owns logout, suspend and shutdown |
 | [`docs/adopting-asura.md`](docs/adopting-asura.md) | `asura adopt` — switching an existing GNOME desktop over in place, built around a reversibility contract |
 
 [`docs/roadmap.md`](docs/roadmap.md) orders the work.

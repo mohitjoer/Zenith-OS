@@ -10,7 +10,7 @@ clear before you build on ASURA.
 | What | Licence | Where it is recorded |
 |---|---|---|
 | ASURA's own code | GPL-3.0 | [`LICENSE`](LICENSE) |
-| The base layer and every Debian/Ubuntu package | whatever each package declares | `/usr/share/doc/<pkg>/copyright` on an installed system |
+| The base layer and every Void Linux package | whatever each package declares | `/usr/share/doc/<pkg>/copyright` on an installed system |
 | The shell's engine, built by ASURA | LGPL-3.0-only | the built package's own copyright file; see below |
 | The shell's surfaces — the vendored upstream components | GPL-3.0-only and Apache-2.0, by component | `shell/vendor/COPYING`, `shell/vendor/LICENSE.apache-2.0` and the manifest's per-component record; see below |
 | Firmware blobs | mixed: most free, some proprietary, each separately licensed | per-package copyright files; see below |
@@ -68,13 +68,12 @@ reference material only.
 
 ## The base layer and its packages
 
-Ubuntu supplies ASURA's base layer. Its packages are individually licensed — mostly GPL-family,
+Void Linux supplies ASURA's base layer. Its packages are individually licensed — mostly GPL-family,
 some LGPL, some Apache-2.0, some BSD, some public domain — and each ships its own copyright
 file. ASURA neither relicenses nor overrides them, and by policy never modifies them in place.
 
-Redistributing ASURA means redistributing that base layer, so both the per-package licences and
-Ubuntu's own terms of service apply. This is not optional legal fine print; it is the most
-common way a distribution goes wrong.
+Redistributing ASURA means redistributing that base layer, so the per-package licences apply.
+This is not optional legal fine print; it is the most common way a distribution goes wrong.
 
 ## The shell's engine is LGPL, and the binary is shipped unmodified
 
@@ -208,7 +207,7 @@ Consequences you must accept if you redistribute ASURA:
   the firmware and free software section of
   [`docs/architecture.md`](docs/architecture.md) for exactly what is and is not free.
 - Firmware must be traceable per file. The policy lives with the package manifest in
-  [`system/packages.yaml`](system/packages.yaml), and the packages a given machine needs are
+  [`system/packages-void.yaml`](system/packages-void.yaml), and the packages a given machine needs are
   declared by its profile under `system/hardware/profiles/`. Neither may contain firmware
   files, only firmware package names.
 - ASURA **references** the base layer's `linux-firmware-*` packages rather than repackaging

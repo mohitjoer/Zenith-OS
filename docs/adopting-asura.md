@@ -57,7 +57,7 @@ that can possibly work, and the machine is never in a state that cannot be recov
 |---|---|---|
 | An ASURA OS installation | Adoption is a session, not an image. | Install ASURA OS. |
 | ASURA's pinned kernel fleet | The kernel is the user's and stays the user's. Adoption never writes `/boot`, an initramfs or a kernel cmdline. | Install ASURA OS. |
-| ASURA's Limine boot chain | Boot-chain surgery is how a distribution gets bricked. Adoption has no such operation at all. | Install ASURA OS. |
+| ASURA's GRUB EFI boot chain | Boot-chain surgery is how a distribution gets bricked. Adoption has no such operation at all. | Install ASURA OS. |
 | The curated package set — no GNOME, no snapd, no software centre | That is a property of the image, decided at build time. | Install ASURA OS. |
 | Install-time hardware profile selection and tier defaults | Profiles are matched by the installer at install time. | Install ASURA OS, or run `asura hardware match` afterwards to see where the machine lands. |
 | A support tier | A tier is a claim about a machine ASURA has been run on. An adopted machine is *tier unknown* until someone submits a profile. | Run `asura hardware report` and open a pull request. |
