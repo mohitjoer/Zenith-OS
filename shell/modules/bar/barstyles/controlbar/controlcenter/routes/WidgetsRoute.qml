@@ -5,7 +5,7 @@ import "../../modules"
 import qs.Ui
 import qs.Ui.Singletons
 
-// Widgets route (部品): the shipped widgets (every built-in and Asura's own
+// Widgets route : the shipped widgets (every built-in and Asura's own
 // plugins) as one CcWidgetList sheet: show, size, colour and tune each. The
 // launcher's mark and the workspaces' count/marker (the old Logo and Spaces
 // routes) are just those two widgets' settings now, and the workspaces row keeps
@@ -76,7 +76,7 @@ Item {
                     id: wlist
                     width: page.colW
                     title: I18n.tr("WIDGETS")
-                    kana: "\u90e8\u54c1"
+                    kana: ""
                     root: page.root
                     tk: page.tk
                     entries: page.ownEntries

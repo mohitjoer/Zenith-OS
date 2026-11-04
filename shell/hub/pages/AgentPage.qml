@@ -460,7 +460,7 @@ Item {
                     Row {
                         spacing: Tokens.s2
                         Text {
-                            text: "羅針"; color: hx.red; font.family: pg.fJp; font.pixelSize: 13
+                            text: "AGENT"; color: hx.red; font.family: Tokens.mono; font.pixelSize: 13
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
@@ -509,7 +509,7 @@ Item {
                         spacing: 6
                         Row {
                             spacing: Tokens.s2
-                            Text { text: "羅針"; color: hx.ink; font.family: pg.fJp; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "AGENT"; color: hx.ink; font.family: Tokens.mono; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
                             Text {
                                 text: I18n.tr("AGENT SERVICE"); color: hx.ink; font.family: pg.fDisplay
                                 font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter
@@ -547,7 +547,7 @@ Item {
                         spacing: 4
                         Row {
                             spacing: Tokens.s2
-                            Text { text: "機関"; color: hx.red; font.family: pg.fJp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "CORE"; color: hx.red; font.family: Tokens.mono; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
                             Text {
                                 text: I18n.tr("ENGINE"); color: hx.inkDim; font.family: pg.fMono
                                 font.pixelSize: 10; font.letterSpacing: 3; anchors.verticalCenter: parent.verticalCenter
@@ -575,7 +575,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u6a5f\u80fd"; title: I18n.tr("FUNCTIONS") }
+                Head { kanji: ""; title: I18n.tr("FUNCTIONS") }
 
                 Grid {
                     id: fnGrid
@@ -586,29 +586,29 @@ Item {
                     readonly property real cellW: (width - columnSpacing * (columns - 1)) / columns
 
                     FnCard {
-                        width: fnGrid.cellW; index: "01"; kanji: "\u66f8\u5eab"; name: I18n.tr("VAULT"); accent: hx.teal
+                        width: fnGrid.cellW; index: "01"; kanji: ""; name: I18n.tr("VAULT"); accent: hx.teal
                         desc: I18n.tr("The living map your agents read, beside each binary.")
                         stat: pg.vaultExists ? I18n.tr("%1 files").arg(pg.vaultFiles) : ""
                     }
                     FnCard {
-                        width: fnGrid.cellW; index: "02"; kanji: "\u8a18\u61b6"; name: I18n.tr("MEMORY"); accent: hx.orange
+                        width: fnGrid.cellW; index: "02"; kanji: ""; name: I18n.tr("MEMORY"); accent: hx.orange
                         desc: I18n.tr("Notes the agent keeps in the vault, across every session.")
                     }
                     FnCard {
-                        width: fnGrid.cellW; index: "03"; kanji: "\u6280"; name: I18n.tr("SKILLS"); accent: hx.slate
+                        width: fnGrid.cellW; index: "03"; kanji: ""; name: I18n.tr("SKILLS"); accent: hx.slate
                         desc: I18n.tr("Skills an agent can load: how to change this desktop safely.")
                     }
                     FnCard {
-                        width: fnGrid.cellW; index: "04"; kanji: "\u4e94\u4eba\u8846"; name: I18n.tr("AGENTS"); accent: hx.tan
+                        width: fnGrid.cellW; index: "04"; kanji: ""; name: I18n.tr("AGENTS"); accent: hx.tan
                         desc: I18n.tr("Your coding agents, wired to one shared map of the machine.")
                         stat: pg.agentsPresent > 0 ? pg.wiredSummary : ""
                     }
                     FnCard {
-                        width: fnGrid.cellW; index: "05"; kanji: "\u5bfe\u8a71"; name: I18n.tr("CHAT"); accent: hx.red
+                        width: fnGrid.cellW; index: "05"; kanji: ""; name: I18n.tr("CHAT"); accent: hx.red
                         desc: I18n.tr("Talk to your engine in the sidebar, the dashboard or a terminal.")
                     }
                     FnCard {
-                        width: fnGrid.cellW; index: "06"; kanji: "\u7f85\u91dd"; name: I18n.tr("CODE"); accent: hx.teal
+                        width: fnGrid.cellW; index: "06"; kanji: ""; name: I18n.tr("CODE"); accent: hx.teal
                         desc: I18n.tr("Code intelligence: cited answers over your repos.")
                     }
                 }
@@ -618,7 +618,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u4e94\u4eba\u8846"; title: I18n.tr("YOUR AGENTS") }
+                Head { kanji: ""; title: I18n.tr("YOUR AGENTS") }
                 Text {
                     width: parent.width
                     text: I18n.tr("Wire any coding agent to the same living map of this machine. One click drops a pointer into its instructions, links the asura skill, and installs prowl's code-intelligence skill.")
@@ -643,7 +643,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u9023\u643a"; title: I18n.tr("POINT ANY AGENT") }
+                Head { kanji: ""; title: I18n.tr("POINT ANY AGENT") }
                 Text {
                     width: parent.width
                     text: I18n.tr("On an agent that isn't wired for you? Point it at these yourself, or copy the ready-made instructions and paste them into its config.")
@@ -673,7 +673,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s3
-                Head { kanji: "\u6a5f\u95a2"; title: I18n.tr("ENGINE") }
+                Head { kanji: ""; title: I18n.tr("ENGINE") }
                 Text {
                     width: parent.width
                     text: I18n.tr("The agent that answers the chat is yours to plug in: any program that speaks the Agent Client Protocol over stdio. Nothing is installed or guessed; the daemon starts it the first time the chat is used.")
@@ -696,7 +696,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s3
-                Head { kanji: "\u4f8b"; title: I18n.tr("TRY") }
+                Head { kanji: ""; title: I18n.tr("TRY") }
                 TryRow { cmd: "asura-agent status"; note: I18n.tr("the daemon, the engine and the vault at a glance") }
                 TryRow { cmd: "asura-agent setup"; note: I18n.tr("where the engine is set, and how") }
                 TryRow { cmd: "asura-agent paths"; note: I18n.tr("every path an agent can read") }
@@ -707,7 +707,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u8d77\u52d5"; title: I18n.tr("GET STARTED") }
+                Head { kanji: ""; title: I18n.tr("GET STARTED") }
 
                 Text {
                     width: parent.width

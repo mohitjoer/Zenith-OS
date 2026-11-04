@@ -32,9 +32,9 @@ Item {
   // ryowalls-shaped remote sources (scrape-based, no keys): one generic
   // LibraryBrowser serves them all, keyed off these descriptors.
   readonly property var _libDefs: ({
-    "moewalls":  { label: "MOEWALLS",  kana: "萌", search: "moewalls-search",  download: "moewalls-download",  post: true },
-    "motionbgs": { label: "MOTIONBGS", kana: "動", search: "motionbgs-search", download: "motionbgs-download", post: false },
-    "repos":     { label: "REPOS",     kana: "庫", search: "library-list",      download: "library-download",    post: false }
+    "moewalls":  { label: "MOEWALLS",  kana: "", search: "moewalls-search",  download: "moewalls-download",  post: true },
+    "motionbgs": { label: "MOTIONBGS", kana: "", search: "motionbgs-search", download: "motionbgs-download", post: false },
+    "repos":     { label: "REPOS",     kana: "", search: "library-list",      download: "library-download",    post: false }
   })
   readonly property bool _isLib: _libDefs[source] !== undefined
 
@@ -202,7 +202,7 @@ Item {
         id: sourcesBtn
         anchors.verticalCenter: parent.verticalCenter
         colors: root.colors
-        label: "源  " + root._activeLabel
+        label: root._activeLabel
         register: false
         skew: 8
         height: 26 * Config.uiScale
@@ -350,7 +350,7 @@ Item {
               color: root.colors ? root.colors.surfaceText : "#e0e2e8"
             }
             Text {
-              text: "源"
+              text: ""
               font.family: Style.fontFamilyJp
               font.pixelSize: 18 * Config.uiScale
               color: root.colors ? Qt.rgba(root.colors.surfaceVariantText.r, root.colors.surfaceVariantText.g, root.colors.surfaceVariantText.b, 0.6) : "#8a8f97"

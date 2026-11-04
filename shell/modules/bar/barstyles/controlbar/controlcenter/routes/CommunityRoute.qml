@@ -6,7 +6,7 @@ import "../../modules"
 import qs.Ui
 import qs.Ui.Singletons
 
-// Community route (有志): every bar plugin installed from outside Asura, kept
+// Community route : every bar plugin installed from outside Asura, kept
 // apart from the shipped set so a widget someone else wrote is never mixed in
 // with the built-ins, under a plain warning that Asura does not review it. The
 // same CcWidgetList sheet as Widgets, so a community widget is shown, tuned and
@@ -155,7 +155,7 @@ Item {
                     id: clist
                     width: page.colW
                     title: I18n.tr("INSTALLED")
-                    kana: "\u5c0e\u5165"
+                    kana: ""
                     root: page.root
                     tk: page.tk
                     entries: page.communityEntries
@@ -280,7 +280,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("ADD")
-                    kana: "\u8ffd\u52a0"
+                    kana: ""
                     collapsible: false
 
                     SettingRow {

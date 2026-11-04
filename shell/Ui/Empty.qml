@@ -1,7 +1,7 @@
 import QtQuick
 import "Singletons"
 
-// The empty state as a plate: the reference sheet's ring ornament around 空,
+// The empty state as a plate: the reference sheet's ring ornament indicator,
 // the kanji for emptiness, over the caption. An empty zone is dressed, never
 // a bare line of mono floating in a void.
 Column {
@@ -18,7 +18,7 @@ Column {
         Motif { anchors.fill: parent; kind: "rings"; strength: 0.14 }
         Text {
             anchors.centerIn: parent
-            text: "空"
+            text: ""
             color: Tokens.inkDim
             font.family: Tokens.jp
             font.pixelSize: 42

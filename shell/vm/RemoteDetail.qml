@@ -209,7 +209,7 @@ Item {
                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text { text: "卓"; color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                    
                 }
                 Flow {
                     width: parent.width
@@ -283,7 +283,7 @@ Item {
                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text { text: "客"; color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                    
                 }
                 Repeater {
                     model: (Remotes.guestsRev, Remotes.guestsOf(berth.alias))
@@ -458,7 +458,7 @@ Item {
                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text { text: "覗"; color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                    
                 }
                 Flow {
                     width: parent.width
@@ -495,7 +495,7 @@ Item {
                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text { text: "経路"; color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                    
                 }
 
                 Repeater {

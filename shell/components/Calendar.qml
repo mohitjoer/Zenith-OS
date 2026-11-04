@@ -249,7 +249,7 @@ PillSurface {
                     border.width: 1
                     border.color: Qt.alpha(Theme.primary, 0.55)
                 }
-                // The 天 seal set faint behind today's number: the brand mark in
+                // The Asura seal set faint behind today's number: the brand mark in
                 // one quiet place. The primary-tinted ring above stays as it was.
                 BrandMark {
                     anchors.centerIn: parent

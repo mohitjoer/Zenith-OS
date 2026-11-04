@@ -337,9 +337,9 @@ func applyAsuraTheme() error {
 	// clear any active-rice marker: the signature is a fresh look, not a rice,
 	// so the Rices page must not keep showing the last rice as applied.
 	setActiveRice("")
-	// the Asura mark: the 力 glyph, no custom logo, tinted to the accent, so the
+	// the Asura mark: the A glyph, no custom logo, tinted to the accent, so the
 	// signature brand reads as Asura (the desktop name is left as the user set it).
-	mergeBrandJSON(map[string]any{"markText": "力", "markImage": "", "markTint": true})
+	mergeBrandJSON(map[string]any{"markText": "A", "markImage": "", "markTint": true})
 	// colours follow the wallpaper (mono is retired) + regen the border lua,
 	// reload hypr and kitty.
 	return applyScheme("follow")

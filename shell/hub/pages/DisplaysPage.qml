@@ -759,7 +759,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "\u5929"; color: Tokens.ink; font.family: Tokens.jp
+                text: "A"; color: Tokens.ink; font.family: Tokens.mono
                 font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
             }
             Text {

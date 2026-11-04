@@ -205,7 +205,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: "深"
+            text: "3D"
             font.family: Style.fontFamily; font.pixelSize: 9; font.weight: Font.Bold
             color: cell.colors ? cell.colors.primary : Style.fallbackAccent
         }

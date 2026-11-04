@@ -103,7 +103,7 @@ Item {
 
     // Lettering is the last resort, for a machine with no branding directory
     // and no checkout. It names the product in Latin letters rather than with
-    // the 天 glyph, because a glyph needs a CJK font and this is the path taken
+    // the Asura mark glyph
     // when the machine is short of files.
     Text {
         anchors.centerIn: parent

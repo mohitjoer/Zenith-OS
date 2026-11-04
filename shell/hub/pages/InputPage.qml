@@ -594,7 +594,7 @@ Item {
     // margin without ever competing with a control. Texture, not text to read.
     Watermark {
         anchors.fill: parent
-        text: "入力"
+        text: "INPUT"
     }
 
     // ── head: eyebrow, Fraunces title, blurb (matches every settings page) ──
@@ -619,7 +619,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "天"; color: Tokens.ink; font.family: Tokens.jp
+                text: "A"; color: Tokens.ink; font.family: Tokens.mono
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {

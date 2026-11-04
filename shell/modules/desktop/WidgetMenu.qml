@@ -59,14 +59,14 @@ Item {
 
     // the kanji seal each scope carries in the menu masthead (docs/ui-ux.md).
     readonly property var glosses: ({
-        "desktop": "卓上",
-        "clock": "時計",
-        "calendar": "暦",
-        "music": "音楽",
-        "aio": "一体",
-        "stats": "計測",
-        "weather": "天気",
-        "notes": "筆記"
+        "desktop": "",
+        "clock": "",
+        "calendar": "",
+        "music": "",
+        "aio": "",
+        "stats": "",
+        "weather": "",
+        "notes": ""
     })
 
     function openFor(widget, x, y) { menu.scope = widget; shell.px = x; shell.py = y; shell.open = true; }
@@ -258,7 +258,7 @@ Item {
         // Size + Opacity: discoverable equivalents of the corner-drag resize and
         // Asura Settings' opacity, targeting whichever widget the menu is open
         // for. Both scrub live and persist on release.
-        MenuSection { visible: menu.isWidget; label: I18n.tr("Adjust"); gloss: "調整" }
+        MenuSection { visible: menu.isWidget; label: I18n.tr("Adjust"); gloss: "" }
         MenuSlider {
             id: sizeSlider
             visible: menu.isWidget
@@ -287,7 +287,7 @@ Item {
         // Colour: the widget's ink follows the wallpaper (Auto), a solid pin, or
         // an A->B gradient -- the same model the visualiser wears. Solid/Gradient
         // reveal a compact picker; edits scrub live and persist on release.
-        MenuSection { visible: menu.isWidget; label: I18n.tr("Colour"); gloss: "彩色" }
+        MenuSection { visible: menu.isWidget; label: I18n.tr("Colour"); gloss: "" }
         Item {
             visible: menu.isWidget
             width: parent.width
@@ -326,7 +326,7 @@ Item {
             }
         }
 
-        MenuSection { visible: menu.isWidget; label: I18n.tr("Snap"); gloss: "位置" }
+        MenuSection { visible: menu.isWidget; label: I18n.tr("Snap"); gloss: "" }
 
         // One placement control: an Auto lane above a square 3x3 compass whose
         // centre cell is the centre zone. Auto lands the widget on the

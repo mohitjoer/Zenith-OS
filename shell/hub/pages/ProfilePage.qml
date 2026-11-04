@@ -11,7 +11,7 @@ import "../Singletons"
 // rice showcase, so it is the best-looking page in the hub. A gothic system
 // poster in the post-punk register: a cracked marble profile bust, baked to a
 // high-contrast bone xerox, bleeds on black; the identity is monumental in
-// Fraunces over a huge 顔 watermark; the machine's live vitals read as
+// Fraunces over a watermark; the machine's live vitals read as
 // line-and-stat callouts pinned to the face (not boxes) -- a body scan of the
 // operator; the dossier trails as brutalist small-print; the audio-wave signal
 // sits over it. Full-bleed. Bone on black; the only colour
@@ -369,14 +369,14 @@ Item {
         color: Tokens.paper
     }
 
-    // A monumental face-kanji breathing behind the void (the Profile's own 横顔).
+    // A monumental watermark breathing behind the void.
     Text {
         visible: pg.blockVisible("watermark")
         opacity: pg.blockOpacity("watermark")
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.horizontalCenterOffset: -170
-        text: pg.f("text.watermarkGlyph", "顔")
+        text: pg.f("text.watermarkGlyph", "A")
         color: Qt.rgba(Tokens.ink.r, Tokens.ink.g, Tokens.ink.b, 0.055)
         font.family: Tokens.jp
         font.pixelSize: 540
@@ -490,7 +490,7 @@ Item {
         y: 400
         spacing: Tokens.s3
         Repeater {
-            model: pg.f("text.verse", ["天", "美", "滅", "虚"])
+            model: pg.f("text.verse", ["ASURA", "ROBUST", "FAST", "CLEAN"])
             delegate: Text {
                 required property var modelData
                 text: modelData
@@ -664,7 +664,7 @@ Item {
                 spacing: Tokens.s2
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "天"
+                    text: "A"
                     color: Tokens.inkDim
                     font.family: Tokens.jp
                     font.pixelSize: Tokens.fMicro
@@ -855,7 +855,7 @@ Item {
             { x: cx, sx: leadFrom, cy: 402, fx: 0.30, fy: 0.40, k: "gpu", name: "GPU", big: true },
             { x: cx, sx: leadFrom, cy: 466, fx: 0.28, fy: 0.54, k: "mem", name: I18n.tr("MEMORY"), big: true },
             { x: cx, sx: leadFrom, cy: 530, fx: 0.40, fy: 0.70, k: "net", name: I18n.tr("NETWORK"), big: true },
-            { x: 372, sx: 372, cy: 398, fx: 0.47, fy: 0.44, k: "frac", name: "亀裂 · " + I18n.tr("FRACTURE"), big: false }
+            { x: 372, sx: 372, cy: 398, fx: 0.47, fy: 0.44, k: "frac", name: I18n.tr("FRACTURE"), big: false }
         ]
 
         // Eyebrow for the live column, with the never-still pulse.
@@ -878,7 +878,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "脈 · " + I18n.tr("LIVE TELEMETRY")
+                text: I18n.tr("LIVE TELEMETRY")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny

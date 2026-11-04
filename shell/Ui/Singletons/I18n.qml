@@ -14,7 +14,7 @@ import Quickshell.Io
 // The language is a global shell setting (shell.json "language"), set from the
 // Hub's Global page and watched here, so changing it retranslates every open
 // surface live -- no relogin. A dev checkout points ASURA_I18N_DIR at
-// shell/i18n/data. Brand kana (天, 描画, seals) are never wrapped, so they stay
+// shell/i18n/data. Brand marks (A, seals) are never wrapped, so they stay
 // put.
 Singleton {
     id: i18n

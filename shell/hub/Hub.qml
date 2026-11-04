@@ -129,16 +129,16 @@ Rectangle {
     // Each section's terse kanji, paired with its Latin name in the rail. Latin
     // names the thing; the kanji is its seal. The two scripts sitting together
     // is the texture, and every gloss is the real word, never decoration:
-    // 外観 = appearance, 接続 = connections, 演算 = compute (Machine), and so on.
+    // Section rail navigation items
     readonly property var jpName: ({
-        "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作",
-        "connections": "接続", "gpu": "演算", "recording": "録画", "dictation": "音声",
-        "plugins": "補", "bar-studio": "帯", "desktop": "卓上", "launcher": "起動", "fastfetch": "情報",
-        "widgets": "部品", "lockscreen": "施錠", "animations": "動き",
-        "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
-        "session": "起動", "performance": "性能", "agent": "羅針",
-        "updates": "更新", "credits": "謝辞", "global": "全般", "import": "取込", "windowmanager": "合成",
-        "asura": "天"
+        "profile": "", "displays": "", "input": "", "keybinds": "",
+        "connections": "", "gpu": "", "recording": "", "dictation": "",
+        "plugins": "", "bar-studio": "", "desktop": "", "launcher": "", "fastfetch": "",
+        "widgets": "", "lockscreen": "", "animations": "",
+        "addons": "", "windowrules": "", "appoverrides": "", "layerrules": "",
+        "session": "", "performance": "", "agent": "",
+        "updates": "", "credits": "", "global": "", "import": "", "windowmanager": "",
+        "asura": "A"
     })
 
     // Extra search vocabulary per section: the words a user actually types that
@@ -532,7 +532,7 @@ Rectangle {
         "mirror": false, "segments": 10, "fps": 30,
         "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false,
         "spin": 0, "x": 0, "y": 0.58, "w": 1, "h": 0.42, "grow": "up", "angle": 0, "tiltX": 0, "tiltY": 0,
-        "markText": "天", "markImage": "", "markTint": true, "name": "Asura",
+        "markText": "A", "markImage": "", "markTint": true, "name": "Asura",
         "reloadCover": ReloadCoverModel.empty(),
         "language": "auto", "barStyle": "qsbar", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
         "qsbar.barPosition": "top", "qsbar.barShellStyle": "fit", "qsbar.barScale": 1.0,
@@ -912,7 +912,7 @@ Rectangle {
         }
         JsonAdapter {
             id: brandA
-            property string markText: "天"
+            property string markText: "A"
             property string markImage: ""
             property bool markTint: true
             property string name: "Asura"
@@ -1104,7 +1104,7 @@ Rectangle {
                 Row {
                     anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s4 }
                     spacing: Tokens.s3
-                    Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 22 }
+                    Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 22 }
                     Column {
                         spacing: 1
                         anchors.verticalCenter: parent.verticalCenter
@@ -1409,7 +1409,7 @@ Rectangle {
             Row {
                 spacing: Tokens.s2
                 Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     text: I18n.tr(hub.groupFor(hub.section)); color: Tokens.inkMuted
                     font.family: Tokens.ui; font.pixelSize: 9; font.weight: Font.Medium

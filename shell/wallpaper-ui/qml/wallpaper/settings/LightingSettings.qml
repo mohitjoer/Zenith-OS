@@ -77,7 +77,7 @@ Column {
 
     SettingsCard {
         colors: root.colors
-        title: I18n.tr("Lighting"); kana: "灯"
+        title: I18n.tr("Lighting"); kana: ""
         width: parent.width
 
         RowToggle {

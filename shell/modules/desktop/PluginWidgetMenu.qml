@@ -118,7 +118,7 @@ Item {
     DesktopMenu {
         id: shell
         title: (menu.manifest && menu.manifest.name) ? menu.manifest.name : menu.scope
-        gloss: "部品"
+        gloss: ""
         cardWidth: menu.schema.length > 0 ? 300 : 248
 
         MenuRow {
@@ -139,7 +139,7 @@ Item {
         // ── size + opacity (host chrome: placement, not the plugin's schema) ──
         // The discoverable equivalents of the corner bracket / Ctrl+wheel and a
         // tile fade; every tile can resize and fade. Both commit on release.
-        MenuSection { label: I18n.tr("Adjust"); gloss: "調整" }
+        MenuSection { label: I18n.tr("Adjust"); gloss: "" }
         MenuSlider {
             id: sizeSlider
             label: I18n.tr("Size")
@@ -167,7 +167,7 @@ Item {
         // Auto = the palette accent (matugen-derived), Default = the plugin's own
         // palette, Custom = a pinned colour. Mirrors the built-in WidgetMenu's
         // colour rows; the pin persists through settings (colorAuto + color).
-        MenuSection { visible: menu.colorsCap; label: I18n.tr("Colour"); gloss: "彩色" }
+        MenuSection { visible: menu.colorsCap; label: I18n.tr("Colour"); gloss: "" }
         Column {
             visible: menu.colorsCap
             width: parent.width
@@ -232,7 +232,7 @@ Item {
                     MenuSection {
                         visible: fieldWrap.startsGroup && fieldWrap.grp.length > 0
                         label: fieldWrap.grp
-                        gloss: "部品"
+                        gloss: ""
                     }
 
                     // choice -> chips

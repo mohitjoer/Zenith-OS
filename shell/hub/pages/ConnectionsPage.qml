@@ -1919,8 +1919,8 @@ Item {
     Component { id: btComp; BtBody {} }
     Component { id: hsComp; HotspotBody {} }
 
-    // a faint 接続 watermark dresses the whole page, like every section
-    Watermark { anchors.fill: parent; text: "\u63a5\u7d9a" }
+    // a faint watermark dresses the whole page, like every section
+    Watermark { anchors.fill: parent; text: "" }
 
     // ── layout: head, bone-pill tab strip, body ─────────────────────────────
     Item {
@@ -1946,7 +1946,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: "\u5929"; color: Tokens.ink; font.family: Tokens.jp
+                    text: "A"; color: Tokens.ink; font.family: Tokens.mono
                     font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {

@@ -121,10 +121,10 @@ Singleton {
 
     // brand: the desktop's mark + name, user-overridable from Asura Settings ->
     // Shell -> Global. a small cross-cutting identity master (like theme.json).
-    // markText is the glyph/short-text seal (default 天); markImage an optional
+    // markText is the glyph/short-text seal (default A); markImage an optional
     // image path that wins over the text; markTint recolours a single-colour
     // image to the accent; name is the wordmark ("Asura") shown in chrome copy.
-    // Asura's own apps (the Hub, ryo* apps) never read this and keep the 天 brand.
+    // Asura's own apps (the Hub, ryo* apps) never read this and keep the Asura brand.
     property alias markText:  brandAdapter.markText
     property alias markImage: brandAdapter.markImage
     property alias markTint:  brandAdapter.markTint
@@ -291,7 +291,7 @@ Singleton {
         onFileChanged: reload()
         JsonAdapter {
             id: brandAdapter
-            property string markText: "天"
+            property string markText: "A"
             property string markImage: ""
             property bool markTint: true
             property string name: "Asura"

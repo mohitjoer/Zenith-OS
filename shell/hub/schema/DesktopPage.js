@@ -17,7 +17,7 @@ var rows = [
         "key": "markText",
         "label": "Text mark",
         "desc": "The glyph the shell uses as its mark",
-        "eg": "天",
+        "eg": "A",
         "ctl": "text",
         "src": "brand"
     },

@@ -79,7 +79,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("Mark")
-                    kana: "\u5370"
+                    kana: ""
 
                     Row {
                     width: parent.width
@@ -88,7 +88,7 @@ Item {
                         Repeater {
                             model: [
                                 { mode: "text", label: I18n.tr("Wordmark"), glyph: "ASURA" },
-                                { mode: "icon", label: I18n.tr("Glyph"),    glyph: "\u5929" }
+                                { mode: "icon", label: I18n.tr("Glyph"),    glyph: "A" }
                             ]
 
                             delegate: Rectangle {
@@ -175,7 +175,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: page.mode === "icon" ? I18n.tr("GLYPH") : I18n.tr("WORDMARK")
-                    kana: page.mode === "icon" ? "\u7d0b" : "\u6587\u5b57"
+                    kana: ""
 
                     Grid {
                         id: optGrid
@@ -255,7 +255,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("COUNT")
-                    kana: "\u6570"
+                    kana: ""
 
                     SettingRow {
                         anchors.left: parent.left
@@ -282,7 +282,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("MARKER")
-                    kana: "\u70b9"
+                    kana: ""
 
                     SettingRow {
                         anchors.left: parent.left
@@ -311,7 +311,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("PREVIEW")
-                    kana: "\u898b\u672c"
+                    kana: ""
 
                     CcWorkspacePreview {
                         width: parent.width

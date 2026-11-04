@@ -301,7 +301,7 @@ Popout {
         Text {
             id: seal
             anchors { top: parent.top; topMargin: root.pad; horizontalCenter: parent.horizontalCenter }
-            text: "\u97f3"
+            text: ""
             color: root.faint
             font.family: Theme.fontJp
             font.pixelSize: 13 * root.s

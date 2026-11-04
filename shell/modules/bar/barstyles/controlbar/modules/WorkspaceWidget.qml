@@ -302,14 +302,14 @@ Item {
                     Behavior on color { ColorAnimation { duration: 200 } }
                 }
 
-                // ── KANJI style: 一-十 numerals (waybar V7.2a format-icons), same
+                // ── Numeric style: 1-10 numerals, same
                 //    focused/occupied/empty treatment as the other styles; ids >10
                 //    fall back to the Arabic number ──
                 Text {
                     visible: root.workspaceStyle === "kanji"
                     anchors.centerIn: parent
                     text: (Number(wsKey) >= 1 && Number(wsKey) <= 10)
-                        ? ["一","二","三","四","五","六","七","八","九","十"][Number(wsKey) - 1]
+                        ? ["1","2","3","4","5","6","7","8","9","10"][Number(wsKey) - 1]
                         : wsKey
                     color: isFocused  ? wsWidget.contentColor
                          : isOccupied ? Qt.rgba(wsWidget.contentColor.r, wsWidget.contentColor.g, wsWidget.contentColor.b, 0.7)

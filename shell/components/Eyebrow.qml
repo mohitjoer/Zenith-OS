@@ -3,14 +3,14 @@ import qs.Services
 import qs.Ui.Singletons
 
 // section eyebrow, the website's `.eyebrow`: a short vermilion tick, then the
-// 天 seal, then a mono uppercase label with wide tracking. the pill surfaces'
-// header idiom, replacing the bare "天 LABEL" row. scales with `s`.
+// Asura mark, then a mono uppercase label with wide tracking. the pill surfaces'
+// header idiom, replacing the bare "LABEL" row. scales with `s`.
 Row {
     id: eye
 
     property string label: ""
     property real s: 1
-    property bool mark: true           // lead with the 天 seal after the tick
+    property bool mark: true           // lead with the Asura mark after the tick
     property color tick: Theme.primary
     property color labelColor: Theme.onSurfaceVariant
 

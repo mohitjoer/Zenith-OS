@@ -39,9 +39,9 @@ Singleton {
     readonly property string fontJp:  "Noto Sans CJK JP"
     readonly property string mono:    "JetBrainsMono Nerd Font"
     // brand mark + name, user-overridable via ~/.config/asura/brand.json (Shell ->
-    // Global). defaults to the 天 seal / "Asura". BrandMark renders `mark`, or
+    // Global). defaults to the Asura seal / "Asura". BrandMark renders `mark`, or
     // `markSource` (an image) when set. Asura's own apps never read these.
-    readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u5929"
+    readonly property string mark: Config.markText.length > 0 ? Config.markText : "A"
     readonly property string markSource: Config.markImage
     readonly property bool markTint: Config.markTint
     readonly property string brandName: Config.brandName.length > 0 ? Config.brandName : "Asura"

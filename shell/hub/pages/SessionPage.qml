@@ -147,7 +147,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "天"; color: Tokens.ink; font.family: Tokens.jp
+                text: "A"; color: Tokens.ink; font.family: Tokens.mono
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {

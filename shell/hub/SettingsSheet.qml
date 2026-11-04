@@ -890,7 +890,7 @@ Item {
                                                 Text {
                                                     anchors.centerIn: parent
                                                     visible: imgThumb.src === ""
-                                                    text: "天"
+                                                    text: "A"
                                                     color: Tokens.inkFaint
                                                     font.family: Tokens.jp
                                                     font.pixelSize: 13

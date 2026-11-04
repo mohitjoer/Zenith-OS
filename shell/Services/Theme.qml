@@ -216,7 +216,7 @@ Singleton {
 
     // brand mark, user-overridable via ~/.config/asura/brand.json (Shell ->
     // Global). BrandMark renders `mark`, or `markSource` (an image) when set.
-    readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u5929"
+    readonly property string mark: Config.markText.length > 0 ? Config.markText : "A"
     readonly property string markSource: Config.markImage
     readonly property bool markTint: Config.markTint
 

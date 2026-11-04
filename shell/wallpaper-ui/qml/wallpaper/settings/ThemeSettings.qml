@@ -95,7 +95,7 @@ Column {
     SettingsCard {
         colors: root.colors
         title: I18n.tr("Colour generation")
-        kana: "生成"
+        kana: ""
         width: parent.width
 
         Column {
@@ -193,7 +193,7 @@ Column {
     SettingsCard {
         colors: root.colors
         title: I18n.tr("App theming")
-        kana: "配色"
+        kana: ""
         width: parent.width
 
         RowToggle {

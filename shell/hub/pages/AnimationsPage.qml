@@ -577,7 +577,7 @@ Item {
                 width: mv.winW; height: 36; radius: Tokens.radius
                 color: Tokens.bone
                 y: mv.trackY - height; x: 0
-                Text { anchors.centerIn: parent; text: "\u5929"; color: Tokens.inkOnBone; font.family: Tokens.jp; font.pixelSize: Tokens.fSmall }
+                Text { anchors.centerIn: parent; text: "A"; color: Tokens.inkOnBone; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
             }
             NumberAnimation {
                 id: anim
@@ -626,7 +626,7 @@ Item {
             height: Tokens.s5
             spacing: Tokens.s2
             Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-            Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter }
             Text {
                 text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark

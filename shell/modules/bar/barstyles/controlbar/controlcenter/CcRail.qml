@@ -11,7 +11,7 @@ import qs.Services
 // is about one thing, the bar, so the first group has no headers: four routes,
 // always one click away. Latin names the route, kanji seals it. The active route
 // takes a bone plate with a `//` lead, the desktop's only emphasis; nothing here
-// is coloured except the 天 seal.
+// is coloured except the Asura seal.
 Item {
     id: rail
 
@@ -126,7 +126,7 @@ Item {
 
             UiText {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "\u5929"
+                text: "A"
                 color: Tokens.sun
                 font.family: Tokens.jp
                 font.pixelSize: Tokens.fBody

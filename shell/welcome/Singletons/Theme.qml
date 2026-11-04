@@ -16,9 +16,9 @@ Singleton {
     readonly property color panel: Qt.rgba(Tokens.paper.r, Tokens.paper.g, Tokens.paper.b, 0.66)
 
     // brand mark + name, user-overridable via ~/.config/asura/brand.json (Shell ->
-    // Global). defaults to the 天 seal / "Asura". BrandMark renders `mark`, or
+    // Global). defaults to the Asura seal / "Asura". BrandMark renders `mark`, or
     // `markSource` (an image) when set. Asura's own apps never read these.
-    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u5929"
+    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "A"
     readonly property string markSource: brandAdapter.markImage
     readonly property bool markTint: brandAdapter.markTint
     readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Asura"
@@ -37,7 +37,7 @@ Singleton {
         onFileChanged: reload()
         JsonAdapter {
             id: brandAdapter
-            property string markText: "天"
+            property string markText: "A"
             property string markImage: ""
             property bool markTint: true
             property string name: "Asura"

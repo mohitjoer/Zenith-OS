@@ -5,7 +5,7 @@ import qs.Ui
 import qs.Ui.Singletons
 import qs.Services
 
-// Bar route (帯) on the QS Bar Settings kit. A live bar-surface panel: every
+// Bar route  on the QS Bar Settings kit. A live bar-surface panel: every
 // control writes straight to `root` (the qsbar Theme), so the running bar updates
 // live and mirrors to Bar Studio. The page opens with the live bar silhouette,
 // then numbered sections carry the surface knobs. Arranging the widgets is the
@@ -125,7 +125,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("01 POSITION")
-                    kana: "\u4f4d\u7f6e"
+                    kana: ""
 
                     SettingRow {
                         anchors.left: parent.left
@@ -192,7 +192,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("03 FORM")
-                    kana: "\u5f62"
+                    kana: ""
 
                     Item {
                         width: parent.width
@@ -273,7 +273,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("04 SURFACE")
-                    kana: "\u8868\u9762"
+                    kana: ""
 
                     SettingRow {
                         anchors.left: parent.left
@@ -359,7 +359,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("05 GAPS")
-                    kana: "\u9593\u9694"
+                    kana: ""
 
                     SettingRow {
                         anchors.left: parent.left
@@ -446,7 +446,7 @@ Item {
                 SettingCard {
                     width: page.colW
                     title: I18n.tr("06 ACCENT")
-                    kana: "\u8272"
+                    kana: ""
 
                     // Following the wallpaper is the honest default: matugen already
                     // derives an accent from the image, and "accent" is a real stored

@@ -334,7 +334,7 @@ if (typeof document !== "undefined") {
         const caret = it.open ? '<span class="caret">\u25AE</span>' : "";
         const body = it.open ? esc(it.text) + caret : mdToHtml(it.text, { breaks: true });
         return (
-          '<div class="msg msg-agent" data-open="' + (it.open ? "1" : "0") + '"><div class="msg-head">\u7F85\u91DD</div>' +
+          '<div class="msg msg-agent" data-open="' + (it.open ? "1" : "0") + '"><div class="msg-head">AGENT</div>' +
           thought +
           '<div class="msg-body">' + body + "</div></div>"
         );

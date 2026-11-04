@@ -14,13 +14,13 @@ import (
 // verbatim so the tests exercise the real catalogue contract without depending
 // on BarCore having landed the file.
 const catalogueFixture = `[
-  { "id": "launcher",   "gid": "G1",  "label": "Launcher",        "gloss": "起動", "category": "Bar",
+  { "id": "launcher",   "gid": "G1",  "label": "Launcher",        "gloss": "", "category": "Bar",
     "desc": "The mark that opens the launcher and this panel.",
     "settings": [
       { "key": "launcherLogoMode", "type": "choice", "label": "Mark", "options": ["text", "icon"] },
       { "key": "launcherLogoText", "type": "choice", "label": "Wordmark", "options": ["asura", "omarchy", "hyprland", "arch", "omacom"] },
       { "key": "launcherLogoIcon", "type": "choice", "label": "Glyph", "options": ["asura", "arch", "dragon"] } ] },
-  { "id": "workspaces", "gid": "G2",  "label": "Workspaces",      "gloss": "間",   "category": "Bar",
+  { "id": "workspaces", "gid": "G2",  "label": "Workspaces",      "gloss": "",   "category": "Bar",
     "settings": [
       { "key": "workspaceMode",  "type": "choice", "label": "Shown", "options": ["active", "5", "10"] },
       { "key": "workspaceStyle", "type": "choice", "label": "Marker", "options": ["default", "numbers", "magic", "kanji", "rings", "aurora", "pacman"] } ] },

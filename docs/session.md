@@ -107,7 +107,7 @@ The system side first, then the user side.
 
 ### The system instance
 
-runit (system services in `/etc/sv/`) starts the base layer. ASURA adds：
+runit (system services in `/etc/sv/`) starts the base layer. ASURA adds:
 
 - `asura-sysd` (`system/runit/services/asura-sysd/run`) — root daemon at `/run/asura/sysd.sock`
 - `scx-lavd` (`system/runit/services/scx-lavd/run`) — sched_ext LAVD scheduler
@@ -271,8 +271,8 @@ exec /usr/bin/Hyprland -c /usr/share/asura/hyprland/hyprland.conf
 The compositor is started with ASURA's own configuration, because the keybinds live there
 and nowhere else. It is the only place the keyboard is described: a bind names the shell's
 IPC target and the shell decides what the key means, so the compositor never has to know
-what a launcher is. A compositor started without that file runs on Hyprland's own defaults,
-which is a desktop with no keybindings at all.
+what a launcher is. A compositor started without that file runs on Hyprland's own
+defaults, which is a desktop with no keybindings at all.
 
 The configuration sources the user's own file, which the session creates — empty, in the
 user's configuration directory — before the compositor reads it. Hyprland treats a source
@@ -617,6 +617,12 @@ go through logind, which runs the shutdown inhibitors, and then the system stops
 Nothing in the display manager's configuration has to change for this, which is the reason
 it is worth checking: a change there would mean writing outside the two directories ASURA
 owns.
+
+---
+
+**[Session design record — the Ubuntu design narrative ends here. The Void runit service graph is the shipped reality.]**
+
+---
 
 ### Who owns what
 

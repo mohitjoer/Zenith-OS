@@ -3,7 +3,7 @@ import qs.Ui
 import qs.Ui.Singletons
 import "Singletons"
 
-// The ambient frame the whole walkthrough sits in: the 天 mark huge and faint on
+// The ambient frame the whole walkthrough sits in: the Asura mark huge and faint on
 // the left (no shipped art; the Ui kit's Watermark draws it), a black wash to
 // seat it on the paper, an edge vignette that melts it into the window edge, and
 // registration ticks. Content scrims live in Welcome.qml so each step can tune
@@ -14,7 +14,7 @@ Item {
     Watermark {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         width: parent.width * 0.62
-        text: "\u5929"
+        text: "A"
         strength: 0.08
     }
 

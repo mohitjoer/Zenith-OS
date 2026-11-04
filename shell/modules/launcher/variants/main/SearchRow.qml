@@ -6,7 +6,7 @@ import "metrics.js" as MainMetrics
 import "." as MainVariant
 import qs.Ui.Singletons
 
-// The search row: the 天 brand glyph, the query field, an active-mode chip, and a
+// The search row: the Asura brand glyph, the query field, an active-mode chip, and a
 // result counter. The mode chip names the command the current prefix routes to
 // (FILE, PKG, CALC...), so it is always clear what a query will do.
 Item {

@@ -202,7 +202,7 @@ Item {
                                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                             }
                             Text {
-                                text: "鍵"; color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12
+                                text: ""; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 12
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

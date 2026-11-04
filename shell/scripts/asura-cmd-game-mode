@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 天 game mode = one reversible toggle. competitive-play tune on start, back
+# Game mode = one reversible toggle. competitive-play tune on start, back
 # to normal on stop. the compositor via hyprctl (no root). the system knobs
 # that need root go through asura-game-tune and the wifi radio through
 # asura-wifi-powersave, both pre-authorised by polkit so the toggle stays one
@@ -134,7 +134,7 @@ start() {
   # Refuse while discharging. Checked before anything is applied, so a refusal
   # leaves the machine exactly as it was and the request unpersisted.
   if on_battery; then
-    notify "天 Game Mode" "Needs AC - every lever here trades battery and heat for latency"
+    notify "Game Mode" "Needs AC - every lever here trades battery and heat for latency"
     return 1
   fi
 
@@ -145,9 +145,9 @@ start() {
   wifi_set off
   printf 'enabled\n' >"$state_file" 2>/dev/null || true
   if (( stripped )); then
-    notify "天 Game Mode" "On - performance profile, deep idle off, compositor stripped"
+    notify "Game Mode" "On - performance profile, deep idle off, compositor stripped"
   else
-    notify "天 Game Mode" "On - performance profile, deep idle off"
+    notify "Game Mode" "On - performance profile, deep idle off"
   fi
 }
 
@@ -157,7 +157,7 @@ stop() {
   profile_restore
   wifi_set on
   rm -f "$state_file" 2>/dev/null || true
-  notify "天 Game Mode" "Off - desktop restored"
+  notify "Game Mode" "Off - desktop restored"
 }
 
 case "${1:-toggle}" in

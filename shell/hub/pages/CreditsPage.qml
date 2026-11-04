@@ -79,7 +79,7 @@ Item {
 
     // display sizes the token scale does not name, built only from tokens
     // (mirrors the Profile plate); commented with the section 9 target.
-    readonly property int fKanji: Tokens.fHero + Tokens.fValue + Tokens.s1   // 64: the 感謝 hero
+    readonly property int fKanji: Tokens.fHero + Tokens.fValue + Tokens.s1   // 64: the credits hero
     readonly property int fByline: (Tokens.fMicro + Tokens.fTiny) / 2        // 10: the mono author
     readonly property int fRole: (Tokens.fSmall + Tokens.fMicro) / 2         // 12: role / body desc
 
@@ -102,7 +102,7 @@ Item {
         Text {
             anchors.centerIn: parent
             rotation: -90
-            text: "ASURA  \u00b7  \u611f\u8b1d KANSHA  \u00b7  SHOT ON BLACK"
+            text: "ASURA  \u00b7  CREDITS  \u00b7  SHOT ON BLACK"
             color: Tokens.inkFaint
             font.family: Tokens.mono
             font.pixelSize: Tokens.fTiny
@@ -146,7 +146,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
-                        text: "天"
+                        text: "A"
                         color: Tokens.ink
                         font.family: Tokens.jp
                         font.pixelSize: Tokens.fMicro
@@ -175,7 +175,7 @@ Item {
                     width: parent.width
                     spacing: 0
                     Text {
-                        text: "感謝"
+                        text: "CREDITS"
                         color: Tokens.ink
                         font.family: Tokens.jp
                         font.pixelSize: pg.fKanji

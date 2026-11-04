@@ -1,9 +1,15 @@
 # Adopting ASURA on an existing machine
 
-`asura adopt` switches a stock Ubuntu machine's desktop over to the ASURA shell, in place, without
+`asura adopt` switches a stock machine's desktop over to the ASURA shell, in place, without
 reinstalling and without touching the kernel, the bootloader or the user's data. This document
 is the design for that feature: what it is, what it refuses to do, how it stays reversible at
 every step, and how a user gets back to a working GNOME desktop if anything goes wrong.
+
+> **Implementation status:** `asura adopt` does not exist in this tree; `desktop/internal/adopt/`
+> is absent. This is a design document. It describes the preflight, the plan, the state file,
+> the undo script and the never-write promises as data — none of which is implemented yet.
+> The Ubuntu-era sections below are the design record; the Void runit service graph in
+> [`session.md`](session.md) is the shipped session reality.
 
 Read [`architecture.md`](architecture.md) first. Every decision referenced here is settled
 there; this document does not reopen any of it.
@@ -25,8 +31,8 @@ What they get is the ASURA shell:
 - ASURA's portal stack — `xdg-desktop-portal-hyprland` and `xdg-desktop-portal-gtk`
 - Ghostty, zsh, Neovim, and the rest of ASURA's runtime stack
 
-The distribution is still Ubuntu's. ASURA's packages are installed on top of it, exactly as they
-are on an ASURA OS install, and they obey the same rule they obey everywhere else:
+The distribution's base layer is unchanged. ASURA's packages are installed on top of it,
+exactly as they are on an ASURA OS install, and they obey the same rule they obey everywhere else:
 
 > **ASURA's packages write only to `/usr/share/asura/` and `/etc/asura/`. Never to another package's
 > files.**

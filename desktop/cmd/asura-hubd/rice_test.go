@@ -492,7 +492,7 @@ func TestCaptureNewStoresDecorsAndLiveWall(t *testing.T) {
 	w(widgetsStorePath(), `{"clock24h":true,"clockScale":1.2}`)
 	w(visualizerStorePath(), `{"bars":116,"style":"bars"}`)
 	w(decorStorePath(), `{"input.touchpad":{"shot":6,"zoom":1,"src":"file://`+decorPic+`"},"input.map":{"shot":10,"src":""}}`)
-	w(brandStorePath(), `{"name":"Berserk","markText":"力","markImage":"`+mark+`"}`)
+	w(brandStorePath(), `{"name":"Berserk","markText":"A","markImage":"`+mark+`"}`)
 	w(filepath.Join(dir, "state", "asura-wallpaper"), clip+"\n")
 
 	r, err := captureRice("Wave", []string{"all"})

@@ -102,7 +102,7 @@ Column {
 
     SettingsCard {
         colors: root.colors
-        title: I18n.tr("Screen"); kana: "画面"
+        title: I18n.tr("Screen"); kana: ""
         width: parent.width
 
         RowInput {
@@ -117,7 +117,7 @@ Column {
 
     SettingsCard {
         colors: root.colors
-        title: I18n.tr("Warm light"); kana: "暖色"
+        title: I18n.tr("Warm light"); kana: ""
         width: parent.width
 
         RowToggle {

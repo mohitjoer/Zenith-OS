@@ -22,7 +22,7 @@ Item {
         { name: I18n.tr("OVERVIEW"), items: [ { key: "dashboard", name: I18n.tr("Dashboard") } ] },
         { name: I18n.tr("FLEET"), items: [ { key: "machines", name: I18n.tr("Machines") }, { key: "remotes", name: I18n.tr("Remotes") } ] }
     ]
-    readonly property var jpName: ({ "dashboard": "一覧", "machines": "仮想", "remotes": "遠隔" })
+    readonly property var jpName: ({ "dashboard": "", "machines": "", "remotes": "" })
 
     Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Tokens.line }
 
@@ -43,7 +43,7 @@ Item {
             Row {
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s4 }
                 spacing: Tokens.s3
-                Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 22 }
+                Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 22 }
                 Column {
                     spacing: 1
                     anchors.verticalCenter: parent.verticalCenter

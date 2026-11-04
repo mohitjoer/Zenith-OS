@@ -9,7 +9,7 @@ import (
 
 // a compact profile.json: hero.kind=custom with a bare source name, plus a few
 // other fields. Compact so the verbatim-carry round-trip is byte-exact.
-const sampleProfile = `{"preset":"full","heroSide":"right","hero":{"kind":"custom","source":"hero.png","focalX":0.5,"focalY":0.4,"zoom":1,"invert":false},"text":{"name":"Nero","tagline":"力"},"vitals":["core","gpu"]}`
+const sampleProfile = `{"preset":"full","heroSide":"right","hero":{"kind":"custom","source":"hero.png","focalX":0.5,"focalY":0.4,"zoom":1,"invert":false},"text":{"name":"Nero","tagline":"ASURA"},"vitals":["core","gpu"]}`
 
 // a short blob of arbitrary bytes standing in for the custom hero image; the
 // round-trip must restore these exactly.

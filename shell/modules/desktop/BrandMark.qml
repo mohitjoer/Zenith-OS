@@ -3,11 +3,11 @@ import QtQuick
 import Qt5Compat.GraphicalEffects
 import "Singletons"
 
-// The desktop brand seal, 天 by default. Users swap it globally (their own
+// The desktop brand seal, A by default. Users swap it globally (their own
 // glyph/text, or an image) from Asura Settings -> Shell -> Global; stored in
 // ~/.config/asura/brand.json. Asura's own apps (the Hub, ryo* apps) never use
-// this and keep the 天 brand. Drop-in for the old
-// `Text { text: "天"; font.family: Theme.fontJp; color: Theme.brand }` seal:
+// this and keep the Asura brand. Drop-in for the old
+// `Text { text: "A"; font.family: Theme.fontJp; color: Theme.brand }` seal:
 // pass the old pixelSize as `size` and the old colour as `color`.
 Item {
     id: mark
@@ -15,7 +15,7 @@ Item {
     property real size: 13
     property color color: Theme.brand
     property int weight: Font.Medium
-    // recolour a single-colour image mark to `color` (matches the tinted 天
+    // recolour a single-colour image mark to `color` (matches the tinted Asura mark
     // idiom); off shows a full-colour logo as-is. no effect in text mode.
     property bool tint: Theme.markTint
 
@@ -38,7 +38,7 @@ Item {
         font.pixelSize: mark.size
     }
 
-    // custom image mark. tint recolours a single-colour logo to `color` (the 天
+    // custom image mark. tint recolours a single-colour logo to `color` (the Asura mark
     // idiom) via an alpha-preserving overlay, so a dark OR light mark both take
     // the accent; tint off shows a full-colour logo as-is.
     Image {

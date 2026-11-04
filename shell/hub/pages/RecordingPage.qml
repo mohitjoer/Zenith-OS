@@ -444,7 +444,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "天"; color: Tokens.ink; font.family: Tokens.jp
+                text: "A"; color: Tokens.ink; font.family: Tokens.mono
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
@@ -491,7 +491,7 @@ Item {
             SettingCard {
                 width: col.colWidth
                 title: I18n.tr("KEY PRESSES")
-                kana: "鍵"
+                kana: ""
 
                 Text {
                     width: parent.width

@@ -135,7 +135,7 @@ Item {
                     Text {
                         visible: cell.style === "kanji"
                         anchors.centerIn: parent
-                        text: ["\u4e00", "\u4e8c", "\u4e09", "\u56db", "\u4e94"][cell.index] || ""
+                        text: ["1", "2", "3", "4", "5"][cell.index] || ""
                         color: cell.isFocused  ? cell.seal
                              : cell.isOccupied ? Qt.rgba(cell.seal.r, cell.seal.g, cell.seal.b, 0.7)
                                                : Qt.rgba(cell.seal.r, cell.seal.g, cell.seal.b, 0.3)

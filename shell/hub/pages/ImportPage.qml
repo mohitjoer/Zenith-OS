@@ -472,7 +472,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "天"; color: Tokens.ink; font.family: Tokens.jp
+                text: "A"; color: Tokens.ink; font.family: Tokens.mono
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
@@ -1129,7 +1129,7 @@ Item {
                 Row {
                     spacing: Tokens.s2
                     Text {
-                        text: pg.undone ? "空" : "天"
+                        text: pg.undone ? "" : "A"
                         color: pg.undone ? Tokens.inkDim : Tokens.sun
                         font.family: Tokens.jp; font.pixelSize: Tokens.fHero
                         anchors.verticalCenter: parent.verticalCenter

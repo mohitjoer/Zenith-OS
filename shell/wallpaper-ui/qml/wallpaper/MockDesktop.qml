@@ -73,7 +73,7 @@ Item {
         }
         Text {
             anchors.centerIn: parent
-            text: "\u9f8d  asura"
+            text: "asura"
             color: Qt.rgba(mock.cFg.r, mock.cFg.g, mock.cFg.b, 0.82)
             font.family: Style.fontFamily; font.pixelSize: 10 * mock.s
         }

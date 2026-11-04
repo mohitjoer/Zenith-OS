@@ -7,7 +7,7 @@ import "kit/Routes.js" as Routes
 import qs.Ui
 import qs.Ui.Singletons
 
-// QS Bar Settings: the panel the bar's 天 logo opens. It is about one thing, the
+// QS Bar Settings: the panel the bar's Asura logo opens. It is about one thing, the
 // bar, in four routes down one rail: Bar (where it sits and how its surface
 // reads), Layout (the three lanes you arrange the widgets in), Widgets (every
 // widget as a row you show, size, colour and tune) and Dock (the app dock beside

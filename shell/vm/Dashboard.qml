@@ -62,10 +62,10 @@ Item {
     property var now: new Date()
     Timer { interval: 30000; running: dash.active; repeat: true; triggeredOnStart: true; onTriggered: dash.now = new Date() }
 
-    // ── the 顔-equivalent watermark: the seal behind the plate ──
+    // ── the brand watermark: the seal behind the plate ──
     Watermark {
         anchors.fill: parent
-        text: "天"
+        text: "A"
     }
 
     Flickable {
@@ -93,7 +93,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Tokens.s2
                     Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: "A"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                     Text {
                         text: I18n.tr("HARBOUR · COMMAND")
                         color: Tokens.inkMuted
@@ -105,7 +105,7 @@ Item {
                 Marginalia {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    kana: "みなと"
+                    kana: ""
                     index: Qt.formatDateTime(dash.now, "HH:mm")
                     glyph: "column"; glyph2: "torii"
                     chevrons: true

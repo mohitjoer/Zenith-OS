@@ -6,7 +6,7 @@ import "../../modules"
 import qs.Ui
 import qs.Ui.Singletons
 
-// Layout route (配置): the centrepiece. The bar is data, so here it is drawn as
+// Layout route : the centrepiece. The bar is data, so here it is drawn as
 // its own geometry -- three lanes side by side (LEFT, CENTER, RIGHT), each a
 // list of its widgets in bar order, top to bottom, every one with its own on/off
 // switch so nothing hides behind a scroll. Pick a row and the strip beneath
@@ -502,7 +502,7 @@ Item {
                         }
                         Item { width: parent.width - 200; height: 1 }
                         UiText {
-                            text: "\u5f15\u5165"
+                            text: ""
                             color: Tokens.inkFaint
                             font.family: Tokens.jp
                             font.pixelSize: Tokens.fSmall

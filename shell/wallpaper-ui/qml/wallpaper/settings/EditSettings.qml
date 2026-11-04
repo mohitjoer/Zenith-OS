@@ -269,7 +269,7 @@ Column {
     SettingsCard {
         visible: root._group === "grade"
         colors: root.colors
-        title: I18n.tr("Grade"); kana: "色"
+        title: I18n.tr("Grade"); kana: ""
         width: parent.width
 
         Column {
@@ -300,7 +300,7 @@ Column {
     SettingsCard {
         visible: root._group === "effects"
         colors: root.colors
-        title: I18n.tr("Effects"); kana: "彩"
+        title: I18n.tr("Effects"); kana: ""
         subtitle: root._selectedEffect ? root._selectedEffect.description : I18n.tr("gowall recolour and stylise the focused wallpaper.")
         width: parent.width
 
@@ -372,7 +372,7 @@ Column {
     SettingsCard {
         visible: root._group === "grade" && root._isVideo
         colors: root.colors
-        title: I18n.tr("Palette frame"); kana: "採色"
+        title: I18n.tr("Palette frame"); kana: ""
         width: parent.width
 
         RowInput {

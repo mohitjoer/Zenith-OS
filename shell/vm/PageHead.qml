@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Ui.Singletons
 
-// A page head, sized to its own content: the eyebrow lead (a rule, the 天 seal,
+// A page head, sized to its own content: the eyebrow lead (a rule, the Asura mark,
 // a tracked label), the Fraunces title, and an optional blurb. Because it reports
 // its real implicitHeight, the toolbar or content anchored below it can never
 // ride up into the title -- one head grammar, spaced the same on every plate.
@@ -24,7 +24,7 @@ Item {
             visible: head.eyebrow.length > 0
             spacing: Tokens.s2
             Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-            Text { text: "天"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
             Text {
                 text: head.eyebrow
                 color: Tokens.inkMuted

@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Ui.Singletons
 
-// The store's app bar, in two tiers. Tier 1 carries identity (the 天 mark and
+// The store's app bar, in two tiers. Tier 1 carries identity (the Asura mark and
 // wordmark), a persistent search field with a magnifier, and the account
 // actions (Library, Refresh). Tier 2 is the category navigation as bone-invert
 // plates (the design system's Tabs idiom), so every section stays visible
@@ -151,7 +151,7 @@ Item {
             anchors { left: parent.left; leftMargin: Tokens.s6; verticalCenter: parent.verticalCenter }
             spacing: Tokens.s3
             Text {
-                text: "天"
+                text: "A"
                 color: Tokens.ink
                 font.family: Tokens.jp
                 font.pixelSize: 22
