@@ -23,6 +23,13 @@ set -euo pipefail
 unset __QUICKSHELL_CRASH_INFO_FD __QUICKSHELL_CRASH_DUMP_PID \
 	__QUICKSHELL_CRASH_DUMP_FD __QUICKSHELL_CRASH_LOG_FD __QUICKSHELL_CRASH_SIGNAL
 
+# Ensure launched applications start in user's home directory rather than a daemon/service folder
+case "$PWD" in
+*service* | /run* | /)
+	cd "$HOME" 2>/dev/null || true
+	;;
+esac
+
 usage() {
 	echo "usage: asura-app <role> [-- <program> [arg...]]" >&2
 	echo "       asura-app --which <role>" >&2

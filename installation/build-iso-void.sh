@@ -467,6 +467,7 @@ cp -a "$INCLUDE_DIR/usr/share/asura"/* "$INCLUDE_DIR/etc/skel/.config/asura/"
 # Pre-seed Ghostty terminal configuration in skeleton
 cat >"$INCLUDE_DIR/etc/skel/.config/ghostty/config" <<'EOF'
 config-file = ?~/.config/asura/apps/ghostty/config
+working-directory = home
 EOF
 
 # Pre-seed zsh configuration in skeleton

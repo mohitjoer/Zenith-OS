@@ -236,8 +236,6 @@ decoration:blur:enabled = false
 decoration:shadow:enabled = false
 animations:enabled = false
 misc:vfr = true
-render:explicit_sync = 0
-render:explicit_sync_kms = 0
 cursor:no_hardware_cursors = true
 misc:allow_session_lock_restore = true
 VMCFG
