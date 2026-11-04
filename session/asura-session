@@ -214,6 +214,7 @@ if grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/de
    grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
    lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
     echo "asura-session: VM hypervisor detected, applying high-performance VM defaults"
+    export ASURA_IS_VM=1
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export AQ_NO_MODIFIERS=1
     export WLR_NO_HARDWARE_CURSORS=1
@@ -232,6 +233,7 @@ misc:disable_hyprland_logo = true
 misc:disable_splash_rendering = true
 cursor:no_hardware_cursors = true
 misc:allow_session_lock_restore = true
+env = LIBGL_ALWAYS_SOFTWARE,1
 VMCFG
 fi
 

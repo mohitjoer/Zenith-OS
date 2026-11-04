@@ -21,12 +21,21 @@
 # the thing that knows the display is the thing that runs this.
 set -eu
 
+# Detect virtualized GPU environment for desktop apps & Qt clients
+if [ -n "${ASURA_IS_VM:-}" ] || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
+	export LIBGL_ALWAYS_SOFTWARE=1
+	export ASURA_IS_VM=1
+fi
+
 # Update activation environment across D-Bus
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
 	dbus-update-activation-environment --all 2>/dev/null || \
 	dbus-update-activation-environment \
 		XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION \
-		XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR 2>/dev/null || true
+		XDG_SESSION_TYPE WAYLAND_DISPLAY XDG_RUNTIME_DIR LIBGL_ALWAYS_SOFTWARE ASURA_IS_VM 2>/dev/null || true
 fi
 
 # Start user runit supervision

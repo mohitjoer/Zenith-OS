@@ -62,12 +62,23 @@ start_services() {
 		done
 	fi
 
+	# Detect virtual machine graphics fallback for user desktop services
+	if [ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]; then
+		if [ -n "${ASURA_IS_VM:-}" ] || \
+		   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+		   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+		   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
+			export LIBGL_ALWAYS_SOFTWARE=1
+			export ASURA_IS_VM=1
+		fi
+	fi
+
 	# Update D-Bus activation environment so activated tools know Wayland & runtime
 	if command -v dbus-update-activation-environment >/dev/null 2>&1; then
 		dbus-update-activation-environment --all 2>/dev/null || \
 		dbus-update-activation-environment \
 			XDG_SESSION_DESKTOP XDG_CURRENT_DESKTOP DESKTOP_SESSION \
-			XDG_SESSION_TYPE WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR 2>/dev/null || true
+			XDG_SESSION_TYPE WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR LIBGL_ALWAYS_SOFTWARE ASURA_IS_VM 2>/dev/null || true
 	fi
 
 	# Method 1: If runsvdir is available, run it over ~/.config/service

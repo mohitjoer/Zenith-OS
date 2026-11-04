@@ -20,4 +20,14 @@ LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/asura"
 mkdir -p "$LOG_DIR"
 exec >>"$LOG_DIR/asura-wallpaper.log" 2>&1
 
+# Virtual machine graphics fallback for wallpaper UI
+if [ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]; then
+	if [ -n "${ASURA_IS_VM:-}" ] || \
+	   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+	   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+	   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
+		export LIBGL_ALWAYS_SOFTWARE=1
+	fi
+fi
+
 exec asura-wallpaper
