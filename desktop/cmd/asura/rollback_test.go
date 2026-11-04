@@ -48,4 +48,3 @@ func TestIsBtrfsSnapshotHelper(t *testing.T) {
 		t.Errorf("isBtrfsSnapshot after mkdir reported false")
 	}
 }
-

@@ -243,5 +243,3 @@ func createBtrfsSnapshot() (string, error) {
 	}
 	return snapPath, nil
 }
-
-
