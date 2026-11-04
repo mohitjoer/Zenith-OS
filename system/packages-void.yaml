@@ -83,7 +83,6 @@ desktop:
     - jq
     - ImageMagick
     - librsvg
-    - hypridle
     - hyprpicker
     - playerctl
     - cliphist

@@ -40,6 +40,7 @@ zed                    # code editor, gated in asura-app
 asura-vm-fetch         # fast-path VM downloader, gated by have in asura-vmd
 bsdtar                 # archive extraction fallback, gated in stash-install.sh
 cava                   # audio visualizer, gated by command -v in QML
+hypridle               # idle management daemon, optional on Void
 ddcutil                # external monitor DDC/CI control, gated in Devices.qml
 genisoimage            # ISO creation tool fallback in asura-vmd
 gtk-update-icon-cache  # icon cache updater, gated in asura-cmd-folders
