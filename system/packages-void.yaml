@@ -132,7 +132,6 @@ applications:
     - thunar-archive-plugin
     - gvfs
     - tumbler
-    - neovim
     - nano
     - btop
     - xdg-user-dirs

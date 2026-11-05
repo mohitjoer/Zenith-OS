@@ -87,7 +87,7 @@ func enableDevRole() int {
 	fmt.Println("[*] Provisioning Asura OS Developer Toolchain & AUR Bridge...")
 
 	if _, err := exec.LookPath("xbps-install"); err == nil {
-		_ = runCmd("sudo", "xbps-install", "-Sy", "git", "base-devel", "podman", "distrobox", "nodejs", "python3", "rustup", "lazygit", "neovim")
+		_ = runCmd("sudo", "xbps-install", "-Sy", "git", "base-devel", "podman", "distrobox", "nodejs", "python3", "rustup", "lazygit")
 	}
 
 	if _, err := exec.LookPath("distrobox"); err == nil {
