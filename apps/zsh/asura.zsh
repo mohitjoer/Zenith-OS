@@ -19,7 +19,7 @@ if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   }
 fi
 
-export EDITOR="${EDITOR:-nvim}" VISUAL="${VISUAL:-nvim}"
+export EDITOR="${EDITOR:-zed}" VISUAL="${VISUAL:-zed}"
 
 [[ -o interactive ]] || return
 

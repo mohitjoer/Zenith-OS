@@ -128,7 +128,7 @@ func editorName() string {
 	// "" -> ".", and true/false are no-op sentinels (automation, editor
 	// suppression), never real editors: fall back to the Asura default.
 	if ed == "" || ed == "." || ed == "true" || ed == "false" {
-		return "nvim (Asura default)"
+		return "zed (Asura default)"
 	}
 	return ed
 }

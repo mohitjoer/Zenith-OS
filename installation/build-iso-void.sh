@@ -319,6 +319,25 @@ MimeType=text/plain;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-r
 Keywords=Text;Editor;Development;
 EOF
 ln -sf dev.zed.Zed.desktop "$INCLUDE_DIR/usr/share/applications/zed.desktop"
+
+# Download and install official standalone Zed binary if not already cached
+ZED_CACHE="$BUILD_DIR/zed"
+mkdir -p "$ZED_CACHE"
+if [ ! -f "$ZED_CACHE/zed-linux-x86_64.tar.gz" ]; then
+	echo "build-iso-void: downloading Zed editor..."
+	curl -sSL -o "$ZED_CACHE/zed-linux-x86_64.tar.gz" "https://github.com/zed-industries/zed/releases/latest/download/zed-linux-x86_64.tar.gz" || true
+fi
+if [ -f "$ZED_CACHE/zed-linux-x86_64.tar.gz" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/lib/zed" "$INCLUDE_DIR/usr/bin"
+	tar -xzf "$ZED_CACHE/zed-linux-x86_64.tar.gz" --strip-components=1 -C "$INCLUDE_DIR/usr/lib/zed" 2>/dev/null || true
+	if [ -x "$INCLUDE_DIR/usr/lib/zed/bin/zed" ]; then
+		ln -sf /usr/lib/zed/bin/zed "$INCLUDE_DIR/usr/bin/zed"
+		mkdir -p "$INCLUDE_DIR/usr/share/icons/hicolor"
+		if [ -d "$INCLUDE_DIR/usr/lib/zed/share/icons/hicolor" ]; then
+			cp -rn "$INCLUDE_DIR/usr/lib/zed/share/icons/hicolor"/* "$INCLUDE_DIR/usr/share/icons/hicolor/" 2>/dev/null || true
+		fi
+	fi
+fi
 if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
 	cp "$REPO_ROOT/apps/mimeapps"/asura-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi
@@ -999,11 +1018,15 @@ MOTD
 mkdir -p "$ROOTFS/etc/profile.d"
 cat >"$ROOTFS/etc/profile.d/asura-autologin.sh" <<'PROFILE'
 if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
+	# Suppress text console cursor and clear screen to eliminate terminal flicker before GUI
+	setterm -cursor off 2>/dev/null || true
+	clear 2>/dev/null || true
 	command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update 2>/dev/null || true
 	if [ ! -d "$HOME/.config/asura/shell" ] && command -v asura >/dev/null 2>&1; then
 		asura materialize 2>/dev/null || true
 	fi
 	if ! /usr/share/asura/session/asura-session; then
+		setterm -cursor on 2>/dev/null || true
 		if command -v plymouth >/dev/null 2>&1; then
 			sudo -n plymouth --quit 2>/dev/null || plymouth --quit 2>/dev/null || sudo -n killall -9 plymouthd 2>/dev/null || true
 		fi
@@ -1025,18 +1048,10 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/
 			echo "  Log available at: ~/.local/state/asura/session.log"
 			echo
 		fi
-		if [ -f /etc/asura-live ] || grep -qE "boot=live|live" /proc/cmdline 2>/dev/null; then
-			echo "  Launching Asura OS Guided System Installer..."
-			echo "================================================================"
-			echo
-			sleep 2
-			sudo /usr/bin/asura-installer || true
-		else
-			echo "  To launch the installer directly, run: sudo asura install"
-			echo "  To retry launching the desktop, run: asura-session"
-			echo "================================================================"
-			echo
-		fi
+		echo "  To launch the installer directly, run: sudo asura install"
+		echo "  To retry launching the desktop, run: asura-session"
+		echo "================================================================"
+		echo
 	fi
 fi
 PROFILE

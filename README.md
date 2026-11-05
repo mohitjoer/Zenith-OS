@@ -47,7 +47,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | GPU & Power | `asura gpu` (PCI inspection & `prime-run` offload), `asura power` (profiles & NVIDIA RTX 3050 D3cold management) |
 | Terminal | Ghostty — strictly supported, configured by ASURA, never kitty |
 | User shell | zsh + starship |
-| Editor | Neovim |
+| Editor | Zed |
 | Boot chain | GRUB EFI |
 | Installer | `asura install` / `asura-installer.desktop` guided system installer |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |

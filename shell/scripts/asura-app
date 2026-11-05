@@ -106,10 +106,6 @@ terminal_command() {
 
 cli_editor() {
 	local e
-	if have nvim; then
-		printf 'nvim'
-		return 0
-	fi
 	for e in "${VISUAL:-}" "${EDITOR:-}"; do
 		[ -n "$e" ] && { printf '%s' "$e"; return 0; }
 	done
