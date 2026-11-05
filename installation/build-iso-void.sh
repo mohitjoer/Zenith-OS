@@ -319,6 +319,25 @@ MimeType=text/plain;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-r
 Keywords=Text;Editor;Development;
 EOF
 ln -sf dev.zed.Zed.desktop "$INCLUDE_DIR/usr/share/applications/zed.desktop"
+
+# Download and install official standalone Zed binary if not already cached
+ZED_CACHE="$BUILD_DIR/zed"
+mkdir -p "$ZED_CACHE"
+if [ ! -f "$ZED_CACHE/zed-linux-x86_64.tar.gz" ]; then
+	echo "build-iso-void: downloading Zed editor..."
+	curl -sSL -o "$ZED_CACHE/zed-linux-x86_64.tar.gz" "https://github.com/zed-industries/zed/releases/latest/download/zed-linux-x86_64.tar.gz" || true
+fi
+if [ -f "$ZED_CACHE/zed-linux-x86_64.tar.gz" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/lib/zed" "$INCLUDE_DIR/usr/bin"
+	tar -xzf "$ZED_CACHE/zed-linux-x86_64.tar.gz" --strip-components=1 -C "$INCLUDE_DIR/usr/lib/zed" 2>/dev/null || true
+	if [ -x "$INCLUDE_DIR/usr/lib/zed/bin/zed" ]; then
+		ln -sf /usr/lib/zed/bin/zed "$INCLUDE_DIR/usr/bin/zed"
+		mkdir -p "$INCLUDE_DIR/usr/share/icons/hicolor"
+		if [ -d "$INCLUDE_DIR/usr/lib/zed/share/icons/hicolor" ]; then
+			cp -rn "$INCLUDE_DIR/usr/lib/zed/share/icons/hicolor"/* "$INCLUDE_DIR/usr/share/icons/hicolor/" 2>/dev/null || true
+		fi
+	fi
+fi
 if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
 	cp "$REPO_ROOT/apps/mimeapps"/asura-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi

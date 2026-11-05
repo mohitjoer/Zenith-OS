@@ -11,7 +11,7 @@ import qs.Ui.Singletons
 // writing) and two live options sit under it: CONTINUE IN DASHBOARD (watch the
 // same turn there while it keeps running) and CANCEL. The finished answer is
 // selectable text over action chips: COPY, every entity the daemon detected
-// (files edit in nvim, folders open, URLs browse, commands and colors copy),
+// (files edit in zed, folders open, URLs browse, commands and colors copy),
 // then DASHBOARD. "\resume" lists recent asks and recalls a cached answer with
 // its chips intact, no model call. Chips and the resume list walk with the
 // arrow keys and fire with ENTER.
@@ -174,7 +174,7 @@ Item {
             root.finished();
             return;
         case "file":
-            Spawn.run(["asura-app", "terminal", "--", "nvim", String(chip.value)]);
+            Spawn.run(["asura-app", "editor", String(chip.value)]);
             break;
         case "dir":
         case "url":
@@ -192,7 +192,7 @@ Item {
         if (root.flash === chip.kind + "\u0000" + chip.value)
             return I18n.tr("COPIED");
         switch (chip.kind) {
-        case "file": return "nvim " + chip.label;
+        case "file": return "zed " + chip.label;
         case "dir": return I18n.tr("open %1").arg(chip.label);
         case "url": return chip.label;
         case "cmd": return "$ " + chip.label;

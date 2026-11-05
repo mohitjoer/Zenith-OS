@@ -29,7 +29,7 @@ What they get is the ASURA shell:
 - ASURA's Quickshell-drawn shell — bar, dock, launcher, popouts, widgets
 - `asura`, `asura-shell` and `asura-hub` as the control tools and the only writers of `org.asura.*`
 - ASURA's portal stack — `xdg-desktop-portal-hyprland` and `xdg-desktop-portal-gtk`
-- Ghostty, zsh, Neovim, and the rest of ASURA's runtime stack
+- Ghostty, zsh, Zed, and the rest of ASURA's runtime stack
 
 The distribution's base layer is unchanged. ASURA's packages are installed on top of it,
 exactly as they are on an ASURA OS install, and they obey the same rule they obey everywhere else:

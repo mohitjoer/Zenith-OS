@@ -134,7 +134,7 @@ func expandHome(p string) string {
 }
 
 // extractActions finds the entities an answer talks about and turns each into
-// one launcher chip: real files open in nvim, real directories in the file
+// one launcher chip: real files open in zed, real directories in the file
 // manager, URLs in the browser, runnable commands and colors copy.
 func extractActions(text string) []askAction {
 	var out []askAction

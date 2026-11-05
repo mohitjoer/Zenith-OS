@@ -151,7 +151,7 @@ var desktopMap = []desktopMapRow{
 	{"User overrides", "~/.config/asura/user_edits/ (wins at the mirrored path)", "asura materialize", "asura materialize"},
 	{"Terminal", "~/.config/ghostty/", "Ghostty", "relaunch ghostty"},
 	{"Shell + prompt", "~/.zshrc, ~/.config/starship.toml", "zsh; starship", "open a new shell"},
-	{"Editor", "~/.config/nvim/", "Neovim", "relaunch nvim"},
+	{"Editor", "~/.config/zed/", "Zed", "relaunch zed"},
 	{"File manager", "dconf org.gnome.nautilus.*", "Nautilus", "relaunch nautilus"},
 	{"Asura CLI", "binary `asura`; state ~/.local/state/asura/", "asura", "asura update | status | materialize | doctor"},
 	{"Palette", "~/.cache/asura/colors.json", "asura-shell daemon (asura theme generate)", "asura-wallpaper wallpaper repaint"},

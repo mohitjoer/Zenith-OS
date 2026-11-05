@@ -166,7 +166,7 @@ func TestHistoryCounts(t *testing.T) {
 // default. "true"/"false" surfaced during live testing (automation and editor
 // suppression set EDITOR to them, and they are never real editors).
 func TestEditorName(t *testing.T) {
-	const dflt = "nvim (Asura default)"
+	const dflt = "zed (Asura default)"
 	cases := []struct {
 		name   string
 		editor string
@@ -175,7 +175,7 @@ func TestEditorName(t *testing.T) {
 		{"true sentinel falls back", "true", dflt},
 		{"false sentinel falls back", "false", dflt},
 		{"empty falls back", "", dflt},
-		{"absolute path reduced to base", "/usr/bin/nvim", "nvim"},
+		{"absolute path reduced to base", "/usr/bin/zed", "zed"},
 		{"bare name kept", "hx", "hx"},
 	}
 	for _, tc := range cases {

@@ -24,7 +24,7 @@ ASURA OS is powered by a Void Linux x86_64 (glibc) base layer with runit service
 | GPU & Power | `asura gpu` + `prime-run` offload; `asura power` for CPU governor and NVIDIA RTX 3050 D3cold power management | Low power drain on Intel Iris Xe graphics while unlocking high performance discrete NVIDIA GPU on demand. |
 | Terminal | Ghostty, strictly supported and configured by ASURA, never kitty | GPU-accelerated and client-side rendered. Zero kitty policy. See [terminal: Ghostty](#terminal-ghostty). |
 | User shell | zsh + starship | fish ships alongside as an alternative. |
-| Editor | Neovim | Modal, extensible, and the ubiquitous developer editor. |
+| Editor | Zed | High-performance, GPU-accelerated code editor. |
 | Boot chain | GRUB EFI | Reliable UEFI boot chain across NVMe/SATA drives. |
 | Login manager | `sddm` / tty1 autologin in Live ISO | Automated Wayland autologin on live boot and clean display manager integration. |
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd | Modern Wayland audio/video routing, power tuning, and network management. |
