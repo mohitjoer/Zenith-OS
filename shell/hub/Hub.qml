@@ -825,7 +825,11 @@ Rectangle {
         return out;
     }
 
-    Component.onCompleted: rebase()
+    Component.onCompleted: {
+        rebase();
+        var envPage = Quickshell.env("ASURA_HUB_PAGE");
+        if (envPage && envPage.length > 0) hub.navigate(envPage);
+    }
     Process {
         id: sectionGet
         command: ["asura-hubd", "config", "get", "section"]
