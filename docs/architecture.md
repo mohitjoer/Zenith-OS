@@ -1061,6 +1061,26 @@ number in this document was earned by measuring something; this one is no differ
 The mark is drawn nowhere it is installed as a raster. Anything that needs it at runtime reads
 the SVG.
 
+**Logo Variant Enforcement:**
+- `public/asura-logo-on-dark.svg` (pure white `#ffffff`) is used exclusively across all dark desktop surfaces, the Asura Settings Hub masthead, page eyebrows, bar modules, and the fallback brand mark seal.
+- Coloured and red logo variants are prohibited throughout the system to preserve ASURA's strict monochrome design system.
+- `public/asura-logo.svg` (black `#000000`) is reserved strictly for light-on-white printable or light canvas exports.
+
+---
+
+## Typography
+
+ASURA specifies a strict, modern typographic hierarchy configured through fontconfig (`/etc/fonts/local.conf` and `/etc/fonts/fonts.conf`) and QML font tokens (`Tokens.qml`):
+
+| Role | Font Family | Purpose |
+|---|---|---|
+| **Display / Headings** | `Space Grotesk` | Rail masthead, page headers, section eyebrows, hero metrics |
+| **User Interface** | `Inter` | Buttons, navigation labels, forms, dialogs, body text |
+| **Monospace / Terminal** | `JetBrainsMono Nerd Font` | Ghostty terminal, CLI output, code listings, telemetry readout |
+
+Fontconfig explicitly prefers `Inter` and `Space Grotesk` for `sans-serif`/`sans`, and `JetBrainsMono Nerd Font` for `monospace`, avoiding legacy fallbacks to DejaVu.
+
+
 ## Writing a backlight
 
 The sidebar needs to dim the screen, and a user who is not in the `video` group cannot write

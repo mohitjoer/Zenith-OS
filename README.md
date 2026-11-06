@@ -53,6 +53,7 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
 | Package manager | XBPS, with first-party repository `asura-xbps-repo`, plus `apm` package manager frontend |
+| Software Store | [Asura Store](https://github.com/ASURA-OS/asura-store) — Graphical showroom window & Go data plane (`asura-store`), multi-provider XBPS/apt/plugin/theme catalogue |
 | Agent layer | resident OS agent with a local knowledge vault |
 
 The desktop shell is inspired by ryoku.
@@ -214,6 +215,8 @@ are binding, not advisory:
 - Dark and light variants declare the same properties in the same order and differ only in
   token values.
 - Contrast floor: 4.5:1 for body ink, 3:1 for UI shapes and indicators.
+- **Typography hierarchy**: `Space Grotesk` for display headings and section marks, `Inter` for primary UI text, and `JetBrainsMono Nerd Font` for monospace code and terminal environments.
+- **Strict white mark**: `public/asura-logo-on-dark.svg` (`#ffffff`) is exclusively used across all dark UI surfaces; colored or red logos are forbidden to preserve the clean monochrome identity.
 
 Aesthetic character comes from material, shape and rhythm — never from hue.
 

@@ -1,20 +1,24 @@
 # The store
 
-ASURA Store is the package store window and command. It is a port of Ryoku's
-RyoStore: the software installs through package helpers, and the privilege comes from polkit.
+ASURA Store is the package and customization showroom window and CLI data plane. It is a port of Ryoku's
+RyoStore: software installs through native package managers (XBPS on Void Linux, apt on Debian/Ubuntu hosts)
+and plugin managers (`asura plugin install`), and privilege escalation is safely handled through polkit.
 
+The canonical standalone repository is hosted at **[github.com/ASURA-OS/asura-store](https://github.com/ASURA-OS/asura-store)**.
+The tree in this repository keeps byte-identical mirrors of the standalone store:
+- `desktop/cmd/asura-store/` mirrors `cmd/asura-store/`
+- `shell/store/` and `shell/store.qml` mirror `ui/`
+- `desktop/catalog/` mirrors `catalog/`
+
+CI parity is automatically enforced on every push and PR via `.github/workflows/store-sync.yml`.
 
 | Piece | Where | What it does |
 |---|---|---|
-| `asura-store` | `desktop/cmd/asura-store` | The data plane: catalogue, search, check, install, remove, open. |
-| The window | `shell/store.qml`, `shell/store/` | RyoStore's window, ported as it was. |
-| `asura-pkg-add`, `asura-pkg-remove` | `system/helpers/pkg` | Run apt-get as root through `pkexec`. |
-| `catalog/` | the standalone `asura-store` checkout; `desktop/catalog/` in this tree | Local catalogue JSON (`plugins/`, `themes/`, `barstyles/`), staged to `/usr/share/asura/store/catalog/`. A checkout update changes the shelf without a rebuild. |
-| `session/asura-store` | `/usr/share/asura/session/asura-store` | Starts the window under a lock. It is not on `PATH`, because `/usr/bin/asura-store` is the command. |
-
-The backend in `desktop/cmd/asura-store/` is kept byte-identical with the
-standalone `asura-store` repository, which the ISO builder prefers
-(`ASURA_STORE_SRC` decides) and whose `catalog/` fills `/usr/share/asura/store/catalog/`.
+| `asura-store` | `desktop/cmd/asura-store` (binary `/usr/bin/asura-store`) | The Go data plane: catalogue, search, check, install, remove, open, settings. |
+| The window | `shell/store.qml`, `shell/store/` (`/usr/share/asura/store/ui`) | Quickshell showroom window: discover stage, search shelf, product overlays. |
+| `asura-pkg-add`, `asura-pkg-remove` | `system/helpers/pkg` | Run package managers as root through `pkexec`. |
+| `catalog/` | `desktop/catalog/` (`/usr/share/asura/store/catalog/`) | Local catalogue JSON (`plugins/`, `themes/`, `barstyles/`). A checkout update changes the shelf without a rebuild. |
+| `session/asura-store` | `/usr/share/asura/session/asura-store` | Starts the window under a single-instance lock. |
 
 ## How an install happens
 
