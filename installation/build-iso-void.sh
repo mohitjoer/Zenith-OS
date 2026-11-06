@@ -461,7 +461,28 @@ echo "build-iso-void: building Asura Go binaries..."
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-shell" ./cmd/asura-shell
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-wallpaper" ./cmd/asura-wallpaper
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/apm" ./cmd/apm
-	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-store" ./cmd/asura-store
+	# Build Asura Store (prioritizing standalone repository https://github.com/ASURA-OS/asura-store)
+	STORE_SRC="${ASURA_STORE_SRC:-}"
+	if [ -z "$STORE_SRC" ]; then
+		if [ -d "$REPO_ROOT/../asura-store" ]; then
+			STORE_SRC="$REPO_ROOT/../asura-store"
+		elif [ -d "/home/mohit/code/asura-store" ]; then
+			STORE_SRC="/home/mohit/code/asura-store"
+		elif [ -d "/home/mohit/code/asura/asura-store" ]; then
+			STORE_SRC="/home/mohit/code/asura/asura-store"
+		fi
+	fi
+	if [ -n "$STORE_SRC" ] && [ -d "$STORE_SRC/cmd/asura-store" ]; then
+		echo "build-iso-void: building asura-store from standalone repo ($STORE_SRC)..."
+		( cd "$STORE_SRC/cmd/asura-store" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$INCLUDE_DIR/usr/bin/asura-store" . )
+		if [ -d "$STORE_SRC/catalog" ]; then
+			mkdir -p "$INCLUDE_DIR/usr/share/asura/store/catalog"
+			cp -r "$STORE_SRC/catalog"/* "$INCLUDE_DIR/usr/share/asura/store/catalog/" 2>/dev/null || true
+		fi
+	else
+		echo "build-iso-void: building asura-store from desktop tree..."
+		CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-store" ./cmd/asura-store
+	fi
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-agent" ./cmd/asura-agent
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-mon" ./cmd/asura-vm/mon
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-ssh" ./cmd/asura-vm/remote
@@ -849,6 +870,12 @@ if [ -f "$REPO_ROOT/session/applications/asura-installer.desktop" ]; then
 	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
 	chmod 755 "$ROOTFS/home/asura/Desktop/asura-installer.desktop" 2>/dev/null || true
 	chmod 755 "$INCLUDE_DIR/etc/skel/Desktop/asura-installer.desktop" 2>/dev/null || true
+fi
+if [ -f "$REPO_ROOT/session/applications/asura-store.desktop" ]; then
+	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$ROOTFS/home/asura/Desktop/"
+	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
+	chmod 755 "$ROOTFS/home/asura/Desktop/asura-store.desktop" 2>/dev/null || true
+	chmod 755 "$INCLUDE_DIR/etc/skel/Desktop/asura-store.desktop" 2>/dev/null || true
 fi
 if [ -d "$ROOTFS/usr/share/asura" ]; then
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/home/asura/.config/asura/"

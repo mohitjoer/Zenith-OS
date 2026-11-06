@@ -92,7 +92,15 @@ func runSearch(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("search needs one query")
 	}
-	items, err := aptProvider{}.Search(context.Background(), args[0])
+	var items []Item
+	var err error
+	if have("xbps-query") {
+		items, err = xbpsProvider{}.Search(context.Background(), args[0])
+	} else if have("apt-cache") {
+		items, err = aptProvider{}.Search(context.Background(), args[0])
+	} else {
+		items, err = xbpsProvider{}.Search(context.Background(), args[0])
+	}
 	if err != nil {
 		return err
 	}

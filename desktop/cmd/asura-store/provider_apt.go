@@ -31,7 +31,7 @@ var seedApps = []struct{ pkg, title string }{
 	{"handbrake", "HandBrake"}, {"easyeffects", "EasyEffects"}, {"pavucontrol", "Volume Control"},
 	{"libreoffice", "LibreOffice"}, {"keepassxc", "KeePassXC"}, {"syncthing", "Syncthing"},
 	{"transmission-gtk", "Transmission"}, {"qutebrowser", "qutebrowser"},
-	{"neovim", "Neovim"}, {"git", "Git"}, {"lazygit", "lazygit"}, {"tmux", "tmux"},
+	{"zed", "Zed"}, {"git", "Git"}, {"lazygit", "lazygit"}, {"tmux", "tmux"},
 	{"btop", "btop"}, {"htop", "htop"}, {"ripgrep", "ripgrep"}, {"fzf", "fzf"},
 	{"gparted", "GParted"}, {"steam-installer", "Steam"}, {"lutris", "Lutris"},
 }

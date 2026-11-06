@@ -115,7 +115,7 @@ Singleton {
     function starterPins() {
         void root.iconRev;
         const out = [];
-        for (const role of [["com.mitchellh.ghostty"], ["firefox", "brave-browser", "chromium", "google-chrome"], ["org.gnome.Nautilus"]]) {
+        for (const role of [["com.mitchellh.ghostty"], ["firefox", "brave-browser", "chromium", "google-chrome"], ["asura-store"], ["org.gnome.Nautilus"]]) {
             const hit = role.find(id => DesktopEntries.heuristicLookup(id));
             if (hit) out.push(hit);
         }

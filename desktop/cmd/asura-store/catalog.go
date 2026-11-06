@@ -17,11 +17,18 @@ type Provider interface {
 	Remove(ctx context.Context, id string) error
 }
 
-// providers is the ordered catalogue registry in rail order. Each later task
-// appends its provider here; BuildCatalog preserves this order. All providers
-// share one cache so a single probe fetches each source once.
+// providers is the ordered catalogue registry in rail order.
 func providers() []Provider {
-	return []Provider{aptProvider{}, barProvider{}}
+	var list []Provider
+	if have("xbps-query") {
+		list = append(list, xbpsProvider{})
+	} else if have("dpkg-query") {
+		list = append(list, aptProvider{})
+	} else {
+		list = append(list, xbpsProvider{})
+	}
+	list = append(list, barProvider{}, pluginProvider{}, themeProvider{})
+	return list
 }
 
 // owned reports whether the item is present on the machine: fully installed, or

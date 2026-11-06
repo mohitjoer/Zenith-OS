@@ -7,4 +7,4 @@ Exec=asura-store open discover
 Terminal=false
 Icon=system-software-install
 Categories=System;PackageManager;
-Keywords=store;software;apps;install;apt;packages;plugins;asura;
+Keywords=store;software;apps;install;xbps;packages;plugins;themes;asura;

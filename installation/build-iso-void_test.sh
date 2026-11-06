@@ -55,6 +55,10 @@ grep -Fq 'etc/issue' "$SCRIPT"
 grep -Fq 'etc/motd' "$SCRIPT"
 grep -Fq 'DejaVuSans.ttf' "$SCRIPT"
 grep -Fq 'plymouth --quit' "$SCRIPT"
+grep -Fq 'asura-store' "$SCRIPT"
+grep -Fq 'asura-store.desktop' "$SCRIPT"
+grep -Fq 'asura-store' "$REPO_ROOT/shell/Services/Dock.qml"
+test -s "$REPO_ROOT/session/applications/asura-store.desktop"
 
 # Verify boot splash asset exists
 if [ ! -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
