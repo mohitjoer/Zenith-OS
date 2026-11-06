@@ -19,7 +19,7 @@ import (
 // store compares it against the last acknowledged revision to light the refresh
 // dot only on a genuine change.
 //
-// Ported from Ryoku's ryostore backend (GPL-3.0).
+// Asura Store catalog revision hashing.
 
 func catalogRevision(cat Catalog) string {
 	lines := make([]string, 0, len(cat.Items))

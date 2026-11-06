@@ -139,12 +139,16 @@ cmd_caps() {
 }
 
 # ---- setup -----------------------------------------------------------------
-# quickemu is in Ubuntu's archive and pulls QEMU, swtpm and the SPICE viewer in
-# with it; OVMF is the UEFI firmware it boots guests with. asura-pkg-add asks
-# polkit for the password, so there is no sudo here and no terminal needed.
+# quickemu pulls QEMU, swtpm and the SPICE viewer in with it;
+# OVMF is the UEFI firmware it boots guests with.
 cmd_setup() {
-	have asura-pkg-add || die "asura-pkg-add is not installed. Run: sudo apt install quickemu ovmf"
-	asura-pkg-add quickemu ovmf
+	if have asura-pkg-add; then
+		asura-pkg-add quickemu ovmf
+	elif have xbps-install; then
+		pkexec xbps-install -y quickemu ovmf
+	else
+		die "package manager is not available to install quickemu ovmf"
+	fi
 	have quickemu || die "the install finished but quickemu is still missing; see the output above"
 	echo "Done: quickemu is installed. Close this window; asura-vm lights up in a few seconds."
 }

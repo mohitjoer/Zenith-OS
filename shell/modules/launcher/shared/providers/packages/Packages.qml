@@ -3,16 +3,16 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui.Singletons
 import "../../Singletons"
-import "apt.js" as Apt
+import "xbps.js" as Xbps
 import "../requeststate.js" as RequestState
 import ".."
 
-// Package provider backed by APT: `apt-cache search` for the names and
-// `dpkg-query` for what is installed. Routed by "/" is the actions panel;
+// Package provider backed by XBPS: `xbps-query -Rs` for the names and
+// `xbps-query -l` for what is installed. Routed by "/" is the actions panel;
 // packages use explicit "install "/"remove "/"search " queries (matching inir)
-// so a plain search never forks apt. Search is async + cached; installs/removes
-// run in a terminal so apt's output and the pkexec prompt are visible. The
-// provider registers only when apt-cache and dpkg-query exist.
+// so a plain search never forks xbps. Search is async + cached; installs/removes
+// run in a terminal so xbps's output and the pkexec prompt are visible. The
+// provider registers when xbps-query exists.
 Provider {
     id: packages
 
@@ -29,7 +29,7 @@ Provider {
     }
     property string cachedQuery: ""
     property var cachedRows: []
-    // { name: version } of what dpkg has installed, read alongside each search.
+    // { name: version } of what xbps has installed, read alongside each search.
     property var installed: ({})
     property string pendingQuery: ""
     property int pendingGeneration: 0
@@ -38,8 +38,8 @@ Provider {
     property bool installedFinished: false
     property bool searchFinished: false
 
-    // $@ is apt-get's own arguments; the terminal stays open to show the result.
-    readonly property string script: 'pkexec apt-get "$@"; printf "\\nPress Enter to close. "; read -r _'
+    readonly property string installScript: 'pkexec xbps-install -y "$@"; printf "\\nPress Enter to close. "; read -r _'
+    readonly property string removeScript: 'pkexec xbps-remove -y "$@"; printf "\\nPress Enter to close. "; read -r _'
 
     function setRequestState(next) {
         if (next === packages.requestState)
@@ -53,8 +53,8 @@ Provider {
     }
 
     function cancelProcesses() {
-        if (dpkgProc.inFlight)
-            dpkgProc.running = false;
+        if (installedProc.inFlight)
+            installedProc.running = false;
         if (searchProc.inFlight)
             searchProc.running = false;
     }
@@ -100,7 +100,7 @@ Provider {
 
     function startPending() {
         if (!packages.debounceReady
-                || dpkgProc.inFlight || searchProc.inFlight)
+                || installedProc.inFlight || searchProc.inFlight)
             return;
         var next = RequestState.markRunning(
             packages.requestState, packages.pendingQuery,
@@ -112,17 +112,17 @@ Provider {
         packages.installedFinished = false;
         packages.searchFinished = false;
 
-        dpkgProc.term = packages.pendingQuery;
-        dpkgProc.requestGeneration = packages.pendingGeneration;
-        dpkgProc.out = "";
-        dpkgProc.inFlight = true;
-        dpkgProc.didStart = false;
+        installedProc.term = packages.pendingQuery;
+        installedProc.requestGeneration = packages.pendingGeneration;
+        installedProc.out = "";
+        installedProc.inFlight = true;
+        installedProc.didStart = false;
         searchProc.term = packages.pendingQuery;
         searchProc.requestGeneration = packages.pendingGeneration;
         searchProc.out = "";
         searchProc.inFlight = true;
         searchProc.didStart = false;
-        dpkgProc.running = true;
+        installedProc.running = true;
         searchProc.running = true;
     }
 
@@ -140,8 +140,6 @@ Provider {
         if (m)
             return { op: m[1].toLowerCase(), term: m[2].trim() };
         var t = String(text || "").trim();
-        // a bare verb mid-typing (">install ") is an incomplete command, not
-        // a search for the literal word; searching it flashed unrelated rows.
         if (/^(install|remove|search)$/i.test(t))
             return null;
         return t.length ? { op: "search", term: t } : null;
@@ -151,9 +149,9 @@ Provider {
         var version = packages.installed[pkg.name];
         var verb = op === "remove" ? I18n.tr("Remove") : (version ? I18n.tr("Reinstall") : I18n.tr("Install"));
         return {
-            id: "pkg:apt:" + pkg.name,
+            id: "pkg:xbps:" + pkg.name,
             title: pkg.name + (version ? "  " + version : ""),
-            subtitle: "apt" + (version ? "  " + I18n.tr("(installed)") : "") + "  " + pkg.description,
+            subtitle: (version ? I18n.tr("(installed)") + "  " : "") + pkg.description,
             icon: "",
             type: "Package",
             score: 0,
@@ -162,11 +160,8 @@ Provider {
                 name: verb,
                 icon: "",
                 execute: function () {
-                    var args = op === "remove" ? ["remove", "-y", pkg.name]
-                        : (version ? ["install", "--reinstall", "-y", pkg.name] : ["install", "-y", pkg.name]);
-                    Spawn.run(["asura-app", "terminal", "--", "sh", "-c", packages.script, "sh"].concat(args));
-                    // the install/remove will change what a re-search should
-                    // show; drop the cached rows so the next query refetches.
+                    var script = op === "remove" ? packages.removeScript : packages.installScript;
+                    Spawn.run(["asura-app", "terminal", "--", "sh", "-c", script, "sh", pkg.name]);
                     packages.invalidateSearch();
                 }
             }]
@@ -178,18 +173,21 @@ Provider {
             packages.clearRequest();
             return [];
         }
-        var p = parseOp(text);
-        if (!p || p.term.length < 2) {
+
+        var op = packages.parseOp(text);
+        if (!op) {
             packages.clearRequest();
             return [];
         }
-        if (p.term === packages.cachedQuery) {
-            packages.adoptCached(p.term);
-            return packages.cachedRows.filter(function (pkg) {
-                return p.op !== "remove" || packages.installed[pkg.name] !== undefined;
-            }).map(function (pkg) { return packages.rowFor(pkg, p.op); });
+
+        if (packages.cachedQuery === op.term) {
+            packages.adoptCached(op.term);
+            return packages.cachedRows.map(function (pkg) {
+                return packages.rowFor(pkg, op.op);
+            });
         }
-        packages.schedule(p.term);
+
+        packages.schedule(op.term);
         return [];
     }
 
@@ -203,25 +201,24 @@ Provider {
         }
     }
 
-    // What dpkg has installed (about 3000 lines, a few ms), read with every
-    // search so a package installed in the meantime shows as installed.
+    // Installed packages via xbps-query -l
     Process {
-        id: dpkgProc
+        id: installedProc
         property string term: ""
         property int requestGeneration: 0
         property bool inFlight: false
         property bool didStart: false
         property string out: ""
-        command: ["dpkg-query", "-W", "-f", "${binary:Package}\t${db:Status-Abbrev}\t${Version}\n"]
+        command: ["xbps-query", "-l"]
         stdout: SplitParser {
-            onRead: data => dpkgProc.out += data + "\n"
+            onRead: data => installedProc.out += data + "\n"
         }
-        onStarted: dpkgProc.didStart = true
+        onStarted: installedProc.didStart = true
         onRunningChanged: {
-            if (!running && dpkgProc.inFlight && !dpkgProc.didStart) {
-                var key = dpkgProc.term;
-                var generation = dpkgProc.requestGeneration;
-                dpkgProc.inFlight = false;
+            if (!running && installedProc.inFlight && !installedProc.didStart) {
+                var key = installedProc.term;
+                var generation = installedProc.requestGeneration;
+                installedProc.inFlight = false;
                 if (packages.requestState.phase === "running"
                         && RequestState.isCurrent(
                             packages.requestState, key, generation)) {
@@ -232,16 +229,16 @@ Provider {
             }
         }
         onExited: (code, status) => {
-            var key = dpkgProc.term;
-            var generation = dpkgProc.requestGeneration;
-            dpkgProc.inFlight = false;
+            var key = installedProc.term;
+            var generation = installedProc.requestGeneration;
+            installedProc.inFlight = false;
             var current = packages.requestState.phase === "running"
                 && RequestState.isCurrent(
                     packages.requestState, key, generation);
             if (current) {
                 packages.installedFinished = true;
                 if (status === 0 && code === 0) {
-                    packages.installed = Apt.parseInstalled(dpkgProc.out);
+                    packages.installed = Xbps.parseInstalled(installedProc.out);
                     Dispatcher.notifyAsync();
                 }
                 packages.finishRequest(key, generation);
@@ -252,7 +249,7 @@ Provider {
 
     Process {
         id: availProc
-        command: ["sh", "-c", "command -v apt-cache >/dev/null 2>&1 && command -v dpkg-query >/dev/null 2>&1"]
+        command: ["sh", "-c", "command -v xbps-query >/dev/null 2>&1"]
         onExited: (code) => {
             packages.available = (code === 0);
             if (packages.available)
@@ -267,7 +264,7 @@ Provider {
         property bool inFlight: false
         property bool didStart: false
         property string out: ""
-        command: ["apt-cache", "search", "--"].concat(Apt.words(term))
+        command: ["xbps-query", "-Rs", term]
         stdout: SplitParser {
             onRead: data => searchProc.out += data + "\n"
         }
@@ -298,7 +295,7 @@ Provider {
                 packages.searchFinished = true;
                 if (status === 0 && code === 0) {
                     packages.cachedQuery = key;
-                    packages.cachedRows = Apt.rank(Apt.parseSearch(searchProc.out), key, 30);
+                    packages.cachedRows = Xbps.rank(Xbps.parseSearch(searchProc.out), key, 30);
                     Dispatcher.notifyAsync();
                 }
                 packages.finishRequest(key, generation);

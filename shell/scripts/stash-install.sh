@@ -1,7 +1,7 @@
 #!/bin/bash
 # stash app installer: makes whatever the user dropped in the Asura stash
 # launchable. an AppImage or self-contained tarball gets a synthesized XDG
-# desktop entry under ~/.local; a .deb is handed to `apt-get install` via pkexec
+# desktop entry under ~/.local; a package is handed to `xbps-install` via pkexec
 # so it installs the normal way (dependencies resolved, maintainer scripts run)
 # and the launcher reads the entry the package itself ships.
 # on success we drop the source from the stash so it doesn't sit there as a
@@ -38,7 +38,7 @@ classify() {
   case "$1" in
     *.AppImage|*.appimage) printf 'appimage'; return ;;
     *.flatpak) printf 'flatpak'; return ;;
-    *.deb) printf 'deb'; return ;;
+    *.xbps) printf 'xbps'; return ;;
     *.rpm) printf 'rpm'; return ;;
   esac
   case "$1" in
@@ -298,7 +298,7 @@ install_rpm() {
   src="$1"
   rawname=$(basename "$src" .rpm)
   name=$(slug "$rawname"); [ -n "$name" ] || name="app"
-  command -v bsdtar >/dev/null 2>&1 || { echo "bsdtar is not installed (sudo apt install libarchive-tools)" >&2; return 1; }
+  command -v bsdtar >/dev/null 2>&1 || { echo "bsdtar is not installed (run pkexec xbps-install -y libarchive)" >&2; return 1; }
   dst=$(app_store_dir "$rawname")
   bsdtar -xf "$src" -C "$dst" >/dev/null 2>&1 || return 1
   dispatch_extracted "$dst" "$name" "$rawname"
@@ -316,21 +316,22 @@ install_flatpak() {
   LAST_NAME=$(slug "$(basename "$src" .flatpak)")
 }
 
-# install_deb SRC: install a .deb with apt-get, which pulls in its dependencies.
+# install_xbps SRC: install a .xbps package with xbps-install.
 # the stash runs with no tty, so escalate through pkexec (polkit agent raises the
 # GUI prompt). the package ships its own /usr/share/applications entry, which
 # the launcher reads, so nothing's synthesized here. sets LAST_NAME.
-install_deb() {
+install_xbps() {
   local src="$1" name
   command -v pkexec >/dev/null 2>&1 || return 1
+  command -v xbps-install >/dev/null 2>&1 || return 1
   # tell the shell to step the control deck aside before the polkit prompt.
   # the deck is a top overlay layer with a keyboard grab, so the prompt would
   # land behind it and could not take the password. shell reads this off stdout.
   printf '@AUTH\n'
   # pkexec runs from root's home, so a relative path would not resolve there.
-  pkexec apt-get install -y "$(readlink -f "$src")" </dev/null >/dev/null 2>&1 || return 1
-  name=$(dpkg-deb -f "$src" Package 2>/dev/null)
-  LAST_NAME="${name:-$(slug "$(basename "$src" .deb)")}"
+  pkexec xbps-install -y "$(readlink -f "$src")" </dev/null >/dev/null 2>&1 || return 1
+  name=$(xbps-query -p pkgver -R "$src" 2>/dev/null || basename "$src" .xbps)
+  LAST_NAME="${name:-$(slug "$(basename "$src" .xbps)")}"
 }
 
 # install_one FILE: 0 ok, 1 fail, 2 unsupported extension.
@@ -354,8 +355,8 @@ install_one() {
     flatpak)
       install_flatpak "$f" || return 1
       ;;
-    deb)
-      install_deb "$f" || return 1
+    xbps)
+      install_xbps "$f" || return 1
       ;;
     rpm)
       install_rpm "$f" || return 1
@@ -376,7 +377,7 @@ case "${1:-}" in
     shopt -s nullglob
     for f in "$STASH"/*; do
       [ -f "$f" ] || continue
-      case "$(classify "$f")" in appimage|tarball|flatpak|deb|rpm) targets+=("$f") ;; esac
+      case "$(classify "$f")" in appimage|tarball|flatpak|xbps|rpm) targets+=("$f") ;; esac
     done
     shopt -u nullglob
     ;;

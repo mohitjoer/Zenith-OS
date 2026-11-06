@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// seedAppsXbps is the curated Discover shelf for Asura OS (Void Linux).
+// seedAppsXbps is the curated Discover shelf for Asura OS.
 var seedAppsXbps = []struct{ pkg, title string }{
 	{"vlc", "VLC"}, {"mpv", "mpv"}, {"gimp", "GIMP"}, {"inkscape", "Inkscape"},
 	{"krita", "Krita"}, {"blender", "Blender"}, {"darktable", "darktable"},
@@ -34,7 +34,7 @@ func (xbpsProvider) Category() Category {
 		ID:          "apps",
 		Name:        "Apps",
 		Group:       "find",
-		Description: "Native packages from the Void Linux and Asura OS repositories, managed with XBPS.",
+		Description: "Native packages from Asura OS repositories, managed with XBPS.",
 	}
 }
 
@@ -132,9 +132,8 @@ func (xbpsProvider) Search(ctx context.Context, query string) ([]Item, error) {
 	return items, nil
 }
 
-// rankXbpsSearch mirrors the apt provider's ranking: an exact name first, then
-// a prefix match, then a substring match, breaking ties by shorter name. It
-// keeps the archive-exact hit discoverable the way the apt shelf does.
+// rankXbpsSearch ranks package search hits: an exact name first, then
+// a prefix match, then a substring match, breaking ties by shorter name.
 func rankXbpsSearch(items []Item, joined string) []Item {
 	score := func(name string) int {
 		n := strings.ToLower(name)
@@ -173,22 +172,11 @@ func (xbpsProvider) Remove(ctx context.Context, id string) error {
 
 // runXbpsTransaction honours the store's progress contract -- one
 // {"stage","percent"} JSON line on stdout per step -- and the polkit outcome
-// the window reports. When the apt-era asura-pkg-add helper exists it is used
-// with --status so apt's machine status is relayed; on Void hosts there is no
-// such helper, so pkexec runs xbps directly and the store brackets the
-// transaction with AUTHORIZING/INSTALLING lines xbps itself cannot number.
-// A declined prompt ends pkexec with 126 or 127, exactly like the apt helper.
+// the window reports. pkexec runs xbps directly and the store brackets the
+// transaction with AUTHORIZING/INSTALLING lines.
+// A declined prompt ends pkexec with 126 or 127.
 func runXbpsTransaction(ctx context.Context, working, id string, xbpsArgs []string, verb string) error {
 	emitStage("AUTHORIZING", -1)
-
-	// The apt helper path keeps byte-identical behaviour on Ubuntu hosts, where
-	// asura-pkg-add exists and knows --status.
-	if have("asura-pkg-add") {
-		if verb == "install" {
-			return runPackageHelper(ctx, "asura-pkg-add", working, id)
-		}
-		return runPackageHelper(ctx, "asura-pkg-remove", working, id)
-	}
 
 	cmd := exec.CommandContext(ctx, "pkexec", append([]string{xbpsArgs[0]}, xbpsArgs[1:]...)...)
 	out, err := cmd.CombinedOutput()

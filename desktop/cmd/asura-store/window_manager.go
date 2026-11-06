@@ -19,7 +19,7 @@ import (
 // copy removable, and is refused for install and update exactly like a paused
 // product, so a control that cannot work is never offered as if it could.
 //
-// Ported from Ryoku's ryostore backend (GPL-3.0).
+// Asura Store window manager gate.
 
 // runningWindowManager is the detected provider's name, cached for the process:
 // the store builds one catalogue per launch and every provider asks the same

@@ -19,16 +19,12 @@ type Provider interface {
 
 // providers is the ordered catalogue registry in rail order.
 func providers() []Provider {
-	var list []Provider
-	if have("xbps-query") {
-		list = append(list, xbpsProvider{})
-	} else if have("dpkg-query") {
-		list = append(list, aptProvider{})
-	} else {
-		list = append(list, xbpsProvider{})
+	return []Provider{
+		xbpsProvider{},
+		barProvider{},
+		pluginProvider{},
+		themeProvider{},
 	}
-	list = append(list, barProvider{}, pluginProvider{}, themeProvider{})
-	return list
 }
 
 // owned reports whether the item is present on the machine: fully installed, or

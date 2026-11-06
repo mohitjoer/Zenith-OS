@@ -60,7 +60,7 @@ Singleton {
     }
 
     // The archive is too large to carry in the catalogue, so a typed query is
-    // asked of apt directly. Debounced, and a new query replaces the last.
+    // asked of the package repository directly. Debounced, and a new query replaces the last.
     function search(query) {
         root._searchQuery = String(query || "").trim();
         searchProc.running = false;
@@ -108,7 +108,7 @@ Singleton {
         installProc.running = true;
     }
 
-    // The backend stops a download at once. Once dpkg has begun it finishes the
+    // The backend stops a download at once. Once package installation has begun it finishes the
     // transaction instead, because a package half-installed is worse than a wait;
     // either way the process exits and the catalogue is read again.
     function cancel() {

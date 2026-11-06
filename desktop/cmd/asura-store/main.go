@@ -4,7 +4,7 @@
 // out to these subcommands.
 //
 //	asura-store catalog [--refresh] [--category <id>]   normalized catalogue, JSON
-//	asura-store search <query>                          apt/xbps packages matching a query, JSON
+//	asura-store search <query>                          native packages matching a query, JSON
 //	asura-store check                                   upstream-changed probe, JSON
 //	asura-store install <category> <id>                 install
 //	asura-store remove <category> <id>                  removal
@@ -14,9 +14,8 @@
 // install and remove print {"stage","percent"} lines on stdout while they work
 // and a failure as one sentence on stderr, which is what the window shows.
 //
-// Ported from Ryoku's ryostore backend (GPL-3.0). Asura has no remote catalogue
-// and a plugin is just a folder (`asura plugin` installs and removes them), so
-// the receipt transactions, registries and extras actuator did not come across.
+// Asura Store data plane backend. Asura has no remote catalogue
+// and a plugin is just a folder (`asura plugin` installs and removes them).
 package main
 
 import (
@@ -113,15 +112,7 @@ func runSearch(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), searchTimeout)
 	defer cancel()
-	var items []Item
-	var err error
-	if have("xbps-query") {
-		items, err = xbpsProvider{}.Search(ctx, args[0])
-	} else if have("apt-cache") {
-		items, err = aptProvider{}.Search(ctx, args[0])
-	} else {
-		items, err = xbpsProvider{}.Search(ctx, args[0])
-	}
+	items, err := xbpsProvider{}.Search(ctx, args[0])
 	if err != nil {
 		return err
 	}
