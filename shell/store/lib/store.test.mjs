@@ -78,10 +78,18 @@ eq(
 
 eq(Store.primaryAction({ installed: false }), "INSTALL", "available action");
 eq(Store.primaryAction({ installed: true }), "INSTALLED", "installed action");
+eq(Store.primaryAction({ installed: true, updateAvailable: true }), "UPDATE", "installed update action");
 eq(Store.primaryAction({ installed: false, busy: true }), "INSTALLING", "busy action");
 eq(Store.secondaryAction({ installed: true, hasSettings: true }), "OPEN IN SETTINGS", "management handoff when the product has a settings page");
 eq(Store.secondaryAction({ installed: true }), "", "installed product without a settings page has no handoff");
 eq(Store.secondaryAction({ installed: false }), "", "available item has no management handoff");
+eq(Store.competingActionLabel("lockscreens:clock", "lockscreens:broken", "FETCHING"), "DOWNLOADING ANOTHER ITEM", "another product explains the single-flight download");
+eq(Store.competingActionLabel("lockscreens:clock", "lockscreens:clock", "FETCHING"), "", "the active product keeps its own progress stage");
+eq(Store.competingActionLabel("lockscreens:clock", "lockscreens:broken", "REMOVING"), "REMOVING ANOTHER ITEM", "another product explains a removal");
+eq(Store.competingActionLabel("", "lockscreens:broken", ""), "", "idle actions keep their ordinary label");
+eq(Store.statusTag({ installed: false }), "", "AVAILABLE never becomes a chip");
+eq(Store.statusTag({ installed: true }), "INSTALLED", "installed chip");
+eq(Store.initials({ name: "Pomodoro Timer" }), "PT", "initials from first and last word");
 eq(
     Store.filter(items, { query: "plugin update" }).map(item => item.id),
     ["market"],
@@ -149,18 +157,21 @@ eq(JSON.stringify(items), snapshot, "helpers do not mutate source arrays");
 
 // Plugin classification drives the Plugins subtab strip: a plugin is a BAR plugin
 // when its manifest hosts include topbarGlyph, otherwise it is a DESKTOP plugin.
+// Sidebar-only plugins stay in the ALL view instead of falling into DESKTOP.
 const plugins = [
     { id: "vpn", category: "plugins", name: "VPN", metadata: { hosts: ["topbarGlyph"] } },
     { id: "clockbar", category: "plugins", name: "Clock", metadata: { hosts: ["topbarGlyph", "desktopWidget"] } },
     { id: "widget", category: "plugins", name: "Widget", metadata: { hosts: ["desktopWidget"] } },
     { id: "popout", category: "plugins", name: "Popout", metadata: { hosts: ["framePopout"] } },
+    { id: "side", category: "plugins", name: "Side", metadata: { hosts: ["sidebarCard"] } },
     { id: "bare", category: "plugins", name: "Bare" }
 ];
 eq(Store.pluginKind(plugins[0]), "bar", "topbarGlyph host is a bar plugin");
 eq(Store.pluginKind(plugins[1]), "bar", "any topbarGlyph host is a bar plugin");
 eq(Store.pluginKind(plugins[2]), "desktop", "desktopWidget host is a desktop plugin");
 eq(Store.pluginKind(plugins[3]), "desktop", "framePopout host is a desktop plugin");
-eq(Store.pluginKind(plugins[4]), "desktop", "no hosts falls back to desktop");
+eq(Store.pluginKind(plugins[4]), "sidebar", "sidebarCard-only host is a sidebar plugin");
+eq(Store.pluginKind(plugins[5]), "desktop", "no hosts falls back to desktop");
 eq(Store.pluginKind(undefined), "desktop", "missing item is a desktop plugin");
 eq(
     Store.filter(plugins, { category: "plugins", pluginKind: "bar" }).map(item => item.id),
@@ -174,13 +185,22 @@ eq(
 );
 eq(
     Store.collection(plugins, { view: "discover", categoryID: "plugins", pluginKind: "bar" }).map(Store.itemKey),
-    ["plugins:vpn", "plugins:clockbar"],
-    "plugins BAR collection filters through the pluginKind option"
+    ["plugins:clockbar", "plugins:vpn"],
+    "plugins BAR collection is A to Z"
 );
 eq(
     Store.collection(plugins, { view: "discover", categoryID: "plugins" }).map(item => item.id),
-    ["vpn", "clockbar", "widget", "popout", "bare"],
-    "plugins ALL collection keeps every plugin in source order"
+    ["bare", "clockbar", "popout", "side", "vpn", "widget"],
+    "plugins ALL collection is A to Z"
+);
+eq(
+    Store.collection([
+        { id: "z", category: "lockscreens", name: "Zen" },
+        { id: "a", category: "lockscreens", name: "Amber" },
+        { id: "m", category: "lockscreens", name: "Moss" }
+    ], { view: "discover", categoryID: "lockscreens" }).map(item => item.name),
+    ["Amber", "Moss", "Zen"],
+    "category collections sort A to Z"
 );
 
 console.log("RYOSTORE-STORE-HELPERS-PASS");

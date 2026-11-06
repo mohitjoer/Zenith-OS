@@ -39,6 +39,10 @@ func (barProvider) Load(context.Context, bool) ([]Item, SourceState, error) {
 		style.Category = "barstyles"
 		style.Installed = true
 		style.Active = style.ID == active
+		if style.Metadata == nil {
+			style.Metadata = map[string]any{}
+		}
+		style.Metadata["core"] = true
 		items[i] = style
 	}
 	return items, SourceState{}, nil

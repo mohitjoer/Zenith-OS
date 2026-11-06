@@ -122,36 +122,86 @@ func (xbpsProvider) Search(ctx context.Context, query string) ([]Item, error) {
 			InstalledVersion: installed[pkgName],
 		})
 	}
+	items = rankXbpsSearch(items, strings.ToLower(query))
+	if len(items) > 60 {
+		items = items[:60]
+	}
+	if items == nil {
+		items = []Item{}
+	}
 	return items, nil
+}
+
+// rankXbpsSearch mirrors the apt provider's ranking: an exact name first, then
+// a prefix match, then a substring match, breaking ties by shorter name. It
+// keeps the archive-exact hit discoverable the way the apt shelf does.
+func rankXbpsSearch(items []Item, joined string) []Item {
+	score := func(name string) int {
+		n := strings.ToLower(name)
+		switch {
+		case n == joined:
+			return 3
+		case strings.HasPrefix(n, joined):
+			return 2
+		case strings.Contains(n, joined):
+			return 1
+		}
+		return 0
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		if a, b := score(items[i].ID), score(items[j].ID); a != b {
+			return a > b
+		}
+		return len(items[i].ID) < len(items[j].ID)
+	})
+	return items
 }
 
 func (xbpsProvider) Install(ctx context.Context, id string) error {
 	if !xbpsPkgName.MatchString(id) {
 		return fmt.Errorf("invalid package name %q", id)
 	}
-	cmd := exec.CommandContext(ctx, "asura-pkg-add", id)
-	if !have("asura-pkg-add") {
-		cmd = exec.CommandContext(ctx, "pkexec", "xbps-install", "-y", id)
-	}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("install failed: %s (%v)", strings.TrimSpace(string(out)), err)
-	}
-	return nil
+	return runXbpsTransaction(ctx, "INSTALLING", id, []string{"xbps-install", "-y", id}, "install")
 }
 
 func (xbpsProvider) Remove(ctx context.Context, id string) error {
 	if !xbpsPkgName.MatchString(id) {
 		return fmt.Errorf("invalid package name %q", id)
 	}
-	cmd := exec.CommandContext(ctx, "asura-pkg-remove", id)
-	if !have("asura-pkg-remove") {
-		cmd = exec.CommandContext(ctx, "pkexec", "xbps-remove", "-y", id)
+	return runXbpsTransaction(ctx, "REMOVING", id, []string{"xbps-remove", "-y", id}, "remove")
+}
+
+// runXbpsTransaction honours the store's progress contract -- one
+// {"stage","percent"} JSON line on stdout per step -- and the polkit outcome
+// the window reports. When the apt-era asura-pkg-add helper exists it is used
+// with --status so apt's machine status is relayed; on Void hosts there is no
+// such helper, so pkexec runs xbps directly and the store brackets the
+// transaction with AUTHORIZING/INSTALLING lines xbps itself cannot number.
+// A declined prompt ends pkexec with 126 or 127, exactly like the apt helper.
+func runXbpsTransaction(ctx context.Context, working, id string, xbpsArgs []string, verb string) error {
+	emitStage("AUTHORIZING", -1)
+
+	// The apt helper path keeps byte-identical behaviour on Ubuntu hosts, where
+	// asura-pkg-add exists and knows --status.
+	if have("asura-pkg-add") {
+		if verb == "install" {
+			return runPackageHelper(ctx, "asura-pkg-add", working, id)
+		}
+		return runPackageHelper(ctx, "asura-pkg-remove", working, id)
 	}
+
+	cmd := exec.CommandContext(ctx, "pkexec", append([]string{xbpsArgs[0]}, xbpsArgs[1:]...)...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("remove failed: %s (%v)", strings.TrimSpace(string(out)), err)
+		if ee, ok := err.(*exec.ExitError); ok && (ee.ExitCode() == 126 || ee.ExitCode() == 127) {
+			return fmt.Errorf("authorization was declined, or no authentication agent is running to ask for it")
+		}
+		if msg := strings.TrimSpace(string(out)); msg != "" {
+			return fmt.Errorf("%s failed: %s", verb, msg)
+		}
+		return fmt.Errorf("%s failed: %w", verb, err)
 	}
+	emitStage(working, 100)
 	return nil
 }
 

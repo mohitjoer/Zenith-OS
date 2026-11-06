@@ -701,7 +701,9 @@ FocusScope {
                     visible: !detail.isBundle
                     text: detail.busyKey === detail.actionKey && detail.installStage !== ""
                             ? I18n.tr(detail.installStage)
-                            : I18n.tr(StoreLogic.primaryAction(detail.actionItem))
+                            : (StoreLogic.competingActionLabel(detail.busyKey, detail.actionKey, detail.installStage) !== ""
+                                ? I18n.tr(StoreLogic.competingActionLabel(detail.busyKey, detail.actionKey, detail.installStage))
+                                : I18n.tr(StoreLogic.primaryAction(detail.actionItem)))
                     primary: true
                     armed: detail.item !== null && detail.busyKey === ""
                             && StoreLogic.primaryAction(detail.actionItem) !== "INSTALLED"

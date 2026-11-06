@@ -28,7 +28,9 @@ Item {
     readonly property string actionKey: StoreLogic.itemKey(actionItem)
     readonly property string primaryLabel: busyKey === actionKey && installStage !== ""
             ? installStage
-            : StoreLogic.primaryAction(actionItem)
+            : (StoreLogic.competingActionLabel(busyKey, actionKey, installStage) !== ""
+                ? StoreLogic.competingActionLabel(busyKey, actionKey, installStage)
+                : StoreLogic.primaryAction(actionItem))
     readonly property string secondaryLabel: StoreLogic.secondaryAction(actionItem)
     readonly property bool hasActionItem: item !== null && item !== undefined
     readonly property color stageSurface: displayItem.surface || Tokens.paper

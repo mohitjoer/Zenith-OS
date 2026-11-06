@@ -1,0 +1,11 @@
+{
+  "id": "nacre",
+  "category": "barstyles",
+  "name": "Nacre Floating Glass",
+  "summary": "Rounded floating islands with frosted acrylic blur and sumi borders",
+  "author": "Asura Design Team",
+  "version": "1.0.0",
+  "accent": "#ff2a5f",
+  "surface": "#16161a",
+  "tags": ["island", "blur", "float"]
+}

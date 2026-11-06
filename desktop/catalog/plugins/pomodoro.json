@@ -1,0 +1,11 @@
+{
+  "id": "pomodoro",
+  "category": "plugins",
+  "name": "Pomodoro Focus Timer",
+  "summary": "Productivity focus and break intervals integrated into the Asura top bar",
+  "description": "Configurable 25-minute work and 5-minute break timers with desktop notifications, sound alerts, and daily streak tracking.",
+  "author": "Asura Core Team",
+  "version": "1.2.0",
+  "upstream": "https://github.com/ASURA-OS/plugin-pomodoro",
+  "tags": ["productivity", "timer", "bar"]
+}

@@ -34,7 +34,8 @@ function downloadPauseReason(item) {
     return isDownloadPaused(item) ? String((item && item.downloadPauseReason) || "") : "";
 }
 
-// unavailable: a product the catalogue wrote for another window manager. It is
+// unavailable: a product this machine cannot run, because the catalogue wrote it
+// for another window manager or another edition (package manager). It is
 // refused for install and update by the backend (a client cannot bypass that),
 // stays listed, and keeps any installed copy removable; every surface here must
 // show it greyed with the reason instead of an action that cannot work.
@@ -42,11 +43,14 @@ function isUnavailable(item) {
     return Boolean(item && item.unavailable);
 }
 
-// The chip and the disabled action both name the window manager the product
-// wants, taken from the product itself rather than from a list of names here.
+// The chip and the disabled action name the cause: the window manager the
+// product wants, taken from the product itself rather than from a list of names
+// here, or this system when the edition is what rules it out.
 function unavailableLabel(item) {
     if (!isUnavailable(item))
         return "";
+    if (item.unavailableEdition)
+        return "NOT ON THIS SYSTEM";
     var want = String((item && item.requiredWindowManager) || "").toUpperCase();
     return want.length > 0 ? want + " ONLY" : "UNAVAILABLE";
 }
@@ -55,17 +59,22 @@ function unavailableReason(item) {
     return isUnavailable(item) ? String((item && item.unavailableReason) || "") : "";
 }
 
-// pluginKind classifies a plugin by its host surface: a plugin is a BAR plugin
-// when its manifest hosts include topbarGlyph, otherwise it is a DESKTOP plugin
-// (desktopWidget / framePopout). Pure over item.metadata.hosts.
+// pluginKind classifies a plugin by its host surface. Sidebar-only plugins stay
+// in the all-plugins view instead of falling through to the desktop tab.
 function pluginKind(item) {
     var hosts = (item && item.metadata && Array.isArray(item.metadata.hosts)) ? item.metadata.hosts : [];
-    return hosts.indexOf("topbarGlyph") !== -1 ? "bar" : "desktop";
+    if (hosts.indexOf("topbarGlyph") !== -1)
+        return "bar";
+    if (hosts.indexOf("desktopWidget") !== -1 || hosts.indexOf("framePopout") !== -1)
+        return "desktop";
+    return hosts.indexOf("sidebarCard") !== -1 ? "sidebar" : "desktop";
 }
 
 function searchText(item) {
     if (!item)
         return "";
+    if (item.searchIndex)
+        return String(item.searchIndex);
     return [
         item.id,
         item.category,
@@ -75,6 +84,10 @@ function searchText(item) {
         item.description,
         item.author,
         item.version,
+        item.kind,
+        item.license,
+        item.verificationStatus,
+        item.metadata && item.metadata.marketplaceCategory,
         (item.tags || []).join(" "),
         statusLabels(item).join(" ")
     ].filter(Boolean).join(" ").toLowerCase();
@@ -83,6 +96,10 @@ function searchText(item) {
 function matchesQuery(item, query) {
     var terms = String(query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (terms.length === 0)
+        return true;
+    // A live search result was matched by its source (typos, keywords and
+    // translations included), so the literal text test would wrongly drop it.
+    if (item && item.remoteMatch === true)
         return true;
     var haystack = searchText(item);
     return terms.every(function(term) { return haystack.indexOf(term) !== -1; });
@@ -164,6 +181,15 @@ function itemKey(item) {
     return item ? String(item.category || "") + ":" + String(item.id || "") : "";
 }
 
+function sortAlphabetical(items) {
+    return (Array.isArray(items) ? items : []).slice().sort(function(a, b) {
+        var an = String(a && (a.name || a.id) || "").toLocaleLowerCase();
+        var bn = String(b && (b.name || b.id) || "").toLocaleLowerCase();
+        var byName = an.localeCompare(bn);
+        return byName || itemKey(a).localeCompare(itemKey(b));
+    });
+}
+
 function collection(items, options) {
     var opts = options || {};
     var filtered = filter(items, {
@@ -171,8 +197,13 @@ function collection(items, options) {
         installedOnly: opts.view === "library" || opts.installedOnly === true,
         provider: opts.provider || "",
         pluginKind: opts.pluginKind || "",
+        tag: opts.tag || "",
         query: opts.query || ""
     });
+    // A category page lists A to Z: the shelf order is a catalogue detail,
+    // the browsing order is the user's expectation.
+    if (opts.categoryID && opts.view !== "library")
+        filtered = sortAlphabetical(filtered);
     if (opts.view !== "library" && !opts.categoryID && !opts.query) {
         var seed = Number(opts.seed) || 0;
         var lead = featured(filtered, seed);
@@ -210,9 +241,41 @@ function primaryAction(item) {
         return "UNDER CONSTRUCTION";
     if (item && item.busy)
         return "INSTALLING";
+    if (item && item.updateAvailable)
+        return "UPDATE";
     if (item && Number(item.installedCount || 0) > 0 && Number(item.totalCount || 0) > Number(item.installedCount || 0))
         return "INSTALL " + String(Number(item.totalCount) - Number(item.installedCount)) + " ITEMS";
     return isInstalled(item) ? "INSTALLED" : "INSTALL";
+}
+
+// competingActionLabel names the running download when the action belongs to a
+// different product, so a disabled button never reads as the product's own
+// action stuck at INSTALL.
+function competingActionLabel(busyKey, actionKey, installStage) {
+    if (String(busyKey || "") === "" || String(busyKey) === String(actionKey || ""))
+        return "";
+    var stage = String(installStage || "").toUpperCase();
+    if (stage.indexOf("REMOV") !== -1)
+        return "REMOVING ANOTHER ITEM";
+    if (stage.indexOf("ENABL") !== -1 || stage.indexOf("DISABL") !== -1)
+        return "CHANGING ANOTHER ITEM";
+    return "DOWNLOADING ANOTHER ITEM";
+}
+
+// AVAILABLE is the absence of state, so it never becomes a chip.
+function statusTag(item) {
+    var labels = statusLabels(item);
+    return labels.length > 0 && labels[0] !== "AVAILABLE" ? labels[0] : "";
+}
+
+function initials(item, title) {
+    var explicit = String(item && item.initials || "").trim();
+    if (explicit !== "")
+        return explicit.slice(0, 3).toUpperCase();
+    var name = String(title || (item && (item.name || item.id)) || "").trim();
+    var words = name.split(/\s+/);
+    return (words.length > 1 ? words[0][0] + words[words.length - 1][0]
+                             : name.slice(0, 2)).toUpperCase();
 }
 
 function secondaryAction(item) {
@@ -231,4 +294,4 @@ function sortCategories(categories) {
 }
 
 if (typeof module !== "undefined" && module.exports)
-    module.exports = { statusLabels, isInstalled, isDownloadPaused, downloadPauseReason, isUnavailable, unavailableLabel, unavailableReason, pluginKind, searchText, matchesQuery, filter, groupSearch, featured, installed, itemKey, collection, selectionKey, categoryPlates, primaryAction, secondaryAction, sortCategories, shuffleSeeded };
+    module.exports = { statusLabels, statusTag, initials, isInstalled, isDownloadPaused, downloadPauseReason, isUnavailable, unavailableLabel, unavailableReason, pluginKind, searchText, matchesQuery, filter, groupSearch, featured, installed, itemKey, sortAlphabetical, collection, selectionKey, categoryPlates, primaryAction, competingActionLabel, secondaryAction, sortCategories, shuffleSeeded };

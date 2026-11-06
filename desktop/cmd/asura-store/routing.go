@@ -7,9 +7,10 @@ import (
 )
 
 var storeSections = map[string]struct{}{
-	"discover": {}, "library": {}, "rices": {}, "lockscreens": {},
+	"discover": {}, "library": {}, "apps": {}, "rices": {}, "lockscreens": {},
 	"barstyles": {}, "fastfetch": {}, "plugins": {}, "bundles": {}, "decors": {},
 	"launcher-images": {}, "fastfetch-emblems": {}, "asura-tunes-skins": {},
+	"themes": {}, "colorschemes": {},
 }
 
 func storeSection(section string) bool {
@@ -25,6 +26,7 @@ func storeSection(section string) bool {
 func settingsSection(category string) (string, bool) {
 	section, ok := map[string]string{
 		"rices":     "appearance",
+		"themes":    "appearance",
 		"plugins":   "addons",
 		"bundles":   "addons",
 		"barstyles": "bar-studio",

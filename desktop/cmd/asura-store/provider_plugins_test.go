@@ -11,6 +11,18 @@ func TestPluginProviderLoadFeatured(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error loading plugins: %v", err)
 	}
+	// A checkout without catalog/plugins (the ASURA-OS embedded tree before it
+	// carried desktop/catalog) shows an empty shelf (plus any installed
+	// plugin), which is the correct answer there. With the catalogue present,
+	// the featured shelf below is asserted on in both trees.
+	if catalogDirFor("plugins") == "" {
+		for _, it := range items {
+			if it.ID == "" || it.Category != "plugins" {
+				t.Errorf("bad plugin item: %+v", it)
+			}
+		}
+		return
+	}
 	if len(items) == 0 {
 		t.Fatalf("expected at least 1 featured plugin, got 0")
 	}

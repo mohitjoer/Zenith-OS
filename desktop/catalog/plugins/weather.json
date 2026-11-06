@@ -1,0 +1,11 @@
+{
+  "id": "weather-radar",
+  "category": "plugins",
+  "name": "Live Weather & Doppler Radar",
+  "summary": "Weather conditions, hourly forecast, and radar maps in the status shelf",
+  "description": "Fetches local weather and air quality from Open-Meteo with no API key required. Features dynamic weather glyphs.",
+  "author": "Asura Community",
+  "version": "2.0.1",
+  "upstream": "https://github.com/ASURA-OS/plugin-weather",
+  "tags": ["weather", "metrics", "bar"]
+}

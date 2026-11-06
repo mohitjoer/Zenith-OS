@@ -1,0 +1,11 @@
+{
+  "id": "asura-cyber",
+  "category": "themes",
+  "name": "Asura Cyber Obsidian",
+  "summary": "Deep obsidian surface with electric crimson accents and high contrast text",
+  "author": "Asura Core Team",
+  "version": "1.0.0",
+  "accent": "#ff2a5f",
+  "surface": "#121214",
+  "tags": ["dark", "cyber", "crimson"]
+}
