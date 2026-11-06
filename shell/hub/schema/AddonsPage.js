@@ -1,8 +1,12 @@
 .pragma library
 
-// AddonsPage as data. Generated from the page it replaces.
-// Descriptions are written by hand; the inventory carries engineering
-// notes, which are not user copy.
+// AddonsPage as data. Generated from the page it replaces: the placement rows
+// are what its detail view exposes for an installed plugin, the declared-rows
+// entry records that a plugin's manifest can add its own settings, and the
+// management row names the commands that really run — `asura plugin install`
+// and `asura plugin remove`, which the store's plugins category delegates to.
+// Descriptions are written by hand; the inventory carries engineering notes,
+// which are not user copy.
 
 var rows = [
     {
@@ -46,24 +50,6 @@ var rows = [
         "label": "Update / Remove",
         "desc": "Refreshes or removes it; placement stays as set",
         "ctl": "action",
-        "src": "asura-store internal install-guest|remove-guest plugins <id>"
-    },
-    {
-        "tab": "Bundles",
-        "group": "Management",
-        "key": "",
-        "label": "Remove component / bundle",
-        "desc": "Shows every component state, with a terminal",
-        "ctl": "action",
-        "src": "asura-store-install remove item|bundle"
-    },
-    {
-        "tab": "",
-        "group": "OTHER",
-        "key": "",
-        "label": "Browse RyoStore",
-        "desc": "Opens the matching plugin or bundle catalogue",
-        "ctl": "action",
-        "src": "asura-store open plugins|bundles"
+        "src": "`asura plugin install <repo> --yes` (update) / `asura plugin remove <id>` (remove); `asura-store install|remove plugins <id>` delegates to them"
     }
 ];

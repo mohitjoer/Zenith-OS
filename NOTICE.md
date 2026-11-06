@@ -58,7 +58,7 @@ across, so the "did not come across" line above no longer holds for them.
 | `desktop/cmd/asura-hubd/` | `ryoku/hub/backend/`, and the Hyprland provider and `settings.lua` generator of `ryoku/wm/` | The Hub's data plane (`ryoku-hub`); compositor settings are written as hyprlang |
 | `desktop/cmd/asura-wallpaper/` | `ryoku/shell/ryogami/daemon/` | The wallpaper daemon (`ryogami`) |
 | `desktop/cmd/asura-agent/` | `ryoku/rashin/backend/` | ASURA Agent (Rashin). Its resident engine is not part of it; the engine is the user's own (`docs/agent.md`) |
-| `desktop/cmd/asura-store/` | `ryoku/apps/ryostore/backend/` | apt only; no remote catalogue |
+| `desktop/cmd/asura-store/` | `ryoku/apps/ryostore/backend/` | apt and Void's xbps; the local `catalog/` instead of the registry. The 1.0.7 sync below adds the revision, `check` and the window-manager gate |
 | `desktop/cmd/asura-vm/` | `ryoku/apps/ryovm/` (`bin/ryovm`, `mon/`, `remote/`) | `asura-vmd`, `asura-vm-mon`, `asura-vm-ssh` |
 | `desktop/cmd/asura/plugin*.go`, `plugin_template/`, `wm.go` | `ryoku/cli/` | `asura plugin` and `asura wm`. `icons.go`, `status_live.go` and `reconcile.go` follow Ryoku's lookup order, field names and doctor pattern |
 | `desktop/internal/theme/scheme.go` | `ryoku/shell/ipc/matugen.go` | `shellRoleKeys` and `baseSixteen`. The generator itself is ASURA's: it replaces the matugen binary and is not matugen's arithmetic |
@@ -150,3 +150,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## The store backport: Ryoku 1.0.7
+
+The store — backend, window and local catalogue — was itself synced against a
+newer Ryoku. Nothing else in this tree changed hands in that pass.
+
+- Taken from: Ryoku commit `f7197d72de8a21e44b0bea922bdd915f28f6b327`
+  (`release/1.0.7`, `VERSION` 1.0.7). Ryoku is GPL-3.0, and so is everything
+  that came across here, except the portions named under "Third-party code".
+- What came across: the catalogue revision and the `check` verb (the refresh
+  dot lights only when upstream advances), the window-manager gate (the
+  `asura wm status` seam, and installs refused for items authored for another
+  provider), the metadata fields a catalogue item may carry (initials, kind,
+  licence, stars, verification, listed-at, required package managers,
+  unavailable edition), the 20 second search timeout, and the store window's
+  helpers for all of that (the UPDATE action, the A-to-Z category sort, status
+  tags, initials, the sidebar's plugin kind and the search index).
+- What did not come across: the remote registry and its catalogue, the extras
+  actuator and the receipt transactions, the Flatpak provider, the Omarchy and
+  sub-shell categories, and the snapshot cache. A plugin is a folder installed
+  by `asura plugin`, and the store's plugins category delegates to it; the
+  catalogue is the local `catalog/` JSON, not a registry.
+- Where: `desktop/cmd/asura-store/` and `shell/store/` here, and the standalone
+  `asura-store` repository, which carries the same backend and window files and
+  is the copy the ISO builder prefers.
+- `desktop/catalog/` in this tree carries the same local catalogue JSON so a
+  desktop-tree build finds a shop where the standalone checkout is absent.
