@@ -86,7 +86,12 @@ jobs:
 
       - name: The window is byte-identical (store.qml, the entry file, resolved below)
         run: |
-          out="$(diff -r shell/store store-upstream/ui)"
+          # `diff -r` exits 1 on differences — the expected case here, the
+          # entry file — and GitHub's shell runs under bash -e, so an
+          # assignment like out="$(diff ...)" would abort before comparing.
+          # Let the substitution swallow the exit and compare the text; a real
+          # failure surfaces as stdout/stderr the comparison cannot match.
+          out="$(diff -r shell/store store-upstream/ui; true)"
           expected="Only in store-upstream/ui: store.qml"
           if [ "$out" != "$expected" ]; then
             echo "$out"
