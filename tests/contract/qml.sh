@@ -20,7 +20,7 @@ BASE=../tests/contract/qml.baseline
 [ -x "$LINT" ] || { echo "qml: skip, no qmllint at $LINT"; exit 0; }
 now=$(mktemp) && trap 'rm -f "$now"' EXIT
 find . -name '*.qml' -not -path './vendor/*' -not -path './i18n/*' -not -path './modules/ii/*' \
-    -exec "$LINT" {} + 2>&1 | grep -E '^Error:|\[syntax[].]' |
+    -print0 | xargs -0 -n 25 "$LINT" 2>&1 | grep -E '^Error:|\[syntax[].]' |
     sed -E 's/^[A-Za-z]+: (\.\/)?([^:]+):.*/\2/' | sort | uniq -c | awk '{print $2, $1}' >"$now"
 if [ "$1" = --update ]; then cat "$now" >"$BASE"; echo "qml: baseline now $(wc -l <"$BASE") file(s)"; exit 0; fi
 awk 'NR == FNR { b[$1] = $2; next } $2 > b[$1] { print "qml: NEW syntax error(s) in " $1 ": " b[$1] + 0 " -> " $2; bad = 1 } END { exit bad }' \

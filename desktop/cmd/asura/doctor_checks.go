@@ -108,9 +108,39 @@ func recommendedAbsent(run runner.Func) ([]string, int, error) {
 
 	var absent []string
 	for _, pkg := range recommended {
-		if !installed[pkg] {
-			absent = append(absent, pkg)
+		if installed[pkg] {
+			continue
 		}
+		// If not registered in XBPS package database (e.g. custom ISO extraction),
+		// check whether the binary or portal component actually exists on the system.
+		bin := pkg
+		switch pkg {
+		case "hyprland":
+			bin = "Hyprland"
+		case "xdg-desktop-portal-hyprland":
+			if _, err := os.Stat("/usr/libexec/xdg-desktop-portal-hyprland"); err == nil {
+				continue
+			}
+			if _, err := os.Stat("/usr/lib/xdg-desktop-portal-hyprland"); err == nil {
+				continue
+			}
+		case "seatd":
+			if _, err := exec.LookPath("seatd"); err == nil {
+				continue
+			}
+		case "quickshell":
+			if _, err := exec.LookPath("quickshell"); err == nil {
+				continue
+			}
+		case "ghostty":
+			if _, err := exec.LookPath("ghostty"); err == nil {
+				continue
+			}
+		}
+		if _, lookErr := exec.LookPath(bin); lookErr == nil {
+			continue
+		}
+		absent = append(absent, pkg)
 	}
 	return absent, len(recommended), nil
 }
@@ -213,6 +243,14 @@ func reportCoreServices(root string, fix bool) int {
 		if active {
 			fmt.Printf("  • %-16s active\n", svc)
 		} else {
+			// Check if the service definition exists in /etc/sv
+			svcDef := filepath.Join(root, "/etc/sv", svc)
+			if _, err := os.Stat(svcDef); err != nil {
+				if svc == "ananicy-cpp" || svc == "scx-lavd" {
+					fmt.Printf("  • %-16s not installed (optional scheduler)\n", svc)
+					continue
+				}
+			}
 			problems++
 			fmt.Printf("  • %-16s inactive (enable: ln -sf /etc/sv/%s /var/service/)\n", svc, svc)
 			if fix {
@@ -289,8 +327,55 @@ func reportUserAudioServices(root string, fix bool) int {
 	return exitOK
 }
 
+func parseVersion(s string) []int {
+	parts := strings.Split(s, ".")
+	var nums []int
+	for _, p := range parts {
+		d := ""
+		for _, c := range p {
+			if c >= '0' && c <= '9' {
+				d += string(c)
+			} else {
+				break
+			}
+		}
+		if d == "" {
+			break
+		}
+		n := 0
+		fmt.Sscanf(d, "%d", &n)
+		nums = append(nums, n)
+	}
+	return nums
+}
+
+func compareVersions(v1, v2 string) int {
+	p1 := parseVersion(v1)
+	p2 := parseVersion(v2)
+	maxLen := len(p1)
+	if len(p2) > maxLen {
+		maxLen = len(p2)
+	}
+	for i := 0; i < maxLen; i++ {
+		n1, n2 := 0, 0
+		if i < len(p1) {
+			n1 = p1[i]
+		}
+		if i < len(p2) {
+			n2 = p2[i]
+		}
+		if n1 < n2 {
+			return -1
+		}
+		if n1 > n2 {
+			return 1
+		}
+	}
+	return 0
+}
+
 // reportHyprlandVersion verifies that the installed Hyprland binary version
-// is aligned with the 0.53.3 configuration syntax.
+// is aligned with the session configuration syntax (minimum 0.49.0).
 func reportHyprlandVersion(root string, fix bool) int {
 	fmt.Println()
 	fmt.Println("Hyprland Compositor Version")
@@ -304,11 +389,20 @@ func reportHyprlandVersion(root string, fix bool) int {
 		hyprBin = path
 	}
 
-	out, err := exec.Command(hyprBin, "--version").Output()
-	if err != nil {
-		out, err = exec.Command(hyprBin, "-v").Output()
+	var out []byte
+	var err error
+	if os.Getuid() == 0 {
+		if sudoUser := os.Getenv("SUDO_USER"); sudoUser != "" && sudoUser != "root" {
+			out, err = exec.Command("su", sudoUser, "-c", hyprBin+" --version").Output()
+		}
 	}
-	if err != nil {
+	if len(out) == 0 {
+		out, err = exec.Command(hyprBin, "--version").Output()
+		if err != nil {
+			out, err = exec.Command(hyprBin, "-v").Output()
+		}
+	}
+	if err != nil && len(out) == 0 {
 		fmt.Printf("  failed to query Hyprland version: %v\n", err)
 		return exitFail
 	}
@@ -320,8 +414,8 @@ func reportHyprlandVersion(root string, fix bool) int {
 	matches := re.FindStringSubmatch(verStr)
 	if len(matches) >= 2 {
 		ver := matches[1]
-		if ver < "0.53" {
-			fmt.Printf("  warning: Hyprland version (%s) is older than 0.53.3 configuration syntax\n", ver)
+		if compareVersions(ver, "0.49.0") < 0 {
+			fmt.Printf("  warning: Hyprland version (%s) is older than 0.49.0 configuration syntax\n", ver)
 			if fix {
 				fmt.Println("  running xbps-install -S hyprland to update compositor...")
 				sudo := "sudo"
@@ -339,8 +433,10 @@ func reportHyprlandVersion(root string, fix bool) int {
 			}
 			return exitFail
 		}
+		fmt.Printf("  compositor version (%s) is aligned with session configuration\n", ver)
+		return exitOK
 	}
-	fmt.Println("  compositor version is aligned with session configuration (0.53.3)")
+	fmt.Println("  compositor version is aligned with session configuration")
 	return exitOK
 }
 
