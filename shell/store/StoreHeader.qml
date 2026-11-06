@@ -150,12 +150,16 @@ Item {
         Row {
             anchors { left: parent.left; leftMargin: Tokens.s6; verticalCenter: parent.verticalCenter }
             spacing: Tokens.s3
-            Text {
-                text: "A"
-                color: Tokens.ink
-                font.family: Tokens.jp
-                font.pixelSize: 22
+            Image {
+                source: Qt.resolvedUrl("assets/logo-mark.png")
+                sourceSize.width: 48
+                sourceSize.height: 48
+                fillMode: Image.PreserveAspectFit
+                width: 24; height: 24
+                mipmap: true
                 anchors.verticalCenter: parent.verticalCenter
+                // The mark is decorative; the wordmark carries the name.
+                Accessible.ignored: true
             }
             Text {
                 text: I18n.tr("ASURA STORE")
