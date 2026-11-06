@@ -256,10 +256,12 @@ if [ -d "$REPO_ROOT/session/units" ]; then
 	cp "$REPO_ROOT/session/units"/* "$INCLUDE_DIR/usr/lib/systemd/user/"
 fi
 
-# Copy default wallpapers to /usr/share/asura/backgrounds/
+# Copy default wallpapers to /usr/share/asura/backgrounds/ and /etc/skel/Pictures/Wallpapers/
 mkdir -p "$INCLUDE_DIR/usr/share/asura/backgrounds"
+mkdir -p "$INCLUDE_DIR/etc/skel/Pictures/Wallpapers"
 if [ -d "$REPO_ROOT/public/wallpapers" ]; then
 	cp "$REPO_ROOT/public/wallpapers"/* "$INCLUDE_DIR/usr/share/asura/backgrounds/"
+	cp "$REPO_ROOT/public/wallpapers"/* "$INCLUDE_DIR/etc/skel/Pictures/Wallpapers/"
 fi
 
 for s in asura-hub asura-idle asura-pin asura-reload-cover asura-shot asura-vm asura-wallpaper-ui asura-welcome asura-greeter; do

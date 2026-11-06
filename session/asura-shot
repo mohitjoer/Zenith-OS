@@ -13,6 +13,20 @@ set -eu
 QUICKSHELL_BIN=${ASURA_QUICKSHELL:-/usr/bin/quickshell}
 ENTRY=/usr/share/asura/shell/shot.qml
 
+# Virtual machine graphics fallback:
+# Under virtualized GPU drivers (vmwgfx / VirtualBox VMSVGA), QtWayland fails
+# to allocate hardware EGL surfaces for layer-shell surfaces (producing
+# "wl_display error 1: invalid arguments for wl_surface.attach").
+# Force software OpenGL in VMs so screenshot overlays render reliably.
+if [ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]; then
+	if [ -n "${ASURA_IS_VM:-}" ] || \
+	   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+	   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+	   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
+		export LIBGL_ALWAYS_SOFTWARE=1
+	fi
+fi
+
 if [ ! -x "$QUICKSHELL_BIN" ]; then
     echo "asura-shot: $QUICKSHELL_BIN is not installed." >&2
     echo "asura-shot: the editor is drawn by Quickshell, which Asura builds." >&2

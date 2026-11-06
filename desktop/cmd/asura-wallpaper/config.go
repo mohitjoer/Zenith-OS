@@ -84,12 +84,35 @@ func resolvePath(p string) string {
 	return p
 }
 
+func dirHasFiles(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
 func (c config) wallpaperDir() string {
 	if p := resolvePath(c.Paths.Wallpaper); p != "" {
 		return p
 	}
 	// A library already filed under a near spelling is the library; a second,
 	// empty Wallpapers folder beside it would hide it.
+	for _, name := range []string{"Wallpapers", "wallpapers", "Wallpaper", "wallpaper"} {
+		if p := filepath.Join(home(), "Pictures", name); dirExists(p) && dirHasFiles(p) {
+			return p
+		}
+	}
+	for _, sysPath := range []string{"/usr/share/asura/backgrounds", "/usr/share/backgrounds/asura", "/usr/share/backgrounds"} {
+		if dirExists(sysPath) && dirHasFiles(sysPath) {
+			return sysPath
+		}
+	}
 	for _, name := range []string{"Wallpapers", "wallpapers", "Wallpaper", "wallpaper"} {
 		if p := filepath.Join(home(), "Pictures", name); dirExists(p) {
 			return p

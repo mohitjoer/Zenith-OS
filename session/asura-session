@@ -38,6 +38,15 @@ export XDG_CURRENT_DESKTOP=Asura
 export DESKTOP_SESSION=asura
 export XDG_SESSION_TYPE=wayland
 
+# Detect virtualized GPU environment for desktop apps & Qt clients
+if [ -n "${ASURA_IS_VM:-}" ] || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM" /sys/class/dmi/id/product_name 2>/dev/null || \
+   grep -qa "VirtualBox\|VMware\|QEMU\|KVM\|innotek" /sys/class/dmi/id/sys_vendor 2>/dev/null || \
+   lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
+	export LIBGL_ALWAYS_SOFTWARE=1
+	export ASURA_IS_VM=1
+fi
+
 # Seat management backend for Hyprland without root privileges:
 # Prefer seatd if /run/seatd.sock exists and is accessible, fallback to logind.
 if [ ! -S /run/seatd.sock ] && [ -d /etc/sv/seatd ]; then

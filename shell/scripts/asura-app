@@ -145,7 +145,7 @@ fallback() {
 		# No editor stands in for a notes app that was never chosen: a blank
 		# text window is the nearest honest thing to one.
 		first_of obsidian logseq joplin-desktop standard-notes zettlr \
-			gnome-text-editor gedit kate mousepad || true
+			gnome-text-editor gedit kate mousepad || fallback editor || true
 		;;
 	*) printf '' ;;
 	esac

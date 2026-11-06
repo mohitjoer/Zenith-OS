@@ -28,6 +28,10 @@ if [ -n "${ASURA_IS_VM:-}" ] || \
    lspci 2>/dev/null | grep -qi "VMware\|VirtualBox\|QEMU"; then
 	export LIBGL_ALWAYS_SOFTWARE=1
 	export ASURA_IS_VM=1
+	if command -v hyprctl >/dev/null 2>&1; then
+		hyprctl setenv LIBGL_ALWAYS_SOFTWARE 1 2>/dev/null || true
+		hyprctl setenv ASURA_IS_VM 1 2>/dev/null || true
+	fi
 fi
 
 # Update activation environment across D-Bus
