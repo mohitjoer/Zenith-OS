@@ -1,0 +1,97 @@
+# The store's two trees must never drift.
+#
+# The standalone asura-store repository (github.com/ASURA-OS/asura-store,
+# public) owns the backend and the window: the ISO builder builds the binary
+# from it whenever it is available (`ASURA_STORE_SRC`, with the checkout under
+# the tree next to this one winning), and `desktop/cmd/asura-store/` and
+# `shell/store/` here are its byte-identical copies, with `desktop/catalog/`
+# carrying the same catalogue JSON so a desktop-tree build still finds a shop.
+#
+# This workflow clones the standalone repo, runs its checks against this
+# tree's copies, and refuses any byte that drifts. The daily schedule catches
+# upstream commits nobody mirrored here yet.
+
+name: store-sync
+
+on:
+  push:
+    branches: [main, dev-unstable]
+    paths:
+      - 'desktop/cmd/asura-store/**'
+      - 'shell/store/**'
+      - 'shell/store.qml'
+      - 'desktop/catalog/**'
+      - '.github/workflows/store-sync.yml'
+  pull_request:
+    branches: [main, dev-unstable]
+    paths:
+      - 'desktop/cmd/asura-store/**'
+      - 'shell/store/**'
+      - 'shell/store.qml'
+      - 'desktop/catalog/**'
+      - '.github/workflows/store-sync.yml'
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: store-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ASURA-OS
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check out the standalone store repository
+        uses: actions/checkout@v4
+        with:
+          repository: ASURA-OS/asura-store
+          ref: main
+          path: store-upstream
+          fetch-depth: 1
+
+      - name: Set up Go at the version this module pins
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop/go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The embedded backend passes the standalone repo's checks as-is
+        run: |
+          cd desktop
+          drift="$(gofmt -l cmd/asura-store)"
+          if [ -n "$drift" ]; then
+            echo "gofmt would change:"
+            echo "$drift"
+            exit 1
+          fi
+          go vet ./cmd/asura-store
+          go test -count=1 -race ./cmd/asura-store
+
+      - name: The window's JavaScript helpers pass their tests
+        run: node --test shell/store/lib/store.test.mjs
+
+      - name: The embedded backend is byte-identical with the standalone repo
+        run: diff -r desktop/cmd/asura-store store-upstream/cmd/asura-store
+
+      - name: The window is byte-identical (store.qml, the entry file, resolved below)
+        run: |
+          out="$(diff -r shell/store store-upstream/ui)"
+          expected="Only in store-upstream/ui: store.qml"
+          if [ "$out" != "$expected" ]; then
+            echo "$out"
+            exit 1
+          fi
+          diff -q shell/store.qml store-upstream/ui/store.qml
+
+      - name: The catalogue is byte-identical
+        run: diff -r desktop/catalog store-upstream/catalog
