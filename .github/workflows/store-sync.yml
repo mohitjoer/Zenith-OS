@@ -40,15 +40,15 @@ concurrency:
 
 jobs:
   parity:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out ASURA-OS
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Check out the standalone store repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ASURA-OS/asura-store
           ref: main
@@ -56,12 +56,13 @@ jobs:
           fetch-depth: 1
 
       - name: Set up Go at the version this module pins
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: desktop/go.mod
+          cache-dependency-path: desktop/go.mod
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
