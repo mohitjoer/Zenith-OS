@@ -72,18 +72,32 @@ cat >"$INCLUDE_DIR/etc/fonts/fonts.conf" <<'EOF'
   <dir>/usr/share/fonts</dir>
   <dir>/usr/share/fonts/TTF</dir>
   <cachedir>/var/cache/fontconfig</cachedir>
-  <match target="pattern">
-    <test qual="any" name="family"><string>sans-serif</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
-  </match>
-  <match target="pattern">
-    <test qual="any" name="family"><string>Sans</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
-  </match>
-  <match target="pattern">
-    <test qual="any" name="family"><string>monospace</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
-  </match>
+  <alias>
+    <family>sans-serif</family>
+    <prefer>
+      <family>Inter</family>
+      <family>Space Grotesk</family>
+      <family>Noto Sans</family>
+      <family>DejaVu Sans</family>
+    </prefer>
+  </alias>
+  <alias>
+    <family>sans</family>
+    <prefer>
+      <family>Inter</family>
+      <family>Space Grotesk</family>
+      <family>Noto Sans</family>
+      <family>DejaVu Sans</family>
+    </prefer>
+  </alias>
+  <alias>
+    <family>monospace</family>
+    <prefer>
+      <family>JetBrainsMono Nerd Font</family>
+      <family>JetBrains Mono</family>
+      <family>DejaVu Sans Mono</family>
+    </prefer>
+  </alias>
 </fontconfig>
 EOF
 
@@ -93,18 +107,32 @@ cat >"$INCLUDE_DIR/etc/fonts/local.conf" <<'EOF'
 <fontconfig>
   <dir>/usr/share/fonts</dir>
   <dir>/usr/share/fonts/TTF</dir>
-  <match target="pattern">
-    <test qual="any" name="family"><string>Sans</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
-  </match>
-  <match target="pattern">
-    <test qual="any" name="family"><string>sans-serif</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
-  </match>
-  <match target="pattern">
-    <test qual="any" name="family"><string>monospace</string></test>
-    <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
-  </match>
+  <alias>
+    <family>sans-serif</family>
+    <prefer>
+      <family>Inter</family>
+      <family>Space Grotesk</family>
+      <family>Noto Sans</family>
+      <family>DejaVu Sans</family>
+    </prefer>
+  </alias>
+  <alias>
+    <family>sans</family>
+    <prefer>
+      <family>Inter</family>
+      <family>Space Grotesk</family>
+      <family>Noto Sans</family>
+      <family>DejaVu Sans</family>
+    </prefer>
+  </alias>
+  <alias>
+    <family>monospace</family>
+    <prefer>
+      <family>JetBrainsMono Nerd Font</family>
+      <family>JetBrains Mono</family>
+      <family>DejaVu Sans Mono</family>
+    </prefer>
+  </alias>
 </fontconfig>
 EOF
 
@@ -213,10 +241,6 @@ cp "$REPO_ROOT/public/asura-logo.svg" \
 	"$INCLUDE_DIR/usr/share/asura/branding/"
 cp "$REPO_ROOT/public/asura-logo-on-dark.svg" \
 	"$INCLUDE_DIR/usr/share/asura/branding/"
-if [ -f "$REPO_ROOT/public/asura-logo-red.svg" ]; then
-	cp "$REPO_ROOT/public/asura-logo-red.svg" \
-		"$INCLUDE_DIR/usr/share/asura/branding/"
-fi
 if [ -f "$REPO_ROOT/public/branding/boot-splash.png" ]; then
 	cp "$REPO_ROOT/public/branding/boot-splash.png" \
 		"$INCLUDE_DIR/usr/share/asura/branding/boot-splash.png"

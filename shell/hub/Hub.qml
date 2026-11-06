@@ -1104,13 +1104,17 @@ Rectangle {
                 Row {
                     anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s4 }
                     spacing: Tokens.s3
-                    Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 22 }
+                    AsuraLogo {
+                        size: 26
+                        variant: "white"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                     Column {
                         spacing: 1
                         anchors.verticalCenter: parent.verticalCenter
                         Text {
                             text: "ASURA"; color: Tokens.ink; font.family: Tokens.ui
-                            font.pixelSize: 14; font.weight: Font.Medium; font.letterSpacing: 2.4
+                            font.pixelSize: 14; font.weight: Font.DemiBold; font.letterSpacing: 2.4
                         }
                         Text {
                             text: I18n.tr("SETTINGS"); color: Tokens.inkMuted
@@ -1409,7 +1413,7 @@ Rectangle {
             Row {
                 spacing: Tokens.s2
                 Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "A"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                AsuraLogo { size: 12; variant: "white"; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     text: I18n.tr(hub.groupFor(hub.section)); color: Tokens.inkMuted
                     font.family: Tokens.ui; font.pixelSize: 9; font.weight: Font.Medium

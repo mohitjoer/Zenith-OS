@@ -101,9 +101,10 @@ Item {
                 spacing: Tokens.s2
                 anchors.verticalCenter: parent.verticalCenter
                 Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-                Text {
-                    text: "A"; color: Tokens.ink; font.family: Tokens.mono
-                    font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
+                AsuraLogo {
+                    size: 11
+                    variant: "white"
+                    anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
                     text: I18n.tr(page.eyebrow); color: Tokens.inkMuted; font.family: Tokens.ui

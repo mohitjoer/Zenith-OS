@@ -589,9 +589,13 @@ done
             height: Tokens.s5
             spacing: Tokens.s2
             Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-            Text {
-                text: "A"; color: Tokens.ink; font.family: Tokens.mono
-                font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
+            Image {
+                width: 12; height: 12
+                anchors.verticalCenter: parent.verticalCenter
+                source: Qt.resolvedUrl("../../assets/asura-logo-on-dark.svg")
+                sourceSize.width: 24; sourceSize.height: 24
+                fillMode: Image.PreserveAspectFit
+                smooth: true
             }
             Text {
                 text: I18n.tr("DEVICES"); color: Tokens.inkMuted; font.family: Tokens.ui

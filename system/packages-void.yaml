@@ -186,6 +186,7 @@ power-and-hardware-services:
 
 fonts-and-icons:
   packages:
+    - font-inter
     - dejavu-fonts-ttf
     - font-awesome
     - font-awesome6

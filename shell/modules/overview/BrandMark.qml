@@ -19,17 +19,20 @@ Item {
     // idiom); off shows a full-colour logo as-is. no effect in text mode.
     property bool tint: Theme.markTint
 
-    readonly property bool image: Theme.markSource.length > 0
-    readonly property string imageSource: !mark.image ? ""
-        : (/^(file|qrc|image|https?):/.test(Theme.markSource) ? Theme.markSource
-                                                              : "file://" + Theme.markSource)
+    readonly property bool hasCustomImage: Theme.markSource.length > 0
+    readonly property bool hasCustomText: Theme.markSource.length === 0 && Theme.mark.length > 0 && Theme.mark !== "A"
+    readonly property bool isDefaultLogo: !hasCustomImage && !hasCustomText
 
-    implicitWidth:  mark.image ? mark.size : glyph.implicitWidth
-    implicitHeight: mark.image ? mark.size : glyph.implicitHeight
+    readonly property string imageSource: hasCustomImage
+        ? (/^(file|qrc|image|https?):/.test(Theme.markSource) ? Theme.markSource : "file://" + Theme.markSource)
+        : Qt.resolvedUrl("../../../assets/asura-logo-on-dark.svg")
+
+    implicitWidth:  !mark.hasCustomText ? mark.size : glyph.implicitWidth
+    implicitHeight: !mark.hasCustomText ? mark.size : glyph.implicitHeight
 
     Text {
         id: glyph
-        visible: !mark.image
+        visible: mark.hasCustomText
         anchors.centerIn: parent
         text: Theme.mark
         color: mark.color
@@ -38,15 +41,13 @@ Item {
         font.pixelSize: mark.size
     }
 
-    // custom image mark. tint recolours a single-colour logo to `color` (the Asura mark
-    // idiom) via an alpha-preserving overlay, so a dark OR light mark both take
-    // the accent; tint off shows a full-colour logo as-is.
+    // custom image mark or default Asura logo.
     Image {
         id: img
         anchors.centerIn: parent
         width: mark.size
         height: mark.size
-        visible: mark.image && !mark.tint
+        visible: !mark.hasCustomText && (!mark.tint || mark.isDefaultLogo)
         source: mark.imageSource
         sourceSize.width: Math.round(mark.size * 2)
         sourceSize.height: Math.round(mark.size * 2)
@@ -56,7 +57,7 @@ Item {
 
     ColorOverlay {
         anchors.fill: img
-        visible: mark.image && mark.tint
+        visible: !mark.hasCustomText && mark.tint && !mark.isDefaultLogo
         source: img
         color: mark.color
     }

@@ -102,10 +102,16 @@ Singleton {
     readonly property color alert: "#e2342a"
 
     // ── type ─────────────────────────────────────────────────────────────
-    readonly property string display: "Fraunces"
+    readonly property string display: "Space Grotesk"
     property string ui: "Space Grotesk"
-    property string mono: "SpaceMono Nerd Font"
+    property string mono: "JetBrainsMono Nerd Font"
     readonly property string jp: "Noto Sans CJK JP"
+
+    FontLoader { id: flUiRegular; source: Qt.resolvedUrl("../../assets/fonts/SpaceGrotesk-Regular.ttf") }
+    FontLoader { id: flUiMedium; source: Qt.resolvedUrl("../../assets/fonts/SpaceGrotesk-Medium.ttf") }
+    FontLoader { id: flUiBold; source: Qt.resolvedUrl("../../assets/fonts/SpaceGrotesk-Bold.ttf") }
+    FontLoader { id: flUiLight; source: Qt.resolvedUrl("../../assets/fonts/SpaceGrotesk-Light.ttf") }
+    FontLoader { id: flMono; source: Qt.resolvedUrl("../../assets/fonts/JetBrainsMonoNerdFont-Regular.ttf") }
 
     // ── chrome ───────────────────────────────────────────────────────────
     // One setting voice: the quiet, function-first one. The poster layer that
@@ -276,7 +282,7 @@ Singleton {
         var scales = ({});
         var bars = ({});
         var widgets = ({});
-        var monoFont = "SpaceMono Nerd Font";
+        var monoFont = "JetBrainsMono Nerd Font";
         var uiFont = "Space Grotesk";
         try {
             const txt = shellFile.text();
