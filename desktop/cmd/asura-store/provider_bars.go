@@ -13,11 +13,14 @@ import (
 // installs or removes a bar style.
 type barProvider struct{}
 
+// The roster is the shell's own: Bar Studio's style shelf offers exactly
+// qsbar, kairos and sumi (shell/hub/schema/BarStudioPage.js), and those are
+// the three barstyles the shell ships under modules/bar/barstyles/. There is
+// no fourth entry to list.
 var builtinBarStyles = []Item{
-	{ID: "controlbar", Name: "Control Bar", Summary: "Top bar", Description: "The default top bar.", Tags: []string{"top", "horizontal", "built-in"}},
-	{ID: "qsbar", Name: "Control Bar (Legacy)", Summary: "Top bar", Description: "The default top bar (legacy alias).", Tags: []string{"top", "horizontal", "built-in"}},
-	{ID: "kairos", Name: "Kairos", Summary: "Island clock", Description: "One floating island at the top of the screen: the clock that grows on hover.", Tags: []string{"top", "island", "built-in"}},
-	{ID: "sumi", Name: "Sumi", Summary: "Ink spine", Description: "A vertical rail down the left edge.", Tags: []string{"rail", "vertical", "built-in"}},
+	{ID: "qsbar", Name: "Control Bar", Summary: "The default top bar", Description: "The shell's default top bar.", Tags: []string{"top", "horizontal", "built-in"}},
+	{ID: "kairos", Name: "Kairos", Summary: "Island clock", Description: "One floating island on the top edge, carrying the clock: it rests centred and grows on hover.", Tags: []string{"top", "island", "built-in"}},
+	{ID: "sumi", Name: "Sumi", Summary: "Ink spine", Description: "The built-in left rail: paper, ink, and a vertical working edge.", Tags: []string{"rail", "vertical", "built-in"}},
 }
 
 func (barProvider) Category() Category {

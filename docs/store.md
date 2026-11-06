@@ -64,10 +64,9 @@ refuses, and its error names the repo to run.
 `themes` is applied, not downloaded. Installing a theme writes its name into
 `~/.config/asura/current/theme.name` (XDG_CONFIG_HOME honoured; the older bare
 `~/.config/asura/theme.name` is still read), which the shell's theme engine
-picks up live. Only a theme whose files are on disk, or one of the shipped
-themes, can be activated — a catalogue-only entry stays listed as available. A
-removal refuses the built-in theme and the active theme, then deletes the
-theme's directories.
+picks up live. Only a theme whose files are on disk can be activated — a
+catalogue-only entry stays listed as available. A removal refuses the active
+theme, then deletes the theme's directories.
 
 `barstyles` is all shelf: the styles are built into the shell, so install and
 remove refuse.
@@ -87,12 +86,12 @@ asura-store settings CATEGORY [ID]                 opens Settings (asura-shell h
 `catalog` has four categories. `apps` is a shelf of about thirty packages with
 their summary, description, version and home page read from apt (`xbps-query` on
 a Void host), and what is installed read from dpkg (`xbps-query -l`). `barstyles`
-lists the four built-in bar styles and the one `shell.json` selects, which is
-what Bar Studio's style shelf reads. `plugins` reads the local catalogue under
+lists the shell's three built-in bar styles — `qsbar`, `kairos`, `sumi` — and
+the one `shell.json` selects, which is what Bar Studio's style shelf reads. `plugins` reads the local catalogue under
 `catalog/plugins/`: each entry carries an `upstream` repo, and installed means a
-folder in `~/.local/share/asura/plugins`. `themes` merges the built-ins with the
-`catalog/themes/` entries and any theme directory on disk, and marks active the
-one the current-theme file names. Items follow Ryoku's JSON contract (`id`,
+folder in `~/.local/share/asura/plugins`. `themes` lists the `catalog/themes/`
+entries and any theme directory on disk, and marks active the one the
+current-theme file names; the shelf is only what exists — nothing is invented. Items follow Ryoku's JSON contract (`id`,
 `category`, `name`, `summary`, `installed`, `active`, `updateAvailable`,
 `unavailable`, ...), so a page ported from Ryoku reads them unchanged. Any other
 category is an error: `rices`, `lockscreens`, `bundles` and `fastfetch` exist

@@ -16,13 +16,6 @@ import (
 // directory or read as an option.
 var themeIDRe = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 
-// shippedThemeIDs are the themes that ship with Asura OS itself. They are
-// always listed as installed even though none of them lives in a user theme
-// directory; the active one is the one named by the current theme file.
-var shippedThemeIDs = map[string]bool{
-	"asura-dark": true,
-}
-
 type themeProvider struct{}
 
 func (themeProvider) Category() Category {
@@ -50,26 +43,13 @@ func (themeProvider) Load(ctx context.Context, _ bool) ([]Item, SourceState, err
 		}
 	}
 
-	// Catalogue files win over the built-in fallbacks for field content, so a
-	// checked-out catalogue updates the shelf without a binary rebuild.
-	builtins := builtinThemes()
-	builtinByID := map[string]Item{}
-	for _, it := range builtins {
-		builtinByID[it.ID] = it
-	}
+	// The shelf is what exists: catalogue entries (themes authored on record)
+	// and anything actually installed on disk. A theme dir with no catalogue
+	// entry still lists, so an installed theme never vanishes; nothing else
+	// is invented here.
 	for _, it := range loadThemeCatalog() {
 		add(it)
 	}
-	for _, it := range builtins {
-		if _, seen := byID[it.ID]; !seen {
-			add(it)
-		} else {
-			byID[it.ID] = mergeThemeItem(byID[it.ID], builtinByID[it.ID])
-		}
-	}
-
-	// Merge anything actually installed on disk (a theme dir with no catalogue
-	// entry still lists, so an installed theme never vanishes).
 	for id := range installed {
 		if _, seen := byID[id]; !seen {
 			byID[id] = Item{ID: id, Category: "themes", Name: id}
@@ -81,7 +61,7 @@ func (themeProvider) Load(ctx context.Context, _ bool) ([]Item, SourceState, err
 	for _, id := range order {
 		it := byID[id]
 		it.Category = "themes"
-		it.Installed = installed[id] || shippedThemeIDs[id]
+		it.Installed = installed[id]
 		it.Active = it.Installed && currentTheme == id
 		items = append(items, it)
 	}
@@ -92,52 +72,6 @@ func (themeProvider) Load(ctx context.Context, _ bool) ([]Item, SourceState, err
 		return items[i].ID < items[j].ID
 	})
 	return items, SourceState{}, nil
-}
-
-// builtinThemes are the themes the binary ships entries for. They are metadata
-// only -- installed state comes from the shipped set and the theme dirs, so a
-// built-in entry for a theme whose files are absent reads as available, never
-// as installed.
-func builtinThemes() []Item {
-	return []Item{
-		{ID: "asura-dark", Category: "themes", Name: "Asura Cyber Dark", Summary: "Default deep obsidian theme with electric crimson accents", Author: "Asura Core Team", Version: "1.0.0", Accent: "#ff2a5f", Surface: "#121214"},
-		{ID: "catppuccin-mocha", Category: "themes", Name: "Catppuccin Mocha", Summary: "Soothing pastel theme for the high-spirited", Author: "Catppuccin Org", Version: "0.2.0", Accent: "#cba6f7", Surface: "#1e1e2e"},
-		{ID: "tokyo-night", Category: "themes", Name: "Tokyo Night", Summary: "Clean dark theme celebrating the lights of downtown Tokyo", Author: "TokyoNight Team", Version: "1.1.0", Accent: "#7aa2f7", Surface: "#1a1b26"},
-		{ID: "nord-aurora", Category: "themes", Name: "Nord Aurora", Summary: "An arctic, north-bluish clean color palette", Author: "Arctic Ice Studio", Version: "0.8.0", Accent: "#88c0d0", Surface: "#2e3440"},
-	}
-}
-
-// mergeThemeItem fills empty fields of dst from src, so catalogue metadata
-// enriches a built-in entry without erasing anything the entry already says.
-func mergeThemeItem(dst, src Item) Item {
-	if dst.Name == "" {
-		dst.Name = src.Name
-	}
-	if dst.Summary == "" {
-		dst.Summary = src.Summary
-	}
-	if dst.Description == "" {
-		dst.Description = src.Description
-	}
-	if dst.Author == "" {
-		dst.Author = src.Author
-	}
-	if dst.Version == "" {
-		dst.Version = src.Version
-	}
-	if dst.Accent == "" {
-		dst.Accent = src.Accent
-	}
-	if dst.Surface == "" {
-		dst.Surface = src.Surface
-	}
-	if dst.Upstream == "" {
-		dst.Upstream = src.Upstream
-	}
-	if len(dst.Tags) == 0 {
-		dst.Tags = src.Tags
-	}
-	return dst
 }
 
 func loadThemeCatalog() []Item {
@@ -175,9 +109,9 @@ func (themeProvider) Install(ctx context.Context, id string) error {
 	}
 	// A theme is applied, not downloaded: activation means naming it in the
 	// current theme file, which the shell's theme engine picks up live. Only
-	// an installed theme can be activated, so a catalogue-only entry that was
-	// never installed is refused rather than claimed.
-	if !installedThemeIDs()[id] && !shippedThemeIDs[id] {
+	// a theme whose files are installed can be activated, so a catalogue-only
+	// entry is refused rather than claimed.
+	if !installedThemeIDs()[id] {
 		return fmt.Errorf("theme %q is not installed; install its files first", id)
 	}
 	dir := currentThemeDir()
@@ -194,9 +128,6 @@ func (themeProvider) Install(ctx context.Context, id string) error {
 func (themeProvider) Remove(ctx context.Context, id string) error {
 	if !themeIDRe.MatchString(id) {
 		return fmt.Errorf("invalid theme id %q", id)
-	}
-	if shippedThemeIDs[id] {
-		return fmt.Errorf("theme %q is built in and cannot be removed", id)
 	}
 	if currentTheme := getCurrentTheme(); currentTheme == id {
 		return fmt.Errorf("theme %q is active; activate another theme first", id)
