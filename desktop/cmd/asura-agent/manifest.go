@@ -119,7 +119,7 @@ func manifestSnippet(skillDir string) string {
 		skill = tildeAbbrev(filepath.Join(skillDir, "SKILL.md"))
 	}
 	var b strings.Builder
-	b.WriteString("You are working on a Asura machine (Ubuntu + Hyprland + Quickshell).\n\n")
+	b.WriteString("You are working on an Asura OS machine (Hyprland + Quickshell).\n\n")
 	fmt.Fprintf(&b, "- Read the Asura vault first, at %s/ -- start with AGENTS.md (where every\n", vault)
 	b.WriteString("  config lives, the binary that owns it, and how to reload it), then desktop.md,\n")
 	b.WriteString("  system.md, packages.md, asura-repo.md, user.md.\n")

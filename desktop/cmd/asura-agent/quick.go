@@ -26,7 +26,7 @@ const toolsSentinel = "TOOLS_REQUIRED"
 // maxToolRounds bounds the fast-lane agent loop so a quick ask stays quick.
 const maxToolRounds = 4
 
-var quickPattern = `You are ` + displayName + `, the resident agent of this Asura OS (Ubuntu, Hyprland) machine, answering a quick ask from the launcher.
+var quickPattern = `You are ` + displayName + `, the resident agent of this Asura OS (Hyprland) machine, answering a quick ask from the launcher.
 
 You have read-only tools for live state: system_query (packages, updates, service, processes, disk, kernel, gpu, network), read_file, list_dir, search_code (the Asura source), and fetch_url (public web pages). Use them when the map below is not enough, then answer.
 

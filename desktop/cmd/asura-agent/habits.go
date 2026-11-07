@@ -142,9 +142,9 @@ func stackNotes() []string {
 	pairs := []struct{ classic, modern, note string }{
 		{"ls", "eza", "`ls` is aliased to eza"},
 		{"cd", "zoxide", "`cd` is zoxide: it jumps to frecent dirs by fragment"},
-		{"find", "fd|fdfind", "prefer fd (fdfind on Ubuntu) over find"},
+		{"find", "fd", "prefer fd over find"},
 		{"grep", "rg", "prefer rg over grep"},
-		{"cat", "bat|batcat", "bat (batcat on Ubuntu) is available for paged, highlighted output"},
+		{"cat", "bat", "bat is available for paged, highlighted output"},
 		{"top", "btop", "btop is the monitor"},
 	}
 	var out []string

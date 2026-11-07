@@ -21,7 +21,7 @@ const (
 var PointerBlock = pointerBegin + "\n" +
 	"## " + displayName + " system vault\n" +
 	"\n" +
-	"This machine runs Asura OS (Ubuntu, Hyprland desktop). A maintained map of the\n" +
+	"This machine runs Asura OS (Hyprland desktop). A maintained map of the\n" +
 	"system lives at `~/.local/share/asura/" + productName + "/`. Before exploring the machine or\n" +
 	"guessing paths, read `AGENTS.md` there: it says where every config lives, which\n" +
 	"binary owns it, and how to reload it. Write durable notes to `memory/` and\n" +
