@@ -345,7 +345,6 @@ Categories=TextEditor;Development;IDE;
 MimeType=text/plain;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-rust;text/x-python;text/x-go;application/json;application/xml;text/markdown;
 Keywords=Text;Editor;Development;
 EOF
-ln -sf dev.zed.Zed.desktop "$INCLUDE_DIR/usr/share/applications/zed.desktop"
 
 # Download and install official standalone Zed binary if not already cached
 ZED_CACHE="$BUILD_DIR/zed"
