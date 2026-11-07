@@ -479,6 +479,8 @@ fi
 cp "$REPO_ROOT/system/sysctl.d/99-asura-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-asura-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
 cp "$REPO_ROOT/system/xbps.d/asura.conf" "$INCLUDE_DIR/etc/xbps.d/asura.conf"
+mkdir -p "$ROOTFS/etc/xbps.d"
+cp "$REPO_ROOT/system/xbps.d/asura.conf" "$ROOTFS/etc/xbps.d/asura.conf" 2>/dev/null || true
 
 # Default environment for seatd & Wayland
 cat >"$INCLUDE_DIR/etc/environment" <<'EOF'
@@ -1027,6 +1029,11 @@ done
 # Configure fontconfig cache permissions and hardware battery threshold in /etc/rc.local
 mkdir -p "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig"
 chmod 1777 "$ROOTFS/var/cache/fontconfig" "$INCLUDE_DIR/var/cache/fontconfig" 2>/dev/null || true
+mkdir -p "$ROOTFS/usr/share/fonts/TTF"
+if [ -d "$REPO_ROOT/public/fonts" ]; then
+	cp -L "$REPO_ROOT/public/fonts"/* "$ROOTFS/usr/share/fonts/TTF/" 2>/dev/null || true
+fi
+chroot "$ROOTFS" fc-cache -f 2>/dev/null || true
 if [ -f "$ROOTFS/etc/rc.local" ]; then
 	if ! grep -q 'charge_control_end_threshold' "$ROOTFS/etc/rc.local"; then
 		echo 'for b in /sys/class/power_supply/BAT*/charge_control_end_threshold; do [ -f "$b" ] && echo 80 > "$b" 2>/dev/null || true; done' >> "$ROOTFS/etc/rc.local"

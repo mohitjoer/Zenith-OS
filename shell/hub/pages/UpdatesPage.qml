@@ -357,10 +357,12 @@ Item {
                         // the release line this box runs, and the next one when
                         // the channel has moved on ("Onogoro -> Amaterasu").
                         Text {
-                            visible: Updates.currentName !== ""
-                            text: "Asura " + Updates.currentName
+                            visible: true
+                            text: Updates.currentName !== ""
+                                ? ("ASURA " + Updates.currentName
                                   + (Updates.available && Updates.latestName !== "" && Updates.latestName !== Updates.currentName
-                                     ? "  \u2192  " + Updates.latestName : "")
+                                     ? "  \u2192  " + Updates.latestName : ""))
+                                : "ASURA OS"
                             color: Tokens.ink; font.family: Tokens.display
                             font.pixelSize: Tokens.fHero; font.weight: Font.Medium
                         }

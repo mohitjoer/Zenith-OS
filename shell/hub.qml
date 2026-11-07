@@ -30,9 +30,11 @@ ShellRoot {
         // set_min_size/set_max_size, sizing the toplevel to ~0: invisible, no input
         // region (click-dead), while qs keeps running and pins the single-instance
         // lock so reopening no-ops.
-        readonly property int fitW: (win.screen && win.screen.width > 0) ? Math.round(win.screen.width * 0.99) : 1200
-        readonly property int fitH: (win.screen && win.screen.height > 0) ? Math.round((win.screen.height - 56) * 0.99) : 880
-        minimumSize: Qt.size(Math.min(1120, win.fitW), Math.min(820, win.fitH))
+        readonly property int fitW: (win.screen && win.screen.width > 0) ? Math.round(win.screen.width * 0.99) : 1000
+        readonly property int fitH: (win.screen && win.screen.height > 0) ? Math.round((win.screen.height - 56) * 0.99) : 700
+        implicitWidth: fitW
+        implicitHeight: fitH
+        minimumSize: Qt.size(Math.min(760, win.fitW), Math.min(500, win.fitH))
         maximumSize: Qt.size(win.fitW, win.fitH)
         color: Tokens.paper
 

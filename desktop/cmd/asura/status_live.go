@@ -61,10 +61,14 @@ func parseUpgradable(output string) []updateItem {
 // buildStatusReport never fails: a machine without xbps reports itself as
 // current, which is what the page shows until there is something to say.
 func buildStatusReport(root string, run runner.Func) statusReport {
+	channel := "stable"
+	if ch, err := xbpsChannel(root); err == nil && ch != "" {
+		channel = ch
+	}
 	report := statusReport{
 		Installed: version, Latest: version,
 		Updates: []updateItem{}, Recent: []updateItem{}, Packages: []updateItem{},
-		Channel: "void",
+		Channel: channel,
 	}
 	if out, err := run("xbps-query", "-p", "pkgver", "asura"); err == nil && strings.TrimSpace(out) != "" {
 		report.Installed = strings.TrimPrefix(strings.TrimSpace(out), "asura-")

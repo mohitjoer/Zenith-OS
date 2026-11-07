@@ -44,8 +44,8 @@ import qs.FrameBars
 Rectangle {
     id: hub
 
-    implicitWidth: 1400
-    implicitHeight: 880
+    implicitWidth: 1000
+    implicitHeight: 700
     color: Tokens.paper
     focus: true
 
