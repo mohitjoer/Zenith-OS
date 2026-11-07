@@ -18,7 +18,7 @@ Rectangle {
     readonly property color accent: Theme.primary
     function dim(a) { return Qt.rgba(tile.ink.r, tile.ink.g, tile.ink.b, a) }
 
-    radius: 20
+    radius: 22
     color: hover.hovered ? tile.dim(0.10) : tile.dim(0.06)
     Behavior on color {
         enabled: !Motion.reduce
