@@ -168,5 +168,8 @@ func CollectBatteryStats() []BatteryStats {
 		})
 	}
 
+	if batteries == nil {
+		batteries = []BatteryStats{}
+	}
 	return batteries
 }

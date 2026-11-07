@@ -177,6 +177,10 @@ func CollectDiskIOStats(sampleInterval time.Duration) (DiskIOStats, error) {
 		totalWriteIOPS += writeIOPS
 	}
 
+	if devices == nil {
+		devices = []DeviceIO{}
+	}
+
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].Device < devices[j].Device
 	})
