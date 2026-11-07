@@ -57,7 +57,6 @@ them (see below), never as dead settings.
 | Fastfetch | `fastfetch` | FastfetchPage.qml | the fastfetch splash (advanced) |
 | Import config | `import` | ImportPage.qml | import settings from another config (advanced) |
 | Add-ons | `addons` | AddonsPage.qml | store add-ons and extras |
-| Agent | `agent` | AgentPage.qml | Asura Agent: switch on, wire, the vault, the dashboard |
 | Credits | `credits` | CreditsPage.qml | credits |
 
 ## Surfaces outside the Hub

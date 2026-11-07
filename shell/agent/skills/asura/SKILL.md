@@ -29,29 +29,17 @@ guess a path or edit a config file under `~/.config`, stop and use this skill.
 Do not use it to modify the Asura source tree, and never treat a shipped file as
 a place to store a user's choice.
 
-## Read the vault first
+## System configuration & architecture
 
-A maintained knowledge base of THIS machine lives in the Asura Agent vault at
-`~/.local/share/asura/agent/`, structured per Google Open Knowledge Format (OKF v0.1).
-Read it before searching the filesystem or guessing where anything lives:
+The user's configuration lives under `~/.config/asura/` (and defaults under `/usr/share/asura/`).
+Read the system configuration and query the owning commands before making changes:
 
-- `index.md`: root OKF index and knowledge graph table of contents.
-- `AGENTS.md`: the entry contract and the vault's operational rules.
-- `desktop.md`: the map. Every subsystem, the config path that owns it, the
-  binary that owns it, and how to reload it. Its generated "Bar and dock"
-  section lists every bar widget id, its visibility key, and the bar and dock
-  commands. Read this before touching the bar.
-- `system.md`, `packages.md`, `user.md`, `habits.md`: hardware, packages, where
-  this user diverges from the shipped defaults, and this user's directories and
-  tool stack.
-- `log.md`: audit trail of reindexes and system transitions over time.
-
-Ownership inside the vault: the generated maps (`index.md`, `log.md`, `AGENTS.md`, `desktop.md`,
-`system.md`, `packages.md`, `asura-repo.md`, `user.md`, `habits.md`) are rewritten on
-every reindex, so read them and never edit them. `memory/` and `journal/` are
-yours: write durable notes and dated notes (`journal/YYYY-MM-DD.md`) there and
-they survive. `user.md` lists the user's own choices; never revert one to a
-shipped default without being asked.
+- `asura doctor`: reports live state, portal bindings, shell reachability, and differences between user overrides and base.
+- `asura status`: reports versions, package channel, and update state.
+- `asura-shell bar catalog`: lists every bar widget id, its visibility key, and settings.
+- `asura-shell bar list`: lists active bar sections and current visibility.
+- `~/.config/asura/user_edits/`: user-specific overrides.
+- `~/.config/asura/`: user desktop settings materialized by `asura`.
 
 Topic guides sit beside this file. Read the matching one first:
 
@@ -120,17 +108,12 @@ asura-shell bar list         # the live bar, per section, with shown state
 asura-wallpaper wallpaper --help
 ```
 
-To find WHERE a setting is read (which QML file, which key), use `prowl`
-inside the vault's read-only source mirror at
-`~/.local/share/asura/agent/source/`, which indexes the live `~/.config/asura`:
+To find where a setting or widget is defined, search the shell sources in `/usr/share/asura/shell/` (or checkout `shell/`):
 
 ```bash
-cd ~/.local/share/asura/agent/source && prowl search "barPosition"
-cd ~/.local/share/asura/agent/source && prowl find barShellStyle
+grep -rn "barPosition" /usr/share/asura/shell/
+grep -rn "barShellStyle" /usr/share/asura/shell/
 ```
-
-The mirror is read-only and rebuilt on every reindex; never edit files in it,
-edit the real path `desktop.md` names.
 
 ## Decision framework
 
