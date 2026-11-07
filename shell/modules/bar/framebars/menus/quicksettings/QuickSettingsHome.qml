@@ -288,6 +288,22 @@ Item {
                     onToggled: Toggles.toggleDnd()
                 }
                 Menus.QsTile {
+                    width: tileGrid.tileWidth
+                    icon: "keyboard"
+                    label: I18n.tr("Keyboard")
+                    sub: {
+                        var val = KeyboardLayout.variant || "";
+                        if (!val) return "US";
+                        var m = val.match(/\(([^)]+)\)/);
+                        return m ? m[1].toUpperCase() : val.toUpperCase();
+                    }
+                    on: false
+                    hasPage: true
+                    pageTip: I18n.tr("Keyboard settings")
+                    onToggled: Wm.cycleKeyboardLayout()
+                    onPageRequested: Quickshell.execDetached(["asura-hub", "input"])
+                }
+                Menus.QsTile {
                     visible: Wm.caps.liveConfigEval === true || Toggles.gameMode
                     width: tileGrid.tileWidth
                     icon: "sports_esports"

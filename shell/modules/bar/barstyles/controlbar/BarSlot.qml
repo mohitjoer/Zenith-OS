@@ -1003,12 +1003,13 @@ PanelWindow {
         }
     }
     Component {
-        id: compLayout
-
-        LayoutWidget {
-            root: barSlot.root
-            readonly property real barContentLeftInset: 9
-            readonly property real barContentRightInset: 9
+        id: compLayout                                   // G19: retired - moved to Quick Settings
+        Item {
+            readonly property real barContentLeftInset: 0
+            readonly property real barContentRightInset: 0
+            visible: false
+            implicitWidth: 0
+            implicitHeight: 0
         }
     }
     Component {

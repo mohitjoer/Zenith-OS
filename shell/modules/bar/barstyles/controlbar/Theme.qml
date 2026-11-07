@@ -358,7 +358,7 @@ Item {
             left: ["launcher", "workspaces", "status", "cpu", "volume", "memory", "ai"],
             center: ["clock"],
             right: ["media", "network", "power", "battery", "brightness",
-                    "cputemp", "storage", "gpu", "bluetooth", "layout"]
+                    "cputemp", "storage", "gpu", "bluetooth"]
         }
     }
 
@@ -490,7 +490,7 @@ Item {
         _widgetsLoaded = false
         modStatus = true; modMemory = true; modCpu = true; modVolume = true
         modWeather = true; modNetwork = true; modBrightness = true; modMedia = true
-        modMpris = true; modQuick = false; modBattery = true; modLayout = true
+        modMpris = true; modQuick = false; modBattery = true; modLayout = false
         modCpuTemperature = true; modGpu = true; modStorage = true
         modClaude = false; modPower = false; modBluetooth = false
         _widgetsLoaded = wl
@@ -2137,7 +2137,7 @@ Item {
     property bool modVolume:     true
     property bool modWeather:    true
     property bool modNetwork:    true
-    property bool modLayout:     true
+    property bool modLayout:     false   // default off (moved to Quick Settings)
     property string networkMode: "none"   // mirrored from NetworkWidget: wifi/ethernet/none
     // Centralized status indicators. These live on Theme so BarSlot-per-monitor
     // widgets don't each spawn their own status poller.
