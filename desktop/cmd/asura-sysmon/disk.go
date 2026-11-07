@@ -18,28 +18,34 @@ type DiskUsage struct {
 	UsedPercent float64 `json:"usedPercent"`
 }
 
-// ignoredFSTypes are virtual filesystems we skip
+// ignoredFSTypes are virtual, kernel, or pseudo filesystems to filter out
 var ignoredFSTypes = map[string]bool{
-	"sysfs":      true,
-	"proc":       true,
-	"devtmpfs":   true,
-	"devpts":     true,
-	"tmpfs":      true,
-	"securityfs": true,
-	"cgroup":     true,
-	"cgroup2":    true,
-	"pstore":     true,
-	"bpf":        true,
-	"autofs":     true,
-	"mqueue":     true,
-	"hugetlbfs":  true,
-	"debugfs":    true,
-	"tracefs":    true,
-	"configfs":   true,
-	"ramfs":      true,
-	"fusectl":    true,
-	"overlay":    false, // keep overlay if used for root
-	"squashfs":   false, // keep live image if mounted
+	"sysfs":           true,
+	"proc":            true,
+	"devtmpfs":        true,
+	"devpts":          true,
+	"tmpfs":           true,
+	"securityfs":      true,
+	"cgroup":          true,
+	"cgroup2":         true,
+	"pstore":          true,
+	"bpf":             true,
+	"autofs":          true,
+	"mqueue":          true,
+	"hugetlbfs":       true,
+	"debugfs":         true,
+	"tracefs":         true,
+	"configfs":        true,
+	"ramfs":           true,
+	"fusectl":         true,
+	"efivarfs":        true,
+	"binfmt_misc":     true,
+	"fuse.portal":     true,
+	"fuse.gvfsd-fuse": true,
+	"rpc_pipefs":      true,
+	"nfsd":            true,
+	"overlay":         false, // keep overlay if used for root/live
+	"squashfs":        false, // keep live image if mounted
 }
 
 func CollectDiskUsages() ([]DiskUsage, error) {
@@ -65,12 +71,20 @@ func CollectDiskUsages() ([]DiskUsage, error) {
 		if ignoredFSTypes[fstype] {
 			continue
 		}
-		// Skip docker, snap, podman, flatpak bind mounts
-		if strings.HasPrefix(mount, "/var/lib/docker") ||
-			strings.HasPrefix(mount, "/snap") ||
-			strings.HasPrefix(mount, "/var/lib/containers") {
-			continue
+
+		// Skip pseudo or virtual kernel mount points, container layers, and snaps
+		if mount != "/" {
+			if strings.HasPrefix(mount, "/sys") ||
+				strings.HasPrefix(mount, "/proc") ||
+				strings.HasPrefix(mount, "/dev") ||
+				strings.HasPrefix(mount, "/run") ||
+				strings.HasPrefix(mount, "/var/lib/docker") ||
+				strings.HasPrefix(mount, "/snap") ||
+				strings.HasPrefix(mount, "/var/lib/containers") {
+				continue
+			}
 		}
+
 		if seenMounts[mount] {
 			continue
 		}
@@ -103,5 +117,10 @@ func CollectDiskUsages() ([]DiskUsage, error) {
 			UsedPercent: pct,
 		})
 	}
+
+	if usages == nil {
+		usages = []DiskUsage{}
+	}
+
 	return usages, nil
 }

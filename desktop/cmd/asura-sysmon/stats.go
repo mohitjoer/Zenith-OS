@@ -12,14 +12,17 @@ import (
 )
 
 type SystemStats struct {
-	CPU        CPUStats     `json:"cpu"`
-	Memory     MemStats     `json:"memory"`
-	Swap       SwapStats    `json:"swap"`
-	Network    NetworkStats `json:"network"`
-	Disks      []DiskUsage  `json:"disks"`
-	UptimeSecs uint64       `json:"uptimeSecs"`
-	LoadAvg    [3]float64   `json:"loadAvg"`
-	Timestamp  int64        `json:"timestamp"`
+	CPU        CPUStats       `json:"cpu"`
+	Memory     MemStats       `json:"memory"`
+	Swap       SwapStats      `json:"swap"`
+	Network    NetworkStats   `json:"network"`
+	Disks      []DiskUsage    `json:"disks"`
+	DiskIO     DiskIOStats    `json:"diskIO"`
+	GPUs       []GPUStats     `json:"gpus"`
+	Batteries  []BatteryStats `json:"batteries"`
+	UptimeSecs uint64         `json:"uptimeSecs"`
+	LoadAvg    [3]float64     `json:"loadAvg"`
+	Timestamp  int64          `json:"timestamp"`
 }
 
 type CPUStats struct {
@@ -284,13 +287,16 @@ func readNetDev() ([]NetIf, uint64, uint64, error) {
 			totalTx += tx
 		}
 	}
+	if ifs == nil {
+		ifs = []NetIf{}
+	}
 	return ifs, totalRx, totalTx, nil
 }
 
 func CollectNetworkStats(interval time.Duration) (NetworkStats, error) {
 	ifs1, rx1, tx1, err := readNetDev()
 	if err != nil {
-		return NetworkStats{}, err
+		return NetworkStats{Interfaces: []NetIf{}}, err
 	}
 	if interval <= 0 {
 		return NetworkStats{
@@ -302,7 +308,7 @@ func CollectNetworkStats(interval time.Duration) (NetworkStats, error) {
 	time.Sleep(interval)
 	ifs2, rx2, tx2, err := readNetDev()
 	if err != nil {
-		return NetworkStats{}, err
+		return NetworkStats{Interfaces: []NetIf{}}, err
 	}
 	secs := interval.Seconds()
 	rxRate := float64(rx2-rx1) / secs
@@ -352,8 +358,10 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 	loads, uptime, _ := CollectLoadAndUptime()
 	mem, swap, _ := CollectMemoryStats()
 	disks, _ := CollectDiskUsages()
+	gpus := CollectGPUStats()
+	batteries := CollectBatteryStats()
 
-	// Sample CPU and Network concurrently over sampleInterval
+	// Sample delta-based stats concurrently over sampleInterval
 	type cpuRes struct {
 		stats CPUStats
 		err   error
@@ -362,8 +370,14 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 		stats NetworkStats
 		err   error
 	}
+	type diskIORes struct {
+		stats DiskIOStats
+		err   error
+	}
+
 	cChan := make(chan cpuRes, 1)
 	nChan := make(chan netRes, 1)
+	dChan := make(chan diskIORes, 1)
 
 	go func() {
 		s, err := CollectCPUStats(sampleInterval)
@@ -375,8 +389,14 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 		nChan <- netRes{stats: s, err: err}
 	}()
 
+	go func() {
+		s, err := CollectDiskIOStats(sampleInterval)
+		dChan <- diskIORes{stats: s, err: err}
+	}()
+
 	cr := <-cChan
 	nr := <-nChan
+	dr := <-dChan
 
 	if cr.err != nil {
 		return SystemStats{}, fmt.Errorf("cpu collect: %w", cr.err)
@@ -388,6 +408,9 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 		Swap:       swap,
 		Network:    nr.stats,
 		Disks:      disks,
+		DiskIO:     dr.stats,
+		GPUs:       gpus,
+		Batteries:  batteries,
 		UptimeSecs: uptime,
 		LoadAvg:    loads,
 		Timestamp:  time.Now().Unix(),

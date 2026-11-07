@@ -62,7 +62,7 @@ Item {
 
             Rectangle {
                 width: parent.width
-                height: 240
+                height: 310
                 radius: 8
                 color: "#13151c"
                 border.color: "#1f222d"
@@ -130,6 +130,36 @@ Item {
                             spacing: 2
                             Text { text: "LOAD AVERAGE"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
                             Text { text: tab.stats && tab.stats.loadAvg ? tab.stats.loadAvg[0].toFixed(2) + " (1m), " + tab.stats.loadAvg[1].toFixed(2) + " (5m)" : "0.00"; color: "#ffffff"; font.pixelSize: 13; font.family: "Inter, sans-serif"; font.weight: Font.Medium }
+                        }
+
+                        Column {
+                            width: (parent.width - 20) / 2
+                            spacing: 2
+                            Text { text: "GRAPHICS ACCELERATORS"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                            Text {
+                                text: tab.stats && tab.stats.gpus && tab.stats.gpus.length > 0 ? tab.stats.gpus.map(function(g){ return g.name; }).join(" · ") : "Integrated / Host GPU"
+                                color: "#ffffff"
+                                font.pixelSize: 12
+                                font.family: "Inter, sans-serif"
+                                font.weight: Font.Medium
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                        }
+
+                        Column {
+                            width: (parent.width - 20) / 2
+                            spacing: 2
+                            Text { text: "POWER & BATTERY"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                            Text {
+                                text: tab.stats && tab.stats.batteries && tab.stats.batteries.length > 0 ? tab.stats.batteries.map(function(b){ return b.name + " (" + Math.round(b.percentage) + "% · " + (b.healthPct > 0 ? Math.round(b.healthPct) + "% Health" : b.status) + ")"; }).join(", ") : "AC Mains Power"
+                                color: "#ffffff"
+                                font.pixelSize: 12
+                                font.family: "Inter, sans-serif"
+                                font.weight: Font.Medium
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
                         }
                     }
                 }

@@ -14,6 +14,9 @@ Rectangle {
         swap: { totalBytes: 0, usedBytes: 0, usedPercent: 0 },
         network: { rxBytes: 0, txBytes: 0, rxRateSec: 0, txRateSec: 0, interfaces: [] },
         disks: [],
+        diskIO: { readBytesSec: 0, writeBytesSec: 0, readIOPS: 0, writeIOPS: 0, devices: [] },
+        gpus: [],
+        batteries: [],
         uptimeSecs: 0,
         loadAvg: [0, 0, 0]
     })
@@ -286,6 +289,7 @@ Rectangle {
             anchors.fill: parent
             visible: root.currentTab === "storage"
             disks: root.stats.disks || []
+            diskIO: root.stats.diskIO || { readBytesSec: 0, writeBytesSec: 0, readIOPS: 0, writeIOPS: 0, devices: [] }
             app: root
         }
 

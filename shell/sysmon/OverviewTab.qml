@@ -258,7 +258,7 @@ Item {
             // ── Card 3: Network Throughput ──
             Rectangle {
                 width: (grid.width - (grid.columns - 1) * grid.spacing) / grid.columns
-                height: 190
+                height: 205
                 radius: 8
                 color: "#13151c"
                 border.color: "#1f222d"
@@ -291,7 +291,7 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 3
-                                Text { text: "\u2193 DOWNLOAD"; color: "#38bdf8"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "\u2193 DOWNLOAD"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
                                 Text { text: app.fmtRate(tab.stats.network.rxRateSec); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
                                 Text { text: "Total: " + app.fmtBytes(tab.stats.network.rxBytes); color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
                             }
@@ -307,7 +307,7 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 3
-                                Text { text: "\u2191 UPLOAD"; color: "#a855f7"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "\u2191 UPLOAD"; color: "#9ca3af"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
                                 Text { text: app.fmtRate(tab.stats.network.txRateSec); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
                                 Text { text: "Total: " + app.fmtBytes(tab.stats.network.txBytes); color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
                             }
@@ -323,10 +323,10 @@ Item {
                 }
             }
 
-            // ── Card 4: Quick Storage Glance ──
+            // ── Card 4: Storage & Live Disk I/O ──
             Rectangle {
                 width: (grid.width - (grid.columns - 1) * grid.spacing) / grid.columns
-                height: 190
+                height: 205
                 radius: 8
                 color: "#13151c"
                 border.color: "#1f222d"
@@ -340,18 +340,60 @@ Item {
                     Row {
                         width: parent.width
                         Text {
-                            text: "PRIMARY STORAGE"
+                            text: "STORAGE & DISK I/O"
                             color: "#9ca3af"
                             font.family: "JetBrainsMono Nerd Font, monospace"
                             font.pixelSize: 11
                             font.weight: Font.SemiBold
                             font.letterSpacing: 1.0
                         }
+                        Item { Layout.fillWidth: true; width: 1; height: 1 }
+                        Text {
+                            text: tab.stats && tab.stats.diskIO ? Math.round(tab.stats.diskIO.readIOPS + tab.stats.diskIO.writeIOPS) + " IOPS" : ""
+                            color: "#6b7280"
+                            font.family: "JetBrainsMono Nerd Font, monospace"
+                            font.pixelSize: 10
+                        }
                     }
 
+                    Row {
+                        width: parent.width
+                        spacing: 12
+                        Rectangle {
+                            width: (parent.width - 12) / 2
+                            height: 60
+                            radius: 6
+                            color: "#181b24"
+                            border.color: "#242836"
+                            border.width: 1
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 2
+                                Text { text: "\u2193 DISK READ"; color: "#9ca3af"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: app.fmtRate(tab.stats && tab.stats.diskIO ? tab.stats.diskIO.readBytesSec : 0); color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                            }
+                        }
+
+                        Rectangle {
+                            width: (parent.width - 12) / 2
+                            height: 60
+                            radius: 6
+                            color: "#181b24"
+                            border.color: "#242836"
+                            border.width: 1
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 2
+                                Text { text: "\u2191 DISK WRITE"; color: "#9ca3af"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: app.fmtRate(tab.stats && tab.stats.diskIO ? tab.stats.diskIO.writeBytesSec : 0); color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                            }
+                        }
+                    }
+
+                    // Primary Root Storage Bar
                     Item {
                         width: parent.width
-                        height: 90
+                        height: 50
                         property var rootDisk: {
                             if (tab.stats && tab.stats.disks) {
                                 for (var i = 0; i < tab.stats.disks.length; i++) {
@@ -364,63 +406,212 @@ Item {
 
                         Column {
                             anchors.fill: parent
-                            spacing: 8
+                            spacing: 6
                             visible: parent.rootDisk !== null
 
                             Row {
-                                spacing: 10
+                                width: parent.width
                                 Text {
-                                    text: parent.parent.rootDisk ? Math.round(parent.parent.rootDisk.usedPercent) + "%" : "0%"
-                                    color: "#ffffff"
-                                    font.family: "Space Grotesk, sans-serif"
-                                    font.pixelSize: 28
-                                    font.weight: Font.Bold
+                                    text: "Root (/) " + (parent.parent.rootDisk ? app.fmtBytes(parent.parent.rootDisk.usedBytes) + " / " + app.fmtBytes(parent.parent.rootDisk.totalBytes) : "")
+                                    color: "#9ca3af"
+                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.pixelSize: 10
                                 }
-                                Column {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    Text {
-                                        text: "Root mount (/)"
-                                        color: "#e5e7eb"
-                                        font.family: "Inter, sans-serif"
-                                        font.pixelSize: 12
-                                        font.weight: Font.SemiBold
-                                    }
-                                    Text {
-                                        text: parent.parent.parent.rootDisk ? app.fmtBytes(parent.parent.parent.rootDisk.usedBytes) + " used of " + app.fmtBytes(parent.parent.parent.rootDisk.totalBytes) : ""
-                                        color: "#9ca3af"
-                                        font.family: "JetBrainsMono Nerd Font, monospace"
-                                        font.pixelSize: 10
-                                    }
+                                Item { Layout.fillWidth: true; width: 1; height: 1 }
+                                Text {
+                                    text: parent.parent.rootDisk ? Math.round(parent.parent.rootDisk.usedPercent) + "%" : ""
+                                    color: "#ffffff"
+                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.pixelSize: 10
+                                    font.weight: Font.Bold
                                 }
                             }
 
                             Rectangle {
                                 width: parent.width
-                                height: 8
-                                radius: 4
+                                height: 6
+                                radius: 3
                                 color: "#1e212b"
                                 Rectangle {
                                     width: parent.width * Math.min(1.0, (parent.parent.parent.rootDisk ? parent.parent.parent.rootDisk.usedPercent : 0) / 100.0)
                                     height: parent.height
-                                    radius: 4
+                                    radius: 3
                                     color: "#ffffff"
                                 }
                             }
+                        }
+                    }
+                }
+            }
 
+            // ── Dynamic Card 5: GPU Acceleration (if present) ──
+            Repeater {
+                model: tab.stats && tab.stats.gpus ? tab.stats.gpus : []
+                delegate: Rectangle {
+                    required property var modelData
+                    width: (grid.width - (grid.columns - 1) * grid.spacing) / grid.columns
+                    height: 205
+                    radius: 8
+                    color: "#13151c"
+                    border.color: "#1f222d"
+                    border.width: 1
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Row {
+                            width: parent.width
                             Text {
-                                text: "Filesystem: " + (parent.rootDisk ? parent.rootDisk.fsType + " (" + parent.rootDisk.device + ")" : "")
-                                color: "#6b7280"
+                                text: "GRAPHICS ACCELERATOR (GPU)"
+                                color: "#9ca3af"
                                 font.family: "JetBrainsMono Nerd Font, monospace"
-                                font.pixelSize: 10
+                                font.pixelSize: 11
+                                font.weight: Font.SemiBold
+                                font.letterSpacing: 1.0
+                            }
+                            Item { Layout.fillWidth: true; width: 1; height: 1 }
+                            Text {
+                                text: modelData.tempC > 0 ? Math.round(modelData.tempC) + "°C" : ""
+                                color: "#e5e7eb"
+                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.pixelSize: 11
                             }
                         }
 
                         Text {
-                            anchors.centerIn: parent
-                            visible: parent.rootDisk === null
-                            text: "No mounted storage detected"
-                            color: "#6b7280"
+                            text: modelData.name
+                            color: "#ffffff"
                             font.family: "Inter, sans-serif"
+                            font.pixelSize: 13
+                            font.weight: Font.SemiBold
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+
+                        Row {
+                            spacing: 14
+                            Text {
+                                text: Math.round(modelData.utilizationPct) + "%"
+                                color: "#ffffff"
+                                font.family: "Space Grotesk, sans-serif"
+                                font.pixelSize: 32
+                                font.weight: Font.Bold
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text {
+                                    text: modelData.memoryTotalMB > 0 ? "VRAM: " + modelData.memoryUsedMB + " MB / " + (modelData.memoryTotalMB >= 1024 ? (modelData.memoryTotalMB / 1024).toFixed(1) + " GB" : modelData.memoryTotalMB + " MB") : "Integrated Architecture"
+                                    color: "#e5e7eb"
+                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.pixelSize: 11
+                                }
+                                Text {
+                                    text: "Vendor: " + modelData.vendor.toUpperCase()
+                                    color: "#6b7280"
+                                    font.family: "Inter, sans-serif"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+
+                        // Utilization Bar
+                        Rectangle {
+                            width: parent.width
+                            height: 6
+                            radius: 3
+                            color: "#1e212b"
+                            Rectangle {
+                                width: parent.width * Math.min(1.0, modelData.utilizationPct / 100.0)
+                                height: parent.height
+                                radius: 3
+                                color: "#ffffff"
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Dynamic Card 6: Power & Battery (if present) ──
+            Repeater {
+                model: tab.stats && tab.stats.batteries ? tab.stats.batteries : []
+                delegate: Rectangle {
+                    required property var modelData
+                    width: (grid.width - (grid.columns - 1) * grid.spacing) / grid.columns
+                    height: 205
+                    radius: 8
+                    color: "#13151c"
+                    border.color: "#1f222d"
+                    border.width: 1
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Row {
+                            width: parent.width
+                            Text {
+                                text: "POWER & BATTERY (" + modelData.name + ")"
+                                color: "#9ca3af"
+                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.pixelSize: 11
+                                font.weight: Font.SemiBold
+                                font.letterSpacing: 1.0
+                            }
+                            Item { Layout.fillWidth: true; width: 1; height: 1 }
+                            Text {
+                                text: modelData.status
+                                color: "#e5e7eb"
+                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                            }
+                        }
+
+                        Row {
+                            spacing: 14
+                            Text {
+                                text: Math.round(modelData.percentage) + "%"
+                                color: "#ffffff"
+                                font.family: "Space Grotesk, sans-serif"
+                                font.pixelSize: 32
+                                font.weight: Font.Bold
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text {
+                                    text: modelData.watts > 0 ? modelData.watts.toFixed(1) + " W (" + modelData.voltageV.toFixed(2) + " V)" : (modelData.voltageV > 0 ? modelData.voltageV.toFixed(2) + " V" : "AC Connected")
+                                    color: "#e5e7eb"
+                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.pixelSize: 11
+                                }
+                                Text {
+                                    text: modelData.healthPct > 0 ? "Battery Health: " + Math.round(modelData.healthPct) + "% (" + modelData.technology + ")" : modelData.technology
+                                    color: "#6b7280"
+                                    font.family: "Inter, sans-serif"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+
+                        // Battery Capacity Bar
+                        Rectangle {
+                            width: parent.width
+                            height: 6
+                            radius: 3
+                            color: "#1e212b"
+                            Rectangle {
+                                width: parent.width * Math.min(1.0, modelData.percentage / 100.0)
+                                height: parent.height
+                                radius: 3
+                                color: modelData.percentage <= 15 ? "#ef4444" : "#ffffff"
+                            }
                         }
                     }
                 }

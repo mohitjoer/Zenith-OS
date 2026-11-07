@@ -46,6 +46,42 @@ func TestCollectLoadAndUptime(t *testing.T) {
 	_ = loads
 }
 
+func TestCollectDiskIOStats(t *testing.T) {
+	ioStats, err := CollectDiskIOStats(50 * time.Millisecond)
+	if err != nil {
+		t.Fatalf("CollectDiskIOStats failed: %v", err)
+	}
+	if ioStats.ReadBytesSec < 0 || ioStats.WriteBytesSec < 0 {
+		t.Fatalf("negative disk IO throughput")
+	}
+}
+
+func TestCollectGPUStats(t *testing.T) {
+	// Must never panic or fail, whether GPUs exist or not
+	gpus := CollectGPUStats()
+	for _, g := range gpus {
+		if g.Name == "" {
+			t.Fatalf("gpu entry missing name")
+		}
+		if g.UtilizationPct < 0 || g.UtilizationPct > 100 {
+			t.Fatalf("invalid gpu utilization: %.2f", g.UtilizationPct)
+		}
+	}
+}
+
+func TestCollectBatteryStats(t *testing.T) {
+	// Must never panic or fail, whether battery exists or not
+	bats := CollectBatteryStats()
+	for _, b := range bats {
+		if b.Name == "" {
+			t.Fatalf("battery entry missing name")
+		}
+		if b.Percentage < 0 || b.Percentage > 100 {
+			t.Fatalf("invalid battery percentage: %.2f", b.Percentage)
+		}
+	}
+}
+
 func TestCollectAllStats(t *testing.T) {
 	st, err := CollectAllStats(50 * time.Millisecond)
 	if err != nil {

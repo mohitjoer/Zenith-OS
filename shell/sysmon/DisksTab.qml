@@ -4,6 +4,7 @@ import QtQuick.Controls
 Item {
     id: tab
     property var disks: []
+    property var diskIO: ({ readBytesSec: 0, writeBytesSec: 0, readIOPS: 0, writeIOPS: 0, devices: [] })
     property var app
 
     Flickable {
@@ -16,7 +17,51 @@ Item {
         Column {
             id: flow
             width: parent.width
-            spacing: 12
+            spacing: 14
+
+            // ── Top Bar: Live Disk I/O Activity ──
+            Rectangle {
+                width: parent.width
+                height: 80
+                radius: 8
+                color: "#13151c"
+                border.color: "#1f222d"
+                border.width: 1
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 16
+
+                    Column {
+                        width: (parent.width - 32) / 3
+                        spacing: 3
+                        Text { text: "DISK READ THROUGHPUT"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.readBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: tab.diskIO ? Math.round(tab.diskIO.readIOPS) + " Read IOPS" : "0 IOPS"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                    }
+
+                    Rectangle { width: 1; height: parent.height; color: "#1f222d" }
+
+                    Column {
+                        width: (parent.width - 32) / 3
+                        spacing: 3
+                        Text { text: "DISK WRITE THROUGHPUT"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.writeBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: tab.diskIO ? Math.round(tab.diskIO.writeIOPS) + " Write IOPS" : "0 IOPS"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                    }
+
+                    Rectangle { width: 1; height: parent.height; color: "#1f222d" }
+
+                    Column {
+                        width: (parent.width - 32) / 3
+                        spacing: 3
+                        Text { text: "PHYSICAL STORAGE DRIVES"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: (tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.length : 0) + " Block Devices"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "Inter, sans-serif" }
+                        Text { text: tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.map(function(d){ return d.device; }).join(", ") : "None"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace"; elide: Text.ElideRight }
+                    }
+                }
+            }
 
             Text {
                 text: "STORAGE PARTITIONS & MOUNTPOINTS"

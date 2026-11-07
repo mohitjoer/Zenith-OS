@@ -34,6 +34,8 @@ asura-sysmon                           Launches the Resource Monitor GUI window
 
 - **CPU**: Read directly from `/proc/stat` with sub-second sample delta, core distribution, load average from `/proc/loadavg`, and thermal sensors from `/sys/class/thermal/` and `/sys/class/hwmon/`.
 - **Memory & Swap**: Instantaneous reads from `/proc/meminfo` computing physical memory, cache, buffers, and swap utilization.
-- **Storage**: Monitored filesystems from `/proc/mounts` and `statvfs` system calls.
+- **Storage & Disk I/O**: Live read/write throughput (bytes/sec) and IOPS from `/proc/diskstats`, physical block drive enumeration from `/sys/block/`, and mounted filesystem capacity from `/proc/mounts` with pseudo/virtual filesystem filtering (`efivarfs`, `cgroup`, etc.).
+- **Graphics (GPU)**: Hardware telemetry across all major architectures: NVIDIA via `nvidia-smi` (utilization %, VRAM, temperature), AMD via `/sys/class/drm` and hwmon, Intel via DRM frequency scaling and package sensors, and virtualized adapters (VirtIO, VMware, VirtualBox). Safely defaults to empty on headless systems.
+- **Power & Battery**: System laptop battery status, capacity %, charge/discharge rate in Watts, voltage, and battery health % via `/sys/class/power_supply/` (supporting both charge and energy profiles). Gracefully returns empty on desktops, servers, and virtual machines.
 - **Network**: Real-time interface byte counters from `/proc/net/dev`.
 - **Processes**: `/proc/[PID]/stat`, `status`, and `cmdline`.
