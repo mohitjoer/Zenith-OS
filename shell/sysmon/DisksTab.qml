@@ -88,24 +88,34 @@ Item {
                         anchors.margins: 14
                         spacing: 8
 
-                        Row {
+                        Item {
                             width: parent.width
-                            Text {
-                                text: modelData.mountPoint
-                                color: "#ffffff"
-                                font.family: "Inter, sans-serif"
-                                font.pixelSize: 14
-                                font.weight: Font.SemiBold
+                            height: 20
+
+                            Row {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                Text {
+                                    text: modelData.mountPoint
+                                    color: "#ffffff"
+                                    font.family: "Inter, sans-serif"
+                                    font.pixelSize: 14
+                                    font.weight: Font.SemiBold
+                                }
+                                Text {
+                                    text: "(" + modelData.device + " · " + modelData.fsType + ")"
+                                    color: "#6b7280"
+                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.pixelSize: 11
+                                    anchors.baseline: parent.children[0].baseline
+                                }
                             }
+
                             Text {
-                                text: "  (" + modelData.device + " · " + modelData.fsType + ")"
-                                color: "#6b7280"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
-                                font.pixelSize: 11
-                                anchors.baseline: parent.children[0].baseline
-                            }
-                            Item { Layout.fillWidth: true; width: 1; height: 1 }
-                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: tab.app.fmtBytes(modelData.usedBytes) + " / " + tab.app.fmtBytes(modelData.totalBytes) + " (" + Math.round(modelData.usedPercent) + "%)"
                                 color: "#e5e7eb"
                                 font.family: "JetBrainsMono Nerd Font, monospace"

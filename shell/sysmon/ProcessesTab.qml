@@ -48,107 +48,112 @@ Item {
         spacing: 12
 
         // Filter & Action Toolbar
-        Row {
+        Item {
             width: parent.width
             height: 36
-            spacing: 12
 
-            Rectangle {
-                width: 260
+            Row {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 height: 36
-                radius: 6
-                color: "#13151c"
-                border.color: searchInput.activeFocus ? "#4b5563" : "#222530"
-                border.width: 1
+                spacing: 12
 
-                Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 8
+                Rectangle {
+                    width: 260
+                    height: 36
+                    radius: 6
+                    color: "#13151c"
+                    border.color: searchInput.activeFocus ? "#4b5563" : "#222530"
+                    border.width: 1
 
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "\u2315"
-                        color: "#6b7280"
-                        font.pixelSize: 14
-                    }
-
-                    TextInput {
-                        id: searchInput
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 30
-                        color: "#ffffff"
-                        font.family: "Inter, sans-serif"
-                        font.pixelSize: 12
-                        clip: true
-                        onTextChanged: tab.filterText = text.toLowerCase().trim()
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
 
                         Text {
-                            anchors.fill: parent
-                            visible: !searchInput.text && !searchInput.activeFocus
-                            text: "Search processes..."
-                            color: "#4b5563"
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "\u2315"
+                            color: "#6b7280"
+                            font.pixelSize: 14
+                        }
+
+                        TextInput {
+                            id: searchInput
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 30
+                            color: "#ffffff"
                             font.family: "Inter, sans-serif"
                             font.pixelSize: 12
+                            clip: true
+                            onTextChanged: tab.filterText = text.toLowerCase().trim()
+
+                            Text {
+                                anchors.fill: parent
+                                visible: !searchInput.text && !searchInput.activeFocus
+                                text: "Search processes..."
+                                color: "#4b5563"
+                                font.family: "Inter, sans-serif"
+                                font.pixelSize: 12
+                            }
                         }
                     }
                 }
-            }
 
-            Rectangle {
-                width: 100
-                height: 36
-                radius: 6
-                color: tab.selectedPID > 0 ? (killMouse.containsMouse ? "#3b1515" : "#2a1212") : "#161820"
-                border.color: tab.selectedPID > 0 ? "#7f1d1d" : "#242836"
-                border.width: 1
-                opacity: tab.selectedPID > 0 ? 1.0 : 0.4
+                Rectangle {
+                    width: 100
+                    height: 36
+                    radius: 6
+                    color: tab.selectedPID > 0 ? (killMouse.containsMouse ? "#3b1515" : "#2a1212") : "#161820"
+                    border.color: tab.selectedPID > 0 ? "#7f1d1d" : "#242836"
+                    border.width: 1
+                    opacity: tab.selectedPID > 0 ? 1.0 : 0.4
 
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 6
-                    Text {
-                        text: "End Task"
-                        color: tab.selectedPID > 0 ? "#f87171" : "#6b7280"
-                        font.family: "Inter, sans-serif"
-                        font.pixelSize: 12
-                        font.weight: Font.SemiBold
-                        anchors.verticalCenter: parent.verticalCenter
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+                        Text {
+                            text: "End Task"
+                            color: tab.selectedPID > 0 ? "#f87171" : "#6b7280"
+                            font.family: "Inter, sans-serif"
+                            font.pixelSize: 12
+                            font.weight: Font.SemiBold
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: killMouse
+                        anchors.fill: parent
+                        enabled: tab.selectedPID > 0
+                        cursorShape: tab.selectedPID > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        hoverEnabled: true
+                        onClicked: {
+                            if (tab.selectedPID > 0) {
+                                killProc.targetPid = tab.selectedPID;
+                                killProc.running = true;
+                            }
+                        }
                     }
                 }
 
-                MouseArea {
-                    id: killMouse
-                    anchors.fill: parent
-                    enabled: tab.selectedPID > 0
-                    cursorShape: tab.selectedPID > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    hoverEnabled: true
-                    onClicked: {
-                        if (tab.selectedPID > 0) {
-                            killProc.targetPid = tab.selectedPID;
-                            killProc.running = true;
-                        }
-                    }
+                Text {
+                    text: tab.statusMsg
+                    color: "#9ca3af"
+                    font.family: "JetBrainsMono Nerd Font, monospace"
+                    font.pixelSize: 11
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
             Text {
-                text: tab.statusMsg
-                color: "#9ca3af"
-                font.family: "JetBrainsMono Nerd Font, monospace"
-                font.pixelSize: 11
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Item { Layout.fillWidth: true; height: 1; width: 1 }
-
-            Text {
                 text: (filteredModel.count) + " processes"
                 color: "#6b7280"
                 font.family: "JetBrainsMono Nerd Font, monospace"
                 font.pixelSize: 11
-                anchors.verticalCenter: parent.verticalCenter
             }
         }
 

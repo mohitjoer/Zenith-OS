@@ -38,9 +38,12 @@ Item {
                     anchors.margins: 16
                     spacing: 12
 
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 18
                         Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: "PROCESSOR (CPU)"
                             color: "#9ca3af"
                             font.family: "JetBrainsMono Nerd Font, monospace"
@@ -48,8 +51,9 @@ Item {
                             font.weight: Font.SemiBold
                             font.letterSpacing: 1.0
                         }
-                        Item { width: 1; height: 1; Layout.fillWidth: true }
                         Text {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             text: tab.cpuTemp > 0 ? Math.round(tab.cpuTemp) + "°C" : ""
                             color: "#e5e7eb"
                             font.family: "JetBrainsMono Nerd Font, monospace"
@@ -337,9 +341,12 @@ Item {
                     anchors.margins: 16
                     spacing: 12
 
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 18
                         Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: "STORAGE & DISK I/O"
                             color: "#9ca3af"
                             font.family: "JetBrainsMono Nerd Font, monospace"
@@ -347,8 +354,9 @@ Item {
                             font.weight: Font.SemiBold
                             font.letterSpacing: 1.0
                         }
-                        Item { Layout.fillWidth: true; width: 1; height: 1 }
                         Text {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             text: tab.stats && tab.stats.diskIO ? Math.round(tab.stats.diskIO.readIOPS + tab.stats.diskIO.writeIOPS) + " IOPS" : ""
                             color: "#6b7280"
                             font.family: "JetBrainsMono Nerd Font, monospace"
@@ -409,16 +417,20 @@ Item {
                             spacing: 6
                             visible: parent.rootDisk !== null
 
-                            Row {
+                            Item {
                                 width: parent.width
+                                height: 16
                                 Text {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
                                     text: "Root (/) " + (parent.parent.rootDisk ? app.fmtBytes(parent.parent.rootDisk.usedBytes) + " / " + app.fmtBytes(parent.parent.rootDisk.totalBytes) : "")
                                     color: "#9ca3af"
                                     font.family: "JetBrainsMono Nerd Font, monospace"
                                     font.pixelSize: 10
                                 }
-                                Item { Layout.fillWidth: true; width: 1; height: 1 }
                                 Text {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
                                     text: parent.parent.rootDisk ? Math.round(parent.parent.rootDisk.usedPercent) + "%" : ""
                                     color: "#ffffff"
                                     font.family: "JetBrainsMono Nerd Font, monospace"
@@ -461,9 +473,12 @@ Item {
                         anchors.margins: 16
                         spacing: 12
 
-                        Row {
+                        Item {
                             width: parent.width
+                            height: 18
                             Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: "GRAPHICS ACCELERATOR (GPU)"
                                 color: "#9ca3af"
                                 font.family: "JetBrainsMono Nerd Font, monospace"
@@ -471,8 +486,9 @@ Item {
                                 font.weight: Font.SemiBold
                                 font.letterSpacing: 1.0
                             }
-                            Item { Layout.fillWidth: true; width: 1; height: 1 }
                             Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.tempC > 0 ? Math.round(modelData.tempC) + "°C" : ""
                                 color: "#e5e7eb"
                                 font.family: "JetBrainsMono Nerd Font, monospace"
@@ -552,9 +568,12 @@ Item {
                         anchors.margins: 16
                         spacing: 12
 
-                        Row {
+                        Item {
                             width: parent.width
+                            height: 18
                             Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: "POWER & BATTERY (" + modelData.name + ")"
                                 color: "#9ca3af"
                                 font.family: "JetBrainsMono Nerd Font, monospace"
@@ -562,8 +581,9 @@ Item {
                                 font.weight: Font.SemiBold
                                 font.letterSpacing: 1.0
                             }
-                            Item { Layout.fillWidth: true; width: 1; height: 1 }
                             Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.status
                                 color: "#e5e7eb"
                                 font.family: "JetBrainsMono Nerd Font, monospace"
