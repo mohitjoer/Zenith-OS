@@ -51,11 +51,11 @@ var ignoredFSTypes = map[string]bool{
 func CollectDiskUsages() ([]DiskUsage, error) {
 	data, err := os.ReadFile("/proc/mounts")
 	if err != nil {
-		return nil, err
+		return []DiskUsage{}, err
 	}
 
 	seenMounts := make(map[string]bool)
-	var usages []DiskUsage
+	usages := []DiskUsage{}
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {

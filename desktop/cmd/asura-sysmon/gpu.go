@@ -253,7 +253,7 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 // CollectGPUStats collects hardware telemetry across NVIDIA, AMD, Intel, and virtualized graphics.
 // On systems without a graphics controller, it safely returns an empty slice.
 func CollectGPUStats() []GPUStats {
-	var results []GPUStats
+	results := []GPUStats{}
 
 	nv := queryNvidiaGPU()
 	if len(nv) > 0 {
@@ -263,10 +263,6 @@ func CollectGPUStats() []GPUStats {
 	drm := queryDRMGPU(len(nv) > 0)
 	if len(drm) > 0 {
 		results = append(results, drm...)
-	}
-
-	if results == nil {
-		results = []GPUStats{}
 	}
 
 	return results

@@ -47,7 +47,7 @@ func readFloat(path string) float64 {
 // CollectBatteryStats detects all system batteries across laptops and portables.
 // On desktops, servers, and VMs, it safely returns an empty slice.
 func CollectBatteryStats() []BatteryStats {
-	var batteries []BatteryStats
+	batteries := []BatteryStats{}
 
 	entries, err := filepath.Glob("/sys/class/power_supply/*")
 	if err != nil || len(entries) == 0 {

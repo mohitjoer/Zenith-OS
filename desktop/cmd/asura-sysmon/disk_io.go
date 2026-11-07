@@ -115,7 +115,7 @@ func readDiskSamples() (map[string]diskSample, error) {
 func CollectDiskIOStats(sampleInterval time.Duration) (DiskIOStats, error) {
 	s1, err := readDiskSamples()
 	if err != nil {
-		return DiskIOStats{}, err
+		return DiskIOStats{Devices: []DeviceIO{}}, err
 	}
 
 	if sampleInterval <= 0 {
@@ -126,7 +126,7 @@ func CollectDiskIOStats(sampleInterval time.Duration) (DiskIOStats, error) {
 
 	s2, err := readDiskSamples()
 	if err != nil {
-		return DiskIOStats{}, err
+		return DiskIOStats{Devices: []DeviceIO{}}, err
 	}
 
 	secs := sampleInterval.Seconds()
@@ -135,7 +135,7 @@ func CollectDiskIOStats(sampleInterval time.Duration) (DiskIOStats, error) {
 	}
 
 	var totalReadBytesSec, totalWriteBytesSec, totalReadIOPS, totalWriteIOPS float64
-	var devices []DeviceIO
+	devices := []DeviceIO{}
 
 	for dev, cur := range s2 {
 		prev, ok := s1[dev]

@@ -257,9 +257,9 @@ func CollectMemoryStats() (MemStats, SwapStats, error) {
 func readNetDev() ([]NetIf, uint64, uint64, error) {
 	data, err := os.ReadFile("/proc/net/dev")
 	if err != nil {
-		return nil, 0, 0, err
+		return []NetIf{}, 0, 0, err
 	}
-	var ifs []NetIf
+	ifs := []NetIf{}
 	var totalRx, totalTx uint64
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
