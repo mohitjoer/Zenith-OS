@@ -917,12 +917,18 @@ mkdir -p "$ROOTFS/home/asura/.config/asura" "$ROOTFS/etc/skel/.config/asura" \
          "$ROOTFS/home/asura/Pictures" "$ROOTFS/home/asura/Videos" \
          "$INCLUDE_DIR/etc/skel/Desktop"
 if [ -f "$REPO_ROOT/session/applications/asura-installer.desktop" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/share/applications"
+	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$INCLUDE_DIR/usr/share/applications/"
+	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$ROOTFS/usr/share/applications/" 2>/dev/null || true
 	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$ROOTFS/home/asura/Desktop/"
 	cp "$REPO_ROOT/session/applications/asura-installer.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
 	chmod 755 "$ROOTFS/home/asura/Desktop/asura-installer.desktop" 2>/dev/null || true
 	chmod 755 "$INCLUDE_DIR/etc/skel/Desktop/asura-installer.desktop" 2>/dev/null || true
 fi
 if [ -f "$REPO_ROOT/session/applications/asura-store.desktop" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/share/applications"
+	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$INCLUDE_DIR/usr/share/applications/"
+	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$ROOTFS/usr/share/applications/" 2>/dev/null || true
 	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$ROOTFS/home/asura/Desktop/"
 	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
 	chmod 755 "$ROOTFS/home/asura/Desktop/asura-store.desktop" 2>/dev/null || true

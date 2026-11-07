@@ -1,10 +1,11 @@
 [Desktop Entry]
 Name=Install Asura OS
-Comment=Install Asura OS to your hard drive
-Exec=ghostty --title="Asura OS Installer" -e sudo /usr/bin/asura-installer
-
+GenericName=System Installer
+Comment=Install Asura OS permanently to your laptop or desktop drive
+Exec=ghostty --title="Install Asura OS" -e asura install
 Icon=system-software-install
 Terminal=false
 Type=Application
 Categories=System;
+Keywords=install;installer;setup;drive;disk;boot;partition;
 StartupNotify=true

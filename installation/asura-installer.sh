@@ -17,6 +17,16 @@ GREEN=$(printf '\033[1;32m')
 RED=$(printf '\033[1;31m')
 RESET=$(printf '\033[0m')
 
+cleanup_err() {
+	code=$?
+	if [ "$code" -ne 0 ]; then
+		printf "\n${RED}${BOLD}Installation encountered an error (exit code %s).${RESET}\n" "$code"
+		printf "${WHITE}Press Enter to close...${RESET}"
+		read -r _ 2>/dev/null || true
+	fi
+}
+trap cleanup_err EXIT
+
 clear 2>/dev/null || true
 
 cat <<EOF
@@ -44,8 +54,8 @@ fi
 # Disk Selection
 printf "${WHITE}${BOLD}Available Drives:${RESET}\n"
 printf "${DIM}──────────────────────────────────────────────────────────${RESET}\n"
-lsblk -d -n -o NAME,SIZE,MODEL,TYPE | grep -E 'disk' | while read -r line; do
-	printf "  ${BOLD}/dev/%s${RESET}\n" "$line"
+lsblk -d -n -o NAME,SIZE,MODEL,TRAN,TYPE | grep -E '\sdisk' | while read -r name size model tran type; do
+	printf "  ${BOLD}/dev/%-12s${RESET} %-8s %-24s [transport: %s]\n" "$name" "$size" "${model:-Disk}" "${tran:-internal}"
 done
 printf "${DIM}──────────────────────────────────────────────────────────${RESET}\n\n"
 
@@ -196,11 +206,14 @@ SUPPORT_URL="https://asuraos.dev/support"
 BUG_REPORT_URL="https://github.com/mohitjoer/ASURA-OS/issues"
 EOF
 
-# Ensure installer alias
-if [ -f "$TARGET_DIR/usr/bin/void-installer" ]; then
-	rm -f "$TARGET_DIR/usr/bin/void-installer"
-	ln -sf /usr/bin/asura-installer "$TARGET_DIR/usr/bin/void-installer"
-fi
+# Clean up installer application and temporary live media files on target installation
+# The installer automatically deletes itself after setup so no installer residue exists on disk.
+rm -f "$TARGET_DIR/etc/asura-live"
+rm -f "$TARGET_DIR/usr/bin/asura-installer"
+rm -f "$TARGET_DIR/usr/bin/void-installer"
+rm -f "$TARGET_DIR/usr/share/applications/asura-installer.desktop"
+rm -f "$TARGET_DIR/home"/*/Desktop/asura-installer.desktop 2>/dev/null || true
+rm -f "$TARGET_DIR/etc/skel/Desktop/asura-installer.desktop" 2>/dev/null || true
 
 # Ensure user account exists
 if ! chroot "$TARGET_DIR" id -u "$USERNAME_INPUT" >/dev/null 2>&1; then
@@ -261,6 +274,7 @@ ${GREEN}┌───────────────────────
 │               Installation Complete! [✓]                 │
 │                                                          │
 │   Asura OS is now installed on your system.              │
+│   The installer has been automatically removed.          │
 │   You can now reboot and remove the live USB media.      │
 └──────────────────────────────────────────────────────────┘${RESET}
 
@@ -276,5 +290,7 @@ case "$REBOOT_CHOICE" in
 		;;
 	*)
 		printf "\n${DIM}Returning to live desktop environment. You may reboot anytime.${RESET}\n\n"
+		printf "${WHITE}Press Enter to exit...${RESET}"
+		read -r _ || true
 		;;
 esac

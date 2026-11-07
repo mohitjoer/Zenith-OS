@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 )
 
@@ -23,14 +24,31 @@ func asuraInstall(args []string) int {
 		return exitOK
 	}
 
-	installerPath := "/usr/bin/asura-installer"
-	if _, err := os.Stat(installerPath); err != nil {
-		// Fallback to repository location if testing in dev
-		installerPath = "installation/asura-installer.sh"
-		if _, err := os.Stat(installerPath); err != nil {
-			fmt.Fprintf(os.Stderr, "asura install: installer binary not found\n")
-			return exitFail
+	candidates := []string{
+		"/usr/bin/asura-installer",
+		"/usr/share/asura/installation/asura-installer.sh",
+		"installation/asura-installer.sh",
+	}
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "asura-installer"),
+			filepath.Join(exeDir, "..", "installation", "asura-installer.sh"),
+			filepath.Join(exeDir, "..", "..", "installation", "asura-installer.sh"),
+		)
+	}
+
+	var installerPath string
+	for _, p := range candidates {
+		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+			installerPath = p
+			break
 		}
+	}
+
+	if installerPath == "" {
+		fmt.Fprintf(os.Stderr, "asura install: installer binary not found\n")
+		return exitFail
 	}
 
 	cmdArgs := []string{installerPath}

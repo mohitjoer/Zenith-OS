@@ -26,6 +26,9 @@ if [ "${1:-}" = "--if-first-run" ]; then
     if [ -e "$MARKER" ] || [ -f "$LIVE_FLAG" ] || grep -qE "boot=live|live" /proc/cmdline 2>/dev/null; then
         exit 0
     fi
+    # Clean up any leftover installer shortcuts on an installed system
+    rm -f "$HOME/Desktop/asura-installer.desktop" 2>/dev/null || true
+    rm -f "$HOME/.local/share/applications/asura-installer.desktop" 2>/dev/null || true
 fi
 
 
