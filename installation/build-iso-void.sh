@@ -66,42 +66,7 @@ if [ -d "$REPO_ROOT/public/fonts" ]; then
 	cp -L "$REPO_ROOT/public/fonts"/* "$INCLUDE_DIR/usr/share/fonts/TTF/"
 fi
 
-cat >"$INCLUDE_DIR/etc/fonts/fonts.conf" <<'EOF'
-<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
-<fontconfig>
-  <dir>/usr/share/fonts</dir>
-  <dir>/usr/share/fonts/TTF</dir>
-  <cachedir>/var/cache/fontconfig</cachedir>
-  <alias>
-    <family>sans-serif</family>
-    <prefer>
-      <family>Inter</family>
-      <family>Space Grotesk</family>
-      <family>Noto Sans</family>
-      <family>DejaVu Sans</family>
-    </prefer>
-  </alias>
-  <alias>
-    <family>sans</family>
-    <prefer>
-      <family>Inter</family>
-      <family>Space Grotesk</family>
-      <family>Noto Sans</family>
-      <family>DejaVu Sans</family>
-    </prefer>
-  </alias>
-  <alias>
-    <family>monospace</family>
-    <prefer>
-      <family>JetBrainsMono Nerd Font</family>
-      <family>JetBrains Mono</family>
-      <family>DejaVu Sans Mono</family>
-    </prefer>
-  </alias>
-</fontconfig>
-EOF
-
+# Configure fontconfig local preferences without destroying the main system fonts.conf
 cat >"$INCLUDE_DIR/etc/fonts/local.conf" <<'EOF'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">

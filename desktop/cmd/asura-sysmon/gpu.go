@@ -18,6 +18,7 @@ type GPUStats struct {
 	MemoryFreeMB   uint64  `json:"memoryFreeMB"`
 	MemoryUsedPct  float64 `json:"memoryUsedPct"`
 	TempC          float64 `json:"tempC"`
+	IsVirtual      bool    `json:"isVirtual"`
 }
 
 var pciVendorNames = map[string]string{
@@ -235,6 +236,8 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 			usedPct = (float64(usedMB) / float64(totalMB)) * 100.0
 		}
 
+		isVirtual := vendorKey == "vmware" || vendorKey == "virtualbox" || vendorKey == "virtio" || vendorID == "0x1234"
+
 		gpus = append(gpus, GPUStats{
 			Name:           friendlyName,
 			Vendor:         vendorKey,
@@ -244,6 +247,7 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 			MemoryFreeMB:   freeMB,
 			MemoryUsedPct:  usedPct,
 			TempC:          tempC,
+			IsVirtual:      isVirtual,
 		})
 	}
 

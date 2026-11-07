@@ -89,12 +89,19 @@ func CollectBatteryStats() []BatteryStats {
 		// Capacity %: try capacity file, or compute from charge/energy
 		capacity := readFloat(filepath.Join(entry, "capacity"))
 
-		// Voltage: microvolts -> Volts
+		// Voltage: microvolts -> Volts. Real physical laptop batteries operate between 2.5V and 25V.
+		// Virtual machines (like VMware) and broken ACPI tables frequently report dummy 1000V or 0V.
+		var voltageV float64
 		voltageUV := readFloat(filepath.Join(entry, "voltage_now"))
 		if voltageUV == 0 {
 			voltageUV = readFloat(filepath.Join(entry, "voltage_min_design"))
 		}
-		voltageV := voltageUV / 1e6
+		if voltageUV > 0 {
+			v := voltageUV / 1e6
+			if v >= 2.5 && v <= 26.0 {
+				voltageV = v
+			}
+		}
 
 		// Power / Watts
 		// Some kernels report power_now in microwatts, others report current_now in microamps

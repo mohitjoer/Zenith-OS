@@ -7,6 +7,9 @@ Item {
     property var diskIO: ({ readBytesSec: 0, writeBytesSec: 0, readIOPS: 0, writeIOPS: 0, devices: [] })
     property var app
 
+    readonly property string fontUi: app ? app.fontUi : "Inter, system-ui, sans-serif"
+    readonly property string fontMono: app ? app.fontMono : "JetBrains Mono, monospace"
+
     Flickable {
         anchors.fill: parent
         anchors.margins: 16
@@ -36,9 +39,9 @@ Item {
                     Column {
                         width: (parent.width - 32) / 3
                         spacing: 3
-                        Text { text: "DISK READ THROUGHPUT"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
-                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.readBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                        Text { text: tab.diskIO ? Math.round(tab.diskIO.readIOPS) + " Read IOPS" : "0 IOPS"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: "Disk Read"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.Medium }
+                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.readBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: tab.fontMono }
+                        Text { text: tab.diskIO ? Math.round(tab.diskIO.readIOPS) + " IOPS" : "0 IOPS"; color: "#6b7280"; font.pixelSize: 11; font.family: tab.fontMono }
                     }
 
                     Rectangle { width: 1; height: parent.height; color: "#1f222d" }
@@ -46,9 +49,9 @@ Item {
                     Column {
                         width: (parent.width - 32) / 3
                         spacing: 3
-                        Text { text: "DISK WRITE THROUGHPUT"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
-                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.writeBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                        Text { text: tab.diskIO ? Math.round(tab.diskIO.writeIOPS) + " Write IOPS" : "0 IOPS"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
+                        Text { text: "Disk Write"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.Medium }
+                        Text { text: tab.app.fmtRate(tab.diskIO ? tab.diskIO.writeBytesSec : 0); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: tab.fontMono }
+                        Text { text: tab.diskIO ? Math.round(tab.diskIO.writeIOPS) + " IOPS" : "0 IOPS"; color: "#6b7280"; font.pixelSize: 11; font.family: tab.fontMono }
                     }
 
                     Rectangle { width: 1; height: parent.height; color: "#1f222d" }
@@ -56,20 +59,19 @@ Item {
                     Column {
                         width: (parent.width - 32) / 3
                         spacing: 3
-                        Text { text: "PHYSICAL STORAGE DRIVES"; color: "#6b7280"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace" }
-                        Text { text: (tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.length : 0) + " Block Devices"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "Inter, sans-serif" }
-                        Text { text: tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.map(function(d){ return d.device; }).join(", ") : "None"; color: "#9ca3af"; font.pixelSize: 10; font.family: "JetBrainsMono Nerd Font, monospace"; elide: Text.ElideRight }
+                        Text { text: "Physical Storage Drives"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.Medium }
+                        Text { text: (tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.length : 0) + " Block Devices"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: tab.fontUi }
+                        Text { text: tab.diskIO && tab.diskIO.devices ? tab.diskIO.devices.map(function(d){ return d.device; }).join(", ") : "None"; color: "#6b7280"; font.pixelSize: 11; font.family: tab.fontMono; elide: Text.ElideRight }
                     }
                 }
             }
 
             Text {
-                text: "STORAGE PARTITIONS & MOUNTPOINTS"
+                text: "Storage Partitions & Mounts"
                 color: "#9ca3af"
-                font.family: "JetBrainsMono Nerd Font, monospace"
-                font.pixelSize: 11
-                font.weight: Font.SemiBold
-                font.letterSpacing: 1.0
+                font.family: tab.fontUi
+                font.pixelSize: 12
+                font.weight: Font.Medium
             }
 
             Repeater {
@@ -100,14 +102,14 @@ Item {
                                 Text {
                                     text: modelData.mountPoint
                                     color: "#ffffff"
-                                    font.family: "Inter, sans-serif"
+                                    font.family: tab.fontUi
                                     font.pixelSize: 14
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                 }
                                 Text {
                                     text: "(" + modelData.device + " · " + modelData.fsType + ")"
                                     color: "#6b7280"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.family: tab.fontMono
                                     font.pixelSize: 11
                                     anchors.baseline: parent.children[0].baseline
                                 }
@@ -118,7 +120,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: tab.app.fmtBytes(modelData.usedBytes) + " / " + tab.app.fmtBytes(modelData.totalBytes) + " (" + Math.round(modelData.usedPercent) + "%)"
                                 color: "#e5e7eb"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.family: tab.fontMono
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
@@ -133,7 +135,7 @@ Item {
                                 width: parent.width * Math.min(1.0, modelData.usedPercent / 100.0)
                                 height: parent.height
                                 radius: 4
-                                color: modelData.usedPercent > 90 ? "#ef4444" : "#ffffff"
+                                color: "#ffffff"
                             }
                         }
 
@@ -142,7 +144,7 @@ Item {
                             Text {
                                 text: "Free: " + tab.app.fmtBytes(modelData.freeBytes)
                                 color: "#9ca3af"
-                                font.family: "Inter, sans-serif"
+                                font.family: tab.fontUi
                                 font.pixelSize: 11
                             }
                         }
@@ -154,7 +156,7 @@ Item {
                 visible: tab.disks.length === 0
                 text: "No mounted storage disks detected"
                 color: "#6b7280"
-                font.family: "Inter, sans-serif"
+                font.family: tab.fontUi
                 font.pixelSize: 12
             }
         }

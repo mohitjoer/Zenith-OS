@@ -7,6 +7,14 @@ Rectangle {
     id: root
     color: "#0c0d12"
 
+    FontLoader { id: flUi; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Regular.ttf") }
+    FontLoader { id: flUiMedium; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Medium.ttf") }
+    FontLoader { id: flUiBold; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Bold.ttf") }
+    FontLoader { id: flMono; source: Qt.resolvedUrl("assets/fonts/JetBrainsMonoNerdFont-Regular.ttf") }
+
+    readonly property string fontUi: flUi.status === FontLoader.Ready ? flUi.name : "Inter, system-ui, -apple-system, sans-serif"
+    readonly property string fontMono: flMono.status === FontLoader.Ready ? flMono.name : "JetBrains Mono, monospace"
+
     property string currentTab: "performance" // performance, processes, storage, system
     property var stats: ({
         cpu: { usagePercent: 0, cores: [], tempC: 0 },
@@ -34,6 +42,7 @@ Rectangle {
     }
 
     function fmtRate(b) {
+        if (!b || b <= 0) return "0 B/s";
         return fmtBytes(b) + "/s";
     }
 
@@ -118,7 +127,7 @@ Rectangle {
                 width: 20
                 height: 20
                 anchors.verticalCenter: parent.verticalCenter
-                source: "/usr/share/asura/branding/asura-logo-on-dark.svg"
+                source: Qt.resolvedUrl("assets/asura-logo-on-dark.svg")
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 // Fallback text if image not accessible
@@ -134,7 +143,7 @@ Rectangle {
             Text {
                 text: "Resource Monitor"
                 color: "#ffffff"
-                font.family: "Space Grotesk, Inter, sans-serif"
+                font.family: root.fontUi
                 font.pixelSize: 15
                 font.weight: Font.DemiBold
                 anchors.verticalCenter: parent.verticalCenter
@@ -150,7 +159,7 @@ Rectangle {
             Text {
                 text: "ASURA OS"
                 color: "#6b7280"
-                font.family: "JetBrainsMono Nerd Font, monospace"
+                font.family: root.fontMono
                 font.pixelSize: 10
                 font.weight: Font.Medium
                 font.letterSpacing: 1.5
@@ -185,9 +194,9 @@ Rectangle {
                         anchors.centerIn: parent
                         text: modelData.label
                         color: root.currentTab === modelData.id ? "#ffffff" : "#9ca3af"
-                        font.family: "Inter, sans-serif"
+                        font.family: root.fontUi
                         font.pixelSize: 12
-                        font.weight: root.currentTab === modelData.id ? Font.SemiBold : Font.Normal
+                        font.weight: root.currentTab === modelData.id ? Font.DemiBold : Font.Normal
                     }
 
                     MouseArea {

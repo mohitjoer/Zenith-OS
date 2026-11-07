@@ -11,6 +11,9 @@ Item {
     property int selectedPID: -1
     property string statusMsg: ""
 
+    readonly property string fontUi: app ? app.fontUi : "Inter, system-ui, sans-serif"
+    readonly property string fontMono: app ? app.fontMono : "JetBrains Mono, monospace"
+
     Process {
         id: killProc
         property int targetPid: -1
@@ -84,7 +87,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - 30
                             color: "#ffffff"
-                            font.family: "Inter, sans-serif"
+                            font.family: tab.fontUi
                             font.pixelSize: 12
                             clip: true
                             onTextChanged: tab.filterText = text.toLowerCase().trim()
@@ -94,7 +97,7 @@ Item {
                                 visible: !searchInput.text && !searchInput.activeFocus
                                 text: "Search processes..."
                                 color: "#4b5563"
-                                font.family: "Inter, sans-serif"
+                                font.family: tab.fontUi
                                 font.pixelSize: 12
                             }
                         }
@@ -116,9 +119,9 @@ Item {
                         Text {
                             text: "End Task"
                             color: tab.selectedPID > 0 ? "#f87171" : "#6b7280"
-                            font.family: "Inter, sans-serif"
+                            font.family: tab.fontUi
                             font.pixelSize: 12
-                            font.weight: Font.SemiBold
+                            font.weight: Font.DemiBold
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -141,7 +144,7 @@ Item {
                 Text {
                     text: tab.statusMsg
                     color: "#9ca3af"
-                    font.family: "JetBrainsMono Nerd Font, monospace"
+                    font.family: tab.fontMono
                     font.pixelSize: 11
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -152,7 +155,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: (filteredModel.count) + " processes"
                 color: "#6b7280"
-                font.family: "JetBrainsMono Nerd Font, monospace"
+                font.family: tab.fontMono
                 font.pixelSize: 11
             }
         }
@@ -169,12 +172,12 @@ Item {
                 anchors.leftMargin: 12
                 anchors.rightMargin: 12
 
-                Text { width: 80; text: "PID"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
-                Text { width: 220; text: "PROCESS NAME"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
-                Text { width: 120; text: "USER"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
-                Text { width: 110; text: "MEMORY"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
-                Text { width: 70; text: "THREADS"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
-                Text { width: 60; text: "STATE"; color: "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; font.weight: Font.SemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 80; text: "PID"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 220; text: "Process Name"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 120; text: "User"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 110; text: "Memory"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 70; text: "Threads"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                Text { width: 60; text: "State"; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
             }
         }
 
@@ -238,12 +241,12 @@ Item {
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
 
-                    Text { width: 80; text: String(pid); color: "#9ca3af"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: 220; text: name; color: "#ffffff"; font.pixelSize: 12; font.family: "Inter, sans-serif"; font.weight: Font.Medium; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: 120; text: user; color: "#9ca3af"; font.pixelSize: 11; font.family: "Inter, sans-serif"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: 110; text: tab.app.fmtBytes(memoryBytes); color: "#e5e7eb"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: 70; text: String(threads); color: "#9ca3af"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { width: 60; text: state; color: state === "R" ? "#22c55e" : "#6b7280"; font.pixelSize: 11; font.family: "JetBrainsMono Nerd Font, monospace"; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 80; text: String(pid); color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontMono; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 220; text: name; color: "#ffffff"; font.pixelSize: 12; font.family: tab.fontUi; font.weight: Font.Medium; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 120; text: user; color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontUi; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 110; text: tab.app.fmtBytes(memoryBytes); color: "#e5e7eb"; font.pixelSize: 11; font.family: tab.fontMono; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 70; text: String(threads); color: "#9ca3af"; font.pixelSize: 11; font.family: tab.fontMono; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: 60; text: state; color: state === "R" ? "#22c55e" : "#6b7280"; font.pixelSize: 11; font.family: tab.fontMono; anchors.verticalCenter: parent.verticalCenter }
                 }
 
                 MouseArea {

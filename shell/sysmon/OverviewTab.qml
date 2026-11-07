@@ -11,6 +11,9 @@ Item {
     readonly property real swapPct: stats && stats.swap ? stats.swap.usedPercent : 0
     readonly property real cpuTemp: stats && stats.cpu ? stats.cpu.tempC : 0
 
+    readonly property string fontUi: app ? app.fontUi : "Inter, system-ui, sans-serif"
+    readonly property string fontMono: app ? app.fontMono : "JetBrains Mono, monospace"
+
     Flickable {
         anchors.fill: parent
         anchors.margins: 16
@@ -44,19 +47,18 @@ Item {
                         Text {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "PROCESSOR (CPU)"
+                            text: "Processor (CPU)"
                             color: "#9ca3af"
-                            font.family: "JetBrainsMono Nerd Font, monospace"
-                            font.pixelSize: 11
-                            font.weight: Font.SemiBold
-                            font.letterSpacing: 1.0
+                            font.family: tab.fontUi
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
                         }
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: tab.cpuTemp > 0 ? Math.round(tab.cpuTemp) + "°C" : ""
+                            text: tab.cpuTemp > 0 ? Math.round(tab.cpuTemp) + " °C" : ""
                             color: "#e5e7eb"
-                            font.family: "JetBrainsMono Nerd Font, monospace"
+                            font.family: tab.fontMono
                             font.pixelSize: 11
                         }
                     }
@@ -67,8 +69,8 @@ Item {
                         Text {
                             text: Math.round(tab.cpuPct) + "%"
                             color: "#ffffff"
-                            font.family: "Space Grotesk, sans-serif"
-                            font.pixelSize: 42
+                            font.family: tab.fontUi
+                            font.pixelSize: 38
                             font.weight: Font.Bold
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -76,15 +78,15 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
                             Text {
-                                text: "Load: " + (tab.stats && tab.stats.loadAvg ? tab.stats.loadAvg[0].toFixed(2) + " · " + tab.stats.loadAvg[1].toFixed(2) + " · " + tab.stats.loadAvg[2].toFixed(2) : "0.00")
-                                color: "#9ca3af"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
-                                font.pixelSize: 10
+                                text: "Load: " + (tab.stats && tab.stats.loadAvg ? tab.stats.loadAvg.map(function(v) { return v.toFixed(2); }).join(", ") : "0.00")
+                                color: "#d1d5db"
+                                font.family: tab.fontMono
+                                font.pixelSize: 11
                             }
                             Text {
-                                text: (tab.stats && tab.stats.cpu && tab.stats.cpu.cores ? tab.stats.cpu.cores.length : "0") + " Hardware Threads"
-                                color: "#6b7280"
-                                font.family: "Inter, sans-serif"
+                                text: (tab.stats && tab.stats.cpu && tab.stats.cpu.cores ? tab.stats.cpu.cores.length : "0") + " Logical Cores"
+                                color: "#9ca3af"
+                                font.family: tab.fontUi
                                 font.pixelSize: 11
                             }
                         }
@@ -93,13 +95,13 @@ Item {
                     // Usage Progress Bar
                     Rectangle {
                         width: parent.width
-                        height: 8
-                        radius: 4
+                        height: 6
+                        radius: 3
                         color: "#1e212b"
                         Rectangle {
-                            width: parent.width * Math.min(1.0, tab.cpuPct / 100.0)
+                            width: parent.width * Math.min(1.0, Math.max(0.01, tab.cpuPct / 100.0))
                             height: parent.height
-                            radius: 4
+                            radius: 3
                             color: "#ffffff"
                         }
                     }
@@ -107,9 +109,9 @@ Item {
                     // Per-Core Visual Bars
                     Text {
                         text: "Core Distribution"
-                        color: "#6b7280"
-                        font.family: "Inter, sans-serif"
-                        font.pixelSize: 10
+                        color: "#9ca3af"
+                        font.family: tab.fontUi
+                        font.pixelSize: 11
                     }
 
                     Flow {
@@ -120,8 +122,8 @@ Item {
                             delegate: Rectangle {
                                 required property real modelData
                                 required property int index
-                                width: (parent.width - 32) / 8
-                                height: 28
+                                width: Math.max(28, (parent.width - 32) / 8)
+                                height: 26
                                 radius: 4
                                 color: "#181b24"
                                 border.color: "#242836"
@@ -131,7 +133,7 @@ Item {
                                     anchors.bottom: parent.bottom
                                     anchors.left: parent.left
                                     anchors.right: parent.right
-                                    height: parent.height * Math.min(1.0, modelData / 100.0)
+                                    height: Math.max(2, parent.height * Math.min(1.0, modelData / 100.0))
                                     color: "#e5e7eb"
                                     opacity: 0.85
                                     radius: 3
@@ -139,11 +141,11 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "C" + index
-                                    color: modelData > 50 ? "#000000" : "#9ca3af"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
-                                    font.pixelSize: 8
-                                    font.weight: Font.Bold
+                                    text: String(index + 1)
+                                    color: modelData > 60 ? "#000000" : "#9ca3af"
+                                    font.family: tab.fontMono
+                                    font.pixelSize: 9
+                                    font.weight: Font.DemiBold
                                 }
                             }
                         }
@@ -165,13 +167,18 @@ Item {
                     anchors.margins: 16
                     spacing: 12
 
-                    Text {
-                        text: "MEMORY (RAM) & SWAP"
-                        color: "#9ca3af"
-                        font.family: "JetBrainsMono Nerd Font, monospace"
-                        font.pixelSize: 11
-                        font.weight: Font.SemiBold
-                        font.letterSpacing: 1.0
+                    Item {
+                        width: parent.width
+                        height: 18
+                        Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Memory (RAM) & Swap"
+                            color: "#9ca3af"
+                            font.family: tab.fontUi
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                        }
                     }
 
                     Row {
@@ -180,8 +187,8 @@ Item {
                         Text {
                             text: Math.round(tab.memPct) + "%"
                             color: "#ffffff"
-                            font.family: "Space Grotesk, sans-serif"
-                            font.pixelSize: 42
+                            font.family: tab.fontUi
+                            font.pixelSize: 38
                             font.weight: Font.Bold
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -189,15 +196,15 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
                             Text {
-                                text: app.fmtBytes(tab.stats.memory.usedBytes) + " used of " + app.fmtBytes(tab.stats.memory.totalBytes)
+                                text: (tab.stats && tab.stats.memory ? app.fmtBytes(tab.stats.memory.usedBytes) + " used of " + app.fmtBytes(tab.stats.memory.totalBytes) : "")
                                 color: "#e5e7eb"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.family: tab.fontMono
                                 font.pixelSize: 11
                             }
                             Text {
-                                text: "Available: " + app.fmtBytes(tab.stats.memory.availableBytes)
+                                text: "Available: " + (tab.stats && tab.stats.memory ? app.fmtBytes(tab.stats.memory.availableBytes) : "")
                                 color: "#9ca3af"
-                                font.family: "Inter, sans-serif"
+                                font.family: tab.fontUi
                                 font.pixelSize: 11
                             }
                         }
@@ -206,14 +213,14 @@ Item {
                     // Memory Progress Bar
                     Rectangle {
                         width: parent.width
-                        height: 8
-                        radius: 4
+                        height: 6
+                        radius: 3
                         color: "#1e212b"
                         Rectangle {
-                            width: parent.width * Math.min(1.0, tab.memPct / 100.0)
+                            width: parent.width * Math.min(1.0, Math.max(0.01, tab.memPct / 100.0))
                             height: parent.height
-                            radius: 4
-                            color: "#e5e7eb"
+                            radius: 3
+                            color: "#ffffff"
                         }
                     }
 
@@ -231,8 +238,8 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 2
-                                Text { text: "CACHED"; color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: app.fmtBytes(tab.stats.memory.cachedBytes); color: "#ffffff"; font.pixelSize: 12; font.weight: Font.SemiBold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "Cached"; color: "#6b7280"; font.pixelSize: 10; font.family: tab.fontUi }
+                                Text { text: tab.stats && tab.stats.memory ? app.fmtBytes(tab.stats.memory.cachedBytes) : "0 B"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.DemiBold; font.family: tab.fontMono }
                             }
                         }
                         Rectangle {
@@ -245,13 +252,13 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 2
-                                Text { text: "SWAP"; color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "Swap"; color: "#6b7280"; font.pixelSize: 10; font.family: tab.fontUi }
                                 Text {
-                                    text: tab.stats.swap.totalBytes > 0 ? app.fmtBytes(tab.stats.swap.usedBytes) + " (" + Math.round(tab.swapPct) + "%)" : "None"
+                                    text: tab.stats && tab.stats.swap && tab.stats.swap.totalBytes > 0 ? app.fmtBytes(tab.stats.swap.usedBytes) + " (" + Math.round(tab.swapPct) + "%)" : "Not configured"
                                     color: "#ffffff"
                                     font.pixelSize: 12
-                                    font.weight: Font.SemiBold
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.weight: Font.DemiBold
+                                    font.family: tab.fontMono
                                 }
                             }
                         }
@@ -273,18 +280,24 @@ Item {
                     anchors.margins: 16
                     spacing: 12
 
-                    Text {
-                        text: "NETWORK ACTIVITY"
-                        color: "#9ca3af"
-                        font.family: "JetBrainsMono Nerd Font, monospace"
-                        font.pixelSize: 11
-                        font.weight: Font.SemiBold
-                        font.letterSpacing: 1.0
+                    Item {
+                        width: parent.width
+                        height: 18
+                        Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Network Activity"
+                            color: "#9ca3af"
+                            font.family: tab.fontUi
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                        }
                     }
 
                     Row {
                         width: parent.width
                         spacing: 12
+
                         Rectangle {
                             width: (parent.width - 12) / 2
                             height: 75
@@ -295,9 +308,9 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 3
-                                Text { text: "\u2193 DOWNLOAD"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: app.fmtRate(tab.stats.network.rxRateSec); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: "Total: " + app.fmtBytes(tab.stats.network.rxBytes); color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "↓ Download"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold; font.family: tab.fontUi }
+                                Text { text: tab.stats && tab.stats.network ? app.fmtRate(tab.stats.network.rxRateSec) : "0 B/s"; color: "#ffffff"; font.pixelSize: 15; font.weight: Font.Bold; font.family: tab.fontMono }
+                                Text { text: "Total: " + (tab.stats && tab.stats.network ? app.fmtBytes(tab.stats.network.rxBytes) : "0 B"); color: "#9ca3af"; font.pixelSize: 10; font.family: tab.fontMono }
                             }
                         }
 
@@ -311,17 +324,17 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 3
-                                Text { text: "\u2191 UPLOAD"; color: "#9ca3af"; font.pixelSize: 10; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: app.fmtRate(tab.stats.network.txRateSec); color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: "Total: " + app.fmtBytes(tab.stats.network.txBytes); color: "#6b7280"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "↑ Upload"; color: "#9ca3af"; font.pixelSize: 11; font.weight: Font.DemiBold; font.family: tab.fontUi }
+                                Text { text: tab.stats && tab.stats.network ? app.fmtRate(tab.stats.network.txRateSec) : "0 B/s"; color: "#ffffff"; font.pixelSize: 15; font.weight: Font.Bold; font.family: tab.fontMono }
+                                Text { text: "Total: " + (tab.stats && tab.stats.network ? app.fmtBytes(tab.stats.network.txBytes) : "0 B"); color: "#9ca3af"; font.pixelSize: 10; font.family: tab.fontMono }
                             }
                         }
                     }
 
                     Text {
-                        text: "Active Interfaces: " + (tab.stats.network.interfaces ? tab.stats.network.interfaces.map(function(i){ return i.name; }).join(", ") : "None")
+                        text: "Active Interfaces: " + (tab.stats && tab.stats.network && tab.stats.network.interfaces ? tab.stats.network.interfaces.map(function(i){ return i.name; }).join(", ") : "None")
                         color: "#6b7280"
-                        font.family: "JetBrainsMono Nerd Font, monospace"
+                        font.family: tab.fontMono
                         font.pixelSize: 10
                     }
                 }
@@ -347,19 +360,18 @@ Item {
                         Text {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "STORAGE & DISK I/O"
+                            text: "Storage & Disk I/O"
                             color: "#9ca3af"
-                            font.family: "JetBrainsMono Nerd Font, monospace"
-                            font.pixelSize: 11
-                            font.weight: Font.SemiBold
-                            font.letterSpacing: 1.0
+                            font.family: tab.fontUi
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
                         }
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: tab.stats && tab.stats.diskIO ? Math.round(tab.stats.diskIO.readIOPS + tab.stats.diskIO.writeIOPS) + " IOPS" : ""
+                            text: tab.stats && tab.stats.diskIO && (tab.stats.diskIO.readIOPS + tab.stats.diskIO.writeIOPS > 0) ? Math.round(tab.stats.diskIO.readIOPS + tab.stats.diskIO.writeIOPS) + " IOPS" : ""
                             color: "#6b7280"
-                            font.family: "JetBrainsMono Nerd Font, monospace"
+                            font.family: tab.fontMono
                             font.pixelSize: 10
                         }
                     }
@@ -377,8 +389,8 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 2
-                                Text { text: "\u2193 DISK READ"; color: "#9ca3af"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: app.fmtRate(tab.stats && tab.stats.diskIO ? tab.stats.diskIO.readBytesSec : 0); color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "↓ Disk Read"; color: "#9ca3af"; font.pixelSize: 10; font.family: tab.fontUi }
+                                Text { text: tab.stats && tab.stats.diskIO ? app.fmtRate(tab.stats.diskIO.readBytesSec) : "0 B/s"; color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: tab.fontMono }
                             }
                         }
 
@@ -392,8 +404,8 @@ Item {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 2
-                                Text { text: "\u2191 DISK WRITE"; color: "#9ca3af"; font.pixelSize: 9; font.family: "JetBrainsMono Nerd Font, monospace" }
-                                Text { text: app.fmtRate(tab.stats && tab.stats.diskIO ? tab.stats.diskIO.writeBytesSec : 0); color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: "JetBrainsMono Nerd Font, monospace" }
+                                Text { text: "↑ Disk Write"; color: "#9ca3af"; font.pixelSize: 10; font.family: tab.fontUi }
+                                Text { text: tab.stats && tab.stats.diskIO ? app.fmtRate(tab.stats.diskIO.writeBytesSec) : "0 B/s"; color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: tab.fontMono }
                             }
                         }
                     }
@@ -425,16 +437,16 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: "Root (/) " + (parent.parent.rootDisk ? app.fmtBytes(parent.parent.rootDisk.usedBytes) + " / " + app.fmtBytes(parent.parent.rootDisk.totalBytes) : "")
                                     color: "#9ca3af"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
-                                    font.pixelSize: 10
+                                    font.family: tab.fontMono
+                                    font.pixelSize: 11
                                 }
                                 Text {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: parent.parent.rootDisk ? Math.round(parent.parent.rootDisk.usedPercent) + "%" : ""
                                     color: "#ffffff"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
-                                    font.pixelSize: 10
+                                    font.family: tab.fontMono
+                                    font.pixelSize: 11
                                     font.weight: Font.Bold
                                 }
                             }
@@ -456,7 +468,7 @@ Item {
                 }
             }
 
-            // ── Dynamic Card 5: GPU Acceleration (if present) ──
+            // ── Dynamic Card 5: GPU / Graphics ──
             Repeater {
                 model: tab.stats && tab.stats.gpus ? tab.stats.gpus : []
                 delegate: Rectangle {
@@ -479,19 +491,18 @@ Item {
                             Text {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "GRAPHICS ACCELERATOR (GPU)"
+                                text: modelData.isVirtual ? "Virtual Display Adapter" : "Graphics Processor"
                                 color: "#9ca3af"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
-                                font.pixelSize: 11
-                                font.weight: Font.SemiBold
-                                font.letterSpacing: 1.0
+                                font.family: tab.fontUi
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
                             }
                             Text {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.tempC > 0 ? Math.round(modelData.tempC) + "°C" : ""
+                                text: modelData.tempC > 0 ? Math.round(modelData.tempC) + " °C" : ""
                                 color: "#e5e7eb"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.family: tab.fontMono
                                 font.pixelSize: 11
                             }
                         }
@@ -499,52 +510,81 @@ Item {
                         Text {
                             text: modelData.name
                             color: "#ffffff"
-                            font.family: "Inter, sans-serif"
+                            font.family: tab.fontUi
                             font.pixelSize: 13
-                            font.weight: Font.SemiBold
+                            font.weight: Font.DemiBold
                             elide: Text.ElideRight
                             width: parent.width
                         }
 
-                        Row {
-                            spacing: 14
-                            Text {
-                                text: Math.round(modelData.utilizationPct) + "%"
-                                color: "#ffffff"
-                                font.family: "Space Grotesk, sans-serif"
-                                font.pixelSize: 32
-                                font.weight: Font.Bold
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
-                                Text {
-                                    text: modelData.memoryTotalMB > 0 ? "VRAM: " + modelData.memoryUsedMB + " MB / " + (modelData.memoryTotalMB >= 1024 ? (modelData.memoryTotalMB / 1024).toFixed(1) + " GB" : modelData.memoryTotalMB + " MB") : "Integrated Architecture"
-                                    color: "#e5e7eb"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
-                                    font.pixelSize: 11
-                                }
-                                Text {
-                                    text: "Vendor: " + modelData.vendor.toUpperCase()
-                                    color: "#6b7280"
-                                    font.family: "Inter, sans-serif"
-                                    font.pixelSize: 10
+                        // If virtual machine adapter (VMware, VirtIO, VirtualBox)
+                        Column {
+                            visible: modelData.isVirtual === true
+                            width: parent.width
+                            spacing: 6
+
+                            Rectangle {
+                                width: parent.width
+                                height: 50
+                                radius: 6
+                                color: "#181b24"
+                                border.color: "#242836"
+                                border.width: 1
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 3
+                                    Text { text: "Virtual Machine Display"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold; font.family: tab.fontUi }
+                                    Text { text: "Graphics acceleration provided by host hypervisor"; color: "#9ca3af"; font.pixelSize: 10; font.family: tab.fontUi }
                                 }
                             }
                         }
 
-                        // Utilization Bar
-                        Rectangle {
+                        // If hardware GPU (NVIDIA, AMD, Intel)
+                        Column {
+                            visible: modelData.isVirtual !== true
                             width: parent.width
-                            height: 6
-                            radius: 3
-                            color: "#1e212b"
+                            spacing: 10
+
+                            Row {
+                                spacing: 14
+                                Text {
+                                    text: Math.round(modelData.utilizationPct) + "%"
+                                    color: "#ffffff"
+                                    font.family: tab.fontUi
+                                    font.pixelSize: 32
+                                    font.weight: Font.Bold
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    Text {
+                                        text: modelData.memoryTotalMB > 0 ? "VRAM: " + modelData.memoryUsedMB + " MB / " + (modelData.memoryTotalMB >= 1024 ? (modelData.memoryTotalMB / 1024).toFixed(1) + " GB" : modelData.memoryTotalMB + " MB") : "Shared System Memory"
+                                        color: "#e5e7eb"
+                                        font.family: tab.fontMono
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        text: "Vendor: " + modelData.vendor.toUpperCase()
+                                        color: "#9ca3af"
+                                        font.family: tab.fontUi
+                                        font.pixelSize: 10
+                                    }
+                                }
+                            }
+
+                            // Utilization Bar
                             Rectangle {
-                                width: parent.width * Math.min(1.0, modelData.utilizationPct / 100.0)
-                                height: parent.height
+                                width: parent.width
+                                height: 6
                                 radius: 3
-                                color: "#ffffff"
+                                color: "#1e212b"
+                                Rectangle {
+                                    width: parent.width * Math.min(1.0, Math.max(0.01, modelData.utilizationPct / 100.0))
+                                    height: parent.height
+                                    radius: 3
+                                    color: "#ffffff"
+                                }
                             }
                         }
                     }
@@ -574,21 +614,19 @@ Item {
                             Text {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "POWER & BATTERY (" + modelData.name + ")"
+                                text: "Power & Battery (" + modelData.name + ")"
                                 color: "#9ca3af"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
-                                font.pixelSize: 11
-                                font.weight: Font.SemiBold
-                                font.letterSpacing: 1.0
+                                font.family: tab.fontUi
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
                             }
                             Text {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.status
                                 color: "#e5e7eb"
-                                font.family: "JetBrainsMono Nerd Font, monospace"
+                                font.family: tab.fontUi
                                 font.pixelSize: 11
-                                font.weight: Font.Medium
                             }
                         }
 
@@ -597,7 +635,7 @@ Item {
                             Text {
                                 text: Math.round(modelData.percentage) + "%"
                                 color: "#ffffff"
-                                font.family: "Space Grotesk, sans-serif"
+                                font.family: tab.fontUi
                                 font.pixelSize: 32
                                 font.weight: Font.Bold
                                 anchors.verticalCenter: parent.verticalCenter
@@ -606,15 +644,15 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
                                 Text {
-                                    text: modelData.watts > 0 ? modelData.watts.toFixed(1) + " W (" + modelData.voltageV.toFixed(2) + " V)" : (modelData.voltageV > 0 ? modelData.voltageV.toFixed(2) + " V" : "AC Connected")
+                                    text: modelData.watts > 0 ? modelData.watts.toFixed(1) + " W" + (modelData.voltageV > 0 ? " (" + modelData.voltageV.toFixed(1) + " V)" : "") : (modelData.voltageV > 0 ? modelData.voltageV.toFixed(1) + " V" : "AC Line Connected")
                                     color: "#e5e7eb"
-                                    font.family: "JetBrainsMono Nerd Font, monospace"
+                                    font.family: tab.fontMono
                                     font.pixelSize: 11
                                 }
                                 Text {
-                                    text: modelData.healthPct > 0 ? "Battery Health: " + Math.round(modelData.healthPct) + "% (" + modelData.technology + ")" : modelData.technology
-                                    color: "#6b7280"
-                                    font.family: "Inter, sans-serif"
+                                    text: modelData.healthPct > 0 ? "Battery Health: " + Math.round(modelData.healthPct) + "%" : "Power Source: " + modelData.status
+                                    color: "#9ca3af"
+                                    font.family: tab.fontUi
                                     font.pixelSize: 10
                                 }
                             }
@@ -627,10 +665,10 @@ Item {
                             radius: 3
                             color: "#1e212b"
                             Rectangle {
-                                width: parent.width * Math.min(1.0, modelData.percentage / 100.0)
+                                width: parent.width * Math.min(1.0, Math.max(0.01, modelData.percentage / 100.0))
                                 height: parent.height
                                 radius: 3
-                                color: modelData.percentage <= 15 ? "#ef4444" : "#ffffff"
+                                color: "#ffffff"
                             }
                         }
                     }

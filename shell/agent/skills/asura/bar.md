@@ -18,7 +18,7 @@ model and is not covered here. `barStyle` in `shell.json` picks the style.)
     "left":   ["launcher", "workspaces", "status", "cpu", "volume", "memory", "ai"],
     "center": ["clock"],
     "right":  ["media", "network", "power", "battery", "brightness",
-               "cputemp", "storage", "gpu", "bluetooth", "layout"]
+               "cputemp", "storage", "gpu", "bluetooth"]
   },
   "widgets": { "status": true, "memory": true }
 }
