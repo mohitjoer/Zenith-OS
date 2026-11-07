@@ -1181,27 +1181,13 @@ PanelWindow {
         }
     }
     Component {
-        id: compQuick                                    // G10: idle-inhib · media · theme
+        id: compQuick                                    // G10: retired - moved to Quick Settings
         Item {
-            readonly property real barContentLeftInset: barSlot.root.v2IconGroupPadding
-            readonly property real barContentRightInset: barSlot.root.v2IconGroupPadding
-            visible: implicitWidth > 0.5
-            implicitWidth: barSlot.root.modQuick
-                ? Math.round(qcRow.implicitWidth) + 2 * barSlot.root.v2IconGroupPadding
-                : 0
-            implicitHeight: 28
-            opacity: barSlot.root.modQuick ? 1 : 0
-            Behavior on implicitWidth { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-            Behavior on opacity      { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-            Row {
-                id: qcRow
-                anchors.verticalCenter: parent.verticalCenter
-                x: Math.round((parent.width - width) / 2)
-                spacing: barSlot.root.v2IconClusterSpacing
-                IdleInhibitorWidget { root: barSlot.root; anchors.verticalCenter: parent.verticalCenter }
-                MediaBrowserWidget  { root: barSlot.root; screen: barSlot.screen; anchors.verticalCenter: parent.verticalCenter }
-                ThemeDisplayWidget  { root: barSlot.root; screen: barSlot.screen; anchors.verticalCenter: parent.verticalCenter }
-            }
+            readonly property real barContentLeftInset: 0
+            readonly property real barContentRightInset: 0
+            visible: false
+            implicitWidth: 0
+            implicitHeight: 0
         }
     }
     Component {

@@ -273,7 +273,7 @@ Item {
                 }
                 Menus.QsTile {
                     width: tileGrid.tileWidth
-                    icon: "coffee"
+                    icon: "lightbulb"
                     label: I18n.tr("Keep awake")
                     sub: Toggles.keepAwake ? I18n.tr("On") + root.awakeFor() : I18n.tr("Off")
                     on: Toggles.keepAwake

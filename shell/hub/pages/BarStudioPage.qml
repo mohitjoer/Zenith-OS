@@ -34,7 +34,7 @@ Item {
             version: 1,
             left: ["launcher", "workspaces", "status", "cpu", "volume", "memory", "ai"],
             center: ["clock"],
-            right: ["media", "quick", "network", "power", "battery", "brightness", "cputemp", "storage", "gpu", "bluetooth", "layout"]
+            right: ["media", "network", "power", "battery", "brightness", "cputemp", "storage", "gpu", "bluetooth", "layout"]
         };
     }
 
@@ -64,7 +64,7 @@ Item {
             version: 1,
             left: ["launcher", "workspaces", "status", "cpu", "volume", "memory", "ai"],
             center: ["clock"],
-            right: ["media", "quick", "network", "power", "battery", "brightness", "cputemp", "storage", "gpu", "bluetooth", "layout"]
+            right: ["media", "network", "power", "battery", "brightness", "cputemp", "storage", "gpu", "bluetooth", "layout"]
         };
         if (pg.hub) pg.hub.stageLive("qsbar.layout", def);
         else Settings.patch("qsbar.layout", def);

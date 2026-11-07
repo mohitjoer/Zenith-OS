@@ -357,7 +357,7 @@ Item {
             version: 1,
             left: ["launcher", "workspaces", "status", "cpu", "volume", "memory", "ai"],
             center: ["clock"],
-            right: ["media", "quick", "network", "power", "battery", "brightness",
+            right: ["media", "network", "power", "battery", "brightness",
                     "cputemp", "storage", "gpu", "bluetooth", "layout"]
         }
     }
@@ -490,7 +490,7 @@ Item {
         _widgetsLoaded = false
         modStatus = true; modMemory = true; modCpu = true; modVolume = true
         modWeather = true; modNetwork = true; modBrightness = true; modMedia = true
-        modMpris = true; modQuick = true; modBattery = true; modLayout = true
+        modMpris = true; modQuick = false; modBattery = true; modLayout = true
         modCpuTemperature = true; modGpu = true; modStorage = true
         modClaude = false; modPower = false; modBluetooth = false
         _widgetsLoaded = wl
@@ -2539,7 +2539,7 @@ Item {
     property bool modBluetooth:  false   // default off (toggle in ControlPanel)
     property bool modBrightness: true
     property bool modMedia:      true
-    property bool modQuick:      true    // G10 group pill (idle-inhibitor · media · theme)
+    property bool modQuick:      false   // G10 group pill (retired - moved to Quick Settings)
     property bool modMpris:      true    // G9 now-playing / mpris pill
     property string mprisBarStyle: "default" // "default" or "full"
     property bool modClaude:     false   // default off (toggle in ControlPanel)
@@ -3388,7 +3388,18 @@ Item {
     onMediaBrowserVisibleChanged: popupOpened("mediaBrowserVisible")
     property string mediaBrowserMode:    "screenshots"  // "screenshots" or "videos"
     // ── Idle inhibitor (Wayland idle-inhibit protocol) ──
-    property bool   idleInhibited:       false
+    property bool   idleInhibited:       Flags.keepAwake
+    Connections {
+        target: Flags
+        function onKeepAwakeChanged() {
+            theme.idleInhibited = Flags.keepAwake
+        }
+    }
+    onIdleInhibitedChanged: {
+        if (Flags.keepAwake !== theme.idleInhibited) {
+            Flags.keepAwake = theme.idleInhibited
+        }
+    }
     // ── Notification state ──
     property bool notifVisible: false
     onNotifVisibleChanged: popupOpened("notifVisible")
