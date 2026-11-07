@@ -222,7 +222,11 @@ func TestAFamilyOfTenKeysIsTenBinds(t *testing.T) {
 		for _, key := range []string{strconv.Itoa(i % 10), "KP_" + strconv.Itoa(i%10),
 			[]string{"KP_End", "KP_Down", "KP_Next", "KP_Left", "KP_Begin",
 				"KP_Right", "KP_Home", "KP_Up", "KP_Prior", "KP_Insert"}[i-1]} {
-			config.WriteString("bind = SUPER, " + key + ", workspace, " + ordinal + "\n")
+			config.WriteString("bind = SUPER, ")
+			config.WriteString(key)
+			config.WriteString(", workspace, ")
+			config.WriteString(ordinal)
+			config.WriteString("\n")
 		}
 	}
 
