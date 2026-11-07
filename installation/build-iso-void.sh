@@ -479,8 +479,6 @@ fi
 cp "$REPO_ROOT/system/sysctl.d/99-asura-performance.conf" "$INCLUDE_DIR/etc/sysctl.d/99-asura-performance.conf"
 cp "$REPO_ROOT/session/turnstile/turnstile.conf" "$INCLUDE_DIR/etc/turnstile/turnstile.conf"
 cp "$REPO_ROOT/system/xbps.d/asura.conf" "$INCLUDE_DIR/etc/xbps.d/asura.conf"
-mkdir -p "$ROOTFS/etc/xbps.d"
-cp "$REPO_ROOT/system/xbps.d/asura.conf" "$ROOTFS/etc/xbps.d/asura.conf" 2>/dev/null || true
 
 # Default environment for seatd & Wayland
 cat >"$INCLUDE_DIR/etc/environment" <<'EOF'
@@ -1002,6 +1000,9 @@ if [ -f "$ROOTFS/etc/runit/core-services/08-sysctl.sh" ]; then
 	sed -i 's/sysctl -p/sysctl -q -p/g' "$ROOTFS/etc/runit/core-services/08-sysctl.sh"
 	sed -i 's/sysctl --system/sysctl -q --system/g' "$ROOTFS/etc/runit/core-services/08-sysctl.sh"
 fi
+
+mkdir -p "$ROOTFS/etc/xbps.d"
+cp "$REPO_ROOT/system/xbps.d/asura.conf" "$ROOTFS/etc/xbps.d/asura.conf" 2>/dev/null || true
 
 # Overwrite OS identity inside ROOTFS
 cat >"$ROOTFS/etc/os-release" <<'OSREL'
