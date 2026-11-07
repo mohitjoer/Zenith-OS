@@ -28,6 +28,8 @@ __pycache__/
 /bin/
 /pkg/
 /tmp/
+go.work
+go.work.sum
 
 # IDE and editor files
 .vscode/
