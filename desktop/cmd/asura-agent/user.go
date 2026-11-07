@@ -219,12 +219,15 @@ func bullets(b *strings.Builder, files []string) {
 
 // writeUserVaultDoc lays user.md into the vault.
 func writeUserVaultDoc() error {
-	const header = "# User-owned changes\n" +
-		"\n" +
-		"Where this machine's config diverges from the shipped Asura baseline.\n" +
-		"Generated: the content between the markers is overwritten whenever the\n" +
-		"user's config changes."
-	return writeVaultDoc("user.md", header, userDocBody())
+	meta := OKFMeta{
+		Type:        "User Configuration",
+		Title:       "User-Owned Configuration",
+		Description: "Where this machine's config diverges from the shipped Asura baseline.",
+		Resource:    "~/.config/asura",
+		Tags:        []string{"asura", "user", "configuration", "overrides", "diff"},
+	}
+	intro := "# User-Owned Changes\n\n[← Back to Index](./index.md)"
+	return writeVaultDoc("user.md", meta, intro, userDocBody())
 }
 
 // userConfigFingerprint summarizes the live config tree cheaply (paths,

@@ -4,29 +4,95 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
 
-// Reindex regenerates the machine-owned vault docs. Every probe is best
+// OKFMeta carries metadata required by the Google Open Knowledge Format (OKF v0.1).
+type OKFMeta struct {
+	Type        string
+	Title       string
+	Description string
+	Resource    string
+	Tags        []string
+}
+
+// formatOKFDoc produces a valid Google Open Knowledge Format (OKF v0.1) document
+// featuring YAML frontmatter, navigation links, and the fenced generated body.
+func formatOKFDoc(meta OKFMeta, intro string, body string) string {
+	var b strings.Builder
+	b.WriteString("---\n")
+	fmt.Fprintf(&b, "type: %s\n", meta.Type)
+	fmt.Fprintf(&b, "title: %s\n", meta.Title)
+	fmt.Fprintf(&b, "description: %s\n", meta.Description)
+	if meta.Resource != "" {
+		fmt.Fprintf(&b, "resource: %s\n", meta.Resource)
+	}
+	if len(meta.Tags) > 0 {
+		b.WriteString("tags:\n")
+		for _, tag := range meta.Tags {
+			fmt.Fprintf(&b, "  - %s\n", tag)
+		}
+	}
+	fmt.Fprintf(&b, "timestamp: %s\n", time.Now().UTC().Format(time.RFC3339))
+	b.WriteString("---\n\n")
+	if intro != "" {
+		b.WriteString(intro)
+		b.WriteString("\n\n")
+	}
+	b.WriteString(buildFence(body))
+	b.WriteByte('\n')
+	return b.String()
+}
+
+// writeVaultDoc lays down a generated OKF doc as YAML frontmatter + header + fenced body
+// on first write, and thereafter rewrites only the fenced body and updates the frontmatter timestamp
+// so user out-of-fence edits survive across reindexes.
+func writeVaultDoc(name string, meta OKFMeta, intro string, body string) error {
+	path := filepath.Join(VaultDir(), name)
+	existing := readFileOrEmpty(path)
+	var doc string
+	if existing == "" {
+		doc = formatOKFDoc(meta, intro, body)
+	} else {
+		doc = ReplaceFenced(existing, body)
+		if strings.HasPrefix(doc, "---\n") {
+			re := regexp.MustCompile(`(?m)^timestamp: .+$`)
+			newTS := "timestamp: " + time.Now().UTC().Format(time.RFC3339)
+			if re.MatchString(doc) {
+				doc = re.ReplaceAllString(doc, newTS)
+			}
+		} else {
+			doc = formatOKFDoc(meta, intro, body)
+		}
+	}
+	return atomicWrite(path, []byte(doc), 0o644)
+}
+
+// Reindex regenerates the machine-owned OKF vault docs. Every probe is best
 // effort, so a missing tool degrades one section rather than failing the index.
 func Reindex() error {
 	if err := EnsureVault(); err != nil {
 		return err
 	}
-	docs := []struct {
-		name, header, body string
-	}{
-		{"system.md", systemHeader, systemBody()},
-		{"desktop.md", desktopHeader, desktopBody()},
-		{"packages.md", packagesHeader, packagesBody()},
+	if err := writeIndexVaultDoc(); err != nil {
+		return err
 	}
-	for _, d := range docs {
-		if err := writeVaultDoc(d.name, d.header, d.body); err != nil {
-			return err
-		}
+	if err := writeLogVaultDoc(); err != nil {
+		return err
+	}
+	if err := writeSystemVaultDoc(); err != nil {
+		return err
+	}
+	if err := writeDesktopVaultDoc(); err != nil {
+		return err
+	}
+	if err := writePackagesVaultDoc(); err != nil {
+		return err
 	}
 	if err := writeRepoVaultDoc(); err != nil {
 		return err
@@ -52,35 +118,155 @@ func ReindexUser() error {
 	return writeUserVaultDoc()
 }
 
-const systemHeader = "# System\n" +
-	"\n" +
-	"Hardware, kernel, GPU, disks, and displays. Generated: the content between the\n" +
-	"markers is overwritten on every reindex."
-
-const desktopHeader = "# Asura desktop map\n" +
-	"\n" +
-	"Where every subsystem's config lives, the binary that owns it, and how to\n" +
-	"reload it. Read this before searching the filesystem. Generated: the content\n" +
-	"between the markers is overwritten on every reindex."
-
-const packagesHeader = "# Packages\n" +
-	"\n" +
-	"Installed package counts, the explicit set, and pending updates. Generated:\n" +
-	"the content between the markers is overwritten on every reindex."
-
-// writeVaultDoc lays down a generated doc as header + fenced body on first
-// write, and thereafter rewrites only the fenced body so a user's out-of-fence
-// edits (including the header) survive.
-func writeVaultDoc(name, header, body string) error {
-	path := filepath.Join(VaultDir(), name)
-	existing := readFileOrEmpty(path)
-	var doc string
-	if existing == "" {
-		doc = header + "\n\n" + buildFence(body) + "\n"
-	} else {
-		doc = ReplaceFenced(existing, body)
+func writeIndexVaultDoc() error {
+	meta := OKFMeta{
+		Type:        "Index",
+		Title:       "Asura OS Knowledge Base",
+		Description: "Root table of contents and system knowledge graph for Asura OS coding agents.",
+		Resource:    "/",
+		Tags:        []string{"asura", "knowledge-graph", "index", "system"},
 	}
-	return atomicWrite(path, []byte(doc), 0o644)
+	intro := "# Asura OS Knowledge Base\n\n" +
+		"System knowledge graph formatted per Google Open Knowledge Format (OKF v0.1).\n" +
+		"Use this graph to discover hardware components, desktop subsystems, configurations, and user patterns."
+	return writeVaultDoc("index.md", meta, intro, indexBody())
+}
+
+func indexBody() string {
+	var b strings.Builder
+	b.WriteString("## Knowledge Graph Map\n\n")
+	b.WriteString("| Subsystem Document | OKF Type | Resource | Description |\n")
+	b.WriteString("| :--- | :--- | :--- | :--- |\n")
+	b.WriteString("| [`system.md`](./system.md) | Hardware Component | `/sys` | CPU, GPU, memory, disks, battery, displays, kernel |\n")
+	b.WriteString("| [`desktop.md`](./desktop.md) | Desktop Subsystem | `/etc/asura` | Compositor, shell surfaces, configs, reload commands, GUI map |\n")
+	b.WriteString("| [`packages.md`](./packages.md) | Package Inventory | `/var/db/xbps` | Installed native packages, Flatpaks, updates |\n")
+	b.WriteString("| [`asura-repo.md`](./asura-repo.md) | Repository Architecture | Monorepo root | Asura OS source tree structure and component map |\n")
+	b.WriteString("| [`user.md`](./user.md) | User Configuration | `~/.config/asura` | User dotfile overrides and live configuration diffs |\n")
+	b.WriteString("| [`habits.md`](./habits.md) | Workflow Patterns | `~/.local/share` | Mined shell history frequency, rhythms, active tools |\n")
+	b.WriteString("| [`log.md`](./log.md) | Changelog | `/var/log` | System reindex history and hardware/package transitions |\n\n")
+
+	b.WriteString("## Core Directives\n\n")
+	b.WriteString("1. **Read `desktop.md` first**: Do not traverse the filesystem to locate desktop configuration files or daemon controls.\n")
+	b.WriteString("2. **GUI-first answers**: Answer desktop configuration questions GUI-first (Settings Hub deep-links) before CLI commands.\n")
+	b.WriteString("3. **Respect User Configs**: Never overwrite user overrides documented in `user.md` with default configurations without asking.\n")
+	b.WriteString("4. **Agent Memory**: Keep durable agent notes in `memory/` and dated notes in `journal/`.\n")
+	return b.String()
+}
+
+func writeLogVaultDoc() error {
+	meta := OKFMeta{
+		Type:        "Changelog",
+		Title:       "Asura OS Knowledge Base Changelog",
+		Description: "Chronological audit log of system indexing events, hardware updates, and package state transitions.",
+		Resource:    "/var/log",
+		Tags:        []string{"asura", "changelog", "audit", "history"},
+	}
+	intro := "# Asura OS Knowledge Base Changelog\n\n" +
+		"Audit log tracking system reindex operations and state drift over time.\n\n" +
+		"[← Back to Index](./index.md)"
+
+	model, _ := cpuModelCores()
+	rel := kernelRelease()
+	totalMem, _ := memTotalUsed()
+	memStr := "unknown memory"
+	if totalMem > 0 {
+		memStr = humanBytes(totalMem) + " memory"
+	}
+	newEntry := fmt.Sprintf("- **%s**: System reindex completed. Hardware: %s (%s), Kernel: %s.",
+		time.Now().UTC().Format(time.RFC3339),
+		orUnknown(model),
+		memStr,
+		orUnknown(rel),
+	)
+
+	path := filepath.Join(VaultDir(), "log.md")
+	existing := readFileOrEmpty(path)
+	var prevEntries []string
+	if bi := strings.Index(existing, vaultFenceBegin); bi >= 0 {
+		if ei := strings.Index(existing, vaultFenceEnd); ei > bi {
+			fenceContent := existing[bi+len(vaultFenceBegin) : ei]
+			for _, line := range strings.Split(fenceContent, "\n") {
+				trimmed := strings.TrimSpace(line)
+				if strings.HasPrefix(trimmed, "- **") {
+					prevEntries = append(prevEntries, trimmed)
+				}
+			}
+		}
+	}
+
+	var all []string
+	all = append(all, newEntry)
+	for _, pe := range prevEntries {
+		if len(all) >= 20 {
+			break
+		}
+		all = append(all, pe)
+	}
+
+	body := "## Reindex Events\n\n" + strings.Join(all, "\n") + "\n"
+	return writeVaultDoc("log.md", meta, intro, body)
+}
+
+func writeSystemVaultDoc() error {
+	meta := OKFMeta{
+		Type:        "Hardware Component",
+		Title:       "System Hardware and Environment",
+		Description: "Live hardware telemetry and topology: CPU, GPU, memory, disks, battery, and displays.",
+		Resource:    "/sys",
+		Tags:        []string{"asura", "hardware", "cpu", "gpu", "memory", "battery", "disks"},
+	}
+	intro := "# System Hardware and Environment\n\n" +
+		"[← Back to Index](./index.md) · [Desktop Subsystem →](./desktop.md)"
+	return writeVaultDoc("system.md", meta, intro, systemBody())
+}
+
+func writeDesktopVaultDoc() error {
+	meta := OKFMeta{
+		Type:        "Desktop Subsystem",
+		Title:       "Asura Desktop Subsystem and GUI Map",
+		Description: "Subsystem map of compositor, shell surfaces, config paths, reload commands, bar layout, and GUI deep-links.",
+		Resource:    "/etc/asura",
+		Tags:        []string{"asura", "desktop", "hyprland", "quickshell", "gui-map", "plugins"},
+	}
+	intro := "# Asura Desktop Map\n\n" +
+		"[← Back to Index](./index.md) · [User Configuration →](./user.md)"
+	return writeVaultDoc("desktop.md", meta, intro, desktopBody())
+}
+
+func writePackagesVaultDoc() error {
+	meta := OKFMeta{
+		Type:        "Package Inventory",
+		Title:       "Installed Packages and Software",
+		Description: "Native XBPS package inventory, explicit installations, Flatpaks, and pending updates.",
+		Resource:    "/var/db/xbps",
+		Tags:        []string{"asura", "packages", "xbps", "flatpak", "software"},
+	}
+	intro := "# Package Inventory\n\n" +
+		"[← Back to Index](./index.md)"
+	return writeVaultDoc("packages.md", meta, intro, packagesBody())
+}
+
+func batteryDescribe() []string {
+	matches, err := filepath.Glob("/sys/class/power_supply/BAT*")
+	if err != nil || len(matches) == 0 {
+		return nil
+	}
+	var out []string
+	for _, dir := range matches {
+		name := filepath.Base(dir)
+		capB, _ := os.ReadFile(filepath.Join(dir, "capacity"))
+		statusB, _ := os.ReadFile(filepath.Join(dir, "status"))
+		capStr := strings.TrimSpace(string(capB))
+		statusStr := strings.TrimSpace(string(statusB))
+		if capStr != "" {
+			if statusStr != "" {
+				out = append(out, fmt.Sprintf("%s: %s%% (%s)", name, capStr, statusStr))
+			} else {
+				out = append(out, fmt.Sprintf("%s: %s%%", name, capStr))
+			}
+		}
+	}
+	return out
 }
 
 func systemBody() string {
@@ -110,6 +296,16 @@ func systemBody() string {
 		b.WriteString("\n")
 	} else {
 		b.WriteString("- (none detected)\n\n")
+	}
+
+	b.WriteString("## Battery & Power\n\n")
+	if bats := batteryDescribe(); len(bats) > 0 {
+		for _, bt := range bats {
+			fmt.Fprintf(&b, "- %s\n", bt)
+		}
+		b.WriteString("\n")
+	} else {
+		b.WriteString("- (no battery detected - desktop / AC power)\n\n")
 	}
 
 	b.WriteString("## Displays\n\n")
@@ -155,8 +351,8 @@ var desktopMap = []desktopMapRow{
 	{"File manager", "dconf org.gnome.nautilus.*", "Nautilus", "relaunch nautilus"},
 	{"Asura CLI", "binary `asura`; state ~/.local/state/asura/", "asura", "asura update | status | materialize | doctor"},
 	{"Palette", "~/.cache/asura/colors.json", "asura-shell daemon (asura theme generate)", "asura-wallpaper wallpaper repaint"},
-	{"Packages", "apt and dpkg database", "apt, dpkg", "asura update"},
-	{"System vault", "~/.local/share/asura/" + productName + "/", binName, binName + " index"},
+	{"Packages", "XBPS database / Flatpak", "xbps-install, xbps-query, flatpak", "asura update"},
+	{"System vault (OKF)", "~/.local/share/asura/" + productName + "/", binName, binName + " index"},
 }
 
 // actingBody is the first thing desktop.md says: how an agent changes this
@@ -342,7 +538,7 @@ func loadPluginWidgets() []barWidget {
 
 // settingKeys joins a catalogue widget's setting keys for the id table.
 func settingKeys(rows []barSetting) string {
-	keys := make([]string, 0, len(rows))
+	var keys []string
 	for _, r := range rows {
 		if r.Key != "" {
 			keys = append(keys, r.Key)
@@ -354,10 +550,8 @@ func settingKeys(rows []barSetting) string {
 	return strings.Join(keys, ", ")
 }
 
-// barSectionBody renders the desktop map's fenced "Bar and dock" section:
-// built-ins from widgets.json (authoritative for the visibility key) and, when
-// the daemon answers, the installed bar plugins. It is fenced with its own
-// markers so the guide can be located and regenerated on its own.
+// barSectionBody renders the "Bar and dock" markdown, fenced by its own
+// markers so it can be located and updated without rewriting all of desktop.md.
 func barSectionBody() string {
 	var b strings.Builder
 	b.WriteString("\n## Bar and dock\n\n")
@@ -430,31 +624,62 @@ func barSectionBody() string {
 
 func packagesBody() string {
 	var b strings.Builder
-	if out, ok := probe(5, "dpkg-query", "-f", ".\n", "-W"); ok {
-		fmt.Fprintf(&b, "## Total installed\n\n%d packages\n\n", len(nonEmptyLines(out)))
-	} else {
-		b.WriteString("## Total installed\n\n(dpkg unavailable)\n\n")
-	}
-	if out, ok := probe(5, "apt-mark", "showmanual"); ok {
+
+	// Native Void Linux package manager (xbps)
+	if out, ok := probe(5, "xbps-query", "-l"); ok {
 		lines := nonEmptyLines(out)
-		b.WriteString("## Explicitly installed\n\n")
-		fmt.Fprintf(&b, "<details><summary>%d manually installed packages</summary>\n\n", len(lines))
-		for _, l := range lines {
-			fmt.Fprintf(&b, "- %s\n", l)
-		}
-		b.WriteString("\n</details>\n\n")
-	}
-	// apt list reads the lists apt already has; it makes no network request. Its
-	// first line is a header, so count only the "name/suite version" rows.
-	if out, ok := probe(5, "apt", "list", "--upgradable"); ok {
-		n := 0
-		for _, l := range nonEmptyLines(out) {
-			if strings.Contains(l, "/") {
-				n++
+		fmt.Fprintf(&b, "## Total installed (XBPS)\n\n%d packages\n\n", len(lines))
+		if mout, mok := probe(5, "xbps-query", "-m"); mok {
+			mlines := nonEmptyLines(mout)
+			b.WriteString("## Explicitly installed (XBPS)\n\n")
+			fmt.Fprintf(&b, "<details><summary>%d manually installed packages</summary>\n\n", len(mlines))
+			for _, l := range mlines {
+				fmt.Fprintf(&b, "- %s\n", l)
 			}
+			b.WriteString("\n</details>\n\n")
 		}
-		fmt.Fprintf(&b, "## Pending updates\n\n%d packages\n", n)
+		if uout, uok := probe(5, "xbps-install", "-un"); uok {
+			ulines := nonEmptyLines(uout)
+			fmt.Fprintf(&b, "## Pending updates\n\n%d packages\n\n", len(ulines))
+		}
+	} else if out, ok := probe(5, "dpkg-query", "-f", ".\n", "-W"); ok {
+		// Fallback for dpkg
+		fmt.Fprintf(&b, "## Total installed\n\n%d packages\n\n", len(nonEmptyLines(out)))
+		if mout, mok := probe(5, "apt-mark", "showmanual"); mok {
+			lines := nonEmptyLines(mout)
+			b.WriteString("## Explicitly installed\n\n")
+			fmt.Fprintf(&b, "<details><summary>%d manually installed packages</summary>\n\n", len(lines))
+			for _, l := range lines {
+				fmt.Fprintf(&b, "- %s\n", l)
+			}
+			b.WriteString("\n</details>\n\n")
+		}
+		if uout, uok := probe(5, "apt", "list", "--upgradable"); uok {
+			n := 0
+			for _, l := range nonEmptyLines(uout) {
+				if strings.Contains(l, "/") {
+					n++
+				}
+			}
+			fmt.Fprintf(&b, "## Pending updates\n\n%d packages\n\n", n)
+		}
+	} else {
+		b.WriteString("## Total installed\n\n(package manager query unavailable)\n\n")
 	}
+
+	// Flatpaks if present
+	if fout, fok := probe(5, "flatpak", "list", "--app"); fok {
+		flines := nonEmptyLines(fout)
+		if len(flines) > 0 {
+			b.WriteString("## Flatpaks\n\n")
+			fmt.Fprintf(&b, "<details><summary>%d Flatpak applications</summary>\n\n", len(flines))
+			for _, fl := range flines {
+				fmt.Fprintf(&b, "- %s\n", fl)
+			}
+			b.WriteString("\n</details>\n\n")
+		}
+	}
+
 	return strings.TrimRight(b.String(), "\n") + "\n"
 }
 
@@ -521,6 +746,9 @@ func diskRows() []string {
 }
 
 func packageVersion(pkg string) string {
+	if out, ok := probe(5, "xbps-query", "-p", "pkgver", pkg); ok && strings.TrimSpace(out) != "" {
+		return strings.TrimSpace(out)
+	}
 	out, ok := probe(5, "dpkg-query", "-W", "-f", "${Version}", pkg)
 	if !ok {
 		return ""

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenCode
+GenericName=AI Coding Assistant
+Comment=AI agent for software engineering
+Exec=asura-app terminal -- opencode
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;IDE;ConsoleOnly;
+Keywords=opencode;ai;agent;code;coding;assistant;

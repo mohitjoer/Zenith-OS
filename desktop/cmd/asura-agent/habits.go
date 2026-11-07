@@ -17,16 +17,19 @@ import (
 // and terminal patterns so the model speaks this user's dialect, and every
 // wired agent reads it from the vault for free.
 
-const habitsHeader = "# Habits\n" +
-	"\n" +
-	"Generated: how this user actually works, mined locally (nothing leaves the\n" +
-	"machine). Agents: prefer these names and tools; the content between the\n" +
-	"markers is overwritten on every reindex. Disable the history mining with\n" +
-	"`habits: {\"history\": false}` in ~/.config/asura/" + productName + "/config.json."
-
 // WriteHabits regenerates habits.md; each section is best effort.
 func WriteHabits() error {
-	return writeVaultDoc("habits.md", habitsHeader, habitsBody(LoadConfig()))
+	meta := OKFMeta{
+		Type:        "Workflow Patterns",
+		Title:       "User Workflow Habits and Rhythms",
+		Description: "How this user actually works, mined locally. Developer tool stack and rhythms.",
+		Resource:    "~/.local/share",
+		Tags:        []string{"asura", "habits", "workflow", "rhythms", "tools"},
+	}
+	intro := "# Habits\n\n[← Back to Index](./index.md)\n\n" +
+		"Generated: how this user actually works, mined locally. Agents: prefer these names and tools.\n" +
+		"Disable history mining with `habits: {\"history\": false}` in ~/.config/asura/" + productName + "/config.json."
+	return writeVaultDoc("habits.md", meta, intro, habitsBody(LoadConfig()))
 }
 
 func habitsBody(cfg Config) string {

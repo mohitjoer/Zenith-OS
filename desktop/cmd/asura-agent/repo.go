@@ -198,11 +198,14 @@ func docsList(root string) [][2]string {
 // live checkout when ASURA_AGENT_REPO points at one, else copied from the
 // newest shipped snapshot, else a stub explaining how to generate it.
 func writeRepoVaultDoc() error {
-	const header = "# Asura source map\n" +
-		"\n" +
-		"The Asura monorepo that produced this system: where its source lives and\n" +
-		"what each part does. Generated: the content between the markers is\n" +
-		"overwritten on every reindex."
+	meta := OKFMeta{
+		Type:        "Repository Architecture",
+		Title:       "Asura Monorepo Architecture",
+		Description: "The Asura OS monorepo: where source lives, directory layout, and what each component does.",
+		Resource:    "ASURA-OS",
+		Tags:        []string{"asura", "architecture", "repository", "source-tree"},
+	}
+	intro := "# Asura Source Map\n\n[← Back to Index](./index.md)"
 
 	body := ""
 	if repo := os.Getenv(envName("REPO")); repo != "" {
@@ -222,7 +225,7 @@ func writeRepoVaultDoc() error {
 			"/usr/share/asura/" + productName + "/asura-repo.md; on a checkout, run\n" +
 			"`" + binName + " repo-index <checkout>`.\n"
 	}
-	return writeVaultDoc("asura-repo.md", header, body)
+	return writeVaultDoc("asura-repo.md", meta, intro, body)
 }
 
 // cmdRepoIndex is the generation verb used by the PKGBUILD and deploy.sh.

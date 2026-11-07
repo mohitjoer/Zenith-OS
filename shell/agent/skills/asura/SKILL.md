@@ -1,7 +1,7 @@
 ---
 name: asura
 description: >
-  Customize a Asura desktop: an Ubuntu-based system with a Hyprland compositor and
+  Customize an Asura OS desktop: a Hyprland compositor and
   a Quickshell shell (the QS Bar, the dock, widgets, the launcher, and the Hub).
   Use for end-user requests that touch the desktop or its config. Triggers:
   Hyprland, window rules, keybinds, monitors, gaps, borders, the bar, the dock,
@@ -13,10 +13,10 @@ description: >
 
 # Asura
 
-Asura is an Ubuntu-based desktop: a Hyprland compositor, a single Quickshell shell
+Asura OS is an independent modern operating system: a Hyprland compositor, a single Quickshell shell
 that draws the bar, the dock, the launcher, the popouts and the widgets, and a
 set of Go command-line tools that own the config. This skill is for changing a
-running Asura system on behalf of its user. It is not for developing Asura
+running Asura OS system on behalf of its user. It is not for developing Asura OS
 itself (editing the source checkout, writing migrations, cutting a release).
 
 ## When to use this skill
@@ -31,11 +31,12 @@ a place to store a user's choice.
 
 ## Read the vault first
 
-A maintained map of THIS machine lives in the Asura Agent vault at
-`~/.local/share/asura/agent/`. Read it before searching the filesystem or
-guessing where anything lives:
+A maintained knowledge base of THIS machine lives in the Asura Agent vault at
+`~/.local/share/asura/agent/`, structured per Google Open Knowledge Format (OKF v0.1).
+Read it before searching the filesystem or guessing where anything lives:
 
-- `AGENTS.md`: the entry contract and the vault's own rules.
+- `index.md`: root OKF index and knowledge graph table of contents.
+- `AGENTS.md`: the entry contract and the vault's operational rules.
 - `desktop.md`: the map. Every subsystem, the config path that owns it, the
   binary that owns it, and how to reload it. Its generated "Bar and dock"
   section lists every bar widget id, its visibility key, and the bar and dock
@@ -43,8 +44,9 @@ guessing where anything lives:
 - `system.md`, `packages.md`, `user.md`, `habits.md`: hardware, packages, where
   this user diverges from the shipped defaults, and this user's directories and
   tool stack.
+- `log.md`: audit trail of reindexes and system transitions over time.
 
-Ownership inside the vault: the generated maps (`AGENTS.md`, `desktop.md`,
+Ownership inside the vault: the generated maps (`index.md`, `log.md`, `AGENTS.md`, `desktop.md`,
 `system.md`, `packages.md`, `asura-repo.md`, `user.md`, `habits.md`) are rewritten on
 every reindex, so read them and never edit them. `memory/` and `journal/` are
 yours: write durable notes and dated notes (`journal/YYYY-MM-DD.md`) there and

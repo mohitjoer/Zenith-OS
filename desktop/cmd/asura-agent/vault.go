@@ -27,6 +27,8 @@ const (
 // generatedFiles are the vault docs Reindex owns end to end. Everything else in
 // the vault belongs to the user or an agent.
 var generatedFiles = map[string]bool{
+	"index.md":      true,
+	"log.md":        true,
 	"system.md":     true,
 	"desktop.md":    true,
 	"packages.md":   true,
@@ -42,8 +44,10 @@ var generatedFiles = map[string]bool{
 const AgentsTemplate = "# Asura system vault\n" +
 	"\n" +
 	"This is the shared knowledge base for every coding agent on this machine\n" +
-	"(Ubuntu, the Asura desktop, managed by Asura). Read it before exploring\n" +
+	"(Asura OS, Hyprland desktop, managed by Asura). Read it before exploring\n" +
 	"the filesystem or guessing where things live.\n" +
+	"\n" +
+	"Organized per Google Open Knowledge Format (OKF v0.1).\n" +
 	"\n" +
 	"## The one rule\n" +
 	"\n" +
@@ -56,14 +60,16 @@ const AgentsTemplate = "# Asura system vault\n" +
 	"first, act through commands, never edit shipped files. A new bar widget is a\n" +
 	"plugin, per the skill's `plugins.md`.\n" +
 	"\n" +
-	"## What is here\n" +
+	"## What is here (OKF Knowledge Graph)\n" +
 	"\n" +
-	"- `system.md` generated: hardware, kernel, GPU, disks, displays.\n" +
-	"- `desktop.md` generated: the Asura map (configs, owners, reload commands).\n" +
-	"- `packages.md` generated: installed package counts, the explicit set, updates.\n" +
-	"- `asura-repo.md` generated: the Asura source tree map (pre-indexed, ships with the system).\n" +
-	"- `user.md` generated: where this user's config diverges from the shipped baseline.\n" +
-	"- `habits.md` generated: this user's directories, tool stack, and shell rhythms.\n" +
+	"- `index.md` generated (OKF Index): root table of contents and system knowledge graph.\n" +
+	"- `log.md` generated (OKF Changelog): chronological audit of reindex events.\n" +
+	"- `system.md` generated (OKF Hardware): hardware, kernel, GPU, disks, battery, displays.\n" +
+	"- `desktop.md` generated (OKF Subsystem): the Asura map (configs, owners, reload commands, GUI map).\n" +
+	"- `packages.md` generated (OKF Inventory): installed package counts, explicit set, updates.\n" +
+	"- `asura-repo.md` generated (OKF Architecture): the Asura source tree map.\n" +
+	"- `user.md` generated (OKF Config): where this user's config diverges from the shipped baseline.\n" +
+	"- `habits.md` generated (OKF Patterns): this user's directories, tool stack, and shell rhythms.\n" +
 	"- `memory/` durable notes agents author and keep across sessions.\n" +
 	"- `journal/` dated notes, one file per day named `YYYY-MM-DD.md`.\n" +
 	"\n" +

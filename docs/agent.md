@@ -12,10 +12,13 @@ on their own; the part that thinks is yours to plug in (next section).
 
 ## Plug in your own engine
 
+OpenCode is included as a default application in Asura OS (`opencode.desktop` in the launcher,
+configured with full ACP integration). You can also plug in any other agent engine.
+
 The engine is one key in `~/.config/asura/agent/config.json`:
 
 ```json
-{ "engine": { "command": ["your-agent", "acp"] } }
+{ "engine": { "command": ["opencode", "acp"] } }
 ```
 
 `engine.command` is an argv for any program that speaks the Agent Client Protocol
@@ -28,6 +31,23 @@ and the messages around it are `engine.go`. An engine needs `initialize`, `sessi
 `session/list`, models and commands are used when it offers them. If it dies, the last
 line it wrote to stderr is shown. `asura-agent setup` prints this, and `asura-agent
 status` says whether the command resolves.
+
+## Google Open Knowledge Format (OKF v0.1)
+
+The system vault (`~/.local/share/asura/agent/`) is generated as a structured Google Open Knowledge
+Format (OKF v0.1) bundle. Every document carries structured YAML frontmatter (`type`, `title`,
+`description`, `resource`, `tags`, `timestamp`) and graph links:
+
+- `index.md`: Type `Index`. Root table of contents, high-level system overview, and knowledge graph links to all subsystem documents.
+- `log.md`: Type `Changelog`. Chronological audit log of system indexing events, package drift, and state changes over time.
+- `system.md`: Type `Hardware Component`. CPU, GPU, memory, disks, battery, and displays telemetry.
+- `desktop.md`: Type `Desktop Subsystem`. Compositor map, shell surfaces, config paths, reload commands, bar layout, and GUI deep-links.
+- `packages.md`: Type `Package Inventory`. Native XBPS packages, Flatpaks, and pending updates.
+- `asura-repo.md`: Type `Repository Architecture`. Asura OS source tree architecture and directory map.
+- `user.md`: Type `User Configuration`. User dotfile overrides and live configuration diffs against baseline.
+- `habits.md`: Type `Workflow Patterns`. Locally mined shell history frequency, developer tool stack, and rhythms.
+- `memory/`: Persistent memory notes authored by agents across sessions.
+- `journal/`: Dated session notes named `YYYY-MM-DD.md`.
 
 **With no engine** the daemon still runs when enabled and keeps the vault current. `status`
 reports `ready: false` with `no agent engine configured: set engine.command in
