@@ -53,7 +53,8 @@ hardware profile for your specific machine, and an updater that can roll back.
 | Desktop services | pipewire + wireplumber, tlp, NetworkManager, seatd |
 | Portals | `xdg-desktop-portal-hyprland` + `-gtk`, and `-lxqt` for Secret interface |
 | Package manager | XBPS, with first-party repository `asura-xbps-repo`, plus `apm` package manager frontend |
-| Software Store | [Asura Store](https://github.com/ASURA-OS/asura-store) — Graphical showroom window & Go data plane (`asura-store`), multi-provider XBPS/apt/plugin/theme catalogue |
+| Software Store | [Asura Store](https://github.com/ASURA-OS/asura-store) — Graphical showroom window & Go data plane (`asura-store`), multi-provider XBPS/plugin/theme catalogue |
+| Resource Monitor | [Asura Resource Monitor](https://github.com/ASURA-OS/asura-sysmon) — Real-time telemetry, process manager & task manager (`asura-sysmon`) |
 | Agent layer | resident OS agent with a local knowledge vault |
 
 The desktop shell is inspired by ryoku.

@@ -200,6 +200,19 @@
       ]
     },
     {
+      "id": "sysmon",
+      "category": "apps",
+      "label": "Resource Monitor",
+      "chord": "CTRL + SHIFT + Escape",
+      "kind": "app",
+      "action": "asura-sysmon",
+      "also": [
+        {
+          "chord": "SUPER + SHIFT + Escape"
+        }
+      ]
+    },
+    {
       "id": "files",
       "category": "apps",
       "label": "Open the file manager",

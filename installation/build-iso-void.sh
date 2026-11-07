@@ -509,6 +509,31 @@ echo "build-iso-void: building Asura Go binaries..."
 		echo "build-iso-void: building asura-store from desktop tree..."
 		CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-store" ./cmd/asura-store
 	fi
+
+	# Build Asura Resource Monitor (prioritizing standalone repository https://github.com/ASURA-OS/asura-sysmon)
+	SYSMON_SRC="${ASURA_SYSMON_SRC:-}"
+	if [ -z "$SYSMON_SRC" ]; then
+		if [ -d "$REPO_ROOT/../asura-sysmon" ]; then
+			SYSMON_SRC="$REPO_ROOT/../asura-sysmon"
+		elif [ -d "/home/mohit/code/asura-sysmon" ]; then
+			SYSMON_SRC="/home/mohit/code/asura-sysmon"
+		elif [ -d "/home/mohit/code/asura/asura-sysmon" ]; then
+			SYSMON_SRC="/home/mohit/code/asura/asura-sysmon"
+		fi
+	fi
+	if [ -n "$SYSMON_SRC" ] && [ -d "$SYSMON_SRC/cmd/asura-sysmon" ]; then
+		echo "build-iso-void: building asura-sysmon from standalone repo ($SYSMON_SRC)..."
+		( cd "$SYSMON_SRC/cmd/asura-sysmon" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$INCLUDE_DIR/usr/bin/asura-sysmon" . )
+		if [ -d "$SYSMON_SRC/ui" ]; then
+			mkdir -p "$INCLUDE_DIR/usr/share/asura/sysmon"
+			cp -r "$SYSMON_SRC/ui"/* "$INCLUDE_DIR/usr/share/asura/sysmon/" 2>/dev/null || true
+		fi
+	else
+		echo "build-iso-void: building asura-sysmon from desktop tree..."
+		CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-sysmon" ./cmd/asura-sysmon
+		mkdir -p "$INCLUDE_DIR/usr/share/asura/sysmon"
+		cp -r "$REPO_ROOT/shell/sysmon"/* "$INCLUDE_DIR/usr/share/asura/sysmon/" 2>/dev/null || true
+	fi
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-agent" ./cmd/asura-agent
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-mon" ./cmd/asura-vm/mon
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-vm-ssh" ./cmd/asura-vm/remote
@@ -902,6 +927,11 @@ if [ -f "$REPO_ROOT/session/applications/asura-store.desktop" ]; then
 	cp "$REPO_ROOT/session/applications/asura-store.desktop" "$INCLUDE_DIR/etc/skel/Desktop/"
 	chmod 755 "$ROOTFS/home/asura/Desktop/asura-store.desktop" 2>/dev/null || true
 	chmod 755 "$INCLUDE_DIR/etc/skel/Desktop/asura-store.desktop" 2>/dev/null || true
+fi
+if [ -f "$REPO_ROOT/session/applications/asura-sysmon.desktop" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/share/applications"
+	cp "$REPO_ROOT/session/applications/asura-sysmon.desktop" "$INCLUDE_DIR/usr/share/applications/"
+	cp "$REPO_ROOT/session/applications/asura-sysmon.desktop" "$ROOTFS/usr/share/applications/" 2>/dev/null || true
 fi
 if [ -d "$ROOTFS/usr/share/asura" ]; then
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/home/asura/.config/asura/"

@@ -1,0 +1,78 @@
+# The Resource Monitor's two trees must never drift.
+#
+# The standalone asura-sysmon repository (github.com/ASURA-OS/asura-sysmon, public)
+# owns the backend and the window: the ISO builder builds the binary from it whenever
+# available, and `desktop/cmd/asura-sysmon/` and `shell/sysmon/` here are its
+# byte-identical copies.
+#
+# This workflow clones the standalone repo, runs checks against this tree's copies,
+# and enforces parity.
+
+name: sysmon-sync
+
+on:
+  push:
+    branches: [main, dev-unstable]
+    paths:
+      - 'desktop/cmd/asura-sysmon/**'
+      - 'shell/sysmon/**'
+      - 'shell/sysmon.qml'
+      - 'session/applications/asura-sysmon.desktop'
+      - '.github/workflows/sysmon-sync.yml'
+  pull_request:
+    branches: [main, dev-unstable]
+    paths:
+      - 'desktop/cmd/asura-sysmon/**'
+      - 'shell/sysmon/**'
+      - 'shell/sysmon.qml'
+      - 'session/applications/asura-sysmon.desktop'
+      - '.github/workflows/sysmon-sync.yml'
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sysmon-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out ASURA-OS
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check out standalone asura-sysmon
+        uses: actions/checkout@v4
+        with:
+          repository: ASURA-OS/asura-sysmon
+          ref: main
+          path: sysmon-upstream
+          fetch-depth: 1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Verify Go checks
+        run: |
+          cd desktop
+          drift="$(gofmt -l cmd/asura-sysmon)"
+          if [ -n "$drift" ]; then
+            echo "gofmt would change:"
+            echo "$drift"
+            exit 1
+          fi
+          go vet ./cmd/asura-sysmon
+          go test -count=1 -race ./cmd/asura-sysmon
+
+      - name: The embedded backend is byte-identical
+        run: diff -r desktop/cmd/asura-sysmon sysmon-upstream/cmd/asura-sysmon
+
+      - name: The window is byte-identical
+        run: |
+          diff -r shell/sysmon sysmon-upstream/ui
+          diff -q shell/sysmon.qml sysmon-upstream/ui/sysmon.qml
