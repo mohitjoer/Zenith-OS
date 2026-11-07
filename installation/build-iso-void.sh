@@ -390,6 +390,25 @@ if [ -d "$REPO_ROOT/apps" ]; then
 	cp -r "$REPO_ROOT/apps"/* "$INCLUDE_DIR/usr/share/asura/apps/"
 fi
 
+# Stage system-wide skills and pre-seed OpenCode / cross-agent skills
+mkdir -p "$INCLUDE_DIR/usr/share/asura/skills"
+if [ -d "$REPO_ROOT/shell/agent/skills" ]; then
+	cp -r "$REPO_ROOT/shell/agent/skills"/* "$INCLUDE_DIR/usr/share/asura/skills/" 2>/dev/null || true
+fi
+mkdir -p "$INCLUDE_DIR/etc/skel/.agents/skills"
+cp -r "$INCLUDE_DIR/usr/share/asura/skills"/* "$INCLUDE_DIR/etc/skel/.agents/skills/" 2>/dev/null || true
+mkdir -p "$INCLUDE_DIR/etc/skel/.config/opencode/skills"
+cp -r "$INCLUDE_DIR/usr/share/asura/skills"/* "$INCLUDE_DIR/etc/skel/.config/opencode/skills/" 2>/dev/null || true
+cat >"$INCLUDE_DIR/etc/skel/.config/opencode/opencode.json" <<'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": [
+    "/usr/share/asura/skills",
+    "~/.agents/skills"
+  ]
+}
+EOF
+
 # Copy Hyprland configuration, runit services, and shell tree
 cp -r "$REPO_ROOT/session/hyprland"/* "$INCLUDE_DIR/usr/share/asura/hyprland/"
 if [ -d "$REPO_ROOT/session/sddm" ]; then
@@ -960,6 +979,8 @@ if [ -d "$ROOTFS/usr/share/asura" ]; then
 fi
 cp -a "$ROOTFS/etc/skel/.config/ghostty"/* "$ROOTFS/home/asura/.config/ghostty/" 2>/dev/null || true
 cp -a "$ROOTFS/etc/skel/.config/fastfetch"/* "$ROOTFS/home/asura/.config/fastfetch/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.config/opencode" "$ROOTFS/home/asura/.config/" 2>/dev/null || true
+cp -a "$ROOTFS/etc/skel/.agents" "$ROOTFS/home/asura/" 2>/dev/null || true
 cp -a "$ROOTFS/etc/skel/.zshrc" "$ROOTFS/home/asura/.zshrc" 2>/dev/null || true
 chroot "$ROOTFS" su - asura -c "asura materialize" 2>/dev/null || true
 chroot "$ROOTFS" su - asura -c "xdg-user-dirs-update" 2>/dev/null || true

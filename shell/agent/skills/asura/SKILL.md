@@ -7,7 +7,7 @@ description: >
   Hyprland, window rules, keybinds, monitors, gaps, borders, the bar, the dock,
   bar widgets, plugins, themes, wallpaper, colours, night light, idle, lock
   screen, and user-facing asura commands (asura, asura-shell, asura-hubd,
-  asura-wallpaper, asura-agent). Read the vault first; act through commands, not by
+  asura-wallpaper). Read the system configuration first; act through commands, not by
   editing shipped files.
 ---
 
@@ -112,7 +112,6 @@ Prefer a command to a file edit; read a command's `--help` before running it.
 | `asura-shell` | The live shell: the bar, the dock, menus, popouts, and the `shell.json` settings store (the sole writer of `shell.json`). |
 | `asura-hubd` | The Asura Settings data plane and the Hyprland overlay files it generates. Read `asura-hubd --help`. |
 | `asura-wallpaper` | Wallpapers and the colour palette (`asura-wallpaper wallpaper set|next|random`). |
-| `asura-agent` | The assistant: the vault, wiring, the dashboard, `index`, `wire`. |
 
 ```bash
 asura --help                 # the asura CLI surface
