@@ -10,11 +10,10 @@ module asura/desktop
 go 1.26
 
 require (
+	asura/hardware v0.0.0
 	github.com/BurntSushi/toml v1.6.0
-	github.com/coder/websocket v1.8.12
 	github.com/godbus/dbus/v5 v5.2.2
 	golang.org/x/sys v0.27.0
-	asura/hardware v0.0.0
 )
 
 replace asura/hardware => ../system/hardware

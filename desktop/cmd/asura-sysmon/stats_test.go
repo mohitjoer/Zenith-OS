@@ -177,7 +177,7 @@ func BenchmarkCalcCPUPercent(b *testing.B) {
 	s1 := cpuSample{total: 1000, idle: 500}
 	s2 := cpuSample{total: 2000, idle: 600}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = calcCPUPercent(s1, s2)
 	}
 }

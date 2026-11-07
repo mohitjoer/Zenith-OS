@@ -122,30 +122,6 @@ func readProcess(pid int, totalMem uint64) (*ProcessInfo, error) {
 	}, nil
 }
 
-type procCPUSample struct {
-	utime uint64
-	stime uint64
-}
-
-func readProcCPUSample(pid int) (procCPUSample, error) {
-	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
-	if err != nil {
-		return procCPUSample{}, err
-	}
-	str := string(data)
-	closeParen := strings.LastIndex(str, ")")
-	if closeParen == -1 {
-		return procCPUSample{}, fmt.Errorf("invalid stat")
-	}
-	fields := strings.Fields(str[closeParen+1:])
-	if len(fields) < 13 {
-		return procCPUSample{}, fmt.Errorf("short stat")
-	}
-	utime, _ := strconv.ParseUint(fields[11], 10, 64)
-	stime, _ := strconv.ParseUint(fields[12], 10, 64)
-	return procCPUSample{utime: utime, stime: stime}, nil
-}
-
 func ListProcesses(sortBy string, limit int) ([]ProcessInfo, error) {
 	entries, err := os.ReadDir("/proc")
 	if err != nil {

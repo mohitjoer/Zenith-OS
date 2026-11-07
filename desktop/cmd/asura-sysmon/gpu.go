@@ -87,7 +87,7 @@ func queryNvidiaGPU() []GPUStats {
 }
 
 // resolveDeviceModel tries lspci for an accurate name; falls back to vendor name.
-func resolveDeviceModel(cardPath string, vendorID, defaultName string) string {
+func resolveDeviceModel(cardPath string, defaultName string) string {
 	if _, err := exec.LookPath("lspci"); err != nil {
 		return defaultName
 	}
@@ -157,7 +157,7 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 			}
 		}
 
-		friendlyName := resolveDeviceModel(card, vendorID, defaultName)
+		friendlyName := resolveDeviceModel(card, defaultName)
 
 		var utilPct float64
 		var totalMB, usedMB, freeMB uint64

@@ -264,28 +264,28 @@ func readNetDev() ([]NetIf, uint64, uint64, error) {
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	// skip headers (first 2 lines)
-	if scanner.Scan() && scanner.Scan() {
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			colon := strings.Index(line, ":")
-			if colon == -1 {
-				continue
-			}
-			name := strings.TrimSpace(line[:colon])
-			if name == "lo" {
-				continue
-			}
-			fields := strings.Fields(line[colon+1:])
-			if len(fields) < 9 {
-				continue
-			}
-			rx, _ := strconv.ParseUint(fields[0], 10, 64)
-			tx, _ := strconv.ParseUint(fields[8], 10, 64)
-
-			ifs = append(ifs, NetIf{Name: name, RxBytes: rx, TxBytes: tx})
-			totalRx += rx
-			totalTx += tx
+	for i := 0; i < 2 && scanner.Scan(); i++ {
+	}
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		colon := strings.Index(line, ":")
+		if colon == -1 {
+			continue
 		}
+		name := strings.TrimSpace(line[:colon])
+		if name == "lo" {
+			continue
+		}
+		fields := strings.Fields(line[colon+1:])
+		if len(fields) < 9 {
+			continue
+		}
+		rx, _ := strconv.ParseUint(fields[0], 10, 64)
+		tx, _ := strconv.ParseUint(fields[8], 10, 64)
+
+		ifs = append(ifs, NetIf{Name: name, RxBytes: rx, TxBytes: tx})
+		totalRx += rx
+		totalTx += tx
 	}
 	if ifs == nil {
 		ifs = []NetIf{}
