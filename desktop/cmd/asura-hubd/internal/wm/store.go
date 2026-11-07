@@ -346,7 +346,7 @@ func defaultOverrides() Overrides {
 			Clickfinger: false, MiddleEmulation: false, TouchScrollFactor: 1,
 			DisableWhileTyping: true,
 			RepeatRate:         25, RepeatDelay: 600,
-			WorkspaceSwipe: false, SwipeFingers: 3,
+			WorkspaceSwipe: true, SwipeFingers: 3,
 			SwipeInvert: true, SwipeCreateNew: true, SwipeDistance: 300,
 		},
 		Cursor:       Cursor{Theme: CursorThemeDefault, Size: 24, InactiveTimeout: 0, HideOnKeyPress: false},

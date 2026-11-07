@@ -517,6 +517,12 @@ func diffOptions(o Overrides, follow bool) hlOpts {
 		out.set("misc:middle_click_paste", in.MiddleClickPaste)
 	}
 
+	if in.WorkspaceSwipe != di.WorkspaceSwipe {
+		out.set("gestures:workspace_swipe", in.WorkspaceSwipe)
+	}
+	if in.SwipeFingers != di.SwipeFingers {
+		out.set("gestures:workspace_swipe_fingers", in.SwipeFingers)
+	}
 	if in.SwipeInvert != di.SwipeInvert {
 		out.set("gestures:workspace_swipe_invert", in.SwipeInvert)
 	}
@@ -607,6 +613,8 @@ func fullOptions(o Overrides, follow bool) hlOpts {
 	out.set("cursor:inactive_timeout", c.InactiveTimeout)
 	out.set("cursor:hide_on_key_press", c.HideOnKeyPress)
 	out.set("misc:middle_click_paste", in.MiddleClickPaste)
+	out.set("gestures:workspace_swipe", in.WorkspaceSwipe)
+	out.set("gestures:workspace_swipe_fingers", in.SwipeFingers)
 	out.set("gestures:workspace_swipe_invert", in.SwipeInvert)
 	out.set("gestures:workspace_swipe_create_new", in.SwipeCreateNew)
 	out.set("gestures:workspace_swipe_distance", in.SwipeDistance)
