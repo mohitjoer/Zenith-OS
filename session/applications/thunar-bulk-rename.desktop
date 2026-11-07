@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Bulk Rename
+Comment=Bulk rename files with Thunar
+Type=Application
+Exec=true
+NoDisplay=true
+Hidden=true

@@ -938,6 +938,11 @@ if [ -f "$REPO_ROOT/session/applications/opencode.desktop" ]; then
 	cp "$REPO_ROOT/session/applications/opencode.desktop" "$INCLUDE_DIR/usr/share/applications/"
 	cp "$REPO_ROOT/session/applications/opencode.desktop" "$ROOTFS/usr/share/applications/" 2>/dev/null || true
 fi
+if [ -f "$REPO_ROOT/session/applications/thunar-bulk-rename.desktop" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/share/applications"
+	cp -f "$REPO_ROOT/session/applications/thunar-bulk-rename.desktop" "$INCLUDE_DIR/usr/share/applications/"
+	cp -f "$REPO_ROOT/session/applications/thunar-bulk-rename.desktop" "$ROOTFS/usr/share/applications/" 2>/dev/null || true
+fi
 if [ -d "$ROOTFS/usr/share/asura" ]; then
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/home/asura/.config/asura/"
 	cp -a "$ROOTFS/usr/share/asura"/* "$ROOTFS/etc/skel/.config/asura/"
