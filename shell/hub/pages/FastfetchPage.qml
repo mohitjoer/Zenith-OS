@@ -297,15 +297,24 @@ Item {
     Process {
         id: brandScan
         running: true
-        command: ["sh", "-c", "for f in fastfetch-emblem.png logo-mark.png; do [ -r \"$HOME/.local/share/asura/assets/brand/$f\" ] && echo \"$f\"; done; true"]
+        command: ["sh", "-c", "for f in fastfetch-emblem.png logo-mark.png; do if [ -r \"$HOME/.config/asura/branding/$f\" ]; then echo \"$f:$HOME/.config/asura/branding/$f\"; elif [ -r \"/usr/share/asura/branding/$f\" ]; then echo \"$f:/usr/share/asura/branding/$f\"; elif [ -r \"$HOME/.local/share/asura/assets/brand/$f\" ]; then echo \"$f:$HOME/.local/share/asura/assets/brand/$f\"; elif [ -r \"public/branding/$f\" ]; then echo \"$f:public/branding/$f\"; fi; done; true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var have = String(this.text || "").split("\n");
+                var lines = String(this.text || "").split("\n");
+                var map = {};
+                for (var l = 0; l < lines.length; l++) {
+                    var line = lines[l].trim();
+                    if (!line) continue;
+                    var idx = line.indexOf(":");
+                    if (idx > 0)
+                        map[line.substring(0, idx)] = line.substring(idx + 1);
+                }
                 var out = [];
-                for (var i = 0; i < pg.brandFiles.length; i++)
-                    if (have.indexOf(pg.brandFiles[i].file) >= 0)
-                        out.push({ "name": pg.brandFiles[i].name,
-                                   "path": "~/.local/share/asura/assets/brand/" + pg.brandFiles[i].file });
+                for (var i = 0; i < pg.brandFiles.length; i++) {
+                    var f = pg.brandFiles[i].file;
+                    if (map[f])
+                        out.push({ "name": pg.brandFiles[i].name, "path": map[f] });
+                }
                 pg.shippedArt = out;
             }
         }
@@ -367,7 +376,14 @@ Item {
         id: emblemProbe
         visible: false
         asynchronous: true
-        source: (pg.model.logo.kind === "image" && pg.model.logo.source.length > 0) ? pg.logoUrl(pg.model.logo.source) : ""
+        source: {
+            if (pg.model.logo.kind === "builtin") {
+                return (Tokens && Tokens.isLight)
+                    ? Qt.resolvedUrl("../../assets/asura-logo.svg")
+                    : Qt.resolvedUrl("../../assets/asura-logo-on-dark.svg");
+            }
+            return (pg.model.logo.kind === "image" && pg.model.logo.source.length > 0) ? pg.logoUrl(pg.model.logo.source) : "";
+        }
     }
     readonly property real emblemAspect: (emblemProbe.status === Image.Ready && emblemProbe.implicitHeight > 0) ? (emblemProbe.implicitWidth / emblemProbe.implicitHeight) : 1
 
@@ -873,8 +889,15 @@ Item {
                             Image {
                                 x: emblemCol.padL; y: emblemCol.padT
                                 width: emblemCol.boxW; height: emblemCol.boxH
-                                visible: pg.model.logo.kind === "image" && pg.model.logo.source.length > 0
-                                source: (pg.model.logo.kind === "image" && pg.model.logo.source.length > 0) ? pg.logoUrl(pg.model.logo.source) : ""
+                                visible: (pg.model.logo.kind === "image" && pg.model.logo.source.length > 0) || pg.model.logo.kind === "builtin"
+                                source: {
+                                    if (pg.model.logo.kind === "builtin") {
+                                        return (Tokens && Tokens.isLight)
+                                            ? Qt.resolvedUrl("../../assets/asura-logo.svg")
+                                            : Qt.resolvedUrl("../../assets/asura-logo-on-dark.svg");
+                                    }
+                                    return (pg.model.logo.kind === "image" && pg.model.logo.source.length > 0) ? pg.logoUrl(pg.model.logo.source) : "";
+                                }
                                 fillMode: Image.PreserveAspectFit
                                 sourceSize.width: Math.round(emblemCol.boxW * 2) || 168
                                 sourceSize.height: Math.round(emblemCol.boxH * 2) || 168
@@ -885,16 +908,16 @@ Item {
                                 x: emblemCol.padL; y: emblemCol.padT
                                 width: emblemCol.boxW; height: emblemCol.boxH
                                 radius: Tokens.radius
-                                visible: pg.model.logo.kind === "ascii" || pg.model.logo.kind === "builtin"
+                                visible: pg.model.logo.kind === "ascii"
                                 color: "transparent"
                                 border.width: Tokens.border
                                 border.color: Tokens.line
                                 Text {
                                     anchors.centerIn: parent
-                                    text: pg.model.logo.kind === "ascii" ? I18n.tr("TXT") : "\uf31b"
+                                    text: I18n.tr("ASCII")
                                     color: Tokens.inkFaint
                                     font.family: Tokens.mono
-                                    font.pixelSize: pg.model.logo.kind === "builtin" ? 30 : 12
+                                    font.pixelSize: 12
                                 }
                             }
                         }

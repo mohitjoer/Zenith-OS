@@ -257,6 +257,9 @@ func ffNormalizeLogo(l map[string]any) ffLogo {
 	if s, ok := l["source"].(string); ok {
 		out.Source = s
 	}
+	if out.Kind == "ascii" && isShippedAsuraLogo(out.Source) {
+		out.Kind = "builtin"
+	}
 	if w, ok := l["width"].(float64); ok {
 		out.Width = int(w)
 	}
@@ -431,13 +434,23 @@ func ffBuildLogo(l ffLogo) ffOutLogo {
 		out.Type = "file"
 		out.Source = l.Source
 	case "builtin":
-		out.Type = "builtin"
+		src := asuraBuiltinLogoSource()
+		if src != "" {
+			if strings.HasSuffix(src, ".txt") {
+				out.Type = "file"
+			} else {
+				out.Type = "kitty"
+			}
+			out.Source = src
+		} else {
+			out.Type = "builtin"
+		}
 		out.Width, out.Height = 0, 0
 	default:
 		out.Type = "none"
 		out.Width, out.Height = 0, 0
 	}
-	if out.Type != "none" && out.Type != "builtin" {
+	if out.Type != "none" {
 		out.Padding = map[string]int{"top": l.PaddingTop, "right": l.PaddingRight, "left": l.Padding}
 	}
 	return out
@@ -757,7 +770,34 @@ func ffTitleCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-// defaultFastfetchModel: a rich Ryoku-style readout for a box with no config.jsonc yet,
+func isShippedAsuraLogo(src string) bool {
+	base := filepath.Base(src)
+	return base == "asura-logo.txt" || base == "fastfetch-ascii.txt" ||
+		src == "/usr/share/asura/branding/asura-logo.txt" ||
+		src == "/usr/share/asura/branding/fastfetch-ascii.txt"
+}
+
+func asuraBuiltinLogoSource() string {
+	home := os.Getenv("HOME")
+	candidates := []string{
+		"/usr/share/asura/branding/asura-logo.txt",
+		"/usr/share/asura/branding/fastfetch-ascii.txt",
+		filepath.Join(home, ".config/asura/branding/asura-logo.txt"),
+		"/usr/share/asura/branding/fastfetch-emblem.png",
+		filepath.Join(home, ".config/asura/branding/fastfetch-emblem.png"),
+		filepath.Join(home, ".local/share/asura/assets/brand/fastfetch-emblem.png"),
+		"public/branding/asura-logo.txt",
+		"public/branding/fastfetch-emblem.png",
+	}
+	for _, c := range candidates {
+		if fileExists(c) {
+			return c
+		}
+	}
+	return ""
+}
+
+// defaultFastfetchModel: a rich branded readout for a box with no config.jsonc yet,
 // matching the branded Asura layout with section headers, tagline, hardware/system info, and swatches.
 func defaultFastfetchModel() ffModel {
 	mk := func(t, k string) ffRow {
@@ -767,12 +807,36 @@ func defaultFastfetchModel() ffModel {
 	colorsRaw, _ := json.Marshal(map[string]any{"type": "colors", "symbol": "circle"})
 
 	home := os.Getenv("HOME")
-	emblemPath := filepath.Join(home, ".local/share/asura/assets/brand/fastfetch-emblem.png")
 	logoKind := "builtin"
 	logoSrc := ""
-	if fileExists(emblemPath) {
-		logoKind = "image"
-		logoSrc = "~/.local/share/asura/assets/brand/fastfetch-emblem.png"
+
+	candidates := []string{
+		filepath.Join(home, ".config/asura/branding/fastfetch-emblem.png"),
+		filepath.Join(home, ".local/share/asura/assets/brand/fastfetch-emblem.png"),
+		"/usr/share/asura/branding/fastfetch-emblem.png",
+		"public/branding/fastfetch-emblem.png",
+	}
+	for _, c := range candidates {
+		if fileExists(c) {
+			logoKind = "image"
+			logoSrc = c
+			break
+		}
+	}
+	if logoKind != "image" {
+		asciiCandidates := []string{
+			"/usr/share/asura/branding/asura-logo.txt",
+			"/usr/share/asura/branding/fastfetch-ascii.txt",
+			filepath.Join(home, ".config/asura/branding/asura-logo.txt"),
+			"public/branding/asura-logo.txt",
+		}
+		for _, c := range asciiCandidates {
+			if fileExists(c) {
+				logoKind = "builtin"
+				logoSrc = c
+				break
+			}
+		}
 	}
 
 	return ffModel{

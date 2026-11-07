@@ -1,4 +1,4 @@
-# Adapted from Ryoku's apps/zsh/ryoku.zsh (GPL-3.0).
+# Asura OS zsh configuration
 [[ ${__ASURA_ZSH_LOADED:-0} == 1 ]] && return
 __ASURA_ZSH_LOADED=1
 
