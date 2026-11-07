@@ -11,6 +11,7 @@ ARCH=${ASURA_ARCH:-x86_64}
 MIRROR=${ASURA_MIRROR:-https://repo-fastly.voidlinux.org/current}
 ISO_NAME=asura-os-x86_64
 ISO_TITLE="Asura OS x86_64"
+export GOWORK=off
 
 for tool in python3 git curl; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
@@ -479,6 +480,7 @@ EOF
 # Build and copy Asura Go control binaries into include tree
 echo "build-iso-void: building Asura Go binaries..."
 (
+	export GOWORK=off
 	cd "$REPO_ROOT/desktop"
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura" ./cmd/asura
 	CGO_ENABLED=0 go build -o "$INCLUDE_DIR/usr/bin/asura-sysd" ./cmd/asura-sysd
