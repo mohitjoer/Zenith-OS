@@ -263,11 +263,6 @@ func source(env Env, relative string) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-// widgetSource is how Bar.qml names a widget: `"Widgets/" + name + ".qml"`.
-// Matched rather than inferred, so the check follows the source instead of
-// guessing a convention and disagreeing with it.
-var widgetSource = regexp.MustCompile(`"Widgets/"\s*\+\s*[A-Za-z_][A-Za-z0-9_.]*\s*\+\s*"\.qml"`)
-
 // catalogueEntry is one `"name": "WidgetName"` pair in the catalogue map.
 var catalogueEntry = regexp.MustCompile(`"([A-Za-z0-9_-]+)"\s*:\s*"([A-Za-z0-9_-]+)"`)
 
@@ -1163,7 +1158,7 @@ func assignsToProperty(body, name string) bool {
 				continue
 			}
 		}
-		if declares(body[:start], name) {
+		if declares(body[:start]) {
 			continue
 		}
 		return true
@@ -1176,7 +1171,7 @@ func assignsToProperty(body, name string) bool {
 // The keywords are the three a QML file's JavaScript can bind a name with,
 // and the name has to start the declaration rather than end it: `constant`
 // is not `const`.
-func declares(before, name string) bool {
+func declares(before string) bool {
 	trimmed := strings.TrimRight(before, " \t")
 	for _, keyword := range []string{"const", "let", "var"} {
 		if !strings.HasSuffix(trimmed, keyword) {

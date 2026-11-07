@@ -66,7 +66,7 @@ IpcHandler {
 	// The two agreeing: no finding.
 	env := tree(t, map[string]string{"shell.qml": handler})
 	env.HyprlandConfig = "hyprland/hyprland.conf"
-	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "asura"))
+	writeConfig(t, env, fmt.Sprintf(config, "asura"))
 	if findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
 		t.Errorf("findings = %v, want none: the compositor and the shell name "+
 			"the same target", findings)
@@ -76,7 +76,7 @@ IpcHandler {
 	// because that keybind runs and does nothing.
 	env = tree(t, map[string]string{"shell.qml": handler})
 	env.HyprlandConfig = "hyprland/hyprland.conf"
-	writeConfig(t, env, "hyprland.conf", fmt.Sprintf(config, "zenit"))
+	writeConfig(t, env, fmt.Sprintf(config, "zenit"))
 	findings := checkIPCTargets(env, keys(map[string]string{"shell.qml": handler}))
 	if len(findings) != 1 {
 		t.Fatalf("findings = %v, want exactly one", findings)
@@ -95,7 +95,7 @@ IpcHandler {
 }
 
 // writeConfig writes the compositor's configuration into the tree.
-func writeConfig(t *testing.T, env Env, name, body string) {
+func writeConfig(t *testing.T, env Env, body string) {
 	t.Helper()
 	dir := filepath.Join(env.Root, filepath.Dir(env.HyprlandConfig))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -128,7 +128,7 @@ IpcHandler {
 
 	env := tree(t, map[string]string{"shell.qml": handler})
 	env.HyprlandConfig = "hyprland/hyprland.conf"
-	writeConfig(t, env, "hyprland.conf", config)
+	writeConfig(t, env, config)
 	if findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler})); len(findings) != 0 {
 		t.Errorf("findings = %v, want none: the compositor names a "+
 			"function the shell defines", findings)
@@ -138,7 +138,7 @@ IpcHandler {
 	// this is reached in practice.
 	env = tree(t, map[string]string{"shell.qml": handler})
 	env.HyprlandConfig = "hyprland/hyprland.conf"
-	writeConfig(t, env, "hyprland.conf", strings.Replace(config,
+	writeConfig(t, env, strings.Replace(config,
 		"togglePopover launcher", "toggleLauncher launcher", 1))
 
 	findings := checkIPCFunctions(env, keys(map[string]string{"shell.qml": handler}))

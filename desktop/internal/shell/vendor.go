@@ -827,14 +827,15 @@ func declaredQMLModules(root string) (map[string]bool, bool) {
 			modules[strings.TrimPrefix(name, "qml6-module-")] = true
 		} else if strings.HasPrefix(name, "qt6-") {
 			modules[name] = true
-			if name == "qt6-declarative" {
+			switch name {
+			case "qt6-declarative":
 				modules["qtquick"] = true
 				modules["qtquick-controls"] = true
 				modules["qtquick-layouts"] = true
 				modules["qtquick-templates"] = true
 				modules["qtquick-shapes"] = true
 				modules["qtquick-effects"] = true
-			} else if name == "qt6-qt5compat" {
+			case "qt6-qt5compat":
 				modules["qt5compat-graphicaleffects"] = true
 			}
 		}

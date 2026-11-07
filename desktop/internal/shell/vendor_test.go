@@ -57,8 +57,11 @@ func manifestText(t *testing.T, files map[string]string) string {
 	out.WriteString("    notices: shell/vendor/notices.md\n")
 	out.WriteString("    files:\n")
 	for _, name := range names {
-		out.WriteString("      - path: " + name + "\n")
-		out.WriteString("        blob: " + blobID([]byte(files[name])) + "\n")
+		out.WriteString("      - path: ")
+		out.WriteString(name)
+		out.WriteString("\n        blob: ")
+		out.WriteString(blobID([]byte(files[name])))
+		out.WriteString("\n")
 	}
 	return out.String()
 }
