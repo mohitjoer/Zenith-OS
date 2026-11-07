@@ -37,7 +37,7 @@ Item {
                     Image {
                         width: 56
                         height: 56
-                        source: Qt.resolvedUrl("assets/asura-logo-on-dark.svg")
+                        source: "/usr/share/asura/branding/asura-logo-on-dark.svg"
                         fillMode: Image.PreserveAspectFit
                         smooth: true
                         anchors.verticalCenter: parent.verticalCenter

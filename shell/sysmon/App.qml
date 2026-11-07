@@ -7,13 +7,8 @@ Rectangle {
     id: root
     color: "#0c0d12"
 
-    FontLoader { id: flUi; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Regular.ttf") }
-    FontLoader { id: flUiMedium; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Medium.ttf") }
-    FontLoader { id: flUiBold; source: Qt.resolvedUrl("assets/fonts/SpaceGrotesk-Bold.ttf") }
-    FontLoader { id: flMono; source: Qt.resolvedUrl("assets/fonts/JetBrainsMonoNerdFont-Regular.ttf") }
-
-    readonly property string fontUi: flUi.status === FontLoader.Ready ? flUi.name : "Inter, system-ui, -apple-system, sans-serif"
-    readonly property string fontMono: flMono.status === FontLoader.Ready ? flMono.name : "JetBrains Mono, monospace"
+    readonly property string fontUi: "Space Grotesk, Inter, system-ui, -apple-system, sans-serif"
+    readonly property string fontMono: "JetBrainsMono Nerd Font, JetBrains Mono, monospace"
 
     property string currentTab: "performance" // performance, processes, storage, system
     property var stats: ({
@@ -127,7 +122,7 @@ Rectangle {
                 width: 20
                 height: 20
                 anchors.verticalCenter: parent.verticalCenter
-                source: Qt.resolvedUrl("assets/asura-logo-on-dark.svg")
+                source: "/usr/share/asura/branding/asura-logo-on-dark.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 // Fallback text if image not accessible
