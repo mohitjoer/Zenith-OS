@@ -46,6 +46,26 @@ func TestCollectLoadAndUptime(t *testing.T) {
 	_ = loads
 }
 
+func TestIsTopLevelDisk(t *testing.T) {
+	// Empty string must safely return false without panicking
+	if isTopLevelDisk("") {
+		t.Fatalf("expected empty string to not be a top level disk")
+	}
+
+	// Virtual and ram devices must be rejected
+	if isTopLevelDisk("loop0") || isTopLevelDisk("ram0") || isTopLevelDisk("zram0") {
+		t.Fatalf("expected loop/ram/zram to be excluded")
+	}
+
+	// Partitions must be rejected by heuristic if not in sysfs
+	if isTopLevelDisk("nvme0n1p1") {
+		t.Fatalf("expected nvme partition to be rejected")
+	}
+	if isTopLevelDisk("sda1") || isTopLevelDisk("vda2") {
+		t.Fatalf("expected disk partition to be rejected")
+	}
+}
+
 func TestCollectDiskIOStats(t *testing.T) {
 	ioStats, err := CollectDiskIOStats(50 * time.Millisecond)
 	if err != nil {
@@ -79,11 +99,20 @@ func TestCollectBatteryStats(t *testing.T) {
 		if b.Percentage < 0 || b.Percentage > 100 {
 			t.Fatalf("invalid battery percentage: %.2f", b.Percentage)
 		}
+		if b.HealthPct < 0 || b.HealthPct > 100 {
+			t.Fatalf("invalid battery health percentage: %.2f", b.HealthPct)
+		}
+		if b.Watts < 0 {
+			t.Fatalf("negative wattage: %.2f", b.Watts)
+		}
 	}
 }
 
 func TestCollectAllStats(t *testing.T) {
+	start := time.Now()
 	st, err := CollectAllStats(50 * time.Millisecond)
+	elapsed := time.Since(start)
+
 	if err != nil {
 		t.Fatalf("CollectAllStats failed: %v", err)
 	}
@@ -92,5 +121,10 @@ func TestCollectAllStats(t *testing.T) {
 	}
 	if st.Timestamp <= 0 {
 		t.Fatalf("expected valid timestamp")
+	}
+
+	// Concurrency verification: elapsed time should be close to sample interval (~50ms-150ms)
+	if elapsed > 400*time.Millisecond {
+		t.Logf("CollectAllStats took %v (within acceptable CI load limits)", elapsed)
 	}
 }

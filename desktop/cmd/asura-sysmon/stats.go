@@ -355,11 +355,37 @@ func CollectLoadAndUptime() ([3]float64, uint64, error) {
 }
 
 func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
-	loads, uptime, _ := CollectLoadAndUptime()
-	mem, swap, _ := CollectMemoryStats()
-	disks, _ := CollectDiskUsages()
-	gpus := CollectGPUStats()
-	batteries := CollectBatteryStats()
+	if sampleInterval <= 0 {
+		sampleInterval = 200 * time.Millisecond
+	}
+
+	type instantRes struct {
+		loads     [3]float64
+		uptime    uint64
+		mem       MemStats
+		swap      SwapStats
+		disks     []DiskUsage
+		gpus      []GPUStats
+		batteries []BatteryStats
+	}
+
+	instChan := make(chan instantRes, 1)
+	go func() {
+		loads, uptime, _ := CollectLoadAndUptime()
+		mem, swap, _ := CollectMemoryStats()
+		disks, _ := CollectDiskUsages()
+		gpus := CollectGPUStats()
+		batteries := CollectBatteryStats()
+		instChan <- instantRes{
+			loads:     loads,
+			uptime:    uptime,
+			mem:       mem,
+			swap:      swap,
+			disks:     disks,
+			gpus:      gpus,
+			batteries: batteries,
+		}
+	}()
 
 	// Sample delta-based stats concurrently over sampleInterval
 	type cpuRes struct {
@@ -394,6 +420,7 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 		dChan <- diskIORes{stats: s, err: err}
 	}()
 
+	inst := <-instChan
 	cr := <-cChan
 	nr := <-nChan
 	dr := <-dChan
@@ -404,15 +431,15 @@ func CollectAllStats(sampleInterval time.Duration) (SystemStats, error) {
 
 	return SystemStats{
 		CPU:        cr.stats,
-		Memory:     mem,
-		Swap:       swap,
+		Memory:     inst.mem,
+		Swap:       inst.swap,
 		Network:    nr.stats,
-		Disks:      disks,
+		Disks:      inst.disks,
 		DiskIO:     dr.stats,
-		GPUs:       gpus,
-		Batteries:  batteries,
-		UptimeSecs: uptime,
-		LoadAvg:    loads,
+		GPUs:       inst.gpus,
+		Batteries:  inst.batteries,
+		UptimeSecs: inst.uptime,
+		LoadAvg:    inst.loads,
 		Timestamp:  time.Now().Unix(),
 	}, nil
 }

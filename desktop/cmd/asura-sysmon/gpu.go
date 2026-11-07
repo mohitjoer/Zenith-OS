@@ -87,6 +87,10 @@ func queryNvidiaGPU() []GPUStats {
 
 // resolveDeviceModel tries lspci for an accurate name; falls back to vendor name.
 func resolveDeviceModel(cardPath string, vendorID, defaultName string) string {
+	if _, err := exec.LookPath("lspci"); err != nil {
+		return defaultName
+	}
+
 	slotLink, err := filepath.EvalSymlinks(filepath.Join(cardPath, "device"))
 	if err == nil {
 		slot := filepath.Base(slotLink)
@@ -194,7 +198,7 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 			}
 		}
 
-		// 3. Temperature from hwmon under device
+		// 3. Temperature from hwmon under device, or system hwmon matching vendor
 		hwmons, _ := filepath.Glob(filepath.Join(devDir, "hwmon", "hwmon*", "temp*_input"))
 		for _, hw := range hwmons {
 			tVal := readFloat(hw)
@@ -204,6 +208,25 @@ func queryDRMGPU(hasNvidia bool) []GPUStats {
 				}
 				tempC = tVal
 				break
+			}
+		}
+		if tempC == 0 {
+			// Check system hwmon directories for GPU drivers
+			sysHwmons, _ := filepath.Glob("/sys/class/hwmon/hwmon*")
+			for _, shw := range sysHwmons {
+				hName := strings.ToLower(readTrimmed(filepath.Join(shw, "name")))
+				if (vendorID == "0x1002" && strings.Contains(hName, "amdgpu")) ||
+					(vendorID == "0x8086" && (strings.Contains(hName, "i915") || strings.Contains(hName, "xe"))) ||
+					(vendorID == "0x10de" && strings.Contains(hName, "nouveau")) {
+					tVal := readFloat(filepath.Join(shw, "temp1_input"))
+					if tVal > 0 {
+						if tVal > 1000 {
+							tVal /= 1000.0
+						}
+						tempC = tVal
+						break
+					}
+				}
 			}
 		}
 

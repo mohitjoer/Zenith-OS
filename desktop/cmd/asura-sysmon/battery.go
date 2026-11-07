@@ -136,6 +136,26 @@ func CollectBatteryStats() []BatteryStats {
 			}
 		}
 
+		// Clamp numerical metrics to safe ranges
+		if capacity < 0 {
+			capacity = 0
+		} else if capacity > 100 {
+			capacity = 100
+		}
+
+		if healthPct < 0 {
+			healthPct = 0
+		} else if healthPct > 100 {
+			healthPct = 100
+		}
+
+		if watts < 0 {
+			watts = 0
+		}
+		if voltageV < 0 {
+			voltageV = 0
+		}
+
 		batteries = append(batteries, BatteryStats{
 			Name:       base,
 			Status:     status,

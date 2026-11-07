@@ -35,6 +35,10 @@ type diskSample struct {
 
 // isTopLevelDisk determines if devName represents a whole disk rather than a partition or virtual device.
 func isTopLevelDisk(devName string) bool {
+	if len(devName) == 0 {
+		return false
+	}
+
 	// Filter out non-storage / loopback / ramdisks
 	if strings.HasPrefix(devName, "loop") ||
 		strings.HasPrefix(devName, "ram") ||
