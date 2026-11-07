@@ -12,7 +12,7 @@ ShellRoot {
         width: fitW
         height: fitH
         minimumSize: Qt.size(760, 500)
-        color: "#0a0b0e"
+        color: "transparent"
 
         App {
             id: app
