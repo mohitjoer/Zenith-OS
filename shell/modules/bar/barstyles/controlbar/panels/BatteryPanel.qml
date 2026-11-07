@@ -187,11 +187,11 @@ PanelWindow {
                 height: 28; radius: root.panelButtonRadius
                 color: btopMa.containsMouse ? root.fillPrimaryHover : root.seal
                 Behavior on color { ColorAnimation { duration: 120 } }
-                UiText { anchors.centerIn: parent; text: I18n.tr("Open btop"); color: root.paper; font.family: root.mono; font.pixelSize: 11 }
+                UiText { anchors.centerIn: parent; text: I18n.tr("Open Resource Monitor"); color: root.paper; font.family: root.mono; font.pixelSize: 11 }
                 MouseArea {
                     id: btopMa
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onClicked: { root.batteryVisible = false; btopRunner.running = false; btopRunner.running = true }
+                    onClicked: { root.batteryVisible = false; sysmonRunner.running = false; sysmonRunner.running = true }
                 }
             }
         }
@@ -227,5 +227,5 @@ PanelWindow {
         onTriggered: batPanel.refreshBatteryData()
     }
 
-    Process { id: btopRunner; command: ["bash", "-c", "kitty 'btop'"] }
+    Process { id: sysmonRunner; command: ["asura-sysmon"] }
 }

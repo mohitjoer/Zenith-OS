@@ -188,7 +188,7 @@ PanelWindow {
                 Behavior on color { ColorAnimation { duration: 120 } }
                 UiText {
                     anchors.centerIn: parent
-                    text: I18n.tr("Open btop")
+                    text: I18n.tr("Open Resource Monitor")
                     color: root.paper
                     font.family: root.mono; font.pixelSize: 11
                 }
@@ -199,8 +199,8 @@ PanelWindow {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         root.memVisible = false;
-                        btopRunner.running = false;
-                        btopRunner.running = true;
+                        sysmonRunner.running = false;
+                        sysmonRunner.running = true;
                     }
                 }
             }
@@ -208,7 +208,7 @@ PanelWindow {
     }
 
     Process {
-        id: btopRunner
-        command: ["asura-app", "terminal", "--", "btop"]
+        id: sysmonRunner
+        command: ["asura-sysmon"]
     }
 }
