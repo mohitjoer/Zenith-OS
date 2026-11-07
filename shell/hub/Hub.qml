@@ -121,7 +121,6 @@ Rectangle {
             { key: "performance", name: "Performance" }, { key: "session", name: "Session" },
             { key: "recording", name: "Recording" }, { key: "dictation", name: "Dictation", needs: { voiceEngine: true } }, { key: "fastfetch", name: "Fastfetch", adv: true },
             { key: "import", name: "Import config", adv: true, wired: true } ] },
-        { name: "ASURA", items: [ { key: "asura", name: "Asura" } ] },
         { name: "EXTEND", items: [
             { key: "addons", name: "Add-ons" } ] },
         { name: "", items: [ { key: "credits", name: "Credits" } ] }
@@ -138,8 +137,7 @@ Rectangle {
         "widgets": "", "lockscreen": "", "animations": "",
         "addons": "", "windowrules": "", "appoverrides": "", "layerrules": "",
         "session": "", "performance": "",
-        "updates": "", "credits": "", "global": "", "import": "", "windowmanager": "",
-        "asura": "A"
+        "updates": "", "credits": "", "global": "", "import": "", "windowmanager": ""
     })
 
     // Extra search vocabulary per section: the words a user actually types that
@@ -173,8 +171,7 @@ Rectangle {
         "performance": "performance battery power saving save lowpower potato lag cpu gpu ram memory idle freeze reduce motion fps",
         "updates": "update upgrade version channel commit behind check origin",
         "import": "import bring migrate dotfiles config existing kitty fish fastfetch drop folder git backup undo restore adopt",
-        "credits": "credits thanks acknowledgement gratitude contributor",
-        "asura": "idle dim blank lock timeout screen screensaver sleep suspend session"
+        "credits": "credits thanks acknowledgement gratitude contributor"
     })
 
     // ── global search ────────────────────────────────────────────────────
@@ -493,8 +490,6 @@ Rectangle {
         return (prov && prov.length) ? base.concat(prov) : base;
     }
     function pageFile(s) {
-        // not under pages/: it draws the settings registry, not a page of its own
-        if (s === "asura") return Qt.resolvedUrl("AsuraPage.qml");
         var map = { "plugins": "PluginsPage", "profile": "ProfilePage", "bar-studio": "BarStudioPage", "desktop": "DesktopPage", "session": "SessionPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         map.global = "GlobalPage";
         map["import"] = "ImportPage";
@@ -535,10 +530,10 @@ Rectangle {
         "markText": "A", "markImage": "", "markTint": true, "name": "Asura",
         "reloadCover": ReloadCoverModel.empty(),
         "language": "auto", "barStyle": "qsbar", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
-        "qsbar.barPosition": "top", "qsbar.barShellStyle": "fit", "qsbar.barScale": 1.0,
+        "qsbar.barPosition": "top", "qsbar.barShellStyle": "full", "qsbar.barScale": 1.0,
         "qsbar.barAutoHide": false, "qsbar.barBorderEnabled": true, "qsbar.barCornerRadius": 6,
         "qsbar.panelTooltipBorderEnabled": true, "qsbar.barShadowEnabled": false, "qsbar.barFrostEnabled": false,
-        "qsbar.barGapTop": 3, "qsbar.barGapBottom": 0, "qsbar.barGapLeft": 0, "qsbar.barGapRight": 0,
+        "qsbar.barGapTop": 0, "qsbar.barGapBottom": 0, "qsbar.barGapLeft": 0, "qsbar.barGapRight": 0,
         "qsbar.launcherLogoMode": "text", "qsbar.launcherLogoText": "asura", "qsbar.launcherLogoIcon": "asura",
         "qsbar.workspaceStyle": "default", "qsbar.workspaceMode": "active",
         "qsbar.widgets.battery": true, "qsbar.widgets.bluetooth": true, "qsbar.widgets.brightness": true,
@@ -577,7 +572,7 @@ Rectangle {
     function settingsFiles() {
         var s = hub.section;
         if (hub.pageFile(s) === "") return [];
-        if (s === "import" || s === "asura") return [];
+        if (s === "import") return [];
         var ce = hub.cfgDir;
         var home = Quickshell.env("HOME") || "";
         var out = [];

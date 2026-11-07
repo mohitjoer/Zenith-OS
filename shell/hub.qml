@@ -4,7 +4,7 @@ import Quickshell.Io
 import "hub"
 import qs.Ui.Singletons
 
-// Asura Settings entry point, from Ryoku's hub/quickshell/shell.qml. A normal
+// Asura Settings entry point. A normal
 // floating window (not a layer-shell surface); the Hyprland window rule floats
 // and centres it. The file is at the shell root because a Quickshell
 // configuration's root is the directory of its entry file, and `qs.*` only
@@ -30,8 +30,9 @@ ShellRoot {
         // set_min_size/set_max_size, sizing the toplevel to ~0: invisible, no input
         // region (click-dead), while qs keeps running and pins the single-instance
         // lock so reopening no-ops.
-        readonly property int fitW: (win.screen && win.screen.width > 0) ? Math.round(win.screen.width * 0.99) : 1000
-        readonly property int fitH: (win.screen && win.screen.height > 0) ? Math.round((win.screen.height - 56) * 0.99) : 700
+        readonly property int barH: 33
+        readonly property int fitW: (win.screen && win.screen.width > 0) ? win.screen.width : 1200
+        readonly property int fitH: (win.screen && win.screen.height > 0) ? (win.screen.height - barH) : 760
         implicitWidth: fitW
         implicitHeight: fitH
         minimumSize: Qt.size(Math.min(760, win.fitW), Math.min(500, win.fitH))

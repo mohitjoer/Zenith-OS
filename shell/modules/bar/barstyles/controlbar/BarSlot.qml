@@ -67,7 +67,7 @@ PanelWindow {
     // never slides behind the bar.
     exclusiveZone: barSlot.root.barAutoHide ? 0
         : (barSlot.gapLead + barSlot.root.v2BarHeight
-           + barSlot.root.barGapTrail + 3)
+           + barSlot.root.barGapTrail)
     // The input region is the bar strip. Auto-hide widens it to the full edge
     // (so a hover anywhere reveals, including the gaps between islands) and
     // shrinks it to a thin trigger while hidden; the lead gap otherwise stays

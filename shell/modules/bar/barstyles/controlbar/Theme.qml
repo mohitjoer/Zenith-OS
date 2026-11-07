@@ -2606,9 +2606,8 @@ Item {
     // hover anywhere along the edge (even over the gaps between islands).
     property bool barAutoHide: false
 
-    // Gaps hold the shell off each output edge. Default top 3 matches the
-    // reference's island offset.
-    property int barGapTop: 3
+    // Gaps hold the shell off each output edge. Edge-to-edge full bar docks flush.
+    property int barGapTop: 0
     property int barGapBottom: 0
     property int barGapLeft: 0
     property int barGapRight: 0
