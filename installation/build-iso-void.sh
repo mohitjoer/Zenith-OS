@@ -365,6 +365,19 @@ if [ -f "$ZED_CACHE/zed-linux-x86_64.tar.gz" ]; then
 		fi
 	fi
 fi
+
+# Download and install official standalone OpenCode CLI binary if not already cached
+OPENCODE_CACHE="$BUILD_DIR/opencode"
+mkdir -p "$OPENCODE_CACHE"
+if [ ! -f "$OPENCODE_CACHE/opencode-linux-x64.tar.gz" ]; then
+	echo "build-iso-void: downloading OpenCode CLI..."
+	curl -sSL -o "$OPENCODE_CACHE/opencode-linux-x64.tar.gz" "https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-x64.tar.gz" || true
+fi
+if [ -f "$OPENCODE_CACHE/opencode-linux-x64.tar.gz" ]; then
+	mkdir -p "$INCLUDE_DIR/usr/bin"
+	tar -xzf "$OPENCODE_CACHE/opencode-linux-x64.tar.gz" -C "$INCLUDE_DIR/usr/bin" 2>/dev/null || true
+	chmod 755 "$INCLUDE_DIR/usr/bin/opencode" 2>/dev/null || true
+fi
 if [ -d "$REPO_ROOT/apps/mimeapps" ]; then
 	cp "$REPO_ROOT/apps/mimeapps"/asura-mimeapps.list "$INCLUDE_DIR/usr/share/applications/" 2>/dev/null || true
 fi
