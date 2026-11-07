@@ -63,6 +63,7 @@ Rectangle {
         if (s === "windows") return "windowmanager";
         if (s === "cursor") return "input";
         if (s === "autostart" || s === "environment") return "session";
+        if (s === "agent") return "addons";
         return s;
     }
     // An explicit jump (the nav IPC, i.e. the Store's "open in settings") must
@@ -122,7 +123,7 @@ Rectangle {
             { key: "import", name: "Import config", adv: true, wired: true } ] },
         { name: "ASURA", items: [ { key: "asura", name: "Asura" } ] },
         { name: "EXTEND", items: [
-            { key: "addons", name: "Add-ons" }, { key: "agent", name: "Agent" } ] },
+            { key: "addons", name: "Add-ons" } ] },
         { name: "", items: [ { key: "credits", name: "Credits" } ] }
     ]
 
@@ -136,7 +137,7 @@ Rectangle {
         "plugins": "", "bar-studio": "", "desktop": "", "launcher": "", "fastfetch": "",
         "widgets": "", "lockscreen": "", "animations": "",
         "addons": "", "windowrules": "", "appoverrides": "", "layerrules": "",
-        "session": "", "performance": "", "agent": "",
+        "session": "", "performance": "",
         "updates": "", "credits": "", "global": "", "import": "", "windowmanager": "",
         "asura": "A"
     })
@@ -170,7 +171,6 @@ Rectangle {
         "layerrules": "layer rule namespace blur dim bar notification surface",
         "session": "session login startup autostart launch run command boot environment variable env var export",
         "performance": "performance battery power saving save lowpower potato lag cpu gpu ram memory idle freeze reduce motion fps",
-        "agent": "asura agent ai assistant vault memory skills chat code llm needle engine acp",
         "updates": "update upgrade version channel commit behind check origin",
         "import": "import bring migrate dotfiles config existing kitty fish fastfetch drop folder git backup undo restore adopt",
         "credits": "credits thanks acknowledgement gratitude contributor",
@@ -495,7 +495,7 @@ Rectangle {
     function pageFile(s) {
         // not under pages/: it draws the settings registry, not a page of its own
         if (s === "asura") return Qt.resolvedUrl("AsuraPage.qml");
-        var map = { "plugins": "PluginsPage", "profile": "ProfilePage", "bar-studio": "BarStudioPage", "desktop": "DesktopPage", "session": "SessionPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "agent": "AgentPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        var map = { "plugins": "PluginsPage", "profile": "ProfilePage", "bar-studio": "BarStudioPage", "desktop": "DesktopPage", "session": "SessionPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         map.global = "GlobalPage";
         map["import"] = "ImportPage";
         map.windowmanager = "WindowManagerPage";

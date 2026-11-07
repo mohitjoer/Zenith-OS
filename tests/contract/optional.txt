@@ -62,3 +62,4 @@ xorriso                # ISO creation utility in asura-vmd
 yt-dlp                 # media downloader in stash
 zbarimg                # QR barcode reader in asura-cmd-qr-scan
 zenity                 # graphical dialog fallback in chat/shot/vm
+asura-agent            # optional resident assistant layer, removed from default image

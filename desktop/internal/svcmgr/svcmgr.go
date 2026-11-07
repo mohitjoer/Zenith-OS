@@ -49,7 +49,6 @@ var unitService = map[string]string{
 	"asura-hubd.service":           "asura-hubd",
 	"asura-wallpaper.service":      "asura-wallpaper",
 	"asura-idle.service":           "asura-idle",
-	"asura-agent.service":          "asura-agent",
 	"asura-palette-bridge.service": "asura-palette-bridge",
 	"asura-portal.service":         "portal",
 }
